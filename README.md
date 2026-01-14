@@ -1,4 +1,7 @@
 # Monmouth Hold'em Capstone Official Project Repo
+
+<img src="./docs/imgs/Letterhead.png" alt="Monmouth Hold'em Letterhead Logo" height="120px"/>
+
 The official project repo for the 2026 Monmouth Hold'em Capstone project, created for Western Oregon University's Academic Excellence Showcase 2026 and as part of graduation requirments for the WOU Computer Science Division class of 2026
 
 ## Quick Access Links
