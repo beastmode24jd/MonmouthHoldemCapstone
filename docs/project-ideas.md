@@ -1,13 +1,24 @@
-# Project Ideas List
+# **Milestone One Project Ideas List**
 
-## Idea A
-Wildlife Finder game with Local Area Challenges, friendly user head-to-heads and spotting photo mapping feature. Possible AI intergration for determining animal or getting facts based on iamge.
+*In Order of Popularity*
 
-## Idea B
-Wildlife Spotting Photo Mapper and wildlife.
+## Idea 1
+    Wildlife Finder game with Local Area Challenges, friendly user head-to-heads and mapping feature similar to Idea 2\.
 
-## Idea C
-College Athletic Athlete Roster and Data Management CRM.  
+This project would function as a competitive scavenger hunt for people who are into nature specific activities, similar to something like Pokemon GO. Thinking we could use **Google Maps Platform API** for the possible primary interface so that users could create and view pins of wildlife sightings in the area. In order to meet the machine learning requirements, we could integrate **OpenAI vision API** for (image captioning, and object recognition). So that when a user uploads a photo to complete a "challenge", the AI can identify the species to make sure it matches the current objective. We were thinking for our **algorithmic component** we could create a proximity scorer. In theory it would rank users on a leaderboard based on the rarity of the species found and the distance traveled between each find. With some research this would mean calculating great circle distances and cross referencing a rarity index that's stored in our SQL database.
 
-## Ideas D
-Athletic Statistical Software (Sport TBD) \- Targeted for high school and public use.
+## Idea 2
+    Wildlife Spotting Photo Mapper
+
+Similar to idea 1 but this would be more focused for educational purposes and to document biodiversity. This application would allow users to upload photos of "flora or fauna". **"Flora"** refers to all plant life in a region or time, and **"fauna"** refers to all animal life in that same area. This would then be processed by our API either iNaturalist API or Animal Detect API to provide a quick determination of the species scientific name, and classifications of the organism based on the data presented such as (images, traits, etc.). For our required AI use, we could use the same **OpenAI vision API** as described in idea 1, or we could create an **AI "field guide"**, sort of like an assistant that can generate advice on how to safely observe a specific animal in the wild. Providing tips, tricks, danger level, probability of potential sighting etc. For our **algorithmic component** we could create an internal service that can process our SQL data to predict the best time and place to see specific animals based on the history of sightings and time patterns. Something like (there's a 100% chance to see a squirrel at Western Oregon University at 1400 on mondays).
+
+
+## Idea 3
+    College Athletic Athlete Roster and Data Management CRM
+
+This project would serve as a platform for college athletic programs to manage their rosters, recruit tracking, and athlete information. We're thinking of building a dashboard where coaches and staff can view athlete profiles containing academic standing, eligibility status, contact information, injury history, and performance metrics. For our external API integration, we could use the **Twilio API** to enable automated SMS and email notifications, alerting coaches when a recruit updates their commitment status, reminding athletes of upcoming compliance deadlines, or notifying staff when an eligibility flag is triggered. To meet the machine learning requirements, we could integrate OpenAI's API to build a **"recruit fit analyzer"** that evaluates incoming prospects based on historical data from successful athletes in the program, essentially predicting how well a recruit might perform based on their stats, position, and academic profile compared to past roster members. For our **algorithmic component**, we could develop an eligibility tracker that cross references NCAA or conference rules stored in our SQL database with each athlete's academic progress, automatically flagging students at risk of losing eligibility and generating compliance reports. This would involve parsing rule sets and calculating credit hour requirements, GPA thresholds, and progress-toward-degree percentages.
+
+## Idea 4
+    Athletic Statistical Software (Sport TBD) – Targeted for High School and Public Use
+
+This application would provide accessible statistical tracking and analysis for high school athletic programs that typically lack the budget for professional-grade software. Users in case would be coaches, players, or parents; could input game-by-game statistics through a simple interface, and the system would aggregate and visualize performance trends over a season. For our external API integration, we could use the **Chart.js** library combined with a **weather API like OpenWeatherMap** to correlate game day conditions with performance outcomes showing coaches how their team performs in rain vs. clear skies, hot vs. cold temperatures, or home vs. away environments. To satisfy the machine learning requirement, we could implement an OpenAI-powered **"game film summarizer"** where coaches upload play-by-play descriptions or notes, and the AI generates scouting reports, identifies patterns in opponent tendencies, or suggests strategic adjustments based on the data. Alternatively, we could build a performance prediction model that estimates a player's future stats based on their progression curve and comparable players in our database. For our **algorithmic component**, we could create an advanced metrics calculator that goes beyond basic stats—computing things like player efficiency ratings, win shares, or sport specific analytics (like expected goals in soccer or true shooting percentage in basketball) by running formulas against our SQL-stored game data and outputting ranked player comparisons.
