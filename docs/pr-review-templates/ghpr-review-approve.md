@@ -4,7 +4,7 @@
 - [x] Content follows code and repo standards
 - [x] Submitted before sprint PR cutoff
 - [x] Clear of Merge Conflicts
-- [x] Makes clear progresson on sprint/milestone goals
+- [x] Makes clear progression on sprint/milestone goals
 - [x] Passes all tests and does not fail workflows *(Not Applicable)*
 - [x] PR formatted and submitted properly *(Not Applicable)*
 
