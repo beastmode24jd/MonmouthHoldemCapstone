@@ -7,7 +7,6 @@ The official project repo for the 2026 Monmouth Hold'em Capstone project, create
 ## Quick Access Links
 - [View our Team and Contacts](./docs/team.md)
 - [View our Team Meeting Schedule](./docs/mtg-schd.md)
-- [View our Development Team's Resumes](./docs/resumes/)
 
 ## Root Directory Index
 
