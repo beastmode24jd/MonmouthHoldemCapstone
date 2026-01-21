@@ -1,21 +1,26 @@
 # Project & Repo Documents (docs) Folder
-This folder is where all documents pertaining to the project, team and/or repo will live. This folder also has many milestone assignment documents included within it.
+This folder is where all documents pertaining to the project, team and/or repo will live. This folder also houses our team's milestone assignment documents.
 
-## Directory File Index
+## Documents Index
 
-### MH Dev Team Directory & Contacts
-The [team.md](./team.md) file contains the directory of the development and support team for Monmouth Hold'em, including the common contacts and other important links for all members.
+### Team/Personnel Resources
+- The [directory of the development and support team](./team.md) for Monmouth Hold'em, which includes common contacts and other important links for all members of the staff.
+- The [weekly meeting schedule](./mtg-schd.md) for the Monmouth Hold'em team.
 
-### Team Meeting Schedule
-The [mtg-schd.md](./mtg-schd.md) file contains the weekly meeting schedule for the Monmouth Hold'em team, including course (CS 461/2) meeting times, meeting times with Chris Brooks - Team Technical Advisor and Product Owner - and the Development Team's Weekly "As-Needed" meeting schedule.
+### Project Ideas & Overview
+- [Our list of project ideas](./project-ideas.md) - which were created in Milestone One and fine-tunned in Milestone Two - for the 2026 Capstone Project.
 
-### Project Ideas
-The [project-ideas.md](./project-ideas.md) file contains project ideas (created in Milestone One and fine-tunned in Milestone Two).
+- The [overview for our chosen project idea](./project_overview.md), including our vision statement and brief technical/feature overview.
 
-## Directory Sub-Directories Index
+- The [project inception worksheet](./project_inception_wildlife_scavenger_hunt.md) for our chosen project.
 
 ### Images (imgs) Directory
-The [imgs/](./imgs/) directory contains images for docs, including our team logos and letterhead from Milestone One.
+ - [Team Logo - Color Variant](./imgs/LogoColorVer.png)
+ - [Team Logo - Black & White Variant](./imgs/LogoBWVer.png)
+ - [Team Letterhead with Logo and Moto](./imgs/Letterhead.png)
 
-## Business Cards (bcards) Directory
-The [bcards/](./bcards/) directory contains the team business card images (in PNG format) for each development team member (excluding support team members).
+### Other Developer & Technical Resources
+- Pull Request Review (PRR) Templates
+    - [PRR Approval Template](./pr-review-templates/ghpr-review-approve.md)
+    - [PRR Request Changes Template](./pr-review-templates/ghpr-review-rc.md)
+    - [PRR General Comment Template](./pr-review-templates/ghpr-review-gc.md)
