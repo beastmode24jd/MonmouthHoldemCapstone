@@ -61,19 +61,19 @@ See Requirements_template for more
 
 ## List of Needs and Features
 * Need: A reliable navigation source to wildlife spots. 
-    * (Feature: MAP DISPLAY - real time navigation)
+    * Feature: MAP DISPLAY - real time navigation
 * Need: An accurate and automatic way to identify species in the wild. 
-    * (Feature: PHOTO IDENTIFICATION - Instant photo verification)
+    * Feature: PHOTO IDENTIFICATION - Instant photo verification
 * Need: Create a fair competition system based on discovery difficulty and rarity. 
-    * (Feature: Proximity Scorer - Calculate points based on distance from said target and rarity multiplier)
+    * Feature: Proximity Scorer - Calculate points based on distance from said target and rarity multiplier
 * Need: A way to track and review personal and potential discoveries. 
-    * (Feature: ANIDEX- flora/fauna catalog, encyclopedia)
+    * Feature: ANIDEX- flora/fauna catalog, encyclopedia
 * Need: A way for users to engage socically/ group competition. 
-    * (Feature: LEADERBOARD/CLUBS - Ranking system to provide competition among individuals and clubs)
+    * Feature: LEADERBOARD/CLUBS - Ranking system to provide competition among individuals and clubs
 * Need: Structured gameplay loop to keep active users. 
-    * (Feature: MISSIONS AND CHALLENGES - Objective based tasks for users to complete)
+    * Feature: MISSIONS AND CHALLENGES - Objective based tasks for users to complete
 * Need: A way to save users information, progress, Anidex. 
-    * (Feature: USER ACCOUNT/PROFILE - A system personalize settings and record history)
+    * Feature: USER ACCOUNT/PROFILE - A system personalize settings and record history
 ## Initial Modeling
 
 [Miro Mindmap](https://miro.com/welcomeonboard/ZTZhVGxWSDhjMWxPbEovdDZacVRsVUdZeURaYk5hVnA5SGpkNG1XajRRTXNCdW5yeXlLblVONlN3Zk9NWUUxdmhLV2g2MXN1bFFEZEMwZjhXYjBaSGh5TlJJU1BheG9ZY05LNDRLaTcxeXZUWGJRVlZNVkxodk1RQ0R6Tlh6Y2hBd044SHFHaVlWYWk0d3NxeHNmeG9BPT0hdjE=?share_link_id=509122394278)
