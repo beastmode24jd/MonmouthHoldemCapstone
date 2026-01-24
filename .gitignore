@@ -416,3 +416,8 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Team-Added additional ignores
+# JD GitHib CLI PR Helper Files
+prb.md
+newpr
