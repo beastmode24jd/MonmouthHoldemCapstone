@@ -37,8 +37,8 @@ Who are they? Why are they a stakeholder?
 See Requirements_template for more
 
 * **Top Priority Features**
-    * Core Vision AI Integration: The system must connect OpenAI Vision API to identify species from user-uploaded photos with a high confidence interval.
-    * Basic Anidex (Digital Catalog): A databse to store species metadad, rarity scores, and user collection status.
+    * Core Vision AI Integration: The system must connect OpenAI Vision API to identify species from user-uploaded photos with a score of at least 90% for accepted indentification.
+    * Basic Anidex (Digital Catalog): A database to store species metadada, rarity scores, and user collection status.
     * GPS Verified Sightings: Integration with location services to ensure the user is physically at the habitat location when recording a find.
 * **Feature Elaboration and Logic**
     * Scoring Algorithm: Points are awarded based on a formula of $BasePoints\times RarityMultiplier$. Rarity is calculated by total global sightings with the Anidex
