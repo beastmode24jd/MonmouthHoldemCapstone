@@ -136,4 +136,3 @@ Lily is finishing her senior year at OSU studying Fish and Wildlife Sciences. Sh
 
 #### How She Uses the App
 Lily uses the **User Photo Identification feature** extensively during fieldwork to get quick AI-assisted confirmations on species she photographs. The **Anidex** helps her learn about species outside her specialty area (she focuses on fish but wants to expand her knowledge of birds and mammals). She enjoys the **friend system** to connect with classmates and share interesting finds, and uses the **map display** to track where she's documented species for her research notes. The competitive elements are fun for her, but she's primarily motivated by the educational and documentation features.
-
