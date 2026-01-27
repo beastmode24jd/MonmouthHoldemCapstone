@@ -33,7 +33,7 @@
 
 ### Persona 1: Alex Chen
 
-![Alex Chen](./docs/imgs/Alex-chen.jpg)
+![Alex Smith](./imgs/alex-smith.jpeg)
 
 **Age:** 28  
 **Location:** Portland, Oregon  
@@ -60,7 +60,7 @@ Alex uses the Competitive Wildlife Scavenger App primarily for the **leaderboard
 
 ### Persona 2: Dr. Patricia Morales
 
-![Patricia Morales](./docs/imgs/patricia-morales.jpg)
+![Patricia Morales](./imgs/patricia-morales.jpeg)
 
 **Age:** 45  
 **Location:** Eugene, Oregon  
@@ -87,7 +87,7 @@ Patricia uses the app to create **missions and challenges** for her nature club 
 
 ### Persona 3: James Morgan "Saul Goodman" McGill
 
-![James McGill](./docs/img/jimmy-mcgill.jpg)
+![James McGill](./imgs/jimmy-mcgill.jpeg)
 
 **Age:** 67  
 **Location:** Bend, Oregon  
@@ -114,7 +114,7 @@ Bobby primarily uses the **User Photo Identification feature** to document birds
 
 ### Persona 4: Lily Yates
 
-![Lily Yates](./docs/imgs/lily-yates.jpg)
+![Lily Yates](./imgs/lily-yates.jpeg)
 
 **Age:** 23  
 **Location:** Corvallis, Oregon  
