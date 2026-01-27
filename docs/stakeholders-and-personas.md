@@ -10,6 +10,7 @@
 
 | Role | Name | Responsibilities |
 |------|------|------------------|
+| Becka Morgan (WOU CS Professor) | Course Instructor | Oversees capstone course, evaluates project progress and deliverables |
 | Coach, Product Owner, Technical Advisor, Software Owner | Chris Brooks | Project oversight, technical guidance, evaluation, and stakeholder representation |
 | Lead Developer / Repo Maintainer | JD McShane | Repository management, code reviews, architecture decisions, team coordination |
 | Developer | Arin Porter | Feature development, testing, documentation |
