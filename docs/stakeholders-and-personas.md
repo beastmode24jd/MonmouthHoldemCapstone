@@ -8,14 +8,14 @@
 
 ### Development Team - Monmouth Hold'ems
 
-| Role | Name | Responsibilities |
+| Name | Role | Responsibilities |
 |------|------|------------------|
-| Becka Morgan (WOU CS Professor) | Course Instructor | Oversees capstone course, evaluates project progress and deliverables |
-| Coach, Product Owner, Technical Advisor, Software Owner | Chris Brooks | Project oversight, technical guidance, evaluation, and stakeholder representation |
-| Lead Developer / Repo Maintainer | JD McShane | Repository management, code reviews, architecture decisions, team coordination |
-| Developer | Arin Porter | Feature development, testing, documentation |
-| Developer | Marquis Bowles | Feature development, testing, documentation |
-| Developer | Pedro Govea | Feature development, testing, documentation |
+| Becka Morgan | WOU CS Professor / Course Instructor | Oversees capstone course, evaluates project progress and deliverables |
+| Chris Brooks | Coach, Product Owner, Technical Advisor, Software Owner | Project oversight, technical guidance, evaluation, and stakeholder representation |
+| JD McShane | Lead Developer / Repo Maintainer | Repository management, code reviews, architecture decisions, team coordination |
+| Arin Porter | Developer | Feature development, testing, documentation |
+| Marquis Bowles | Developer | Feature development, testing, documentation |
+| Pedro Govea | Developer | Feature development, testing, documentation |
 
 ### External Stakeholders
 
@@ -31,7 +31,7 @@
 
 ## User Personas
 
-### Persona 1: Alex Chen
+### Persona 1: Alex Smith
 
 ![Alex Smith](./imgs/alex-smith.jpeg)
 
@@ -95,7 +95,7 @@ Patricia uses the app to create **missions and challenges** for her nature club 
 **Tech Comfort Level:** Low to Moderate
 
 #### Background
-Bobby spent 35 years as a park ranger at various Oregon state parks before retiring. He has extensive knowledge of Pacific Northwest wildlife and now volunteers with local conservation groups. He recently got a smartphone to stay connected with his grandchildren and is slowly learning to use apps. He's an avid birdwatcher and wildlife photographer who keeps detailed journals of his sightings.
+Jimmy spent 35 years as a park ranger at various Oregon state parks before retiring. He has extensive knowledge of Pacific Northwest wildlife and now volunteers with local conservation groups. He recently got a smartphone to stay connected with his grandchildren and is slowly learning to use apps. He's an avid birdwatcher and wildlife photographer who keeps detailed journals of his sightings.
 
 #### Goals
 - Document and catalog wildlife sightings digitally instead of paper journals
@@ -108,7 +108,7 @@ Bobby spent 35 years as a park ranger at various Oregon state parks before retir
 - Wants to contribute his expertise but doesn't know how
 
 #### How He Uses the App
-Bobby primarily uses the **User Photo Identification feature** to document birds and animals he spots on his daily walks. He appreciates that the AI can help confirm his identifications. The **Anidex** serves as a digital catalog of everything he's seen, replacing his handwritten journals. He occasionally participates in community challenges but mainly enjoys the personal cataloging features and the **map display** showing where he's made discoveries over time.
+Jimmy primarily uses the **User Photo Identification feature** to document birds and animals he spots on his daily walks. He appreciates that the AI can help confirm his identifications. The **Anidex** serves as a digital catalog of everything he's seen, replacing his handwritten journals. He occasionally participates in community challenges but mainly enjoys the personal cataloging features and the **map display** showing where he's made discoveries over time.
 
 ---
 
