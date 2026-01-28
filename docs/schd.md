@@ -1,5 +1,6 @@
 # Project Development Timeline
 ## Milestones
+*One Week Cycle*
 | Number    | Start Date    | End Date      |
 | :-------: | :-----------: | :-----------: |
 | 1         | Jan. 5, 2026  | Jan. 14, 2026 |
@@ -8,6 +9,7 @@
 | 4         | Jan. 27, 2026 | Jan. 14, 2026 |
 
 ## Sprints
+*2-Week Scrum Cycle, Releasing via CI/CD with main branch during Technical Advising Meeting the following day*
 | Number (Term) | Start Date        | End Date          | Relase Date       |
 | :-------:     | :---------------: | :--------------:  | ----------------: |
 | 1  (Winter)   | Feb. 2, 2026      | Feb. 16, 2026     | Feb. 17, 2026     |
