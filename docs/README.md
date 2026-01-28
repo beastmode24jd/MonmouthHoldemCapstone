@@ -11,6 +11,7 @@ This folder is where all documents pertaining to the project, team and/or repo w
 - [Our list of project ideas](./project-ideas.md) - which were created in Milestone One and fine-tuned in Milestone Two - for the 2026 Capstone Project.
 - [Overview for our chosen project idea](./project_overview.md), including our vision statement and brief technical/feature overview.
 - [Project inception worksheet](./project_inception_wildlife_scavenger_hunt.md) for our chosen project.
+- [Project Features/Needs List](./project_inception_wildlife_scavenger_hunt.md#list-of-needs-and-features) for our chosen project.
 
 ### Project Planning - Diagrams & Images
 - [Mindmap & Overview Diagram](./imgs/project-overview-diagram.jpg) 
