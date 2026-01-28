@@ -9,21 +9,24 @@
 | 4         | Jan. 27, 2026 | Feb. 3, 2026 |
 
 ## Sprints
-*2-Week Scrum Cycle, Releasing via CI/CD with main branch during Technical Advising Meeting the following day*
-| Number (Term) | Start Date        | End Date          | Release Date       |
-| :-------:     | :---------------: | :--------------:  | ----------------: |
-| 1  (Winter)   | Feb. 2, 2026      | Feb. 16, 2026     | Feb. 17, 2026     |
-| 2  (Winter)   | Feb. 16, 2026     | March 2, 2026     | March 3, 2026     |
-| 3  (Winter)   | March 2, 2026     | March 16, 2026    | March 17, 2026    |
-| 4  (Spring)   | *TBD*    |  *TBD*  | *TBD*    |
-| 5  (Spring)   | *TBD*    |  *TBD*  | *TBD*    |
-| 6  (Spring)   | *TBD*    |  *TBD*  | *TBD*    |
-| 7  (Spring)   | *TBD*    |  *TBD*  | *TBD*    |
-| 8  (Spring)   | *TBD*    |  *TBD*  | *TBD*    |
-| 9  (Spring)   | *TBD*    |  *TBD*  | *TBD*    |
+*2-Week Scrum Cycle running Tuesday to Tuesday, Releasing via CI/CD with main branch during Technical Advising Meeting.*
+| Number (Term) | Start Date        | End Date          |
+| :-------:     | :---------------: | :--------------:  |
+| 1  (Winter)   | Feb. 3, 2026      | Feb. 17, 2026     |
+| 2  (Winter)   | Feb. 17, 2026     | March 3, 2026     |
+| 3  (Winter)   | March 3, 2026     | March 17, 2026    |
+| *Spring Break*| March 17, 2026    | March 31, 2026    |
+| 4  (Spring)   | March 31, 2026    | April 14, 2026    |
+| 5  (Spring)   | April 14, 2026    | April 28, 2026    |
+| 6  (Spring)   | April 28, 2026    | May 12, 2026      |
+| 7  (Spring)   | May 12, 2026      | May 26, 2026^     |
+| 8  (Spring)^  | May 26, 2026^     | May 28, 2026^     |
 
-## Completion Deadline
-WOU Academic Excellence Showcase, May 28, 2026.
+***Note:** Spring Break Sprint will be a development stop-period with no forward progress during those two weeks*
+*^May Update Spring Term due to AES constraints*
+
+## Completion Deadline / AES Presentation Date
+WOU Academic Excellence Showcase, May 28, 2026. Presentation time *TBD*.
 
 # Development Team Weekly Meeting Schedule
 *Schedule Current as of Jan. 14, 2026*
