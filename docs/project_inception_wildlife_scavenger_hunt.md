@@ -134,17 +134,5 @@ External APIs: Google Maps Platform API, OpenAI Vision API.
 Diagrams, SQL modeling (dbdiagram.io), UML diagrams
 
 ## Timeline and Release Plan
-Sprint Cadence: 2 weeks Sprints (with weekly updates).
-Release Plan: Git Flow. Feature development will happen on dedicated feature branches that are merged into dev and will be approved via PR's and deployed to main the end of each sprint
-
-Milestone,Date,Description
-Milestone 1,Jan 14,Project Selection & Initial Setup
-Milestone 2,Jan 21,Inception Phase & Requirements Documentation
-Milestone 3,Jan 28,Initial Prototype & Architecture Implementation
-Milestone 4,Feb 4,Core Gameplay Loop & API Integration
-
-Sprint Schedule,Date
-Sprint 1, Feb 16 - Mar 1
-Sprint 2, Mar 2 - Mar 15
-Sprint 3, Mar 16 - Mar 30
+See the [Development Timeline Section of Schedule Document](./schd.md#project-development-timeline)
     
