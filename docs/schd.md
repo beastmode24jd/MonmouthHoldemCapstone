@@ -22,10 +22,10 @@
 | 7  (Spring)   | May 12, 2026      | May 26, 2026^     |
 | 8  (Spring)^  | May 26, 2026^     | May 28, 2026^     |
 
-***Note:** Spring Break Sprint will be a development stop-period with no forward prgress druing those two weeks*
+***Note:** Spring Break Sprint will be a development stop-period with no forward progress during those two weeks*
 *^May Update Spring Term due to AES constraints*
 
-## Completion Deadline / AES Presentaiton Date
+## Completion Deadline / AES Presentation Date
 WOU Academic Excellence Showcase, May 28, 2026. Presentation time *TBD*.
 
 # Development Team Weekly Meeting Schedule
