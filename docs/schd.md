@@ -1,0 +1,50 @@
+# Project Development Timeline
+## Milestones
+*One Week Cycle*
+| Number    | Start Date    | End Date      |
+| :-------: | :-----------: | :-----------: |
+| 1         | Jan. 5, 2026  | Jan. 14, 2026 |
+| 2         | Jan. 14, 2026 | Jan. 21, 2026 |
+| 3         | Jan. 5, 2026  | Jan. 27, 2026 |
+| 4         | Jan. 27, 2026 | Feb. 3, 2026 |
+
+## Sprints
+*2-Week Scrum Cycle, Releasing via CI/CD with main branch during Technical Advising Meeting the following day*
+| Number (Term) | Start Date        | End Date          | Release Date       |
+| :-------:     | :---------------: | :--------------:  | ----------------: |
+| 1  (Winter)   | Feb. 2, 2026      | Feb. 16, 2026     | Feb. 17, 2026     |
+| 2  (Winter)   | Feb. 16, 2026     | March 2, 2026     | March 3, 2026     |
+| 3  (Winter)   | March 2, 2026     | March 16, 2026    | March 17, 2026    |
+| 4  (Spring)   | *TBD*    |  *TBD*  | *TBD*    |
+| 5  (Spring)   | *TBD*    |  *TBD*  | *TBD*    |
+| 6  (Spring)   | *TBD*    |  *TBD*  | *TBD*    |
+| 7  (Spring)   | *TBD*    |  *TBD*  | *TBD*    |
+| 8  (Spring)   | *TBD*    |  *TBD*  | *TBD*    |
+| 9  (Spring)   | *TBD*    |  *TBD*  | *TBD*    |
+
+## Completion Deadline
+WOU Academic Excellence Showcase, May 28, 2026.
+
+# Development Team Weekly Meeting Schedule
+*Schedule Current as of Jan. 14, 2026*
+
+For meetings marked "as needed", team will decide during the stand-up meeting prior to meeting date and/or via Discord if meeting needs to be held. Team Lead will create Google Calendar events for Development Meetings as needed/requested.
+
+## Course Meetings (CS 461 & CS 462)
+
+**Monday/Wednesday: 10 a.m. to 12 p.m. (noon)**  
+*ITC 201 \- Repeats Weekly*
+
+## Technical Advisor Team Meeting (Chris)
+
+**Tuesday: 6 a.m. to 7 p.m.**  
+*[https://wou-edu.zoom.us/my/chrisbrooks](https://wou-edu.zoom.us/my/chrisbrooks) \- Repeats Weekly*
+
+## Team Development Meetings
+
+**Monday/Wednesday: 12 p.m. (noon) to 2 p.m.**  
+*In-Person, location varying \- Repeats Weekly (as needed)*
+
+**Friday: 7 p.m. to 9 p.m.**  
+*[https://wou-edu.zoom.us/my/jmcshane22](https://wou-edu.zoom.us/my/jmcshane22)  \- Repeats Weekly (as needed)*  
+***\*Note:** Timing of this meeting may change week-to-week as needed/discussed with team*
