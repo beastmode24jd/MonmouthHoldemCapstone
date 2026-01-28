@@ -6,11 +6,11 @@
 | 1         | Jan. 5, 2026  | Jan. 14, 2026 |
 | 2         | Jan. 14, 2026 | Jan. 21, 2026 |
 | 3         | Jan. 5, 2026  | Jan. 27, 2026 |
-| 4         | Jan. 27, 2026 | Jan. 14, 2026 |
+| 4         | Jan. 27, 2026 | Feb. 3, 2026 |
 
 ## Sprints
 *2-Week Scrum Cycle, Releasing via CI/CD with main branch during Technical Advising Meeting the following day*
-| Number (Term) | Start Date        | End Date          | Relase Date       |
+| Number (Term) | Start Date        | End Date          | Release Date       |
 | :-------:     | :---------------: | :--------------:  | ----------------: |
 | 1  (Winter)   | Feb. 2, 2026      | Feb. 16, 2026     | Feb. 17, 2026     |
 | 2  (Winter)   | Feb. 16, 2026     | March 2, 2026     | March 3, 2026     |
@@ -23,12 +23,12 @@
 | 9  (Spring)   | *TBD*    |  *TBD*  | *TBD*    |
 
 ## Completion Deadline
-WOU Academic Exelence Showcase, May 28, 2026.
+WOU Academic Excellence Showcase, May 28, 2026.
 
 # Development Team Weekly Meeting Schedule
 *Schedule Current as of Jan. 14, 2026*
 
-For meetings marked "as needed", team will decided during the stand-up meeting prior to meeting date and/or via Discord if meeting needs to be held. Team Lead will create Google Caleder events for Development Meetings as needed/requested.
+For meetings marked "as needed", team will decide during the stand-up meeting prior to meeting date and/or via Discord if meeting needs to be held. Team Lead will create Google Calendar events for Development Meetings as needed/requested.
 
 ## Course Meetings (CS 461 & CS 462)
 

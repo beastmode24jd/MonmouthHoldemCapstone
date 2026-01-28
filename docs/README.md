@@ -8,10 +8,8 @@ This folder is where all documents pertaining to the project, team and/or repo w
 - The [development and weekly meeting schedules](./schd.md) for the Monmouth Hold'em team.
 
 ### Project Planning - Ideas, Overviews and Outline Documents
-- [Our list of project ideas](./project-ideas.md) - which were created in Milestone One and fine-tunned in Milestone Two - for the 2026 Capstone Project.
-
+- [Our list of project ideas](./project-ideas.md) - which were created in Milestone One and fine-tuned in Milestone Two - for the 2026 Capstone Project.
 - [Overview for our chosen project idea](./project_overview.md), including our vision statement and brief technical/feature overview.
-
 - [Project inception worksheet](./project_inception_wildlife_scavenger_hunt.md) for our chosen project.
 
 ### Project Planning - Diagrams & Images
@@ -19,7 +17,7 @@ This folder is where all documents pertaining to the project, team and/or repo w
 - [Development Stack Diagram](./imgs/project-dev-stack-diagram.jpg)
 - [Usecase Diagram](./imgs/use-case-diagrams.jpg)
 - [UI/UX Wireframe Diagram](./imgs/ui-ux-diagrams.jpg)
-- [Project Stajeholders and Perceived User/Client Personas](./stakeholders-and-personas.md)
+- [Project Stakeholders and Perceived User/Client Personas](./stakeholders-and-personas.md)
 - [\[DRAFT\] Data UML Diagram](./imgs/data-diagram_rough-draft.png)
 
 ### Team Images
