@@ -36,6 +36,23 @@ Who are they? Why are they a stakeholder?
 ## Initial Requirements Elaboration and Elicitation
 See Requirements_template for more
 
+* **Top Priority Features**
+    * Core Vision AI Integration: The system must connect OpenAI Vision API to identify species from user-uploaded photos with a score of at least 90% for accepted identification.
+    * Basic Anidex (Digital Catalog): A database to store species metadata, rarity scores, and user collection status.
+    * GPS Verified Sightings: Integration with location services to ensure the user is physically at the habitat location when recording a find.
+* **Feature Elaboration and Logic**
+    * Scoring Algorithm: Points are awarded based on a formula of $BasePoints\times RarityMultiplier$. Rarity is calculated by total global sightings with the Anidex
+    * Offline Queue Management: If a user is in a cellular "dead zone," the app will store the photo and GPS data locally. Once a connection is restored, it will trigger the AI verification and award points retroactively.
+    * Safety Geofencing: The system will check location coordinates against public land databases. If the user is on private property or in a restricted zone, the Sighting feature will lock to prevent trespassing.
+* **Initial Data Model**
+    * User Entity: Contains ID, Username, total experience points (XP), and an array of earned badge IDs.
+    * Sighting Entity: Contains ID, UserID (foreign key), Latitude, Longitude, SpeciesID (foreign key), and the image URL stored in the cloud.
+    * Species Entity: Contains ID, common name, scientific name, habitat description, and base rarity score.
+* **Initial INVEST User Stories** 
+    * Story 1 (Vision): As a user, I want to submit a photo of a local bird so that the AI can identify it and add it to my collection.
+    * Story 2 (Tracking): As a student, I want to see a map of nearby habitats so that I know where to look for specific "Missions".
+    * Story 3 (Developer): As a developer, I want to implement the local caching system so that users can record sightings without a stable internet connection.
+
 ### Elicitation Questions
 * Gameplay and Scoring Mechanics
     * What specific metrics (rarity, difficulty of terrain, or distance) will define the point values in the proximity scorer?
@@ -60,20 +77,35 @@ See Requirements_template for more
     
 
 ## List of Needs and Features
-* Need: A reliable navigation source to wildlife spots. 
-    * (Feature: MAP DISPLAY - real time navigation)
-* Need: An accurate and automatic way to identify species in the wild. 
-    * (Feature: PHOTO IDENTIFICATION - Instant photo verification)
-* Need: Create a fair competition system based on discovery difficulty and rarity. 
-    * (Feature: Proximity Scorer - Calculate points based on distance from said target and rarity multiplier)
-* Need: A way to track and review personal and potential discoveries. 
-    * (Feature: ANIDEX- flora/fauna catalog, encyclopedia)
-* Need: A way for users to engage socically/ group competition. 
-    * (Feature: LEADERBOARD/CLUBS - Ranking system to provide competition among individuals and clubs)
-* Need: Structured gameplay loop to keep active users. 
-    * (Feature: MISSIONS AND CHALLENGES - Objective based tasks for users to complete)
-* Need: A way to save users information, progress, Anidex. 
-    * (Feature: USER ACCOUNT/PROFILE - A system personalize settings and record history)
+* Need: Real Time Navigation and Spotting  
+    * Feature: Interactive map interface showing nearby wildlife hotspots.
+    * Feature: Walking directions to specific discovery coordinates.
+    * Feature: "Recent Sighting" markers 
+    * Feature: Offline mode for navigating in areas with poor cellular reception.
+* Need: Species Identification & Verification 
+    * Feature: Instant photo based identification tool for plants and animals.
+    * Feature: Visual confirmation screen showing species facts once a match is found.
+    * Feature: Multi photo upload to help verify tricky or rare species from different angles.
+    * Feature: Real time camera viewfinder with "focus assistance" for better wildlife photography.
+* Need: Competitive Scoring & Discovery Rewards 
+    * Feature: Point system based on the rarity of the species found.
+    * Feature: "Travel Bonus" points for discoveries made far from the user’s home base.
+    * Feature: Digital badges for hitting milestones.
+    * Feature: Daily streak counters to encourage consistent outdoor exploration.
+* Need: The Anidex (Digital Catalog) 
+    * Feature: Personal collection gallery of all confirmed sightings and photos.
+    * Feature: Educational encyclopedia providing diet, habitat, and conservation status for discovered species.
+    * Feature: Region-based checklists to track completion progress.
+    * Feature: Search and filter tools to sort your collection by date, rarity, or category.
+* Need: Social Engagement & Group Competition 
+    * Feature: Public leaderboards showing top explorers at the local, regional, and global levels.
+    * Feature: Club creation allowing groups of friends to compete in private challenges.
+    * Feature: Collaborative missions where multiple users work together to "clear" a specific area map.
+* Need: User Account Creation 
+    * Feature: Account setup process for new users.
+    * Feature: Profile personalization including username selection.
+    * Feature: Account recovery system for users who lose access to their credentials.
+    * Feature: Email verification to ensure valid user communication and security.
 ## Initial Modeling
 
 [Miro Mindmap](https://miro.com/welcomeonboard/ZTZhVGxWSDhjMWxPbEovdDZacVRsVUdZeURaYk5hVnA5SGpkNG1XajRRTXNCdW5yeXlLblVONlN3Zk9NWUUxdmhLV2g2MXN1bFFEZEMwZjhXYjBaSGh5TlJJU1BheG9ZY05LNDRLaTcxeXZUWGJRVlZNVkxodk1RQ0R6Tlh6Y2hBd044SHFHaVlWYWk0d3NxeHNmeG9BPT0hdjE=?share_link_id=509122394278)
@@ -117,17 +149,5 @@ External APIs: Google Maps Platform API, OpenAI Vision API.
 Diagrams, SQL modeling (dbdiagram.io), UML diagrams
 
 ## Timeline and Release Plan
-Sprint Cadence: 2 weeks Sprints (with weekly updates).
-Release Plan: Git Flow. Feature development will happen on dedicated feature branches that are merged into dev and will be approved via PR's and deployed to main the end of each sprint
-
-Milestone,Date,Description
-Milestone 1,Jan 14,Project Selection & Initial Setup
-Milestone 2,Jan 21,Inception Phase & Requirements Documentation
-Milestone 3,Jan 28,Initial Prototype & Architecture Implementation
-Milestone 4,Feb 4,Core Gameplay Loop & API Integration
-
-Sprint Schedule,Date
-Sprint 1, Feb 16 - Mar 1
-Sprint 2, Mar 2 - Mar 15
-Sprint 3, Mar 16 - Mar 30
+See the [Development Timeline Section of Schedule Document](./schd.md#project-development-timeline)
     
