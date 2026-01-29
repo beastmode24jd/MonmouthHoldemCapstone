@@ -77,20 +77,35 @@ See Requirements_template for more
     
 
 ## List of Needs and Features
-* Need: A reliable navigation source to wildlife spots. 
-    * Feature: MAP DISPLAY - real time navigation
-* Need: An accurate and automatic way to identify species in the wild. 
-    * Feature: PHOTO IDENTIFICATION - Instant photo verification
-* Need: Create a fair competition system based on discovery difficulty and rarity. 
-    * Feature: Proximity Scorer - Calculate points based on distance from said target and rarity multiplier
-* Need: A way to track and review personal and potential discoveries. 
-    * Feature: ANIDEX- flora/fauna catalog, encyclopedia
-* Need: A way for users to engage socially/ group competition. 
-    * Feature: LEADERBOARD/CLUBS - Ranking system to provide competition among individuals and clubs
-* Need: Structured gameplay loop to keep active users. 
-    * Feature: MISSIONS AND CHALLENGES - Objective based tasks for users to complete
-* Need: A way to save users information, progress, Anidex. 
-    * Feature: USER ACCOUNT/PROFILE - A system to personalize settings and record history
+* Need: Real Time Navigation and Spotting  
+    * Feature: Interactive map interface showing nearby wildlife hotspots.
+    * Feature: Walking directions to specific discovery coordinates.
+    * Feature: "Recent Sighting" markers 
+    * Feature: Offline mode for navigating in areas with poor cellular reception.
+* Need: Species Identification & Verification 
+    * Feature: Instant photo based identification tool for plants and animals.
+    * Feature: Visual confirmation screen showing species facts once a match is found.
+    * Feature: Multi photo upload to help verify tricky or rare species from different angles.
+    * Feature: Real time camera viewfinder with "focus assistance" for better wildlife photography.
+* Need: Competitive Scoring & Discovery Rewards 
+    * Feature: Point system based on the rarity of the species found.
+    * Feature: "Travel Bonus" points for discoveries made far from the user’s home base.
+    * Feature: Digital badges for hitting milestones.
+    * Feature: Daily streak counters to encourage consistent outdoor exploration.
+* Need: The Anidex (Digital Catalog) 
+    * Feature: Personal collection gallery of all confirmed sightings and photos.
+    * Feature: Educational encyclopedia providing diet, habitat, and conservation status for discovered species.
+    * Feature: Region-based checklists to track completion progress.
+    * Feature: Search and filter tools to sort your collection by date, rarity, or category.
+* Need: Social Engagement & Group Competition 
+    * Feature: Public leaderboards showing top explorers at the local, regional, and global levels.
+    * Feature: Club creation allowing groups of friends to compete in private challenges.
+    * Feature: Collaborative missions where multiple users work together to "clear" a specific area map.
+* Need: User Account Creation 
+    * Feature: Account setup process for new users.
+    * Feature: Profile personalization including username selection.
+    * Feature: Account recovery system for users who lose access to their credentials.
+    * Feature: Email verification to ensure valid user communication and security.
 ## Initial Modeling
 
 [Miro Mindmap](https://miro.com/welcomeonboard/ZTZhVGxWSDhjMWxPbEovdDZacVRsVUdZeURaYk5hVnA5SGpkNG1XajRRTXNCdW5yeXlLblVONlN3Zk9NWUUxdmhLV2g2MXN1bFFEZEMwZjhXYjBaSGh5TlJJU1BheG9ZY05LNDRLaTcxeXZUWGJRVlZNVkxodk1RQ0R6Tlh6Y2hBd044SHFHaVlWYWk0d3NxeHNmeG9BPT0hdjE=?share_link_id=509122394278)
