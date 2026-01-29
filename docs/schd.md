@@ -5,8 +5,8 @@
 | :-------: | :-----------: | :-----------: |
 | 1         | Jan. 5, 2026  | Jan. 14, 2026 |
 | 2         | Jan. 14, 2026 | Jan. 21, 2026 |
-| 3         | Jan. 5, 2026  | Jan. 27, 2026 |
-| 4         | Jan. 27, 2026 | Feb. 3, 2026 |
+| 3         | Jan. 21, 2026 | Jan. 28, 2026 |
+| 4         | Jan. 28, 2026 | Feb. 3, 2026  |
 
 ## Sprints
 *2-Week Scrum Cycle running Tuesday to Tuesday, Releasing via CI/CD with main branch during Technical Advising Meeting.*
@@ -40,7 +40,7 @@ For meetings marked "as needed", team will decide during the stand-up meeting pr
 
 ## Technical Advisor Team Meeting (Chris)
 
-**Tuesday: 6 a.m. to 7 p.m.**  
+**Tuesday: 6 p.m. to 7 p.m.**  
 *[https://wou-edu.zoom.us/my/chrisbrooks](https://wou-edu.zoom.us/my/chrisbrooks) \- Repeats Weekly*
 
 ## Team Development Meetings
