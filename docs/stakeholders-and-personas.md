@@ -33,11 +33,12 @@
 
 ### Persona 1: Alex Smith
 
-![Alex Smith](./imgs/alex-smith.jpeg)
+<!-- ![Alex Smith](./imgs/alex-smith.jpeg) -->
+<img src="./imgs/alex-smith.jpeg" alt="Alex Smith" height="250px"/>
 
-**Age:** 28  
+**Age:** 28 \|
 **Location:** Portland, Oregon  
-**Occupation:** Software Developer  
+**Occupation:** Software Developer \| 
 **Tech Comfort Level:** High
 
 #### Background
@@ -60,11 +61,12 @@ Alex uses the Competitive Wildlife Scavenger App primarily for the **leaderboard
 
 ### Persona 2: Dr. Patricia Morales
 
-![Patricia Morales](./imgs/patricia-morales.jpeg)
+<!-- ![Patricia Morales](./imgs/patricia-morales.jpeg) -->
+<img src="./imgs/patricia-morales.jpeg" alt="Patricia Morales" height="250px"/>
 
-**Age:** 45  
+**Age:** 45 \|
 **Location:** Eugene, Oregon  
-**Occupation:** Middle School Science Teacher  
+**Occupation:** Middle School Science Teacher \|
 **Tech Comfort Level:** Moderate
 
 #### Background
@@ -87,11 +89,13 @@ Patricia uses the app to create **missions and challenges** for her nature club 
 
 ### Persona 3: James Morgan "Saul Goodman" McGill
 
-![James McGill](./imgs/jimmy-mcgill.jpeg)
+<!-- ![James McGill (Not current image)](./imgs/jimmy-mcgill.jpeg) -->
+<img src="./imgs/jimmy-mcgill.jpeg" alt="James McGill (Not current image)" height="250px"/>
 
-**Age:** 67  
+*Image of McGill is not current*  
+**Age:** 67 \|
 **Location:** Bend, Oregon  
-**Occupation:** Retired Park Ranger  
+**Occupation:** Retired Park Ranger \|
 **Tech Comfort Level:** Low to Moderate
 
 #### Background
@@ -114,11 +118,12 @@ Jimmy primarily uses the **User Photo Identification feature** to document birds
 
 ### Persona 4: Lily Yates
 
-![Lily Yates](./imgs/lily-yates.jpeg)
+<!-- ![Lily Yates](./imgs/lily-yates.jpeg) -->
+<img src="./imgs/lily-yates.jpeg" alt="Lily Yates" height="250px"/>
 
-**Age:** 23  
+**Age:** 23 \|
 **Location:** Corvallis, Oregon  
-**Occupation:** Senior at Oregon State University, Fish and Wildlife Major  
+**Occupation:** Senior at Oregon State University, Fish and Wildlife Major \|
 **Tech Comfort Level:** High
 
 #### Background
