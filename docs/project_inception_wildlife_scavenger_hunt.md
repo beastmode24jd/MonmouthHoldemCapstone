@@ -90,7 +90,7 @@ See Requirements_template for more
 * Need: Competitive Scoring & Discovery Rewards 
     * Feature: Point system based on the rarity of the species found.
     * Feature: "Travel Bonus" points for discoveries made far from the user’s home base.
-    * Feature: Digital badges for hitting milestones
+    * Feature: Digital badges for hitting milestones.
     * Feature: Daily streak counters to encourage consistent outdoor exploration.
 * Need: The Anidex (Digital Catalog) 
     * Feature: Personal collection gallery of all confirmed sightings and photos.
@@ -100,10 +100,10 @@ See Requirements_template for more
 * Need: Social Engagement & Group Competition 
     * Feature: Public leaderboards showing top explorers at the local, regional, and global levels.
     * Feature: Club creation allowing groups of friends to compete in private challenges.
-    * Feature: Feature: Collaborative missions where multiple users work together to "clear" a specific area map.. 
+    * Feature: Collaborative missions where multiple users work together to "clear" a specific area map.. 
 * Need: User Account Creation 
     * Feature: Account setup process for new users.
-    * Feature: Profile personalization including username selection 
+    * Feature: Profile personalization including username selection.
     * Feature: Account recovery system for users who lose access to their credentials.
     * Feature: Email verification to ensure valid user communication and security.
 ## Initial Modeling
