@@ -100,7 +100,7 @@ See Requirements_template for more
 * Need: Social Engagement & Group Competition 
     * Feature: Public leaderboards showing top explorers at the local, regional, and global levels.
     * Feature: Club creation allowing groups of friends to compete in private challenges.
-    * Feature: Collaborative missions where multiple users work together to "clear" a specific area map.. 
+    * Feature: Collaborative missions where multiple users work together to "clear" a specific area map.
 * Need: User Account Creation 
     * Feature: Account setup process for new users.
     * Feature: Profile personalization including username selection.
