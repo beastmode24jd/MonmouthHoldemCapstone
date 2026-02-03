@@ -1,0 +1,16 @@
+{
+  "name": "mh.capstone.webapp.tests.unit",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "eslint": "^9.39.2",
+    "jest": "^30.2.0"
+  }
+}
