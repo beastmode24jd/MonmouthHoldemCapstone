@@ -13,7 +13,7 @@ This is the root source folder for our project. This is where any and all code w
 - [PR Body Template](../docs/pr-templates/pull-request-body-template.md) | [PR Example](../docs/pr-templates/pr-body-example.md)
 
 ## External Links
-- [Jira Borad \(Restricted Access\)](https://monmouthholdem.atlassian.net/jira/software/projects/CSP/boards/1/backlog)
+- [Jira Board \(Restricted Access\)](https://monmouthholdem.atlassian.net/jira/software/projects/CSP/boards/1/backlog)
 - [Course Canvas](https://wou.instructure.com/courses/24727/modules)
 
 ### Framework Links
