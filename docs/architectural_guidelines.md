@@ -1,6 +1,6 @@
 # Project Architectural Guidelines
 
-## 1. Folder Structure and Naming Conventions^^^
+## 1. Folder Structure and Naming Conventions
 ### 1.1 Projects & Folder Structure
 #### <u>1.1.1 TestSuite (Solution Folder)</u>
 - **MH.Capstone.Domain.Tests.Unit**
@@ -56,12 +56,12 @@ Planned front-end JS libraries as of Feb. 2, 2026
 
 ## 5. Git Branching & General Development Workflow
 ### 5.1 Feature Branches
-<u>Feature branches will be named after the ticket/issue number in Jira the branch is being create to do development for</u> (i.e. "CSP-13" for Jira Ticket ID CSP-13). 
+<u>Feature branches will be named after the ticket/issue number in Jira the branch is being created to complete development for</u> (i.e. "CSP-13" for Jira Ticket ID CSP-13). 
 
 This naming convention/workflow creates consistency and clarity in what exactly that branch is for and the goal of that feature branch.
 
 ### 5.2 Merging & Post-Feature Development Checklist
-Before creating a GitHub Pull Request as [outlined in section 5.3](#53-github-pull-request-workflow--procedures), first ensure you have completed the following checklist to ensure compatiblity of code and a successful PR.
+Before creating a GitHub Pull Request as [outlined in section 5.3](#53-github-pull-request-workflow--procedures), first ensure you have completed the following checklist to ensure compatibility of code and a successful PR.
 
 - [ ] All Relevant Tests have been written and are passing
     - [ ] Acceptance Tests in BDD style
@@ -80,13 +80,13 @@ Once you have followed the steps in [section 5.2](#52-merging--post-feature-deve
 - [ ] PR title should be "[JIRA-ID] Jira Item title".
 - [ ] PR body/description should follow and match [this template](./pr-templates/pull-request-body-template.md).
     - See the [PR Body Example file](./pr-templates/pr-body-example.md) for a detailed, acceptable example PR.
-- [ ] Attach Repo Manager JD McShane (jmcshane22) and CoPilot as reviewers
+- [ ] Attach Repo Manager JD McShane (jmcshane22) and Copilot as reviewers
 - [ ] Attach yourself and any other code authors as assignees to the PR
-- [ ] Attach and and all approprate labels to the PR
+- [ ] Attach all approprate labels to the PR
 - [ ] Attach the current sprint's milestone as the PR's milestone.
 
 ## 6. Database Scripting & Naming Conventions
 *Becka and/or Chris will be providing our team with guidance and the proper scripting and naming policies for our project, per the Milestone 4 assignment document. As such, our team will be deferring "Database Scripting and Naming Conventions" to our Support Team.*
 
 ## 7. Entity Framework (EF) Core Related-Entity Loading Policy
-Out team will use ["Lazy Loading"](https://learn.microsoft.com/en-us/ef/core/querying/related-data/lazy) for [EF Core](https://learn.microsoft.com/en-us/ef/core/) related-entity loading.
+Our team will use ["Lazy Loading"](https://learn.microsoft.com/en-us/ef/core/querying/related-data/lazy) for [EF Core](https://learn.microsoft.com/en-us/ef/core/) related-entity loading.
