@@ -1,5 +1,3 @@
-<img src="./docs/imgs/Letterhead.png" alt="Monmouth Hold'em Letterhead Logo" height="120px"/>
-
 This is the root source folder for our project. This is where any and all code will live and will be the root of the project codebase and architecture.
 
 # Important Development/Developer Resources

@@ -1,5 +1,3 @@
-<img src="./docs/imgs/Letterhead.png" alt="Monmouth Hold'em Letterhead Logo" height="120px"/>
-
 This folder is where all documents pertaining to the project, team and/or repo will live. This folder also houses our team's milestone assignment documents.
 
 # Docs Folder Index
