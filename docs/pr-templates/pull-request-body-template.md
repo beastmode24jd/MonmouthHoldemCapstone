@@ -1,6 +1,8 @@
 Here should be a summary of the feature you implemented in plain language. Feel free to be brief here, but also explain any development decisions made and proactively clarify any possibly questionable or hard-to-understand logic.
 
-Also, please always link the complete Jira item at the end of this section of the PR, just above “Summary of Changes Made.” If covering multiple Jira items in the same PR, link them all in a bullet list. Always use the ID as the link text (i.e., [CSP-13](#summary-of-changes-made)).
+Also, please always link the complete Jira item at the end of this section of the PR, just above “Summary of Changes Made.” If covering multiple Jira items in the same PR, link them all in a bullet list. Always use the ID as the link text (i.e., [CSP-13]()).
+
+**Completes:** [CSP-XX](), [CSP-XX](), ...
 
 ## Summary of Changes Made
 - Create a bullet-list changelog of what you did.

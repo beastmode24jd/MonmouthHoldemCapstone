@@ -79,6 +79,7 @@ Once you have followed the steps in [section 5.2](#52-merging--post-feature-deve
 - [ ] Target branch should be your local/fork dev branch.
 - [ ] PR title should be "[JIRA-ID] Jira Item title".
 - [ ] PR body/description should follow and match [this template](./pr-templates/pull-request-body-template.md).
+    - See the [PR Body Example file](./pr-templates/pr-body-example.md) for a detailed, acceptable example PR.
 - [ ] Attach Repo Manager JD McShane (jmcshane22) and CoPilot as reviewers
 - [ ] Attach yourself and any other code authors as assignees to the PR
 - [ ] Attach and and all approprate labels to the PR
