@@ -86,7 +86,8 @@ Once you have followed the steps in [section 5.2](#52-merging--post-feature-deve
 - [ ] Attach the current sprint's milestone as the PR's milestone.
 
 ## 6. Database Scripting & Naming Conventions
-*Becka and/or Chris will be providing our team with guidance and the proper scripting and naming policies for our project, per the Milestone 4 assignment document. As such, our team will be deferring "Database Scripting and Naming Conventions" to our Support Team.*
+- Database tables (entities) should be 
+- Column names should be lowercase and 
 
 ## 7. Entity Framework (EF) Core Related-Entity Loading Policy
 Our team will use ["Lazy Loading"](https://learn.microsoft.com/en-us/ef/core/querying/related-data/lazy) for [EF Core](https://learn.microsoft.com/en-us/ef/core/) related-entity loading.

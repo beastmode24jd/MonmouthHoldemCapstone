@@ -17,7 +17,7 @@ This folder is where all documents pertaining to the project, team and/or repo w
 - [Usecase Diagram](./imgs/use-case-diagrams.jpg)
 - [UI/UX Wireframe Diagram](./imgs/ui-ux-diagrams.jpg)
 - [Project Stakeholders and Perceived User/Client Personas](./stakeholders-and-personas.md)
-- [\[DRAFT\] Data UML Diagram](./imgs/data-diagram_second-draft.png)
+- [Sprint 1 DDL](./imgs/sprint-1-ddl.png)
 
 ## Team Images
  - [Team Logo - Color Variant](./imgs/LogoColorVer.png)
