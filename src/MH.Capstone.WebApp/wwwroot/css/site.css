@@ -19,14 +19,66 @@ html {
 
 body {
     margin-bottom: 60px;
-    background-color: C0EDD1;
+    background-color: #C0EDD1;
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
-  text-align: end;
+footer {
+    background-color: #1C261C;
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-  text-align: start;
+nav {
+    background-color: #1C261C;
+}
+
+button {
+
+}
+
+.logo {
+    height: 25px;
+    width: 25px;
+    background-color: #4AB565;
+    border-radius: 50%;
+    display: inline-block;
+    margin: 10px;
+}
+
+.navbar-brand {
+    cursor: default;
+    color: white;
+}
+
+.navbar-brand:hover {
+    color:white;
+}
+
+.dropdown-menu {
+    background-color: #154224;
+}
+
+.dropdown-menu > li > a,
+.dropdown-menu > li > a {
+    color: white;
+}
+
+.dropdown-menu > li > a:hover,
+.dropdown-menu > li > a:focus {
+     color: white;
+     background-color: #1D6234;
+}
+
+.banner {
+    /* Change these dimensions later, pulled from W3Schools Hero Image code example */
+    /* background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url("photographer.jpg"); */
+    height: 50%;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    position: relative;
+}
+
+#menuBtn {
+    color: white;
+    background-color: #1D6234;
+    border: transparent;
 }
