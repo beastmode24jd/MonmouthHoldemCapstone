@@ -68,8 +68,8 @@ button {
   margin: 5px;
   padding: 15px;
   border-radius: 20px;
-  border-color: white;
-  border: none;
+  border-color: #1C261C;
+  border: 15px #1C261C;
 }
 
 button:hover {
@@ -77,27 +77,28 @@ button:hover {
 }
 
 button.btnTwo:hover {
-    background-color: #1D6234;
+    background-color: #164626;
 }
 
 button.btnTwo {
     color: white;
     background-color: #1C261C;
-    border: none;
+    border: 15px white;
 }
 
 a {
     font-family: Verdana, Tahoma, Arial, sans-serif;
-    color: #4AB565;
+    font-size: min(15vw, 16px);
+    color: #355012;
 }
 
 a:hover, a:focus {
     font-family: Verdana, Tahoma, Arial, sans-serif;
-    color: #1D6234;
+    color: #612916;
 }
 
 a:visited {
-    color: #1C261C;
+    color: #612916;
 }
 
 .logo {
