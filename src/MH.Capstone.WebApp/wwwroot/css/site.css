@@ -33,22 +33,27 @@ nav {
 
 h1 {
     font-family: Tahoma, Arial, sans-serif;
+    color: #1C261C;
 }
 
 h2 {
     font-family: Verdana, Tahoma, Arial, sans-serif;
+    color: #1C261C;
 }
 
 h3 {
     font-family: Verdana, Tahoma, Arial, sans-serif;
+    color: #1C261C;
 }
 
 h4 {
     font-family: Verdana, Tahoma, Arial, sans-serif;
+    color: #1C261C;
 }
 
 h5 {
     font-family: Verdana, Tahoma, Arial, sans-serif;
+    color: #1C261C;
 }
 
 p {
@@ -58,6 +63,14 @@ p {
 
 .lightText {
     color: white;
+}
+
+.displayText {
+    color: #1C261C;
+    background-color: white;
+    margin: 5px;
+    padding: 10px;
+
 }
 
 button {
@@ -80,7 +93,7 @@ button.btnTwo:hover {
     background-color: #164626;
 }
 
-button.btnTwo {
+button.btnDark {
     color: white;
     background-color: #1C261C;
     border: 15px white;
@@ -127,6 +140,10 @@ a:visited {
 .dropdown-menu > li > a:focus {
      color: white;
      background-color: #1D6234;
+}
+
+.footerText {
+    color: #C6E292;
 }
 
 .banner-img-1 {
