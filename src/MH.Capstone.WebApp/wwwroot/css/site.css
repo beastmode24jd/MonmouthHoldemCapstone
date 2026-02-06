@@ -49,10 +49,6 @@ button {
     color: white;
 }
 
-.navbar-brand:hover {
-    color: white;
-}
-
 .dropdown-menu {
     background-color: #154224;
 }
@@ -86,22 +82,39 @@ button {
 }
 
 .banner-img-2 {
-    /* Change these dimensions later, pulled from W3Schools Hero Image code example */
-    /* background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url("photographer.jpg"); */
-    height: 50%;
+    background-image: url('../imgs/TreesPhoto2.jpg');
+    height: 280px;
     background-position: center;
     background-repeat: no-repeat;
-    background-size: cover;
+    width: 100vw;
     position: relative;
+    left: 50%;
+    right: 50%;
+    margin-top: 0;
+    margin-left: -50vw;
+    margin-right: -50vw;
+    background-size: cover;
+    display: block;
+    margin-bottom: 20px;
+    padding-bottom: 25px;
 }
 
 .banner-img-3 {
-
-    height: 50%;
+    background-image: url('../imgs/ValleyPhoto1.jpg');
+    height: 280px;
     background-position: center;
     background-repeat: no-repeat;
-    background-size: cover;
+    width: 100vw;
     position: relative;
+    left: 50%;
+    right: 50%;
+    margin-top: 0;
+    margin-left: -50vw;
+    margin-right: -50vw;
+    background-size: cover;
+    display: block;
+    margin-bottom: 20px;
+    padding-bottom: 25px;
 }
 
 #menuBtn {
