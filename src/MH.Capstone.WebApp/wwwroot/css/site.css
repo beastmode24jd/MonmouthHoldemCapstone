@@ -31,8 +31,73 @@ nav {
     background-color: #1C261C;
 }
 
+h1 {
+    font-family: Tahoma, Arial, sans-serif;
+}
+
+h2 {
+    font-family: Verdana, Tahoma, Arial, sans-serif;
+}
+
+h3 {
+    font-family: Verdana, Tahoma, Arial, sans-serif;
+}
+
+h4 {
+    font-family: Verdana, Tahoma, Arial, sans-serif;
+}
+
+h5 {
+    font-family: Verdana, Tahoma, Arial, sans-serif;
+}
+
+p {
+    font-family: Arial, Verdana, Tahoma, sans-serif;
+    font-size: min(15vw, 16px);
+}
+
+.lightText {
+    color: white;
+}
+
 button {
-  /* Placeholder stylization shell for future subtask CSP-62. Not removing. Will edit in an hour. */
+  background-color: white;
+  color: #1C261C;
+  font-family: Verdana, Tahoma, Arial, sans-serif;
+  font-weight: bold;
+  margin: 5px;
+  padding: 15px;
+  border-radius: 20px;
+  border-color: white;
+  border: none;
+}
+
+button:hover {
+    background-color: #C6E292;
+}
+
+button.btnTwo:hover {
+    background-color: #1D6234;
+}
+
+button.btnTwo {
+    color: white;
+    background-color: #1C261C;
+    border: none;
+}
+
+a {
+    font-family: Verdana, Tahoma, Arial, sans-serif;
+    color: #4AB565;
+}
+
+a:hover, a:focus {
+    font-family: Verdana, Tahoma, Arial, sans-serif;
+    color: #1D6234;
+}
+
+a:visited {
+    color: #1C261C;
 }
 
 .logo {
