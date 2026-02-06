@@ -32,7 +32,7 @@ nav {
 }
 
 button {
-
+  /* Placeholder stylization shell for future subtask CSP-62. Not removing. Will edit in an hour. */
 }
 
 .logo {
@@ -50,14 +50,13 @@ button {
 }
 
 .navbar-brand:hover {
-    color:white;
+    color: white;
 }
 
 .dropdown-menu {
     background-color: #154224;
 }
 
-.dropdown-menu > li > a,
 .dropdown-menu > li > a {
     color: white;
 }
