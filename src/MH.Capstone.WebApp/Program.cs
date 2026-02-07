@@ -20,8 +20,11 @@ namespace MH.Capstone.WebApp
             }
 
             app.UseHttpsRedirection();
-            app.UseRouting();
+            app.UseStaticFiles();
 
+            app.UseRouting();
+            
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapStaticAssets();
