@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
- using MH.Capstone.WebApp.Services;
+using MH.Capstone.WebApp.Services;
 
 namespace MH.Capstone.WebApp
 {
@@ -40,7 +40,7 @@ namespace MH.Capstone.WebApp
             app.UseRouting();
 
             app.UseAuthentication();
-            
+
             app.UseAuthorization();
 
             app.MapStaticAssets();
