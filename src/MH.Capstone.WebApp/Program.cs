@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+ using MH.Capstone.WebApp.Services;
+
 namespace MH.Capstone.WebApp
 {
     public class Program
@@ -5,6 +8,20 @@ namespace MH.Capstone.WebApp
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            // Configure cookie authentication
+            builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                .AddCookie(options =>
+                {
+                    options.LoginPath = "/Account/Login";
+                    options.AccessDeniedPath = "/Account/AccessDenied";
+                    options.ExpireTimeSpan = TimeSpan.FromDays(30);
+                    options.SlidingExpiration = true;
+                    options.Cookie.HttpOnly = true;
+                });
+
+            // Register mock authentication service
+            builder.Services.AddScoped<IAuthenticationService, MockAuthenticationService>();
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
@@ -22,6 +39,8 @@ namespace MH.Capstone.WebApp
             app.UseHttpsRedirection();
             app.UseRouting();
 
+            app.UseAuthentication();
+            
             app.UseAuthorization();
 
             app.MapStaticAssets();

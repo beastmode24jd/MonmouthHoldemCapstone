@@ -1,7 +1,6 @@
 using System.Security.Claims;
-using Mircrosoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using System.Net;
 
 
 // This is a tempoary mock service that will be replaced with ASP.NET Core Identity in the future. 
