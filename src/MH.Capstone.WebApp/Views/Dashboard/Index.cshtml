@@ -1,0 +1,88 @@
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h1 class="card-title">Welcome to Your Dashboard</h1>
+                    <hr />
+                    
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <div class="alert alert-success" role="alert">
+                            <h4 class="alert-heading">
+                                <i class="bi bi-person-circle"></i> Hello, @User.Identity.Name!
+                            </h4>
+                            <p>You are successfully logged in.</p>
+                        </div>
+
+                        <div class="mt-4">
+                            <h5>Your Account Information</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">
+                                    <strong>Email:</strong> @User.Identity.Name
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>Authentication Type:</strong> @User.Identity.AuthenticationType
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>Status:</strong> <span class="badge bg-success">Active</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="mt-4">
+                            <form asp-action="Logout" asp-controller="Account" method="post">
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="bi bi-box-arrow-right"></i> Logout
+                                </button>
+                            </form>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning" role="alert">
+                            You are not logged in. Please <a asp-action="Login" asp-controller="Account">login</a> to access your dashboard.
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-speedometer2"></i> Quick Stats
+                    </h5>
+                    <p class="card-text">Dashboard statistics will appear here.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-bell"></i> Notifications
+                    </h5>
+                    <p class="card-text">No new notifications.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-gear"></i> Settings
+                    </h5>
+                    <p class="card-text">Manage your account settings.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
