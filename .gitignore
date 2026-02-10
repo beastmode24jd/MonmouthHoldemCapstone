@@ -423,3 +423,4 @@ FodyWeavers.xsd
 # JD GitHib CLI PR Helper Files
 prb.md
 newpr
+**/run*.bat
