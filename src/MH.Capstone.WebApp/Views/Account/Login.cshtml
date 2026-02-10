@@ -9,14 +9,8 @@
             <div class="card-body">
                 <h2 class="card-title text-center mb-4">Login</h2>
 
-                @if (!string.IsNullOrEmpty(ViewData["ErrorMessage"]?.ToString()))
-                {
-                    <div class="alert alert-danger" role="alert">
-                        @ViewData["ErrorMessage"]
-                    </div>
-                }
-
                 <form asp-action="Login" asp-controller="Account" method="post" id="loginForm">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
                     <input type="hidden" asp-for="ReturnUrl" />
                     
                     <div class="mb-3">

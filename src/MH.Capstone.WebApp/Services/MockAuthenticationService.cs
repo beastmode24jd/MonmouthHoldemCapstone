@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
 
-// This is a tempoary mock service that will be replaced with ASP.NET Core Identity in the future. 
-// Once t he database is set up, This is just to get the UI and testing working now.
+// This is a temporary mock service that will be replaced with ASP.NET Core Identity in the future. 
+// Once the database is set up, This is just to get the UI and testing working now.
 namespace MH.Capstone.WebApp.Services
 {
 

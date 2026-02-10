@@ -89,7 +89,7 @@ namespace MH.Capstone.WebApp.Controllers
             // Add generic error message for failed login attempt
             ModelState.AddModelError(
                 string.Empty,
-                "Invalid email and password.");
+                "Invalid email or password.");
 
             return View(model);
         }
@@ -127,9 +127,14 @@ namespace MH.Capstone.WebApp.Controllers
             // Prevent duplicate user accounts
             if (_authService.UserExists(model.Email))
             {
+                // Log specific reason server-side to avoid email enumeration in responses
+                _logger.LogWarning(
+                    "Registration attempt with already registered email: {Email}",
+                    model.Email);
+
                 ModelState.AddModelError(
                     string.Empty,
-                    "A user with this email already exists.");
+                    "Registration failed. Please try again.");
 
                 return View(model);
             }

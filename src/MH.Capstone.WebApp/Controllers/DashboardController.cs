@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace MH.Capstone.WebApp.Controllers
 {
 
-    // restrictes access to this coontroller so only authenticated users can access it
+    // restricts access to this controller so only authenticated users can access it
     [Authorize]
     public class DashboardController : Controller
     {
