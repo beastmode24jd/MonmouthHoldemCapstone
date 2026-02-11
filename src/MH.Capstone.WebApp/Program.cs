@@ -1,5 +1,7 @@
+using MH.Capstone.Domain.DataAccess.Contexts;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using MH.Capstone.WebApp.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace MH.Capstone.WebApp
 {
@@ -8,6 +10,16 @@ namespace MH.Capstone.WebApp
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            string appConnStrName = "DataDb"; // For application data
+            string authConnStrName = "AuthDb"; // For user authentication data
+
+            builder.Services.AddDbContext<ApplicationDbContext>(opt => opt
+                .UseLazyLoadingProxies()
+                .UseSqlServer(builder.Configuration.GetConnectionString(appConnStrName)
+                    ?? throw new InvalidOperationException($"Connection string {appConnStrName} not found in app settings file.\n\t" +
+                                                           $"ENV is {builder.Environment.EnvironmentName}."))
+            );
 
             // Configure cookie authentication
             builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
