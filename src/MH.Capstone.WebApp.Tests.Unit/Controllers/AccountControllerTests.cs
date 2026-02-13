@@ -1,12 +1,12 @@
+using MH.Capstone.Domain.Services;
+using MH.Capstone.WebApp.Controllers;
+using MH.Capstone.WebApp.Models.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
-using MH.Capstone.WebApp.Controllers;
-using MH.Capstone.WebApp.Models.ViewModels;
-using MH.Capstone.WebApp.Services;
 
-namespace MH.Capstone.Domain.Tests.Unit;
+namespace MH.Capstone.WebApp.Tests.Unit.Controllers;
 
 [TestFixture]
 public class AccountControllerTests
