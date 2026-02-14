@@ -13,11 +13,13 @@ namespace MH.Capstone.Domain.DataModels
         public Guid UserId { get; set; }
 
         [Column("Lat")]
-        [Precision(9, 6)]
+        [Range(-90, 90, ErrorMessage = "Latitude must be within -90 and 90 inclusive")]
+        [Precision(9,6)] // Maps to DECIMAL(9,6) in the database
         public decimal Latitude { get; set; }
 
         [Column("Long")]
-        [Precision(9, 6)]
+        [Range(-180, 180, ErrorMessage = "Longitude must be within -180 and 180 inclusive")]
+        [Precision(9, 6)] // Maps to DECIMAL(9,6) in the database
         public decimal Longitude { get; set; }
 
         public DateTime TimeStamp { get; set; }
