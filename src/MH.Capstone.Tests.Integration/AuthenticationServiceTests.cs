@@ -68,4 +68,51 @@ public class AuthenticationServiceTests
         Assert.That(userInDb, Is.Not.Null, "User should exist in database");
         Assert.That(userInDb.Email, Is.EqualTo(email), "Email should match");
     }
+
+
+    // Write tests for ValidateCredentials 
+    [Test]
+    public async Task ValidateCredentialsAsync_WithCorrectPassword_ReturnsTrue()
+    {
+        // Arrange - First create a user
+        string email = "testuser@example.com";
+        string password = "Test@123!";
+        await _authService!.RegisterUserAsync(email, password);
+
+        // Act - Try to validate with correct credentials
+        var result = await _authService.ValidateCredentialsAsync(email, password);
+
+        // Assert - Should return true
+        Assert.That(result, Is.True, "Valid credentials should return true");
+    }
+
+    [Test]
+    public async Task ValidateCredentialsAsync_WithWrongPassword_ReturnsFalse()
+    {
+        // Arrange - Create a user
+        string email = "testuser2@example.com";
+        string correctPassword = "Test@123!";
+        string wrongPassword = "WrongPass@123!";
+        await _authService!.RegisterUserAsync(email, correctPassword);
+
+        // Act - Try to validate with wrong password
+        var result = await _authService.ValidateCredentialsAsync(email, wrongPassword);
+
+        // Assert - Should return false
+        Assert.That(result, Is.False, "Invalid password should return false");
+    }
+
+    [Test]
+    public async Task ValidateCredentialsAsync_WithNonExistentUser_ReturnsFalse()
+    {
+        // Arrange - Use an email that doesn't exist
+        string email = "nonexistent@example.com";
+        string password = "Test@123!";
+
+        // Act - Try to validate non-existent user
+        var result = await _authService!.ValidateCredentialsAsync(email, password);
+
+        // Assert - Should return false
+        Assert.That(result, Is.False, "Non-existent user should return false");
+    }
 }
