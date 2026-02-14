@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="DataAccess\Abstraction\" />
     <Folder Include="DataAccess\Migrations\" />
+    <Folder Include="DataAccess\Repositories\" />
     <Folder Include="Dtos\" />
   </ItemGroup>
 
