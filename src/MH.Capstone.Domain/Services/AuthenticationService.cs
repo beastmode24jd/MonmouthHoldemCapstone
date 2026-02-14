@@ -36,9 +36,24 @@ namespace MH.Capstone.Domain.Services
             return result.Succeeded;
         }
 
-        public Task<bool> ValidateCredentialsAsync(string email, string password)
+
+        // implement crediential validation logic
+        public async Task<bool> ValidateCredentialsAsync(string email, string password)
         {
-            throw new NotImplementedException();
+            // Find the user by email
+            var user = await _userManager.FindByEmailAsync(email);
+            
+            // If user doesn't exist, return false
+            if (user == null)
+            {
+                return false;
+            }
+
+            // Check if the password is correct using SignInManager
+            var result = await _signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: false);
+
+            // Return true if password is correct
+            return result.Succeeded;
         }
 
         public Task SignInUserAsync(HttpContext httpContext, string email, bool rememberMe)
