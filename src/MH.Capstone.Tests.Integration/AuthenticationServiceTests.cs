@@ -21,6 +21,9 @@ public class AuthenticationServiceTests
         // Create in-memory database for testing
         var services = new ServiceCollection();
         
+        // Add logging (required by Identity)
+        services.AddLogging();
+        
         services.AddDbContext<AuthDbContext>(options =>
             options.UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}"));
         
@@ -29,14 +32,13 @@ public class AuthenticationServiceTests
             .AddEntityFrameworkStores<AuthDbContext>()
             .AddDefaultTokenProviders();
         
-        // TODO: Register real AuthenticationService here when we create it
-        // services.AddScoped<IAuthenticationService, AuthenticationService>();
-        
+        // Register real AuthenticationService here when we create it
+        services.AddScoped<IAuthenticationService, AuthenticationService>();
         _serviceProvider = services.BuildServiceProvider();
         _context = _serviceProvider.GetRequiredService<AuthDbContext>();
         _userManager = _serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         _signInManager = _serviceProvider.GetRequiredService<SignInManager<ApplicationUser>>();
-        
+        _authService = _serviceProvider.GetRequiredService<IAuthenticationService>();
         await _context.Database.EnsureCreatedAsync();
     }
 
@@ -51,10 +53,19 @@ public class AuthenticationServiceTests
 
     [Test]
     public async Task RegisterUserAsync_WithValidData_CreatesUserInDatabase()
-    {
-        // This test will FAIL initially because we haven't created the real service yet
-        // That's the RED step in Red-Green-Refactor!
+  {
+        // Arrange - Set up our test data
+        string email = "newuser@example.com";
+        string password = "Test@123!";
         
-        Assert.Fail("Test not implemented yet - waiting for real AuthenticationService");
+        // Act - Try to register the user
+        var result = await _authService.RegisterUserAsync(email, password);
+        
+        // Assert - Verify user was created
+        Assert.That(result, Is.True, "Registration should succeed");
+        
+        var userInDb = await _userManager.FindByEmailAsync(email);
+        Assert.That(userInDb, Is.Not.Null, "User should exist in database");
+        Assert.That(userInDb.Email, Is.EqualTo(email), "Email should match");
     }
 }
