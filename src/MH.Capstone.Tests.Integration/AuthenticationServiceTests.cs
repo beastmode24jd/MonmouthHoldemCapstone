@@ -115,4 +115,33 @@ public class AuthenticationServiceTests
         // Assert - Should return false
         Assert.That(result, Is.False, "Non-existent user should return false");
     }
+
+    // Tests for UserExists Verification
+    [Test]
+    public async Task UserExists_WithRegisteredEmail_ReturnsTrue()
+    {
+        // Arrange - Create a user
+        string email = "existinguser@example.com";
+        string password = "Test@123!";
+        await _authService!.RegisterUserAsync(email, password);
+
+        // Act - Check if user exists
+        var exists = _authService.UserExists(email);
+
+        // Assert - Should return true
+        Assert.That(exists, Is.True, "Registered user should exist");
+    }
+
+    [Test]
+    public void UserExists_WithUnregisteredEmail_ReturnsFalse()
+    {
+        // Arrange - Use an email that was never registered
+        string email = "nonexistent@example.com";
+
+        // Act - Check if user exists
+        var exists = _authService!.UserExists(email);
+
+        // Assert - Should return false
+        Assert.That(exists, Is.False, "Unregistered user should not exist");
+    }
 }
