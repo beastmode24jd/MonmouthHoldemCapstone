@@ -21,8 +21,19 @@ namespace MH.Capstone.Domain.Services
 
         public async Task<bool> RegisterUserAsync(string email, string password)
         {
-            // TODO: Implement registration logic
-            throw new NotImplementedException("Registration not implemented yet");
+            // Implement registration logic
+            // Creating a new ApplicationUser with the provided email
+            var user = new ApplicationUser
+            {
+                UserName = email, //Identity requires UserName
+                Email = email
+            };
+
+            // Use UserManager to create the user with the hashed password
+            var result = await _userManager.CreateAsync(user, password);
+
+            // if ture return successful, otherwise return false
+            return result.Succeeded;
         }
 
         public Task<bool> ValidateCredentialsAsync(string email, string password)
