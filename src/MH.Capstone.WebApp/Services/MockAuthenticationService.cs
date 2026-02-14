@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -18,6 +19,10 @@ namespace MH.Capstone.WebApp.Services
         Task SignInUserAsync(HttpContext httpContext, string email, bool rememberMe);
         Task SignOutUserAsync(HttpContext httpContext);
         bool UserExists(string email);
+
+        Task<bool> UserExistsAsync(string identifier);
+        Task<bool> ResetPasswordAsync(string identifier, string newPassword);
+        bool IsPasswordValid(string password);
     }
 
     public class MockAuthenticationService : IAuthenticationService
@@ -70,7 +75,38 @@ namespace MH.Capstone.WebApp.Services
             _logger.LogInformation("User {Email} registered successfully", email);
             return Task.FromResult(true);
         }
+        public Task<bool> UserExistsAsync(string identifier)
+        {
+            identifier = (identifier ?? string.Empty).Trim();
+            return Task.FromResult(_users.Any(u => u.Email.Equals(identifier, StringComparison.OrdinalIgnoreCase)));
+        }
 
+        public Task<bool> ResetPasswordAsync(string identifier, string newPassword)
+        {
+            identifier = (identifier ?? string.Empty).Trim();
+
+            var idx = _users.FindIndex(u => u.Email.Equals(identifier, StringComparison.OrdinalIgnoreCase));
+            if (idx < 0)
+             {
+                return Task.FromResult(false);
+            }
+
+                _users[idx] = (_users[idx].Email, newPassword);
+                _logger.LogInformation("Password reset for {Identifier}", identifier);
+
+                return Task.FromResult(true);
+            }
+        public bool IsPasswordValid(string password)
+        {
+           
+            if (string.IsNullOrWhiteSpace(password) || password.Length < 8) return false;
+
+            var hasLetter = password.Any(char.IsLetter);
+            var hasDigit = password.Any(char.IsDigit);
+            var hasSymbol = password.Any(ch => !char.IsLetterOrDigit(ch));
+
+            return hasLetter && hasDigit && hasSymbol;
+        }
 
         // sign a user into the app by creating a claim (a piece of info about the user) and using cookie authentication to persist that claim across requests.
         public async Task SignInUserAsync(HttpContext httpContext, string email, bool rememberMe)
