@@ -14,6 +14,7 @@
                     {
                         <div class="alert alert-success" role="alert">
                             <h4 class="alert-heading">
+                                @* UPDATE WITH CUSTOM PROFILE IMAGE IF SUBMITTED *@
                                 <i class="bi bi-person-circle"></i> Hello, @User.Identity.Name!
                             </h4>
                             <p>You are successfully logged in.</p>
@@ -36,7 +37,7 @@
 
                         <div class="mt-4">
                             <form asp-action="Logout" asp-controller="Account" method="post">
-                                <button type="submit" class="btn btn-danger">
+                                <button type="submit" class="dropdown-menu">
                                     <i class="bi bi-box-arrow-right"></i> Logout
                                 </button>
                             </form>
@@ -60,7 +61,7 @@
                     <h5 class="card-title">
                         <i class="bi bi-speedometer2"></i> Quick Stats
                     </h5>
-                    <p class="card-text">Dashboard statistics will appear here.</p>
+                    <p class="card-text">Current points: 0</p>
                 </div>
             </div>
         </div>
@@ -83,7 +84,7 @@
                     <p class="card-text">Manage your account settings.</p>
                     @* Need to put link to profile image upload form and/or page here...
                         Might change to a button later, without the card layout.
-                        Description text could be dropdown window*@
+                        Description text could be dropdown window *@
                 </div>
             </div>
         </div>
