@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using MH.Capstone.WebApp.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace MH.Capstone.WebApp.Controllers
 {
@@ -19,6 +20,13 @@ namespace MH.Capstone.WebApp.Controllers
         }
 
         public IActionResult Privacy()
+        {
+            return View();
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult About()
         {
             return View();
         }
