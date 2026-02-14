@@ -56,9 +56,21 @@ namespace MH.Capstone.Domain.Services
             return result.Succeeded;
         }
 
-        public Task SignInUserAsync(HttpContext httpContext, string email, bool rememberMe)
+
+        // implement sign in logic
+        public async Task SignInUserAsync(HttpContext httpContext, string email, bool rememberMe)
         {
-            throw new NotImplementedException();
+            // Find the user by email
+            var user = await _userManager.FindByEmailAsync(email);
+            
+            if (user == null)
+            {
+                throw new InvalidOperationException($"User with email {email} not found");
+            }
+
+            // Sign in the user with cookie authentication
+            // isPersistent = rememberMe creates a persistent cookie across browser sessions
+            await _signInManager.SignInAsync(user, isPersistent: rememberMe);
         }
 
         public Task SignOutUserAsync(HttpContext httpContext)
