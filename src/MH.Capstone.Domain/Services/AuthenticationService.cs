@@ -73,14 +73,18 @@ namespace MH.Capstone.Domain.Services
             await _signInManager.SignInAsync(user, isPersistent: rememberMe);
         }
 
-        public Task SignOutUserAsync(HttpContext httpContext)
+        public async Task SignOutUserAsync(HttpContext httpContext)
         {
-            throw new NotImplementedException();
+            // sign out the user and clear authentication cookie
+            await _signInManager.SignOutAsync();
         }
 
         public bool UserExists(string email)
         {
-            throw new NotImplementedException();
+            // check if a user with the given email exsits in the database
+            // use GetAwaiter().GetResult() because this method is synchronous
+            var user = _userManager.FindByEmailAsync(email).GetAwaiter().GetResult();
+            return user != null;
         }
     }
 }
