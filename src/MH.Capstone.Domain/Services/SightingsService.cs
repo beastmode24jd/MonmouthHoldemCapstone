@@ -9,14 +9,14 @@ namespace MH.Capstone.Domain.Services
 {
     public interface ISightingsService
     {
-        Task CreateSightingAsync();
+        Task CreateSightingAsync(Sighting entity);
 
         Task<Sighting> GetSightingByIdAsync(Guid id);
     }
 
     public class SightingsService : ISightingsService
     {
-        public async Task CreateSightingAsync()
+        public async Task CreateSightingAsync(Sighting entity)
         {
             throw new NotImplementedException();
         }
