@@ -30,11 +30,11 @@
 
   <ItemGroup>
     <Folder Include="DataAccess\" />
-    <Folder Include="TestInternals\" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\MH.Capstone.Domain\MH.Capstone.Domain.csproj" />
+    <ProjectReference Include="..\MH.Capstone.Tests.SharedInternals\MH.Capstone.Tests.SharedInternals.csproj" />
   </ItemGroup>
 
 </Project>
