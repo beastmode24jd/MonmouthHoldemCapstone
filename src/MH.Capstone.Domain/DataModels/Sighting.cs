@@ -22,12 +22,25 @@ namespace MH.Capstone.Domain.DataModels
         [Precision(9, 6)] // Maps to DECIMAL(9,6) in the database
         public decimal Longitude { get; set; }
 
-        public DateTime TimeStamp { get; set; }
+        public DateTime Timestamp { get; set; }
 
         [MaxLength(500)]
         public string? Description { get; set; } = null;
 
-        [ForeignKey(nameof(UserId))]
-        public virtual ApplicationUser User { get; set; } = null!;
+        // Commented out until User is defined by other developers
+        //[ForeignKey(nameof(UserId))]
+        //public virtual User User { get; set; } = null!;
+
+        public Sighting() {}
+
+        public Sighting(Guid id, Guid userId, decimal latitude, decimal longitude, DateTime timestamp, string? description)
+        {
+            Id = id;
+            UserId = userId;
+            Latitude = latitude;
+            Longitude = longitude;
+            Timestamp = timestamp;
+            Description = description;
+        }
     }
 }
