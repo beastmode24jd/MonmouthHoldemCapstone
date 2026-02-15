@@ -2,29 +2,41 @@
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using static MH.Capstone.Tests.SharedInternals.RandomData;
-using static MH.Capstone.Tests.SharedInternals.SqlExceptionBuilder;
+using MH.Capstone.Tests.SharedInternals;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System.Diagnostics.CodeAnalysis;
 using MH.Capstone.Domain.DataAccess.Contexts;
-using MH.Capstone.Tests.SharedInternals;
+using MH.Capstone.Domain.Tools;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http.Internal;
+#pragma warning disable CA1416
 
 namespace MH.Capstone.Domain.Tests.Unit.Services;
 
 [TestFixture]
+[Parallelizable]
 [ExcludeFromCodeCoverage]
 public class SightingsServiceTests
 {
     private Sighting _validSighting;
     private Mock<IRepository<Sighting, ApplicationDbContext>> _sightingsRepoMock;
+    private FakeImageGenerator _imageGenerator;
 
     // Remember: Arrange, Act, Assert
     [SetUp]
     public void Setup()
     {
+        _imageGenerator = new FakeImageGenerator(); 
         _validSighting = SightingValidValuesSource.DefaultValidSighting;
         _sightingsRepoMock = new Mock<IRepository<Sighting, ApplicationDbContext>>();
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        _imageGenerator.Dispose();
     }
 
     private SightingsService CreateSut() =>
@@ -50,7 +62,8 @@ public class SightingsServiceTests
         [ValueSource(typeof(SightingValidValuesSource), nameof(SightingValidValuesSource.GetValidDescriptions))] string desc)
     {
         // Arrange
-        var sighting = new Sighting(_validSighting.Id, _validSighting.UserId, lat, lon, timestamp, desc);
+        var sighting = new Sighting(_validSighting.Id, _validSighting.UserId, lat, lon, 
+            timestamp, desc, [0x01]);
 
         _sightingsRepoMock.Setup(r => 
             r.AddOrUpdateAsync(It.Is(sighting, SightingComparer.Instance)))
@@ -63,7 +76,23 @@ public class SightingsServiceTests
         AssertAllMockVerifications();
     }
 
+    [Test]
+    public void CreateSightingAsync_ValidImage_ReturnsSuccessfulTaskWithoutException()
+    {
+        // Arrange
+        var sighting = _validSighting;
+        sighting.ImageBuffer = _imageGenerator.GetValidImage().ToByteArray();
 
+        _sightingsRepoMock.Setup(r =>
+                r.AddOrUpdateAsync(It.Is(sighting, SightingComparer.Instance)))
+            .ReturnsAsync(sighting).Verifiable(Times.Once);
+
+        var sut = CreateSut();
+
+        // Act & Assert
+        Assert.DoesNotThrowAsync(() => sut.CreateSightingAsync(sighting));
+        AssertAllMockVerifications();
+    }
 
     // Lat can range from -90 to 90 inclusive, so we test just outside those bounds
     [TestCase(-91)]
@@ -143,6 +172,72 @@ public class SightingsServiceTests
         Assert.ThrowsAsync<ArgumentException>(() => sut.CreateSightingAsync(sighting));
         AssertAllMockVerifications();
     }
+
+    [Test]
+    public void CreateSightingAsync_EmptyImageFile_ReturnsFailedTaskThrowingArgumentException()
+    {
+        // Arrange
+        var sighting = _validSighting;
+        _validSighting.ImageBuffer = [];
+
+        var sut = CreateSut();
+
+        // Act & Assert
+        Assert.ThrowsAsync<ArgumentException>(() => sut.CreateSightingAsync(sighting));
+        AssertAllMockVerifications();
+    }
+
+    public void ValidateImageAsync_NullImageFile_ReturnsFalse()
+    {
+        // Arrange
+        IFormFile? imgFile = null;
+        var sut = CreateSut();
+
+        // Act & Assert
+        Assert.ThrowsAsync<ArgumentException>(() => sut.ValidateImageAsync(imgFile));
+        AssertAllMockVerifications();
+    }
+
+    public void ValidateImageAsync_EmptyImageFile_ReturnsFalse()
+    {
+        // Arrange
+        var imgFile = GenerateBadFormFile(Stream.Null, 0, 0, "empty_img_file.png");
+        var sut = CreateSut();
+
+        // Act & Assert
+        Assert.ThrowsAsync<ArgumentException>(() => sut.ValidateImageAsync(imgFile));
+        AssertAllMockVerifications();
+    }
+
+    [TestCase("txt")]
+    [TestCase("pdf")]
+    [TestCase("cs")]
+    [TestCase("bat")]
+    [TestCase("file")]
+    [TestCase("helic")]
+    [TestCase("md")]
+    [TestCase("sh")]
+    [TestCase("pop")]
+    [TestCase("mp3")]
+    [TestCase("m4a")]
+    [TestCase("mov")]
+    [TestCase("wav")]
+    [TestCase("")]
+    public void ValidateImageAsync_NonImageFileExt_ReturnsFalse(string ext)
+    {
+        // Arrange
+        var imgFile = GenerateBadFormFile(Stream.Null, 0, 0, $"empty_img_file.{ext}");
+        var sut = CreateSut();
+
+        // Act & Assert
+        Assert.ThrowsAsync<ArgumentException>(() => sut.ValidateImageAsync(imgFile));
+        AssertAllMockVerifications();
+    }
+
+    private static IFormFile GenerateBadFormFile(Stream stream, int offset, int len, string filename)
+    {
+        return new FormFile(stream, offset, len, "file", filename);
+    }
 }
 
 [ExcludeFromCodeCoverage]
@@ -167,7 +262,7 @@ public class SightingComparer : IEqualityComparer<Sighting>
     // ensuring that two Sightings with the same values will have the same hash code
     public int GetHashCode(Sighting obj)
     {
-        return HashCode.Combine(obj.UserId, obj.Description, obj.Id, obj.Latitude, obj.Longitude, obj.Timestamp);
+        return HashCode.Combine(obj.UserId, obj.Description, obj.Id, obj.Latitude, obj.Longitude, obj.Timestamp, obj.ImageBuffer);
     }
 }
 
@@ -177,7 +272,8 @@ public struct SightingValidValuesSource
     public const int _EnumerableCounts = 2;
 
     public static Sighting DefaultValidSighting =>
-        new Sighting(Guid.NewGuid(), Guid.NewGuid(), 0m, 0m, DateTime.UtcNow, string.Empty);
+        new Sighting(Guid.NewGuid(), Guid.NewGuid(), 0m, 0m, DateTime.UtcNow, 
+            string.Empty, [0x01]);
 
     public static IEnumerable<decimal> GetValidLats() =>
             GetEnumerableOfDecimalsInRangeOfAmount(_EnumerableCounts, -90m, 90m);

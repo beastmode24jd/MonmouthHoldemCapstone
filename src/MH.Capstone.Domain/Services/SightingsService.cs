@@ -7,6 +7,7 @@ using MH.Capstone.Domain.DataAccess.Contexts;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Tools;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -19,6 +20,8 @@ namespace MH.Capstone.Domain.Services
         Task CreateSightingAsync(Sighting entity);
 
         Task<Sighting> GetSightingByIdAsync(Guid id);
+
+        Task<bool> ValidateImageAsync(IFormFile? imageBuffer);
     }
 
     public class SightingsService : ISightingsService
@@ -57,6 +60,11 @@ namespace MH.Capstone.Domain.Services
         }
 
         public async Task<Sighting> GetSightingByIdAsync(Guid id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<bool> ValidateImageAsync(IFormFile? imageBuffer)
         {
             throw new NotImplementedException();
         }

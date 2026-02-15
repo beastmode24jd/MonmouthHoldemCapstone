@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MH.Capstone.Domain.Tools;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace MH.Capstone.Domain.DataModels
@@ -42,12 +43,16 @@ namespace MH.Capstone.Domain.DataModels
         [MaxLength(500)]
         public string? Description { get; set; } = null;
 
+        [MaxLength(2 * 1000000)] // 2 MB
+        public byte[] ImageBuffer { get; set; } = null!;
+
         [NotMapped]
         public virtual ApplicationUser User { get; set; } = null!;
 
         public Sighting() {}
 
-        public Sighting(Guid id, Guid userId, decimal latitude, decimal longitude, DateTime timestamp, string? description)
+        public Sighting(Guid id, Guid userId, decimal latitude, decimal longitude, DateTime timestamp, 
+            string? description, byte[] imageBuffer)
         {
             Id = id;
             UserId = userId;
@@ -55,6 +60,7 @@ namespace MH.Capstone.Domain.DataModels
             Longitude = longitude;
             Timestamp = timestamp;
             Description = description;
+            ImageBuffer = imageBuffer;
         }
     }
 }
