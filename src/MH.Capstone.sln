@@ -11,11 +11,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MH.Capstone.Domain.Tests.Un
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TestSuite", "TestSuite", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
-Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "MH.Capstone.WebApp.Tests.Unit", "MH.Capstone.WebApp.Tests.Unit\MH.Capstone.WebApp.Tests.Unit.esproj", "{35454191-D821-A7D9-6C4C-6B933978D55B}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MH.Capstone.Tests.Acceptance", "MH.Capstone.Tests.Acceptance\MH.Capstone.Tests.Acceptance.csproj", "{993DDF82-C630-4BE7-AA78-5838C9F6E1EF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MH.Capstone.Tests.Integration", "MH.Capstone.Tests.Integration\MH.Capstone.Tests.Integration.csproj", "{BB6B2760-5D30-4B91-9079-323AA830DA7F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MH.Capstone.WebApp.Tests.Unit", "MH.Capstone.WebApp.Tests.Unit\MH.Capstone.WebApp.Tests.Unit.csproj", "{A0659029-5C88-4BF7-ACFF-EAEF23AEF14C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,12 +35,6 @@ Global
 		{E110E855-893E-484B-9B34-7342F9BAAFF8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E110E855-893E-484B-9B34-7342F9BAAFF8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E110E855-893E-484B-9B34-7342F9BAAFF8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{35454191-D821-A7D9-6C4C-6B933978D55B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{35454191-D821-A7D9-6C4C-6B933978D55B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{35454191-D821-A7D9-6C4C-6B933978D55B}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
-		{35454191-D821-A7D9-6C4C-6B933978D55B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{35454191-D821-A7D9-6C4C-6B933978D55B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{35454191-D821-A7D9-6C4C-6B933978D55B}.Release|Any CPU.Deploy.0 = Release|Any CPU
 		{993DDF82-C630-4BE7-AA78-5838C9F6E1EF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{993DDF82-C630-4BE7-AA78-5838C9F6E1EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{993DDF82-C630-4BE7-AA78-5838C9F6E1EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -49,15 +43,19 @@ Global
 		{BB6B2760-5D30-4B91-9079-323AA830DA7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BB6B2760-5D30-4B91-9079-323AA830DA7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BB6B2760-5D30-4B91-9079-323AA830DA7F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A0659029-5C88-4BF7-ACFF-EAEF23AEF14C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A0659029-5C88-4BF7-ACFF-EAEF23AEF14C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A0659029-5C88-4BF7-ACFF-EAEF23AEF14C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A0659029-5C88-4BF7-ACFF-EAEF23AEF14C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{E110E855-893E-484B-9B34-7342F9BAAFF8} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
-		{35454191-D821-A7D9-6C4C-6B933978D55B} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{993DDF82-C630-4BE7-AA78-5838C9F6E1EF} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{BB6B2760-5D30-4B91-9079-323AA830DA7F} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{A0659029-5C88-4BF7-ACFF-EAEF23AEF14C} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {43BFFCF5-532E-45CC-A837-D875CE7B825B}

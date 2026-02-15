@@ -1,11 +1,13 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 
 // This is a temporary mock service that will be replaced with ASP.NET Core Identity in the future. 
 // Once the database is set up, This is just to get the UI and testing working now.
-namespace MH.Capstone.WebApp.Services
+namespace MH.Capstone.Domain.Services
 {
 
     // Mock authentication service for testing purposes. In a real application, this would be replaced with a service that interacts with a database or an external authentication provider.

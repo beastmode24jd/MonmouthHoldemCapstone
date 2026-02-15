@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using MH.Capstone.WebApp.Models.ViewModels;
 
-namespace MH.Capstone.Domain.Tests.Unit;
+namespace MH.Capstone.WebApp.Tests.Unit.ViewModels;
 
 [TestFixture]
 public class RegisterViewModelTests

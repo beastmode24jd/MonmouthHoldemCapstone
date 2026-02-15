@@ -29,12 +29,12 @@
 
   <ItemGroup>
     <Folder Include="DataAccess\" />
-    <Folder Include="TestInternal\" />
+    <Folder Include="TestInternals\" />
     <Folder Include="Services\" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MH.Capstone.WebApp\MH.Capstone.WebApp.csproj" />
+    <ProjectReference Include="..\MH.Capstone.Domain\MH.Capstone.Domain.csproj" />
   </ItemGroup>
 
 </Project>
