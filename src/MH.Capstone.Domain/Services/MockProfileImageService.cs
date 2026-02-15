@@ -10,7 +10,7 @@ public class MockProfileImageService : IProfileImageService
     {
         if ( file == null || file.Length == 0 )
         {
-            return "/imgs/profileDefault.jpeg";
+            return "/imgs/profileDefault.jpg";
         }
 
         // Ensure that the path to the image file exists, if image file is present

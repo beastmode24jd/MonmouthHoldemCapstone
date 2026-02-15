@@ -35,7 +35,9 @@
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     @* NEEDS TO UPDATE IF CUSTOM PROFILE IMAGE*@
-                                    <i class="bi bi-person-circle"></i> @User.Identity.Name
+                                    <img src="@ViewBag.ProfileImageUrl" 
+                                    class="navProfile" 
+                                    role="Profile Picture" /> @User.Identity.Name
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end pt-1 pb-1" aria-labelledby="userDropdown">
                                     <li class="menuItem">

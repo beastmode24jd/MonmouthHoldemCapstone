@@ -25,16 +25,17 @@ namespace MH.Capstone.WebApp.Controllers
         public IActionResult Index()
         {
             _logger.LogInformation("User {Email} accessed dashboard", User.Identity?.Name);
-            // Default value for a profile image, if one isn't uploaded.
-            ViewBag.ProfileImageUrl = "/imgs/profileDefault.jpeg";
+            // Ternary uses default profile image, if one isn't uploaded.
+            // Passes through the ViewBag as TempData, upload should save to localDB.
+            ViewBag.ProfileImageUrl = TempData["ProfileImageUrl"] ?? "/imgs/profileDefault.jpg";
             return View();
         }
 
-        public async Task<IActionResult> UploadProfileImage(IFormFile profilePic)
+        public async Task<IActionResult> UploadProfileImage(IFormFile profilePicture)
         {
-            if (profilePic != null)
+            if (profilePicture != null)
             {
-                var imageUrl = await _imageService.UploadImageAsync(profilePic);
+                var imageUrl = await _imageService.UploadImageAsync(profilePicture);
                 // Stubbed, would save 'imageUrl' to local DB otherwise?
                 _logger.LogInformation($"Image uploaded to {imageUrl}");
             }
