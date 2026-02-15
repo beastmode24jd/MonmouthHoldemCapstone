@@ -34,7 +34,7 @@ namespace MH.Capstone.Domain.DataModels
 
         // Commented out until User is defined by other developers
         //[ForeignKey(nameof(UserId))]
-        //public virtual User User { get; set; } = null!;
+        //public virtual ApplicationUser User { get; set; } = null!;
 
         public Sighting() {}
 
