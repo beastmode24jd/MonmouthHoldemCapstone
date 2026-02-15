@@ -62,6 +62,9 @@ namespace MH.Capstone.WebApp
             // Register real authentication service with Identity
             builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
+            // Register the mocked Profile Image Service
+            builder.Services.AddScoped<IProfileImageService, MockProfileImageService>();
+
             // Add services to the container.
             builder.Services.AddControllersWithViews();
 
