@@ -5,9 +5,9 @@ using System.Text;
 using System.Threading.Tasks;
 using System.ComponentModel.DataAnnotations;
 
-namespace MH.Capstone.Domain.Services
+namespace MH.Capstone.Domain.Tools
 {
-    internal static class DataAnnotationsValidationService
+    internal static class DataAnnotationsValidator
     {
         /// <summary>
         /// This method validates an entity using data annotations and returns a boolean indicating if the validation passed or failed.
