@@ -1,5 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using MH.Capstone.Domain.Tools;
 using Microsoft.EntityFrameworkCore;
 
 namespace MH.Capstone.Domain.DataModels
@@ -22,6 +26,7 @@ namespace MH.Capstone.Domain.DataModels
         [Precision(9, 6)] // Maps to DECIMAL(9,6) in the database
         public decimal Longitude { get; set; }
 
+        [PastDateTime]
         public DateTime Timestamp { get; set; }
 
         [MaxLength(500)]
