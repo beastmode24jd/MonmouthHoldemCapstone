@@ -73,6 +73,7 @@ namespace MH.Capstone.WebApp
 
             // Register real authentication service with Identity
             builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+            builder.Services.AddScoped<ISightingsService, SightingsService>();
 
             // Register the Profile Image Service
             builder.Services.AddScoped<IProfileImageService, ProfileImageService>();
