@@ -11,6 +11,8 @@ using MH.Capstone.Domain.Tools;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http.Internal;
+using NUnit.Framework.Legacy;
+
 #pragma warning disable CA1416
 
 namespace MH.Capstone.Domain.Tests.Unit.Services;
@@ -174,7 +176,7 @@ public class SightingsServiceTests
     }
 
     [Test]
-    public void CreateSightingAsync_EmptyImageFile_ReturnsFailedTaskThrowingArgumentException()
+    public void CreateSightingAsync_InvalidImageFile_ReturnsFailedTaskThrowingArgumentException()
     {
         // Arrange
         var sighting = _validSighting;
@@ -187,6 +189,7 @@ public class SightingsServiceTests
         AssertAllMockVerifications();
     }
 
+    [Test]
     public void ValidateImageAsync_NullImageFile_ReturnsFalse()
     {
         // Arrange
@@ -194,10 +197,11 @@ public class SightingsServiceTests
         var sut = CreateSut();
 
         // Act & Assert
-        Assert.ThrowsAsync<ArgumentException>(() => sut.ValidateImageAsync(imgFile));
+        Assert.That(sut.ValidateImage(imgFile), Is.False);
         AssertAllMockVerifications();
     }
 
+    [Test]
     public void ValidateImageAsync_EmptyImageFile_ReturnsFalse()
     {
         // Arrange
@@ -205,7 +209,7 @@ public class SightingsServiceTests
         var sut = CreateSut();
 
         // Act & Assert
-        Assert.ThrowsAsync<ArgumentException>(() => sut.ValidateImageAsync(imgFile));
+        Assert.That(sut.ValidateImage(imgFile), Is.False);
         AssertAllMockVerifications();
     }
 
@@ -230,7 +234,23 @@ public class SightingsServiceTests
         var sut = CreateSut();
 
         // Act & Assert
-        Assert.ThrowsAsync<ArgumentException>(() => sut.ValidateImageAsync(imgFile));
+        Assert.That(sut.ValidateImage(imgFile), Is.False);
+        AssertAllMockVerifications();
+    }
+
+    [Test]
+    public void ValidateImageAsync_TooLargeImageFIle_ReturnsFalse()
+    {
+        // Arrange
+        // The max allowed image size is 2 MB, so we test just above that limit. We use Stream.Null
+        // since the ValidateImageAsync method should check the file size before attempting to read the stream,
+        // so it should not throw an exception for the stream being unreadable.
+        var imgSize = GetRandomIntInRange(2 * 1024 * 1024 + 1, 3 * 1024 * 1024);
+        var imgFile = GenerateBadFormFile(Stream.Null, 0, imgSize, "empty_img_file.png");
+        var sut = CreateSut();
+
+        // Act & Assert
+        Assert.That(sut.ValidateImage(imgFile), Is.False);
         AssertAllMockVerifications();
     }
 
