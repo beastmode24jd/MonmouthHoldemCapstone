@@ -10,6 +10,8 @@ namespace MH.Capstone.WebApp.Controllers
     [Authorize]
     public class DashboardController : Controller
     {
+        // 2MB Image file limit.
+        const long MAX_IMG_SIZE = 2 * 1024 * 1024;
         // Logger to track dashboard access and activity. 
         private readonly ILogger<DashboardController> _logger;
 
@@ -55,16 +57,25 @@ namespace MH.Capstone.WebApp.Controllers
         {
             if (profilePicture != null && profilePicture.Length > 0)
             {
-                // Delegate to refactored ProfileImageService
+                var userEmail = User.Identity?.Name;
+
+                // Reject the file if it's over 2MB
+                if (profilePicture.Length > MAX_IMG_SIZE)
+                {
+                    _logger.LogWarning("Rejecting upload: File size {Size} exceeds 2MB limit.", profilePicture.Length);
+                    return RedirectToAction("Index");
+                }
+
+                // Delegate to ProfileImageService
                 byte[]? imageData = await _imageService.ConvertToBytesAsync(profilePicture);
 
-                var userEmail = User.Identity?.Name;
-                    if (userEmail != null && imageData != null) // Check for null before saving to DB
-                    {
-                        // Save the actual bytes to the database via the service
-                        _authService.UpdateUserProfileImage(userEmail, imageData);
-                        _logger.LogInformation("Profile image updated for user {Email}", userEmail);
-                    }
+                // Check for null before saving to DB
+                if (userEmail != null && imageData != null && imageData.Length > 0)
+                {
+                    // Save the actual bytes to the database via the service
+                    _authService.UpdateUserProfileImage(userEmail, imageData);
+                    _logger.LogInformation("Profile image updated for user {Email}", userEmail);
+                }
             }
             else 
             {

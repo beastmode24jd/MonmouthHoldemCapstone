@@ -81,17 +81,42 @@ namespace MH.Capstone.Domain.Services
 
         // Registers a new user by adding them to our in-memory list.
         // In a real system, this would insert a new row into the database.
-        public Task<bool> RegisterUserAsync(string email, string password)
+        public async Task<bool> RegisterUserAsync(string email, string password)
         {
             if (UserExists(email))
             {
                 _logger.LogWarning("Registration failed: Email {Email} already exists", email);
-                return Task.FromResult(false);
+                return false;
             }
-        // if user doesnt exist, add new user to in memory list
-            _users.Add(new ApplicationUser { Email = email, Password = password});
+            
+            // Add default profile image if not pre-existing from DB
+            byte[]? defaultImageBytes = null;
+            var defaultPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "imgs", "profileDefault.jpg");
+
+            try
+            {
+                if (File.Exists(defaultPath))
+                {
+                    defaultImageBytes = await File.ReadAllBytesAsync(defaultPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Could not load default profile image at {Path}", defaultPath);
+                // Continue so that the user can still register an account.
+            }
+
+            var newUser = new ApplicationUser
+            {
+                Email = email,
+                Password = password,
+                ProfileImage = defaultImageBytes
+            };
+
+            // if user doesnt exist, add new user to in memory list
+            _users.Add(newUser);
             _logger.LogInformation("User {Email} registered successfully", email);
-            return Task.FromResult(true);
+            return true;
         }
         public Task<bool> UserExistsAsync(string identifier)
         {

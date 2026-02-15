@@ -56,6 +56,11 @@ public class DashboardControllerTests
     {
         // Arrange
         var fileMock = CreateMockFile("test.jpg", "image/jpeg", "content");
+        var dummyBytes = new byte[] { 0x20, 0x21, 0x22 }; // Creates dummy data
+
+        // Tells service to return dummy bytes
+        _mockService.Setup(s => s.ConvertToBytesAsync(It.IsAny<IFormFile>()))
+                    .ReturnsAsync(dummyBytes);
 
         // Act
         await _controller.UploadProfileImage(fileMock.Object);
