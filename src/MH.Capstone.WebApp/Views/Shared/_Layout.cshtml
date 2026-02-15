@@ -37,19 +37,19 @@
                                     @* NEEDS TO UPDATE IF CUSTOM PROFILE IMAGE*@
                                     <i class="bi bi-person-circle"></i> @User.Identity.Name
                                 </a>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                    @* This should become the menu drop-down per the UI/UX diagrams... *@
+                                <ul class="dropdown-menu dropdown-menu-end pt-1 pb-1" aria-labelledby="userDropdown">
                                     <li class="menuItem">
-                                        <a class="nav-link text-light text-center" asp-controller="Dashboard" asp-action="Index">
+                                        <a class="nav-link text-light" asp-controller="Dashboard" asp-action="Index">
                                             <i class="bi bi-speedometer2"></i> Dashboard
                                         </a>
                                     </li>
                                     <li class="menuItem">
-                                        <form asp-controller="Account" asp-action="Logout" method="post" class="px-3 py-2">
-                                            <button type="submit" class="menuItem">
-                                                <i class="bi bi-box-arrow-right"></i> Log out
-                                            </button>
+                                        <form id="logoutForm" class="d-none" asp-controller="Account" asp-action="Logout" method="post">
+                                            @Html.AntiForgeryToken()
                                         </form>
+                                        <a class="dropdown-item" href="javascript:document.getElementById('logoutForm').submit();">
+                                            <i class="bi bi-box-arrow-right"></i> Log out
+                                        </a>
                                     </li>
                                 </ul>
                             </li>

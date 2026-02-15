@@ -176,6 +176,8 @@ a:visited {
     background-color: #154224;
     margin: 5px;
     color: white;
+    font-size: inherit;
+    text-align: right;
 }
 
 .menuItem:hover, .menuItem:focus {
@@ -190,6 +192,11 @@ a:visited {
 .dropdown-menu > li > a:focus {
     color: white;
     background-color: #1D6234;
+}
+
+.dropdown-item {
+    font-size: inherit;
+    text-align: right;
 }
 
 .footerText {
