@@ -61,7 +61,7 @@ namespace MH.Capstone.Domain.Services
             }
         }
 
-        // Search our in-memory list for a matching user
+        // Search in-memory list for a matching user
         // FirstOrDefault returns the first match, or default (null) if none found
          public async Task<bool> ValidateCredentialsAsync(string email, string password)
         {

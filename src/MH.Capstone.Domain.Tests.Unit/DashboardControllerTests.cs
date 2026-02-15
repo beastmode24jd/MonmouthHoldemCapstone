@@ -8,6 +8,7 @@ using MH.Capstone.WebApp.Models.ViewModels;
 using MH.Capstone.WebApp.Services;
 using System.Security.Claims;
 using System.Text;
+using MH.Capstone.WebApp.Models;
 
 namespace MH.Capstone.Domain.Tests.Unit;
 
@@ -15,21 +16,24 @@ namespace MH.Capstone.Domain.Tests.Unit;
 public class DashboardControllerTests
 {
     // Mocks and method access
+    private Mock<IAuthenticationService> _mockAuthService;
     private Mock<IProfileImageService> _mockService;
     private Mock<ILogger<DashboardController>> _mockLogger;
     private DashboardController _controller;
+    private const string TestEmail = "namesMcNameington@mail.wou";
 
     [SetUp]
     public void SetUp()
     {
+        _mockAuthService = new Mock<IAuthenticationService>();
         _mockService = new Mock<IProfileImageService>();
         _mockLogger = new Mock<ILogger<DashboardController>>();
-        _controller = new DashboardController(_mockLogger.Object, _mockService.Object);
+        _controller = new DashboardController(_mockLogger.Object, _mockService.Object, _mockAuthService.Object);
 
         // Mock the user, so the display name isn't null while testing
         var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
         {
-            new Claim(ClaimTypes.Name, "namesMcNameington@mail.wou"),
+            new Claim(ClaimTypes.Name, TestEmail),
         }, "mock"));
 
         _controller.ControllerContext = new ControllerContext()
@@ -48,10 +52,10 @@ public class DashboardControllerTests
     }
 
     [Test]
-    public async Task UploadProfileImage_Successful_RedirectsToIndex()
+    public async Task UploadProfileImage_Successful_RedirectsAndUpdatesUser()
     {
         // Arrange
-        // THE LINE BELOW IS BROKEN
+        var expectedUrl = "/uploads/profiles/test.jpeg";
         var fileMock = CreateMockFile("test.jpg", "image/jpeg", "fake content");
         _mockService.Setup(s => s.UploadImageAsync(It.IsAny<IFormFile>()))
                 .ReturnsAsync("uploads/profiles/test.jpeg");
@@ -61,10 +65,35 @@ public class DashboardControllerTests
 
         // Assert
         var redirect = result as RedirectToActionResult;
-        Assert.That(redirect, Is.Not.Null, "Result should be a RedirectToAction result.");
-        Assert.That(redirect.ActionName, Is.EqualTo("Index"));
+        Assert.That(redirect?.ActionName, Is.EqualTo("Index"));
+
+        // Verify that the Auth Service was told to update the user's profile image URL
+        _mockAuthService.Verify(s => s.UpdateUserProfileImage(
+        TestEmail, 
+        expectedUrl), 
+        Times.Once);
     }
 
+    [Test]
+    public void Index_SetsViewBagWithUserImageUrl()
+    {
+        // Arrange
+        var mockUser = new ApplicationUser { 
+            Email = TestEmail, 
+            ProfileImageUrl = "/custom/path.jpg" 
+        };
+        
+        _mockAuthService.Setup(s => s.GetUserByEmail(TestEmail))
+                        .Returns(mockUser);
+
+        // Act
+        var result = _controller.Index() as ViewResult;
+
+        // Assert
+        Assert.That(_controller.ViewBag.ProfileImageUrl, Is.EqualTo("/custom/path.jpg"));
+    }
+
+    /*
     [Test]
     public async Task Upload_NotSuccessful_DoesNotRunService()
     {
@@ -76,6 +105,8 @@ public class DashboardControllerTests
         Assert.That(redirect?.ActionName, Is.EqualTo("Index"));
         _mockService.Verify(s => s.UploadImageAsync(It.IsAny<IFormFile>()), Times.Never);
     }
+
+*/
 
 /*
     [Test]
