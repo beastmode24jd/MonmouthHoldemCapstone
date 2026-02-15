@@ -4,7 +4,7 @@ using MH.Capstone.Domain.Tools;
 
 namespace MH.Capstone.WebApp.Models.ViewModels
 {
-    public class UploadSightingViewModel
+    public class SightingUploadViewModel
     {
         [Required]
         [PastDateTime]
@@ -21,9 +21,9 @@ namespace MH.Capstone.WebApp.Models.ViewModels
         [MaxLength(500)] 
         public string? Description { get; set; } = string.Empty;
 
-        public UploadSightingViewModel() {}
+        public SightingUploadViewModel() {}
 
-        public UploadSightingViewModel(DateTime timestamp, decimal latitude, decimal longitude, string? description)
+        public SightingUploadViewModel(DateTime timestamp, decimal latitude, decimal longitude, string? description)
         {
             Timestamp = timestamp;
             Latitude = latitude;
@@ -34,7 +34,7 @@ namespace MH.Capstone.WebApp.Models.ViewModels
 
     internal static class SightingsModelExtensions
     {
-        internal static Sighting ToDataModel(this UploadSightingViewModel vm, Guid userId)
+        internal static Sighting ToDataModel(this SightingUploadViewModel vm, Guid userId)
         {
             return new Sighting
             {

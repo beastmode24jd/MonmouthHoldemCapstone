@@ -27,19 +27,19 @@ namespace MH.Capstone.WebApp.Controllers
             return View();
         }
 
-        [HttpPut]
+        [HttpPost]
         [Route("Upload")]
         [Route("Create")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Upload(UploadSightingViewModel upload)
+        public async Task<IActionResult> Upload(SightingUploadViewModel sightingUpload)
         {
             if (!ModelState.IsValid)
             {
-                return View(upload);
+                return View(sightingUpload);
             }
 
             // TODO: Get the user ID from the logged in user using the UserManager
-            var dataModel = upload.ToDataModel(Guid.Empty);
+            var dataModel = sightingUpload.ToDataModel(Guid.Empty);
             await _sightingsService.CreateSightingAsync(dataModel);
             return RedirectToAction("Index", "Dashboard", new { sighting_success = true });
         }

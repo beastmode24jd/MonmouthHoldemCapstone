@@ -1,3 +1,34 @@
-﻿@{
+﻿@model MH.Capstone.WebApp.Models.ViewModels.SightingUploadViewModel
+@{
     ViewData["Title"] = "Upload Sighting";
 }
+
+<h1>Upload Sighting</h1>
+
+<form asp-action="Upload" method="post" enctype="multipart/form-data">
+    <div class="form-group col-md-6 col-12">
+        <label asp-for="Latitude"></label>
+        <input asp-for="Latitude" class="form-control" />
+        <span asp-validation-for="Latitude" class="text-danger"></span>
+    </div>
+    <div class="form-group col-md-6 col-12">
+        <label asp-for="Longitude"></label>
+        <input asp-for="Longitude" class="form-control" />
+        <span asp-validation-for="Longitude" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="Timestamp"></label>
+        <input asp-for="Timestamp" type="datetime-local" class="form-control" />
+        <span asp-validation-for="Timestamp" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="Description"></label>
+        <textarea asp-for="Description" class="form-control"></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+@*     <div class="form-group">
+        <label for="Image">Upload Image</label>
+        <input type="file" name="Image" class="form-control-file" />
+    </div> *@
+    <button type="submit" class="btn btn-primary">Submit</button>
+</form>
