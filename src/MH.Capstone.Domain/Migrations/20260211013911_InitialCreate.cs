@@ -19,7 +19,7 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Lat = table.Column<decimal>(type: "decimal(9,6)", precision: 9, scale: 6, nullable: false),
                     Long = table.Column<decimal>(type: "decimal(9,6)", precision: 9, scale: 6, nullable: false),
-                    TimeStamp = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
                 },
                 constraints: table =>

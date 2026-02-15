@@ -14,7 +14,17 @@ namespace MH.Capstone.Domain.DataModels
         [Key]
         public Guid Id { get; set; }
 
-        public Guid UserId { get; set; }
+        [NotMapped]
+        public Guid UserId
+        {
+            get => Guid.Parse(UserIdentityId);
+            set => UserIdentityId = value.ToString(); // Convert Guid to string for storage in the AspNetCore Identity ID column
+        }
+
+        [Column("UserId")]
+        [MaxLength(450)] // The size of the UserId column should match the size of the primary key in the AspNetUsers table (nvarchar(450))
+        [ForeignKey(nameof(User))]
+        public string UserIdentityId { get; set; }
 
         [Column("Lat")]
         [Range(-90, 90, ErrorMessage = "Latitude must be within -90 and 90 inclusive")]
@@ -32,9 +42,8 @@ namespace MH.Capstone.Domain.DataModels
         [MaxLength(500)]
         public string? Description { get; set; } = null;
 
-        // Commented out until User is defined by other developers
-        //[ForeignKey(nameof(UserId))]
-        //public virtual ApplicationUser User { get; set; } = null!;
+        [NotMapped]
+        public virtual ApplicationUser User { get; set; } = null!;
 
         public Sighting() {}
 
