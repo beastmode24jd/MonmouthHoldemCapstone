@@ -2,7 +2,8 @@ using MH.Capstone.Domain.DataAccess.Contexts;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Identity;
+using MH.Capstone.WebApp.Services;
+using MH.Capstone.WebApp.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace MH.Capstone.WebApp
@@ -14,6 +15,26 @@ namespace MH.Capstone.WebApp
             var builder = WebApplication.CreateBuilder(args);
 
             string appConnStrName = "DataDb"; // For application data
+            
+            // Register Local DbContext
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+            // Register updated SQL service
+            builder.Services.AddScoped<IAuthenticationService, MockAuthenticationService>();
+            builder.Services.AddScoped<IProfileImageService, MockProfileImageService>();
+            // ... other services like IProfileImageService
+
+            // Configure cookie authentication
+            builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                .AddCookie(options =>
+                {
+                    options.LoginPath = "/Account/Login";
+                    options.AccessDeniedPath = "/Account/AccessDenied";
+                    options.ExpireTimeSpan = TimeSpan.FromDays(30);
+                    options.SlidingExpiration = true;
+                    options.Cookie.HttpOnly = true;
+                });
 
             builder.Services.AddDbContext<ApplicationDbContext>(opt => opt
                 .UseLazyLoadingProxies()
