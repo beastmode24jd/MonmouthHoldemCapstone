@@ -6,6 +6,7 @@ using static MH.Capstone.Tests.SharedInternals.SqlExceptionBuilder;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System.Diagnostics.CodeAnalysis;
+using MH.Capstone.Domain.DataAccess.Contexts;
 using MH.Capstone.Tests.SharedInternals;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,14 +17,14 @@ namespace MH.Capstone.Domain.Tests.Unit.Services;
 public class SightingsServiceTests
 {
     private Sighting _validSighting;
-    private Mock<IRepository<Sighting>> _sightingsRepoMock;
+    private Mock<IRepository<Sighting, ApplicationDbContext>> _sightingsRepoMock;
 
     // Remember: Arrange, Act, Assert
     [SetUp]
     public void Setup()
     {
         _validSighting = SightingValidValuesSource.DefaultValidSighting;
-        _sightingsRepoMock = new Mock<IRepository<Sighting>>();
+        _sightingsRepoMock = new Mock<IRepository<Sighting, ApplicationDbContext>>();
     }
 
     private SightingsService CreateSut() =>
