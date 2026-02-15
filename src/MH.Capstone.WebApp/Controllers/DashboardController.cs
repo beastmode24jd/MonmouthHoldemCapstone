@@ -25,8 +25,8 @@ namespace MH.Capstone.WebApp.Controllers
         public IActionResult Index()
         {
             _logger.LogInformation("User {Email} accessed dashboard", User.Identity?.Name);
-            // Default value, would fetch image URL from DB if properly connected.
-            ViewBag.ProfileImageUrl = null;
+            // Default value for a profile image, if one isn't uploaded.
+            ViewBag.ProfileImageUrl = "/imgs/profileDefault.jpeg";
             return View();
         }
 

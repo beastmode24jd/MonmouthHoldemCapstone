@@ -14,14 +14,11 @@
                     {
                         <div class="alert alert-success" role="alert">
                             <h4 class="alert-heading">
-                                @if (ViewBag.profilePicture != null)
-                                {
-                                    <img src="@ViewBag.ProfileImageUrl" class="rounded-circle" style="width:40px; height:40px; object-fit:cover;" />
-                                }
-                                else
-                                {
-                                    <i class="bi bi-person-circle"></i>
-                                }
+                                <img src="@ViewBag.ProfileImageUrl" 
+                                class="rounded-circle" 
+                                style="width:40px; height:40px; object-fit:cover;" 
+                                role="Profile Picture" />
+
                                  Hello, @User.Identity.Name!
                             </h4>
                             <p>You are successfully logged in.</p>

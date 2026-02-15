@@ -8,7 +8,10 @@ public class MockProfileImageService : IProfileImageService
 
     public async Task<string?> UploadImageAsync(IFormFile file)
     {
-        if ( file == null || file.Length == 0 ) return null;
+        if ( file == null || file.Length == 0 )
+        {
+            return "/imgs/profileDefault.jpeg";
+        }
 
         // Ensure that the path to the image file exists, if image file is present
         if (!Directory.Exists(_storagePath))
