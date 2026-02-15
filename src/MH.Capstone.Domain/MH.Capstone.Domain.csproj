@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="DataAccess\Migrations\" />
     <Folder Include="DataAccess\Repositories\" />
     <Folder Include="Dtos\" />
   </ItemGroup>
