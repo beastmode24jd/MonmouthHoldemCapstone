@@ -98,6 +98,31 @@ namespace MH.Capstone.Domain.Services
             return hasLetter && hasDigit && hasSymbol;
         }
 
+        public async Task<bool> DeactivateAccountAsync(string email, string password)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null) return false;
+
+            var result = await _signInManager
+                .CheckPasswordSignInAsync(user, password, false);
+            if (!result.Succeeded)
+            {
+                return false;
+            }
+
+            user.IsDeactivated = true;
+            user.UserName = "Deactivated User";
+            // Since we changed the UserName, we need to update the normalized username as well
+            // so that the user cannot be found by their old username after deactivation
+            await _userManager.UpdateNormalizedUserNameAsync(user);
+            // Save the changes to the database. UserManager is our repo for Identity, so we use it to update the user.
+            await _userManager.UpdateAsync(user);
+
+            _logger.LogInformation("Account {Email} deactivated", email);
+            return true;
+        }
+
+
         public async Task<ApplicationUser?> GetUserByEmailAsync(string email)
         {
             return await _userManager.FindByEmailAsync(email);

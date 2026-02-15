@@ -82,14 +82,18 @@
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">
-                        <i class="bi bi-gear"></i> Settings
+                        <i class="bi bi-gear"></i> Account Settings
                     </h5>
                     <p class="card-text">Upload your profile picture:</p>
                     <form id="uploadForm" asp-action="UploadProfileImage" method="Post" enctype="multipart/form-data">
                         <input id="fileInput" class="form-control form-control-sm mb-2" type="file" accept="image/*" name="profilePicture" />
-                        <button type="submit" class="btnDark">Save Changes</button>
+                        <button type="submit" class="btnDark">Upload &AMP; Save</button>
                     </form>
                     @* Adding a profile bio should also go here at some point. *@
+                    <p class="card-text">Manage your account settings.</p>
+                    <a asp-action="Deactivate" asp-controller="Account" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-person-x"></i> Deactivate Account
+                    </a>
                 </div>
             </div>
         </div>

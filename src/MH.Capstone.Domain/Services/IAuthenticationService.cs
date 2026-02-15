@@ -11,6 +11,7 @@ namespace MH.Capstone.Domain.Services
     public interface IAuthenticationService
     {
         Task<bool> ValidateCredentialsAsync(string email, string password);
+        Task<bool> DeactivateAccountAsync(string email, string password);
         Task<bool> RegisterUserAsync(string email, string password);
         Task SignInUserAsync(HttpContext httpContext, string email, bool rememberMe);
         Task SignOutUserAsync(HttpContext httpContext);
