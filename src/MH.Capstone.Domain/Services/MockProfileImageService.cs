@@ -6,7 +6,7 @@ public class MockProfileImageService : IProfileImageService
     */
     private readonly string _storagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/profiles");
 
-    public async Task<string?> UploadImageAsync(IFormFile file)
+    public async Task<string> UploadImageAsync(IFormFile file)
     {
         if ( file == null || file.Length == 0 )
         {

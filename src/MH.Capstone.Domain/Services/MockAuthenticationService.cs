@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-
+using MH.Capstone.Domain.DataModels;
 
 // This is a temporary mock service that will be replaced with ASP.NET Core Identity in the future. 
 // Once the database is set up, This is just to get the UI and testing working now.
@@ -23,15 +23,17 @@ namespace MH.Capstone.Domain.Services
         Task<bool> UserExistsAsync(string identifier);
         Task<bool> ResetPasswordAsync(string identifier, string newPassword);
         bool IsPasswordValid(string password);
+        ApplicationUser? GetUserByEmail(string email);
+        void UpdateUserProfileImage(string email, string imageUrl);
     }
 
     public class MockAuthenticationService : IAuthenticationService
     {
         // create a list of static users for testing purposes. In a real application, this data would come from a database.
-        private static readonly List<(string Email, string Password)> _users = new()
+        private static readonly List<ApplicationUser> _users = new()
         {
-            ("test@example.com", "Test@123"),
-            ("admin@example.com", "Admin@123")
+            new ApplicationUser { Email = "test@example.com", Password = "Test@123" },
+            new ApplicationUser { Email = "admin@example.com", Password = "Admin@123" }
         };
 
         // Logger used to record authentication events
@@ -43,22 +45,38 @@ namespace MH.Capstone.Domain.Services
             _logger = logger;
         }
 
+        // Helper method to find a user by email
+        public ApplicationUser? GetUserByEmail(string email) 
+        {
+            return _users.FirstOrDefault(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public void UpdateUserProfileImage(string email, string imageUrl)
+        {
+            var user = GetUserByEmail(email);
+            if (user != null)
+            {
+                user.ProfileImageUrl = imageUrl;
+                _logger.LogInformation("Updated profile image for {Email} to {Path}", email, imageUrl);
+            }
+        }
+
         // Search our in-memory list for a matching user
         // FirstOrDefault returns the first match, or default (null) if none found
-         public Task<bool> ValidateCredentialsAsync(string email, string password)
+         public async Task<bool> ValidateCredentialsAsync(string email, string password)
         {
-            var user = _users.FirstOrDefault(u => 
-                u.Email.Equals(email, StringComparison.OrdinalIgnoreCase) && 
-                u.Password == password);
+            var user = GetUserByEmail(email);
 
-            if (user.Email != null)
+            if (user == null)
+            {
+                _logger.LogWarning("Failed login attempt for {Email}", email);
+            }
+            else
             {
                 _logger.LogInformation("User {Email} validated successfully", email);
-                return Task.FromResult(true);
             }
 
-            _logger.LogWarning("Failed login attempt for {Email}", email);
-            return Task.FromResult(false);
+            return await Task.FromResult(user != null && user.Password == password);
         }
 
         // Registers a new user by adding them to our in-memory list.
@@ -71,7 +89,7 @@ namespace MH.Capstone.Domain.Services
                 return Task.FromResult(false);
             }
         // if user doesnt exist, add new user to in memory list
-            _users.Add((email, password));
+            _users.Add(new ApplicationUser { Email = email, Password = password });
             _logger.LogInformation("User {Email} registered successfully", email);
             return Task.FromResult(true);
         }
@@ -137,11 +155,6 @@ namespace MH.Capstone.Domain.Services
         {
             await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             _logger.LogInformation("User signed out");
-        }
-
-        public bool UserExists(string email)
-        {
-            return _users.Any(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
         }
     }
 }

@@ -1,4 +1,4 @@
 public interface IProfileImageService
 {
-    Task<string?> UploadImageAsync(IFormFile file);
+    Task<string> UploadImageAsync(IFormFile file);
 }
