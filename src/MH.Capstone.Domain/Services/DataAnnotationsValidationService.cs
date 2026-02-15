@@ -10,12 +10,13 @@ namespace MH.Capstone.Domain.Services
     internal static class DataAnnotationsValidationService
     {
         /// <summary>
-        /// 
+        /// This method validates an entity using data annotations and returns a boolean indicating if the validation passed or failed.
+        /// If validation fails, it also returns a list of the properties that failed validation through an out parameter.
         /// </summary>
         /// <param name="entity">The entity with data annotations to validate</param>
         /// <param name="failedProps">A <see cref="IEnumerable{string}"/> of properties in <see cref="entity"/> that failed validation</param>
         /// <returns>A boolean value representing if the entity passed validation</returns>
-        public static bool TryValidateEntity(object entity, out IEnumerable<string> failedProps)
+        public static bool TryValidateEntity(this object entity, out IEnumerable<string> failedProps)
         {
             var validationContext = new ValidationContext(entity);
             var validationResults = new List<ValidationResult>();

@@ -2,9 +2,12 @@
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using static MH.Capstone.Tests.SharedInternals.RandomData;
+using static MH.Capstone.Tests.SharedInternals.SqlExceptionBuilder;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System.Diagnostics.CodeAnalysis;
+using MH.Capstone.Tests.SharedInternals;
+using Microsoft.EntityFrameworkCore;
 
 namespace MH.Capstone.Domain.Tests.Unit.Services;
 
@@ -49,7 +52,8 @@ public class SightingsServiceTests
         var sighting = new Sighting(_validSighting.Id, _validSighting.UserId, lat, lon, timestamp, desc);
 
         _sightingsRepoMock.Setup(r => 
-            r.AddOrUpdateAsync(It.Is(sighting, SightingComparer.Instance))).ReturnsAsync(sighting);
+            r.AddOrUpdateAsync(It.Is(sighting, SightingComparer.Instance)))
+            .ReturnsAsync(sighting).Verifiable(Times.Once);
         
         var sut = CreateSut();
 
@@ -112,6 +116,25 @@ public class SightingsServiceTests
         // Arrange
         var sighting = _validSighting;
         sighting.Description = GetRandomStringOfLength(GetRandomIntInRange(501, 600));
+
+        var sut = CreateSut();
+
+        // Act & Assert
+        Assert.ThrowsAsync<ArgumentException>(() => sut.CreateSightingAsync(sighting));
+        AssertAllMockVerifications();
+    }
+
+    [Test]
+    public void CreateSightingAsync_UserDoesNotExist_ReturnsFailedTaskThrowingArgumentException()
+    {
+        // Arrange
+        var sighting = _validSighting;
+        _validSighting.UserId = Guid.AllBitsSet;
+
+        _sightingsRepoMock.Setup(r => 
+            r.AddOrUpdateAsync(It.Is(sighting, SightingComparer.Instance)))
+            .ThrowsAsync(new DbUpdateException("Foreign key violation", new SqlExceptionBuilder().WithNumber(547).Build()))
+            .Verifiable(Times.Once);
 
         var sut = CreateSut();
 
