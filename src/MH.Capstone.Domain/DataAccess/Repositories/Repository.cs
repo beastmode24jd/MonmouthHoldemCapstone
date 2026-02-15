@@ -36,25 +36,25 @@ namespace MH.Capstone.Domain.DataAccess.Repositories
         }
 
         // Find by ID assuming it's the PK and is an int
-        public virtual TEntity? FindById(int id)
+        public virtual async Task<TEntity?> FindByIdAsync(int id)
         {
-            var entity = _dbSet.Find(id);
+            var entity = await _dbSet.FindAsync(id);
             return entity;  // null if not found
         }
 
-        public virtual bool Exists(int id)
+        public virtual async Task<bool> ExistsAsync(int id)
         {
-            return FindById(id) != null;
+            return await FindByIdAsync(id) != null;
         }
 
-        public virtual IQueryable<TEntity> GetAll()
+        public virtual async Task<IQueryable<TEntity>> GetAllAsync()
         {
             // note, no includes here, and we're returning it as an IQueryable, NOT a DbSet, on purpose
             // so the caller cannot do other things (which should go here or in a subclass)
-            return _dbSet;
+            return await Task.FromResult(_dbSet);
         }
 
-        public IQueryable<TEntity> GetAll(params Expression<Func<TEntity, object>>[] includes)
+        public async Task<IQueryable<TEntity>> GetAllAsync(params Expression<Func<TEntity, object>>[] includes)
         {
             // Apply includes one by one
             IQueryable<TEntity> dbs = _dbSet;
@@ -63,38 +63,39 @@ namespace MH.Capstone.Domain.DataAccess.Repositories
             {
                 dbs = dbs.Include(item);
             }
-            return dbs;
+
+            return await Task.FromResult(dbs);
         }
 
-        public IQueryable<TEntity> GetAll(Expression<Func<TEntity, bool>> predicate)
+        public async Task<IQueryable<TEntity>> GetAllAsync(Expression<Func<TEntity, bool>> predicate)
         {
             IQueryable<TEntity> dbs = _dbSet;
-            return dbs.Where(predicate);
+            return await Task.FromResult(dbs.Where(predicate));
         }
 
-        public virtual TEntity AddOrUpdate(TEntity entity)
+        public virtual async Task<TEntity> AddOrUpdateAsync(TEntity entity)
         {
             if (entity == null)
             {
                 throw new ArgumentNullException(nameof(entity), "Entity must not be null to add or update");
             }
             _context.Update(entity);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
             return entity;
         }
 
-        public virtual void Delete(TEntity entity)
+        public virtual async Task DeleteAsync(TEntity entity)
         {
             ArgumentNullException.ThrowIfNull(entity, nameof(entity));
             _dbSet.Remove(entity);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
         }
 
-        public virtual void DeleteById(int id)
+        public virtual async Task DeleteByIdAsync(int id)
         {
             // If the entity doesn't exist, FindById will return null
             // and Delete will throw an exception, which is what we want
-            Delete(FindById(id)!);
+            await DeleteAsync((await FindByIdAsync(id))!);
         }
     }
 
@@ -109,28 +110,28 @@ namespace MH.Capstone.Domain.DataAccess.Repositories
         /// </summary>
         /// <param name="id">The PK of the entity to find</param>
         /// <returns>The entity or null if not found</returns>
-        TEntity? FindById(int id);
+        Task<TEntity?> FindByIdAsync(int id);
 
         /// <summary>
         /// Check if the entity with this integer PK exists in the table
         /// </summary>
         /// <param name="id">The PK of the entity to check</param>
         /// <returns>True if the entity exists, False otherwise</returns>
-        bool Exists(int id);
+        Task<bool> ExistsAsync(int id);
 
         /// <summary>
         /// Get all entities in this table.  Note, when eager loading is used this
         /// method will NOT populate navigation properties associated with foreign keys.
         /// </summary>
         /// <returns>All the entities</returns>
-        IQueryable<TEntity> GetAll();
+        Task<IQueryable<TEntity>> GetAllAsync();
 
         /// <summary>
         /// Get all entities in this table that satisfy the given predicate.
         /// </summary>
         /// <param name="predicate">All the entities</param>
         /// <returns></returns>
-        IQueryable<TEntity> GetAll(Expression<Func<TEntity, bool>> predicate);
+        Task<IQueryable<TEntity>> GetAllAsync(Expression<Func<TEntity, bool>> predicate);
 
         /// <summary>
         /// Version of GetAll that will perform includes to load navigation properties, 
@@ -138,7 +139,7 @@ namespace MH.Capstone.Domain.DataAccess.Repositories
         /// </summary>
         /// <param name="includes">Lambda functions that represent includes of properties</param>
         /// <returns>All Entities with all the includes</returns>
-        IQueryable<TEntity> GetAll(params Expression<Func<TEntity, object>>[] includes);
+        Task<IQueryable<TEntity>> GetAllAsync(params Expression<Func<TEntity, object>>[] includes);
 
         /// <summary>
         /// Add a new entity or update an existing one.  A new entity is one in which 
@@ -147,20 +148,20 @@ namespace MH.Capstone.Domain.DataAccess.Repositories
         /// </summary>
         /// <param name="entity">The entity to add or update</param>
         /// <returns>The entity that was added or updated, suitably synced with the DB</returns>
-        TEntity AddOrUpdate(TEntity entity);
+        Task<TEntity> AddOrUpdateAsync(TEntity entity);
 
         /// <summary>
         /// Remove this entity from the DB.  If the entity is not in the DB or has not been
         /// previously added, it "should" do nothing (note: I haven't checked this yet)
         /// </summary>
         /// <param name="entity">The entity to remove</param>
-        void Delete(TEntity entity);
+        Task DeleteAsync(TEntity entity);
 
         /// <summary>
         /// Remove the entity having this PK from the DB
         /// </summary>
         /// <param name="id">The integer PK of the entity to remove</param>
         /// <exception cref="System.Exception">Thrown if no entity with this PK id exists</exception>
-        void DeleteById(int id);
+        Task DeleteByIdAsync(int id);
     }
 }

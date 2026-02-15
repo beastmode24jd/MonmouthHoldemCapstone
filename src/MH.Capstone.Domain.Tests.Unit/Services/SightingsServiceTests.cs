@@ -49,7 +49,7 @@ public class SightingsServiceTests
         var sighting = new Sighting(_validSighting.Id, _validSighting.UserId, lat, lon, timestamp, desc);
 
         _sightingsRepoMock.Setup(r => 
-            r.AddOrUpdate(It.Is(sighting, SightingComparer.Instance)));
+            r.AddOrUpdateAsync(It.Is(sighting, SightingComparer.Instance))).ReturnsAsync(sighting);
         
         var sut = CreateSut();
 
@@ -57,6 +57,8 @@ public class SightingsServiceTests
         Assert.DoesNotThrowAsync(() => sut.CreateSightingAsync(sighting));
         AssertAllMockVerifications();
     }
+
+
 
     // Lat can range from -90 to 90 inclusive, so we test just outside those bounds
     [TestCase(-91)]
