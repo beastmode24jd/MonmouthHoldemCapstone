@@ -50,24 +50,27 @@ namespace MH.Capstone.WebApp.Controllers
         }
 
         [HttpPost]
+        // LINE BELOW HAS CS0161 ISSUE
         public async Task<IActionResult> UploadProfileImage(IFormFile profilePicture)
         {
             if (profilePicture != null && profilePicture.Length > 0)
             {
-                // Convert the file stream into a byte array
-                using (var memoryStream = new MemoryStream())
-                {
-                    await profilePicture.CopyToAsync(memoryStream);
-                    byte[] pictureData = memoryStream.ToArray();
+                // Delegate to refactored ProfileImageService
+                byte[]? imageData = await _imageService.ConvertToBytesAsync(profilePicture);
 
-                    var userEmail = User.Identity?.Name;
-                    if (userEmail != null)
+                var userEmail = User.Identity?.Name;
+                    if (userEmail != null && imageData != null) // Check for null before saving to DB
                     {
                         // Save the actual bytes to the database via the service
-                        _authService.UpdateUserProfileImage(userEmail, pictureData);
+                        _authService.UpdateUserProfileImage(userEmail, imageData);
+                        _logger.LogInformation("Profile image updated for user {Email}", userEmail);
                     }
-                }
             }
+            else 
+            {
+                _logger.LogWarning("Upload attempted with null or empty file.");
+            }
+
             // Send this information back to the main dashboard page.
             return RedirectToAction("Index");
         }

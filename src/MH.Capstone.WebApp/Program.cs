@@ -22,7 +22,7 @@ namespace MH.Capstone.WebApp
 
             // Register updated SQL service
             builder.Services.AddScoped<IAuthenticationService, MockAuthenticationService>();
-            builder.Services.AddScoped<IProfileImageService, MockProfileImageService>();
+            builder.Services.AddScoped<IProfileImageService, ProfileImageService>();
             // ... other services like IProfileImageService
 
             // Configure cookie authentication
@@ -84,7 +84,7 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
             // Register the mocked Profile Image Service
-            builder.Services.AddScoped<IProfileImageService, MockProfileImageService>();
+            builder.Services.AddScoped<IProfileImageService, ProfileImageService>();
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
