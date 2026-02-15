@@ -6,6 +6,6 @@ namespace MH.Capstone.WebApp.Models
         public string Password { get; set; } = string.Empty;
         
         // Sets profile icon to default in wwwroot folder if not custom
-        public byte[] ProfileImage { get; set; }
+        public byte[]? ProfileImage { get; set; }
     }
 }

@@ -24,7 +24,7 @@ namespace MH.Capstone.Domain.Services
         Task<bool> ResetPasswordAsync(string identifier, string newPassword);
         bool IsPasswordValid(string password);
         ApplicationUser? GetUserByEmail(string email);
-        void UpdateUserProfileImage(string email, string imageUrl);
+        void UpdateUserProfileImage(string email, byte[] pictureData);
     }
 
     public class MockAuthenticationService : IAuthenticationService
@@ -51,13 +51,13 @@ namespace MH.Capstone.Domain.Services
             return _users.FirstOrDefault(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
         }
 
-        public void UpdateUserProfileImage(string email, string imageUrl)
+        public void UpdateUserProfileImage(string email, byte[] pictureData)
         {
             var user = GetUserByEmail(email);
             if (user != null)
             {
-                user.ProfileImageUrl = imageUrl;
-                _logger.LogInformation("Updated profile image for {Email} to {Path}", email, imageUrl);
+                user.ProfileImage = pictureData;
+                _logger.LogInformation("Updated profile image for {Email}", email);
             }
         }
 
@@ -89,7 +89,7 @@ namespace MH.Capstone.Domain.Services
                 return Task.FromResult(false);
             }
         // if user doesnt exist, add new user to in memory list
-            _users.Add(new ApplicationUser { Email = email, Password = password, ProfileImageUrl = "/imgs/profileDefault.jpg"});
+            _users.Add(new ApplicationUser { Email = email, Password = password});
             _logger.LogInformation("User {Email} registered successfully", email);
             return Task.FromResult(true);
         }

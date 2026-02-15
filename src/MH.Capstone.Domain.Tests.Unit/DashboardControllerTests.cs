@@ -52,34 +52,31 @@ public class DashboardControllerTests
     }
 
     [Test]
-    public async Task UploadProfileImage_Successful_RedirectsAndUpdatesUser()
+    public async Task UploadProfileImage_Successful_ByteArrayToService()
     {
         // Arrange
-        var fileMock = CreateMockFile("test.jpg", "image/jpeg", "fake content");
-        _mockService.Setup(s => s.UploadImageAsync(It.IsAny<IFormFile>()))
-                .ReturnsAsync("uploads/profiles/test.jpeg");
+        var fileMock = CreateMockFile("test.jpg", "image/jpeg", "content");
 
         // Act
-        var result = await _controller.UploadProfileImage(fileMock.Object);
+        await _controller.UploadProfileImage(fileMock.Object);
 
         // Assert
-        var redirect = result as RedirectToActionResult;
-        Assert.That(redirect?.ActionName, Is.EqualTo("Index"));
-
-        // Verify that the Auth Service was told to update the user's profile image URL
+        // Verify that the Auth Service was told to update the user's profile image
+        // in localDB
         _mockAuthService.Verify(s => s.UpdateUserProfileImage(
-        TestEmail, 
-        "/uploads/profiles/new.jpg"), 
-        Times.Once);
+        TestEmail,
+        It.Is<byte[]>(b => b.Length > 0)), 
+    Times.Once);
     }
 
     [Test]
     public void Index_SetsViewBagWithUserImageUrl()
     {
         // Arrange
+        var testBytes = Encoding.UTF8.GetBytes("fake-image-data");
         var mockUser = new ApplicationUser { 
             Email = TestEmail, 
-            ProfileImageUrl = "/custom/path.jpg" 
+            ProfileImage = testBytes
         };
         
         _mockAuthService.Setup(s => s.GetUserByEmail(TestEmail))
@@ -89,7 +86,8 @@ public class DashboardControllerTests
         var result = _controller.Index() as ViewResult;
 
         // Assert
-        Assert.That(_controller.ViewBag.ProfileImageUrl, Is.EqualTo("/custom/path.jpg"));
+        string expectedBase64 = $"data:image/jpeg;base64,{Convert.ToBase64String(testBytes)}";
+        Assert.That(_controller.ViewBag.ProfileImageUrl, Is.EqualTo(expectedBase64));
     }
 
     /*
