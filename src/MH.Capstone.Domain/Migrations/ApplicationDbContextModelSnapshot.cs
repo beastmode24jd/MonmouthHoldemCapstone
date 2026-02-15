@@ -67,6 +67,10 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<byte[]>("ImageBuffer")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
                     b.Property<decimal>("Latitude")
                         .HasPrecision(9, 6)
                         .HasColumnType("decimal(9,6)")
