@@ -25,7 +25,7 @@ namespace MH.Capstone.WebApp.Controllers
         [Route("Create")]
         public IActionResult Upload()
         {
-            return View();
+            return View(new SightingUploadViewModel());
         }
 
         [HttpPost]
