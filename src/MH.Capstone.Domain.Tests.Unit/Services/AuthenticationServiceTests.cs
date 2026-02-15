@@ -21,18 +21,17 @@ public class AuthenticationServiceTests
     {
         // Create in-memory database for testing
         var services = new ServiceCollection();
-
+        
         // Add logging (required by Identity)
         services.AddLogging();
-
+        
         services.AddDbContext<AuthDbContext>(options =>
             options.UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}"));
-
+        
         // Add Identity services
         services.AddIdentity<ApplicationUser, IdentityRole>()
             .AddEntityFrameworkStores<AuthDbContext>()
             .AddDefaultTokenProviders();
-
         // Register real AuthenticationService here when we create it
         services.AddScoped<IAuthenticationService, AuthenticationService>();
         _serviceProvider = services.BuildServiceProvider();
@@ -54,17 +53,17 @@ public class AuthenticationServiceTests
 
     [Test]
     public async Task RegisterUserAsync_WithValidData_CreatesUserInDatabase()
-    {
+  {
         // Arrange - Set up our test data
         string email = "newuser@example.com";
         string password = "Test@123!";
-
+        
         // Act - Try to register the user
         var result = await _authService.RegisterUserAsync(email, password);
-
+        
         // Assert - Verify user was created
         Assert.That(result, Is.True, "Registration should succeed");
-
+        
         var userInDb = await _userManager.FindByEmailAsync(email);
         Assert.That(userInDb, Is.Not.Null, "User should exist in database");
         Assert.That(userInDb.Email, Is.EqualTo(email), "Email should match");
@@ -146,7 +145,6 @@ public class AuthenticationServiceTests
         Assert.That(exists, Is.False, "Unregistered user should not exist");
     }
     //  ResetPasswordAsync Tests 
-
 
     [Test]
     public async Task ResetPasswordAsync_WithNonExistentUser_ReturnsFalse()
