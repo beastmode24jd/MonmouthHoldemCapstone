@@ -21,7 +21,7 @@ namespace MH.Capstone.Domain.Services
 
         Task<Sighting> GetSightingByIdAsync(Guid id);
 
-        Task<bool> ValidateImageAsync(IFormFile? imageBuffer);
+        bool ValidateImage(IFormFile? imageBuffer);
     }
 
     public class SightingsService : ISightingsService
@@ -64,9 +64,29 @@ namespace MH.Capstone.Domain.Services
             throw new NotImplementedException();
         }
 
-        public async Task<bool> ValidateImageAsync(IFormFile? imageBuffer)
+        public bool ValidateImage(IFormFile? imageBuffer)
         {
-            throw new NotImplementedException();
+            // Null check - if null, we are not valid
+            if (imageBuffer == null)
+            {
+                return false;
+            }
+
+            // Check file size (max 2 MB) but needs to not be 0
+            if (imageBuffer.Length is > 2 * 1024 * 1024 or <= 0)
+            {
+                return false;
+            }
+
+            // Check file type (must be an JPG or PNG)
+            string[] validImgTypes = ["jpg", "jpeg", "png"];
+            if (!validImgTypes.Any(t => imageBuffer.ContentType.Contains($"image/{t}")))
+            {
+                return false;
+            }
+
+            // If we made it here, the image is valid
+            return true;
         }
     }
 }
