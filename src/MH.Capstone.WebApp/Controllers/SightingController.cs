@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
+using MH.Capstone.Domain.Tools;
 using MH.Capstone.WebApp.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -38,7 +39,7 @@ namespace MH.Capstone.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Upload(SightingUploadViewModel sightingUpload)
         {
-            if (!ModelState.IsValid)
+            if (!ModelState.IsValid || !_sightingsService.ValidateImage(sightingUpload.UploadedImage))
             {
                 _logger.LogInformation("Invalid sighting model was submitted and rejected.");
                 return View(sightingUpload);

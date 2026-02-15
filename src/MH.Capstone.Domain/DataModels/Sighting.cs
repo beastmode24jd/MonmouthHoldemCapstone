@@ -43,7 +43,7 @@ namespace MH.Capstone.Domain.DataModels
         [MaxLength(500)]
         public string? Description { get; set; } = null;
 
-        [Length(1, 2 * (1024 * 1024))] // must not be of size 0 but less than 2 MB
+        [Length(1, 2 * (1024 * 1024))] // must not be of size 0 but less than 2 MB (MB = 1024 * 1024 bytes)
         public byte[] ImageBuffer { get; set; } = null!;
 
         [NotMapped]

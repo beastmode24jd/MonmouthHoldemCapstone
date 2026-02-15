@@ -29,12 +29,13 @@
             <textarea asp-for="Description" class="form-control" rows="10"></textarea>
             <span asp-validation-for="Description" class="text-danger"></span>
         </div>
-@*         <div class="form-group col-lg-4 col-12">
-            <label for="Image">Upload Image</label><br/>
-            <input type="file" name="Image" class="form-control-file" />
-            <span asp-validation-for="" class="text-danger"></span>
+        <div class="form-group col-lg-4 col-12">
+            <label asp-for="UploadedImage">Upload Image</label><br />
+            <input asp-for="UploadedImage" type="file" name="Image" class="form-control-file" />
+            <span asp-validation-for="UploadedImage" class="text-danger"></span>
+            <!--TODO Later - make the uploaded image async show here on upload via JavaScript -->
             <img src="" width="100px" height="100px" alt="Uploaded Image" class="d-none"/>
-        </div> *@
+        </div>
     </div>
 
     @Html.AntiForgeryToken()

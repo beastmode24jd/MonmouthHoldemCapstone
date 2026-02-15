@@ -26,6 +26,9 @@ namespace MH.Capstone.WebApp.Models.ViewModels
         [MaxLength(500)] 
         public string? Description { get; set; } = string.Empty;
 
+        [Range(1, 2 * (1024 * 1024))]
+        public IFormFile? UploadedImage { get; set; } = null;
+
         public SightingUploadViewModel() {}
 
         public SightingUploadViewModel(DateTime timestamp, decimal latitude, decimal longitude, string? description)
@@ -48,7 +51,8 @@ namespace MH.Capstone.WebApp.Models.ViewModels
                 Timestamp = vm.Timestamp.ToUniversalTime(),
                 Latitude = vm.Latitude,
                 Longitude = vm.Longitude,
-                Description = vm.Description
+                Description = vm.Description,
+                ImageBuffer = vm.UploadedImage?.ToByteArray() ?? []
             };
         }
     }
