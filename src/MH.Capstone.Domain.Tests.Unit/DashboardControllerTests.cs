@@ -95,55 +95,6 @@ public class DashboardControllerTests
         Assert.That(_controller.ViewBag.ProfileImageUrl, Is.EqualTo(expectedBase64));
     }
 
-    /*
-    [Test]
-    public async Task Upload_NotSuccessful_DoesNotRunService()
-    {
-        // Arrange and Act
-        var result = await _controller.UploadProfileImage(null);
-
-        // Assert
-        var redirect = result as RedirectToActionResult;
-        Assert.That(redirect?.ActionName, Is.EqualTo("Index"));
-        _mockService.Verify(s => s.UploadImageAsync(It.IsAny<IFormFile>()), Times.Never);
-    }
-
-*/
-
-/*
-    [Test]
-    public async Task SaveBio_Successful_UpdatesProfileAttributes()
-    {
-        // Arrange
-        // Set up Dashboard view with dummy bio text variable
-
-        // Act
-        // Run through the Account Controller SaveBio method,
-        //      with the bio text variable
-
-        // Assert
-        // Check that the bio text matches the aspect field.
-        
-    }
-
-    [Test]
-    public async Task SaveBio_EmptyString_DisplaysErrorMessage()
-    {
-        // Arrange
-        // Set up Dashboard view with dummy bio text variable as empty string
-
-        // Act
-        // Run through the Account Controller SaveBio method,
-        //      with empty string
-
-        // Assert
-        // Check that an error message is displayed to the user,
-        //  and that the bio field in the Model remains blank.
-        
-    }
-
-*/
-
     // Helper method, for mocking:
     private Mock<IFormFile> CreateMockFile(string fileName, string contentType, string content)
     {
