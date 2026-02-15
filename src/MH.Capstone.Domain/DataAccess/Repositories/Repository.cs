@@ -19,17 +19,21 @@ namespace MH.Capstone.Domain.DataAccess.Repositories
     ///    - Async versions
     /// </summary>
     /// <typeparam name="TEntity">This is the entity for which we're making a repository</typeparam>
-    public class Repository<TEntity> : IRepository<TEntity> where TEntity : class, new()
+    /// <typeparam name="TDbContext">This is the EF DbContext type to use. Defined to support multiple EF DbContext Types</typeparam>
+
+    public class Repository<TEntity, TDbContext> : IRepository<TEntity, TDbContext> where TEntity : class, new()
+        where TDbContext : DbContext
     {
         // The context is private to enforce full separation, preventing a subclass from accessing
         // entities other than this one.  If you need other entities, write a separate "service" or "provider" class
         // that has access to all repositories needed
         private readonly DbContext _context;
+
         // This one is OK to use in a subclass because it only represents the entity for this type of repository
         // and it can be mocked
         protected readonly DbSet<TEntity> _dbSet;
 
-        public Repository(DbContext ctx)
+        public Repository(TDbContext ctx)
         {
             _context = ctx;
             _dbSet = _context.Set<TEntity>();   // must do it this way because we don't have a "navigation property" to use
@@ -103,7 +107,9 @@ namespace MH.Capstone.Domain.DataAccess.Repositories
     /// Interface for common and CRUD operations on entities
     /// </summary>
     /// <typeparam name="TEntity">This is the entity for which we're making a repository</typeparam>
-    public interface IRepository<TEntity> where TEntity : class, new()
+    /// <typeparam name="TDbContext">This is the EF DbContext type to use. Defined to support multiple EF DbContext Types</typeparam>
+    public interface IRepository<TEntity, TDbContext> where TEntity : class, new()
+        where TDbContext : DbContext
     {
         /// <summary>
         /// Find entity by PK.  This only works for entities with integer PK's. 

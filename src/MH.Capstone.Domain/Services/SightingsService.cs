@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MH.Capstone.Domain.DataAccess.Contexts;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Tools;
@@ -23,9 +24,9 @@ namespace MH.Capstone.Domain.Services
     public class SightingsService : ISightingsService
     {
         private readonly ILogger<SightingsService> _logger;
-        private readonly IRepository<Sighting> _sightingsRepo;
+        private readonly IRepository<Sighting, ApplicationDbContext> _sightingsRepo;
 
-        public SightingsService(ILogger<SightingsService> logger, IRepository<Sighting> sightingsRepo)
+        public SightingsService(ILogger<SightingsService> logger, IRepository<Sighting, ApplicationDbContext> sightingsRepo)
         {
             _logger = logger;
             _sightingsRepo = sightingsRepo;
