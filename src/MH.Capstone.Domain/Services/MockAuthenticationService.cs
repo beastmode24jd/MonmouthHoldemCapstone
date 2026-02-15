@@ -89,7 +89,7 @@ namespace MH.Capstone.Domain.Services
                 return Task.FromResult(false);
             }
         // if user doesnt exist, add new user to in memory list
-            _users.Add(new ApplicationUser { Email = email, Password = password });
+            _users.Add(new ApplicationUser { Email = email, Password = password, ProfileImageUrl = "/imgs/profileDefault.jpg"});
             _logger.LogInformation("User {Email} registered successfully", email);
             return Task.FromResult(true);
         }
