@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace MH.Capstone.WebApp.Controllers
 {
     [Authorize]
+    [Route("sighting")]
     public class SightingController : Controller
     {
         private readonly ILogger<SightingController> _logger;
