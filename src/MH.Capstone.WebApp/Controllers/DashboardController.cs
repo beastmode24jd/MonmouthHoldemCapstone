@@ -18,7 +18,7 @@ namespace MH.Capstone.WebApp.Controllers
         public DashboardController(ILogger<DashboardController> logger, IProfileImageService imageService)
         {
             _logger = logger;
-            _imageService = _imageService;
+            _imageService = imageService;
         }
 
         // Displays the main dashboard page for authenticated users. 
