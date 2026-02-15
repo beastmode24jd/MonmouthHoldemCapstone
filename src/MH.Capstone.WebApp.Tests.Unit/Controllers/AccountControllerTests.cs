@@ -122,7 +122,7 @@ public class AccountControllerTests
             ConfirmPassword = "Test@123"
         };
 
-        _mockAuthService.Setup(s => s.UserExists(registerModel.Email)).Returns(true);
+        _mockAuthService.Setup(s => s.UserExistsAsync(registerModel.Email)).ReturnsAsync(true);
 
         var result = await _controller.Register(registerModel);
 

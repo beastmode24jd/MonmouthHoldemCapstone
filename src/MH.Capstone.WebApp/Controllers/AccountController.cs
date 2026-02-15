@@ -2,8 +2,6 @@ using MH.Capstone.Domain.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MH.Capstone.WebApp.Models.ViewModels;
-using MH.Capstone.WebApp.Services;
-using System;
 
 namespace MH.Capstone.WebApp.Controllers
 {
@@ -127,7 +125,7 @@ namespace MH.Capstone.WebApp.Controllers
             }
 
             // Prevent duplicate user accounts
-            if (_authService.UserExists(model.Email))
+            if (await _authService.UserExistsAsync(model.Email))
             {
                 // Log specific reason server-side to avoid email enumeration in responses
                 _logger.LogWarning(

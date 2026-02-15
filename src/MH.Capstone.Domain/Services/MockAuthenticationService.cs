@@ -20,8 +20,6 @@ namespace MH.Capstone.Domain.Services
         Task<bool> RegisterUserAsync(string email, string password);
         Task SignInUserAsync(HttpContext httpContext, string email, bool rememberMe);
         Task SignOutUserAsync(HttpContext httpContext);
-        bool UserExists(string email);
-
         Task<bool> UserExistsAsync(string identifier);
         Task<bool> ResetPasswordAsync(string identifier, string newPassword);
         bool IsPasswordValid(string password);
@@ -89,15 +87,16 @@ namespace MH.Capstone.Domain.Services
 
             var idx = _users.FindIndex(u => u.Email.Equals(identifier, StringComparison.OrdinalIgnoreCase));
             if (idx < 0)
-             {
+            {
                 return Task.FromResult(false);
             }
 
-                _users[idx] = (_users[idx].Email, newPassword);
-                _logger.LogInformation("Password reset for {Identifier}", identifier);
+            _users[idx] = (_users[idx].Email, newPassword);
+            _logger.LogInformation("Password reset for {Identifier}", identifier);
 
-                return Task.FromResult(true);
-            }
+            return Task.FromResult(true);
+        }
+        
         public bool IsPasswordValid(string password)
         {
            
