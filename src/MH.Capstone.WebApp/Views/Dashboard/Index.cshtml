@@ -14,8 +14,15 @@
                     {
                         <div class="alert alert-success" role="alert">
                             <h4 class="alert-heading">
-                                @* UPDATE WITH CUSTOM PROFILE IMAGE IF SUBMITTED *@
-                                <i class="bi bi-person-circle"></i> Hello, @User.Identity.Name!
+                                @if (ViewBag.profilePicture != null)
+                                {
+                                    <img src="@ViewBag.ProfileImageUrl" class="rounded-circle" style="width:40px; height:40px; object-fit:cover;" />
+                                }
+                                else
+                                {
+                                    <i class="bi bi-person-circle"></i>
+                                }
+                                 Hello, @User.Identity.Name!
                             </h4>
                             <p>You are successfully logged in.</p>
                         </div>
@@ -81,10 +88,12 @@
                     <h5 class="card-title">
                         <i class="bi bi-gear"></i> Settings
                     </h5>
-                    <p class="card-text">Manage your account settings.</p>
-                    @* Need to put link to profile image upload form and/or page here...
-                        Might change to a button later, without the card layout.
-                        Description text could be dropdown window *@
+                    <p class="card-text">Upload your profile picture:</p>
+                    <form asp-action="UploadProfileImage" method="Post" enctype="multipart/form-data">
+                        <input class="form-control form-control-sm mb-2" type="file" accept="image/*" name="profilePicture" />
+                        <button type="submit" class="btnDark">Upload</button>
+                    </form>
+                    @* Adding a profile bio should also go here at some point. *@
                 </div>
             </div>
         </div>
