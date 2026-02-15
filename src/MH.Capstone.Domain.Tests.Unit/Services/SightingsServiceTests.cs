@@ -16,14 +16,14 @@ namespace MH.Capstone.Domain.Tests.Unit.Services;
 public class SightingsServiceTests
 {
     private Sighting _validSighting;
-    private readonly Mock<IRepository<Sighting>> _sightingsRepoMock = new Mock<IRepository<Sighting>>();
+    private Mock<IRepository<Sighting>> _sightingsRepoMock;
 
     // Remember: Arrange, Act, Assert
     [SetUp]
     public void Setup()
     {
         _validSighting = SightingValidValuesSource.DefaultValidSighting;
-        _sightingsRepoMock.Reset();
+        _sightingsRepoMock = new Mock<IRepository<Sighting>>();
     }
 
     private SightingsService CreateSut() =>
@@ -175,7 +175,7 @@ public struct SightingValidValuesSource
 {
     public const int _EnumerableCounts = 2;
 
-    public static Sighting DefaultValidSighting =
+    public static Sighting DefaultValidSighting =>
         new Sighting(Guid.NewGuid(), Guid.NewGuid(), 0m, 0m, DateTime.UtcNow, string.Empty);
 
     public static IEnumerable<decimal> GetValidLats() =>

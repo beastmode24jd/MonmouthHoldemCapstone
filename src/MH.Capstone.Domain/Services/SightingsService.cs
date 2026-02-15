@@ -5,7 +5,11 @@ using System.Text;
 using System.Threading.Tasks;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
+using MH.Capstone.Domain.Tools;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using static MH.Capstone.Domain.Tools.DataAnnotationsValidator;
 
 namespace MH.Capstone.Domain.Services
 {
@@ -18,8 +22,8 @@ namespace MH.Capstone.Domain.Services
 
     public class SightingsService : ISightingsService
     {
-        private ILogger<SightingsService> _logger;
-        private IRepository<Sighting> _sightingsRepo;
+        private readonly ILogger<SightingsService> _logger;
+        private readonly IRepository<Sighting> _sightingsRepo;
 
         public SightingsService(ILogger<SightingsService> logger, IRepository<Sighting> sightingsRepo)
         {
@@ -29,7 +33,26 @@ namespace MH.Capstone.Domain.Services
 
         public async Task CreateSightingAsync(Sighting entity)
         {
-            throw new NotImplementedException();
+            if (!entity.TryValidateEntity(out var fails))
+            {
+                // There were one or more validation failures. Since this is a service method, we will throw an
+                // exception to be handled by the caller and only care about the first failure for logging purposes.
+                var firstFail = fails.First();
+                throw new ArgumentException($"Sighting entity validation failed. Property {firstFail} invalid.",
+                    firstFail);
+            }
+
+            try
+            {
+                await _sightingsRepo.AddOrUpdateAsync(entity);
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 547 })
+            {
+                // This is a SQL foreign key violation, which means the UserId provided does not exist in the Users table.
+                throw new ArgumentException(
+                    $"Sighting entity validation failed. UserId {entity.UserId} does not exist.", nameof(entity.UserId),
+                    ex);
+            }
         }
 
         public async Task<Sighting> GetSightingByIdAsync(Guid id)

@@ -41,7 +41,7 @@ namespace MH.Capstone.Tests.SharedInternals
             var ctors = typeof(SqlError).GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance);
             var firstSqlErrorCtor = ctors.FirstOrDefault(
                 ctor =>
-                    ctor.GetParameters().Count() == 7); // .NetCore should be 8 not 7
+                    ctor.GetParameters().Count() == 8);
             SqlError error = firstSqlErrorCtor.Invoke(
                 new object[]
                 {
@@ -51,8 +51,8 @@ namespace MH.Capstone.Tests.SharedInternals
                     string.Empty,
                     string.Empty,
                     string.Empty,
-                    new int()
-                    //,new Exception()  // for .NetCore 
+                    new int(),
+                    new Exception()  // for .NetCore 
                 }) as SqlError;
 
             return error;
