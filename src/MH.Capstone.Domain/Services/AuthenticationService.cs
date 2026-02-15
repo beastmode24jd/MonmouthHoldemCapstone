@@ -79,11 +79,10 @@ namespace MH.Capstone.Domain.Services
             await _signInManager.SignOutAsync();
         }
 
-        public bool UserExists(string email)
+        public async Task<bool> UserExistsAsync(string email)
         {
-            // check if a user with the given email exsits in the database
-            // use GetAwaiter().GetResult() because this method is synchronous
-            var user = _userManager.FindByEmailAsync(email).GetAwaiter().GetResult();
+            // check if a user with the given email exists in the database asynchronously
+            var user = await _userManager.FindByEmailAsync(email);
             return user != null;
         }
     }
