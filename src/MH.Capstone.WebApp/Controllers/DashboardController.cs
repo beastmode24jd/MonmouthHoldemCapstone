@@ -35,7 +35,17 @@ namespace MH.Capstone.WebApp.Controllers
 
             // Fetch the user profile image from the Model.
             // Defaults to the placeholder profile image if not found.
-            ViewBag.ProfileImageUrl = user?.ProfileImageUrl ?? "/imgs/profileDefault.jpeg";
+            if (user?.ProfileImage != null)
+            {
+                // Convert byte[] to Base64 string for HTML display
+                string imageBase64 = Convert.ToBase64String(user.ProfileImage);
+                ViewBag.ProfileImageUrl = $"data:image/jpeg;base64,{imageBase64}";
+            }
+            else
+            {
+                ViewBag.ProfileImageUrl = "/imgs/profileDefault.jpeg";
+            }
+
             return View();
         }
 
@@ -44,15 +54,18 @@ namespace MH.Capstone.WebApp.Controllers
         {
             if (profilePicture != null && profilePicture.Length > 0)
             {
-                // ImageService handles the file
-                var imageUrl = await _imageService.UploadImageAsync(profilePicture);
-                _logger.LogInformation($"Image uploaded to {imageUrl}");
-
-                var userEmail = User.Identity?.Name;
-
-                if (userEmail != null)
+                // Convert the file stream into a byte array
+                using (var memoryStream = new MemoryStream())
                 {
-                    _authService.UpdateUserProfileImage(userEmail, imageUrl);
+                    await profilePicture.CopyToAsync(memoryStream);
+                    byte[] pictureData = memoryStream.ToArray();
+
+                    var userEmail = User.Identity?.Name;
+                    if (userEmail != null)
+                    {
+                        // Save the actual bytes to the database via the service
+                        _authService.UpdateUserProfileImage(userEmail, pictureData);
+                    }
                 }
             }
             // Send this information back to the main dashboard page.

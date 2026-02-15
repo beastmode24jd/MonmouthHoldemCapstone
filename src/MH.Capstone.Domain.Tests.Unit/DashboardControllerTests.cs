@@ -20,7 +20,7 @@ public class DashboardControllerTests
     private Mock<IProfileImageService> _mockService;
     private Mock<ILogger<DashboardController>> _mockLogger;
     private DashboardController _controller;
-    private const string TestEmail = "namesMcNameington@mail.wou";
+    private const string TestEmail = "namesNameington@mail.wou";
 
     [SetUp]
     public void SetUp()
@@ -38,7 +38,7 @@ public class DashboardControllerTests
 
         _controller.ControllerContext = new ControllerContext()
         {
-            HttpContext = new DefaultHttpContext() {User = user}
+            HttpContext = new DefaultHttpContext() { User = user }
         };
 
 
@@ -55,7 +55,6 @@ public class DashboardControllerTests
     public async Task UploadProfileImage_Successful_RedirectsAndUpdatesUser()
     {
         // Arrange
-        var expectedUrl = "/uploads/profiles/test.jpeg";
         var fileMock = CreateMockFile("test.jpg", "image/jpeg", "fake content");
         _mockService.Setup(s => s.UploadImageAsync(It.IsAny<IFormFile>()))
                 .ReturnsAsync("uploads/profiles/test.jpeg");
@@ -70,7 +69,7 @@ public class DashboardControllerTests
         // Verify that the Auth Service was told to update the user's profile image URL
         _mockAuthService.Verify(s => s.UpdateUserProfileImage(
         TestEmail, 
-        expectedUrl), 
+        "/uploads/profiles/new.jpg"), 
         Times.Once);
     }
 
