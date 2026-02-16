@@ -125,7 +125,7 @@ namespace MH.Capstone.WebApp.Controllers
             }
 
             // Prevent duplicate user accounts
-            if (_authService.UserExists(model.Email))
+            if (await _authService.UserExistsAsync(model.Email))
             {
                 // Log specific reason server-side to avoid email enumeration in responses
                 _logger.LogWarning(
@@ -166,6 +166,70 @@ namespace MH.Capstone.WebApp.Controllers
 
             return View(model);
         }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ForgotPassword()
+        {
+            return View(new ForgotPasswordViewModel());
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+        {
+            model.Identifier = (model.Identifier ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(model.Identifier))
+            {
+                ModelState.AddModelError(nameof(model.Identifier), "Email is required.");
+                return View(model);
+            }
+
+            var exists = await _authService.UserExistsAsync(model.Identifier);
+
+            if (!exists)
+            {
+                ModelState.AddModelError(string.Empty, "We could not find that account. Please try again.");
+                model.ShowPasswordResetFields = false;
+                return View(model);
+            }
+
+            model.ShowPasswordResetFields = true;
+
+            var newPass = model.NewPassword ?? string.Empty;
+            var confirm = model.ConfirmNewPassword ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(newPass) || string.IsNullOrWhiteSpace(confirm))
+            {
+                return View(model);
+            }
+
+            if (!_authService.IsPasswordValid(newPass))
+            {
+                ModelState.AddModelError(nameof(model.NewPassword), "Password must be at least 8 characters and include a letter, number, and symbol.");
+                return View(model);
+            }
+
+            if (!string.Equals(newPass, confirm, StringComparison.Ordinal))
+            {
+                ModelState.AddModelError(nameof(model.ConfirmNewPassword), "The two passwords do not match.");
+                return View(model);
+            }
+
+            var resetOk = await _authService.ResetPasswordAsync(model.Identifier, newPass);
+
+            if (!resetOk)
+            {
+                ModelState.AddModelError(string.Empty, "We could not reset your password. Please try again.");
+                return View(model);
+            }
+
+            TempData["PasswordResetSuccess"] = "Your password was changed. Please log in.";
+            return RedirectToAction(nameof(Login));
+        }
+
 
         // Logs the current user out and clears authentication cookies.
         [HttpPost]

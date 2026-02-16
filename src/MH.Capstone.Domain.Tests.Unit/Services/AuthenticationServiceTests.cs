@@ -2,10 +2,10 @@ using MH.Capstone.Domain.DataAccess.Contexts;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 
-namespace MH.Capstone.Tests.Integration;
+namespace MH.Capstone.Domain.Tests.Unit.Services;
 
 [TestFixture]
 public class AuthenticationServiceTests
@@ -20,18 +20,18 @@ public class AuthenticationServiceTests
     {
         // Create in-memory database for testing
         var services = new ServiceCollection();
-        
+
         // Add logging (required by Identity)
         services.AddLogging();
-        
+
         services.AddDbContext<AuthDbContext>(options =>
             options.UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}"));
-        
+
         // Add Identity services
         services.AddIdentity<ApplicationUser, IdentityRole>()
             .AddEntityFrameworkStores<AuthDbContext>()
             .AddDefaultTokenProviders();
-        
+
         // Register real AuthenticationService here when we create it
         services.AddScoped<IAuthenticationService, AuthenticationService>();
         _serviceProvider = services.BuildServiceProvider();
@@ -53,17 +53,17 @@ public class AuthenticationServiceTests
 
     [Test]
     public async Task RegisterUserAsync_WithValidData_CreatesUserInDatabase()
-  {
+    {
         // Arrange - Set up our test data
         string email = "newuser@example.com";
         string password = "Test@123!";
-        
+
         // Act - Try to register the user
         var result = await _authService.RegisterUserAsync(email, password);
-        
+
         // Assert - Verify user was created
         Assert.That(result, Is.True, "Registration should succeed");
-        
+
         var userInDb = await _userManager.FindByEmailAsync(email);
         Assert.That(userInDb, Is.Not.Null, "User should exist in database");
         Assert.That(userInDb.Email, Is.EqualTo(email), "Email should match");
@@ -126,22 +126,151 @@ public class AuthenticationServiceTests
         await _authService!.RegisterUserAsync(email, password);
 
         // Act - Check if user exists
-        var exists = _authService.UserExists(email);
+        var exists = await _authService.UserExistsAsync(email);
 
         // Assert - Should return true
         Assert.That(exists, Is.True, "Registered user should exist");
     }
 
     [Test]
-    public void UserExists_WithUnregisteredEmail_ReturnsFalse()
+    public async Task UserExists_WithUnregisteredEmail_ReturnsFalse()
     {
         // Arrange - Use an email that was never registered
         string email = "nonexistent@example.com";
 
         // Act - Check if user exists
-        var exists = _authService!.UserExists(email);
+        var exists = await _authService!.UserExistsAsync(email);
 
         // Assert - Should return false
         Assert.That(exists, Is.False, "Unregistered user should not exist");
+    }
+    //  ResetPasswordAsync Tests 
+
+
+    [Test]
+    public async Task ResetPasswordAsync_WithNonExistentUser_ReturnsFalse()
+    {
+        // Arrange - Use an email that doesn't exist
+        string email = "nonexistent@example.com";
+        string newPassword = "NewPass@456!";
+
+        // Act - Try to reset password for non-existent user
+        var result = await _authService!.ResetPasswordAsync(email, newPassword);
+
+        // Assert - Should return false
+        Assert.That(result, Is.False, "Reset should fail for non-existent user");
+    }
+
+    [Test]
+    public void ResetPasswordAsync_WithInvalidPassword_ThrowsArgumentException()
+    {
+        // Arrange - Create a user first
+        string email = "resetuser4@example.com";
+        string oldPassword = "OldPass@123!";
+        string invalidPassword = "weak"; // Too short, no symbol, no digit
+
+        // Act & Assert - Should throw ArgumentException
+        Assert.ThrowsAsync<ArgumentException>(async () =>
+        {
+            await _authService!.RegisterUserAsync(email, oldPassword);
+            await _authService.ResetPasswordAsync(email, invalidPassword);
+        });
+    }
+
+    //  IsPasswordValid Tests 
+
+    [Test]
+    public void IsPasswordValid_WithValidPassword_ReturnsTrue()
+    {
+        // Arrange
+        string password = "Test@123!";
+
+        // Act
+        var result = _authService!.IsPasswordValid(password);
+
+        // Assert
+        Assert.That(result, Is.True, "Valid password should return true");
+    }
+
+    [Test]
+    public void IsPasswordValid_WithNoSymbol_ReturnsFalse()
+    {
+        // Arrange
+        string password = "Test12345";
+
+        // Act
+        var result = _authService!.IsPasswordValid(password);
+
+        // Assert
+        Assert.That(result, Is.False, "Password without symbol should return false");
+    }
+
+    [Test]
+    public void IsPasswordValid_WithNoDigit_ReturnsFalse()
+    {
+        // Arrange
+        string password = "Test@abcd";
+
+        // Act
+        var result = _authService!.IsPasswordValid(password);
+
+        // Assert
+        Assert.That(result, Is.False, "Password without digit should return false");
+    }
+
+    [Test]
+    public void IsPasswordValid_WithNoLetter_ReturnsFalse()
+    {
+        // Arrange
+        string password = "1234@567!";
+
+        // Act
+        var result = _authService!.IsPasswordValid(password);
+
+        // Assert
+        Assert.That(result, Is.False, "Password without letter should return false");
+    }
+
+    [Test]
+    public void IsPasswordValid_WithTooShort_ReturnsFalse()
+    {
+        // Arrange
+        string password = "Te@1";
+
+        // Act
+        var result = _authService!.IsPasswordValid(password);
+
+        // Assert
+        Assert.That(result, Is.False, "Password shorter than 8 chars should return false");
+    }
+
+    [Test]
+    public void IsPasswordValid_WithNull_ReturnsFalse()
+    {
+        // Act
+        var result = _authService!.IsPasswordValid(null!);
+
+        // Assert
+        Assert.That(result, Is.False, "Null password should return false");
+    }
+
+    [Test]
+    public void IsPasswordValid_WithEmpty_ReturnsFalse()
+    {
+        // Act
+        var result = _authService!.IsPasswordValid("");
+
+        // Assert
+        Assert.That(result, Is.False, "Empty password should return false");
+    }
+
+    [Test]
+    public void IsPasswordValid_WithWhitespace_ReturnsFalse()
+    {
+        // Act
+        var result = _authService!.IsPasswordValid("   ");
+
+        // Assert
+        Assert.That(result, Is.False, "Whitespace-only password should return false");
     }
 }
