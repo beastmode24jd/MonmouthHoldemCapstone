@@ -1,10 +1,10 @@
-using MH.Capstone.Domain.DataAccess.Contexts;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
+using MH.Capstone.Domain.DataAccess;
 
 namespace MH.Capstone.Domain.Tests.Unit.Services;
 
@@ -12,7 +12,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services;
 public class AuthenticationServiceTests
 {
     private ServiceProvider _serviceProvider;
-    private AuthDbContext _context;
+    private ApplicationDbContext _context;
     private UserManager<ApplicationUser> _userManager;
     private SignInManager<ApplicationUser> _signInManager;
     private IAuthenticationService _authService;
@@ -26,17 +26,17 @@ public class AuthenticationServiceTests
         // Add logging (required by Identity)
         services.AddLogging();
         
-        services.AddDbContext<AuthDbContext>(options =>
+        services.AddDbContext<ApplicationDbContext>(options =>
             options.UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}"));
         
         // Add Identity services
         services.AddIdentity<ApplicationUser, IdentityRole>()
-            .AddEntityFrameworkStores<AuthDbContext>()
+            .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
         // Register real AuthenticationService here when we create it
         services.AddScoped<IAuthenticationService, AuthenticationService>();
         _serviceProvider = services.BuildServiceProvider();
-        _context = _serviceProvider.GetRequiredService<AuthDbContext>();
+        _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
         _userManager = _serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         _signInManager = _serviceProvider.GetRequiredService<SignInManager<ApplicationUser>>();
         _authService = _serviceProvider.GetRequiredService<IAuthenticationService>();

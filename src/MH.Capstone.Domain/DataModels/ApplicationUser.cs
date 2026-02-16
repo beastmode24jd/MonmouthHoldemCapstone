@@ -21,5 +21,7 @@ namespace MH.Capstone.Domain.DataModels
         public string? ProfileImageType { get; set; } = null;
 
         public bool IsDeactivated { get; set; } = false;
+
+        public virtual List<Sighting> Sightings { get; set; } = new List<Sighting>();
     }
 }
