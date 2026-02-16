@@ -53,6 +53,12 @@ namespace MH.Capstone.Domain.Services
                 return false;
             }
 
+            if (user.IsDeactivated)
+            {
+                _logger.LogWarning("Failed login attempt for {Email} - account deactivated", email);
+                return false;
+            }
+
             // Check if the password is correct using SignInManager
             var result = await _signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: false);
 
