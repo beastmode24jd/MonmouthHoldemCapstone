@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
+using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.Domain.Tools;
 using MH.Capstone.WebApp.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -10,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace MH.Capstone.WebApp.Controllers
 {
     [Authorize]
-    [Route("sighting")]
+    [Route("Sighting")]
     public class SightingController : Controller
     {
         private readonly ILogger<SightingController> _logger;
@@ -41,7 +42,11 @@ namespace MH.Capstone.WebApp.Controllers
         {
             if (!ModelState.IsValid || !_sightingsService.ValidateImage(sightingUpload.UploadedImage))
             {
-                _logger.LogInformation("Invalid sighting model was submitted and rejected.");
+                _logger.LogInformation("Invalid sighting model was submitted and rejected.\n" +
+                                       $"ModelState: {ModelState.IsValid}\n" +
+                                       $"ModelState Err Count: {ModelState.ErrorCount}\n" +
+                                       $"Image Null? {sightingUpload.UploadedImage is null}\n" +
+                                       $"ValidateImage Result: {!_sightingsService.ValidateImage(sightingUpload.UploadedImage)}");
                 return View(sightingUpload);
             }
 

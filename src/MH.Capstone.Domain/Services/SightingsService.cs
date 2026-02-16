@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
+using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.Domain.Tools;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
@@ -15,15 +16,6 @@ using static MH.Capstone.Domain.Tools.DataAnnotationsValidator;
 
 namespace MH.Capstone.Domain.Services
 {
-    public interface ISightingsService
-    {
-        Task CreateSightingAsync(Sighting entity);
-
-        Task<Sighting> GetSightingByIdAsync(Guid id);
-
-        bool ValidateImage(IFormFile? imageBuffer);
-    }
-
     public class SightingsService : ISightingsService
     {
         private readonly ILogger<SightingsService> _logger;
@@ -66,6 +58,10 @@ namespace MH.Capstone.Domain.Services
 
         public bool ValidateImage(IFormFile? imageBuffer)
         {
+            //_logger.LogInformation($"Null? {imageBuffer == null}\n" +
+            //                       $"Length: {imageBuffer?.Length}\n" +
+            //                       $"Type: {imageBuffer?.ContentType}");
+
             // Null check - if null, we are not valid
             if (imageBuffer == null)
             {
