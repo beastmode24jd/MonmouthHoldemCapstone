@@ -146,12 +146,21 @@ a {
     color: #355012;
 }
 
-a:hover, a:focus {
+.dropdown-menu > li > a {
+    font-size: initial;
+}
+
+a:hover, a:focus, a:visited {
     color: #612916;
 }
 
-a:visited {
-    color: #612916;
+a.navbar-brand:focus, a.navbar-brand:visited {
+    /*color: #612916;*/
+    color: #c6e292;
+}
+
+a.navbar-brand:hover {
+    color: #9f6b3f;
 }
 
 .logo {
@@ -163,10 +172,10 @@ a:visited {
     margin: 10px;
 }
 
-.navbar-brand {
+/*.navbar-brand {
     cursor: default;
     color: white;
-}
+}*/
 
 .dropdown-menu {
     background-color: #154224;
