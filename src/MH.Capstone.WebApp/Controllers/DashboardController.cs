@@ -41,7 +41,7 @@ namespace MH.Capstone.WebApp.Controllers
             {
                 // Convert byte[] to Base64 string for HTML display
                 string imageBase64 = Convert.ToBase64String(user.ProfileImage);
-                ViewBag.ProfileImageUrl = $"data:image/jpeg;base64,{imageBase64}";
+                ViewBag.ProfileImageUrl = $"data:image/jpg;base64,{imageBase64}";
             }
             else
             {
