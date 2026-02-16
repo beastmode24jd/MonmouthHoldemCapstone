@@ -10,7 +10,6 @@ namespace MH.Capstone.Domain.Services
 {
     public interface IAuthenticationService
     {
-        // Validates user credentials. In a real implementation, this would check the credentials against a database.
         Task<bool> ValidateCredentialsAsync(string email, string password);
         Task<bool> RegisterUserAsync(string email, string password);
         Task SignInUserAsync(HttpContext httpContext, string email, bool rememberMe);
@@ -19,6 +18,6 @@ namespace MH.Capstone.Domain.Services
         Task<bool> ResetPasswordAsync(string identifier, string newPassword);
         bool IsPasswordValid(string password);
         Task<ApplicationUser?> GetUserByEmailAsync(string email);
-        Task UpdateUserProfileImage(string email, byte[] pictureData);
+        Task UpdateUserProfileImageAsync(string email, byte[] pictureData, string contentType);
     }
 }

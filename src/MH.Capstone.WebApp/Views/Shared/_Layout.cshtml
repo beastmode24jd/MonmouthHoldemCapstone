@@ -1,4 +1,11 @@
-﻿<!DOCTYPE html>
+﻿@inject Microsoft.AspNetCore.Identity.UserManager<MH.Capstone.Domain.DataModels.ApplicationUser> _userManager
+@{
+    // Get the current user to access their profile image URL in the layout.
+    // This is done here instead of in the controller to ensure it's available for all views that use this layout
+    // without needing to set it in each controller action (DRY).
+    var user = await _userManager.GetUserAsync(User);
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -34,10 +41,10 @@
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    @* NEEDS TO UPDATE IF CUSTOM PROFILE IMAGE*@
-                                    <img src="@ViewBag.ProfileImageUrl" 
-                                    class="navProfile" 
-                                    role="Profile Picture" /> @User.Identity.Name
+                                    <img src="@user.ProfileImageUrl()" 
+                                        alt="Profile Image"
+                                        class="navProfile" 
+                                        role="img" /> @User.Identity.Name
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end pt-1 pb-1" aria-labelledby="userDropdown">
                                     <li class="menuItem">

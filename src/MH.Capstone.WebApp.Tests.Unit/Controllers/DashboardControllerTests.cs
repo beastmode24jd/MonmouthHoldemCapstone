@@ -67,31 +67,11 @@ public class DashboardControllerTests
         // Assert
         // Verify that the Auth Service was told to update the user's profile image
         // in localDB
-        _mockAuthService.Verify(s => s.UpdateUserProfileImage(
+        _mockAuthService.Verify(s => s.UpdateUserProfileImageAsync(
         TestEmail,
-        It.Is<byte[]>(b => b.Length > 0)), 
+        It.Is<byte[]>(b => b.Length > 0),
+        fileMock.Object.ContentType), 
     Times.Once);
-    }
-
-    [Test]
-    public void Index_SetsViewBagWithUserImageUrl()
-    {
-        // Arrange
-        var testBytes = Encoding.UTF8.GetBytes("fake-image-data");
-        var mockUser = new ApplicationUser { 
-            Email = TestEmail, 
-            ProfileImage = testBytes
-        };
-        
-        _mockAuthService.Setup(s => s.GetUserByEmailAsync(TestEmail))
-                        .Returns(mockUser);
-
-        // Act
-        var result = _controller.Index() as ViewResult;
-
-        // Assert
-        string expectedBase64 = $"data:image/jpeg;base64,{Convert.ToBase64String(testBytes)}";
-        Assert.That(_controller.ViewBag.ProfileImageUrl, Is.EqualTo(expectedBase64));
     }
 
     // Helper method, for mocking:

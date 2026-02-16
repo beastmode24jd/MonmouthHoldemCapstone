@@ -103,12 +103,14 @@ namespace MH.Capstone.Domain.Services
             return await _userManager.FindByEmailAsync(email);
         }
 
-        public async Task UpdateUserProfileImage(string email, byte[] pictureData)
+        public async Task UpdateUserProfileImageAsync(string email, byte[] pictureData, string contentType)
         {
             var user = await GetUserByEmailAsync(email);
             if (user != null)
             {
                 user.ProfileImage = pictureData;
+                user.ProfileImageType = contentType;
+                // Update the user in the database. UserManager is our repo for Identity
                 await _userManager.UpdateAsync(user);
                 _logger.LogInformation("Updated profile image for {Email}.", email);
             }
