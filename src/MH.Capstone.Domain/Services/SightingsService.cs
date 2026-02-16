@@ -58,9 +58,9 @@ namespace MH.Capstone.Domain.Services
 
         public bool ValidateImage(IFormFile? imageBuffer)
         {
-            //_logger.LogInformation($"Null? {imageBuffer == null}\n" +
-            //                       $"Length: {imageBuffer?.Length}\n" +
-            //                       $"Type: {imageBuffer?.ContentType}");
+            _logger.LogInformation($"Null? {imageBuffer == null}\n" +
+                                   $"Length: {imageBuffer?.Length}\n" +
+                                   $"Type: {imageBuffer?.ContentType}");
 
             // Null check - if null, we are not valid
             if (imageBuffer == null)

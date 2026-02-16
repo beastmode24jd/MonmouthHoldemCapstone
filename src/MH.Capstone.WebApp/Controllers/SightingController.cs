@@ -38,7 +38,7 @@ namespace MH.Capstone.WebApp.Controllers
         [Route("Upload")]
         [Route("Create")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Upload(SightingUploadViewModel sightingUpload)
+        public async Task<IActionResult> Upload([FromForm] SightingUploadViewModel sightingUpload)
         {
             if (!ModelState.IsValid || !_sightingsService.ValidateImage(sightingUpload.UploadedImage))
             {
@@ -46,7 +46,7 @@ namespace MH.Capstone.WebApp.Controllers
                                        $"ModelState: {ModelState.IsValid}\n" +
                                        $"ModelState Err Count: {ModelState.ErrorCount}\n" +
                                        $"Image Null? {sightingUpload.UploadedImage is null}\n" +
-                                       $"ValidateImage Result: {!_sightingsService.ValidateImage(sightingUpload.UploadedImage)}");
+                                       $"ValidateImage Result: {_sightingsService.ValidateImage(sightingUpload.UploadedImage)}");
                 return View(sightingUpload);
             }
 

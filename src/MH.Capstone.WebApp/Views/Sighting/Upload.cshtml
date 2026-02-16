@@ -5,7 +5,7 @@
 
 <h1 class="mt-2">Upload Sighting</h1>
 
-<form asp-action="Upload" method="post" enctype="multipart/form-data">
+<form asp-action="Upload" asp-controller="Sighting" method="post" enctype="multipart/form-data">
     <div class="row">
         <div class="form-group col-md-4 col-12">
             <label asp-for="Latitude"></label>
@@ -31,7 +31,7 @@
         </div>
         <div class="form-group col-lg-4 col-12">
             <label asp-for="UploadedImage">Upload Image</label><br />
-            <input asp-for="UploadedImage" type="file" name="Image" class="form-control-file" />
+            <input asp-for="UploadedImage" type="file" accept=".png,.jpeg,.jpg" class="form-control-file" />
             <span asp-validation-for="UploadedImage" class="text-danger d-block"></span>
             <!--TODO Later - make the uploaded image async show here on upload via JavaScript -->
             <img src="" width="100px" height="100px" alt="Uploaded Image" class="d-none"/>

@@ -28,7 +28,7 @@ namespace MH.Capstone.WebApp.Models
 
         [Required]
         //[Range(1, 2 * (1024 * 1024))]
-        public IFormFile UploadedImage { get; set; } = null!;
+        public IFormFile? UploadedImage { get; set; }
 
         public SightingUploadViewModel() {}
 
