@@ -29,10 +29,10 @@ namespace MH.Capstone.WebApp.Controllers
         }
 
         // Displays the main dashboard page for authenticated users. 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
             var userEmail = User.Identity?.Name;
-            var user = _authService.GetUserByEmail(userEmail ?? "");
+            var user = await _authService.GetUserByEmailAsync(userEmail ?? "");
             _logger.LogInformation("User {Email} accessed dashboard", User.Identity?.Name);
 
             // Fetch the user profile image from the Model.
@@ -52,7 +52,6 @@ namespace MH.Capstone.WebApp.Controllers
         }
 
         [HttpPost]
-        // LINE BELOW HAS CS0161 ISSUE
         public async Task<IActionResult> UploadProfileImage(IFormFile profilePicture)
         {
             if (profilePicture != null && profilePicture.Length > 0)
@@ -73,7 +72,7 @@ namespace MH.Capstone.WebApp.Controllers
                 if (userEmail != null && imageData != null && imageData.Length > 0)
                 {
                     // Save the actual bytes to the database via the service
-                    _authService.UpdateUserProfileImage(userEmail, imageData);
+                    await _authService.UpdateUserProfileImage(userEmail, imageData);
                     _logger.LogInformation("Profile image updated for user {Email}", userEmail);
                 }
             }

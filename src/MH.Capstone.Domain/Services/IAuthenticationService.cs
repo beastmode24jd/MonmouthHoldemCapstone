@@ -18,7 +18,7 @@ namespace MH.Capstone.Domain.Services
         Task<bool> UserExistsAsync(string identifier);
         Task<bool> ResetPasswordAsync(string identifier, string newPassword);
         bool IsPasswordValid(string password);
-        ApplicationUser? GetUserByEmail(string email);
-        void UpdateUserProfileImage(string email, byte[] pictureData);
+        Task<ApplicationUser?> GetUserByEmailAsync(string email);
+        Task UpdateUserProfileImage(string email, byte[] pictureData);
     }
 }

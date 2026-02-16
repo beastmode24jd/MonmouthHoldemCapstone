@@ -83,7 +83,7 @@ public class DashboardControllerTests
             ProfileImage = testBytes
         };
         
-        _mockAuthService.Setup(s => s.GetUserByEmail(TestEmail))
+        _mockAuthService.Setup(s => s.GetUserByEmailAsync(TestEmail))
                         .Returns(mockUser);
 
         // Act

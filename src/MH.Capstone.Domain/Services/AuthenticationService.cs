@@ -98,14 +98,23 @@ namespace MH.Capstone.Domain.Services
             return hasLetter && hasDigit && hasSymbol;
         }
 
-        public ApplicationUser? GetUserByEmail(string email)
+        public async Task<ApplicationUser?> GetUserByEmailAsync(string email)
         {
-            throw new NotImplementedException();
+            return await _userManager.FindByEmailAsync(email);
         }
 
-        public void UpdateUserProfileImage(string email, byte[] pictureData)
+        public async Task UpdateUserProfileImage(string email, byte[] pictureData)
         {
-            throw new NotImplementedException();
+            var user = await GetUserByEmailAsync(email);
+            if (user != null)
+            {
+                user.ProfileImage = pictureData;
+                _logger.LogInformation("Updated profile image for {Email}.", email);
+            }
+            else
+            {
+                _logger.LogInformation("User with {Email} email not found.", email);
+            }
         }
 
 
