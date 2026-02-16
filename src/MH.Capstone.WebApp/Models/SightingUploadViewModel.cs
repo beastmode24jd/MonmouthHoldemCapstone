@@ -2,7 +2,7 @@
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Tools;
 
-namespace MH.Capstone.WebApp.Models.ViewModels
+namespace MH.Capstone.WebApp.Models
 {
     public class SightingUploadViewModel
     {
@@ -26,6 +26,7 @@ namespace MH.Capstone.WebApp.Models.ViewModels
         [MaxLength(500)] 
         public string? Description { get; set; } = string.Empty;
 
+        [Required]
         [Range(1, 2 * (1024 * 1024))]
         public IFormFile? UploadedImage { get; set; } = null;
 

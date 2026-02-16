@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using MH.Capstone.WebApp.Models.ViewModels;
+using MH.Capstone.WebApp.Models;
 
 namespace MH.Capstone.WebApp.Tests.Unit.ViewModels;
 
