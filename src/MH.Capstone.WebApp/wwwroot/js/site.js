@@ -1,6 +1,6 @@
 ﻿// Write your JavaScript code.
 
-document.getElementById('uploadForm').onsubmit = function()
+document.getElementById('uploadForm')?.addEventListener("submit", function()
 {
     const fileInput = document.getElementById('fileInput');
     if (fileInput.files.length > 0) {
@@ -13,7 +13,7 @@ document.getElementById('uploadForm').onsubmit = function()
             return false; // Prevents the form from submitting
         }
     }
-};
+});
 
 document.addEventListener("DOMContentLoaded", registerAllNumericInputs);
 

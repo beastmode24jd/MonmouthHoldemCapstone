@@ -1,5 +1,7 @@
+@inject Microsoft.AspNetCore.Identity.UserManager<MH.Capstone.Domain.DataModels.ApplicationUser> _userManager
 @{
     ViewData["Title"] = "Dashboard";
+    var user = await _userManager.GetUserAsync(User);
 }
 
 <div class="container mt-4">
@@ -13,14 +15,14 @@
                     @if (User.Identity?.IsAuthenticated == true)
                     {
                         <div class="alert alert-success" role="alert">
-                            <h4 class="alert-heading">
-                                <img src="@ViewBag.ProfileImageUrl" 
-                                class="dashboardProfile" 
-                                role="Profile Picture" />
+                            <h4 class="alert-heading mb-3">
+                                <img src="@user.ProfileImageUrl()"
+                                     class="dashboardProfile" 
+                                role="img" />
 
                                  Hello, @User.Identity.Name!
                             </h4>
-                            <p>You are successfully logged in.</p>
+                            @Html.Raw(ViewData["statusMsgHtml"])
                         </div>
 
                         <div class="mt-4">

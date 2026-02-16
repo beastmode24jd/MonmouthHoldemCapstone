@@ -1,6 +1,8 @@
-using MH.Capstone.Domain.DataAccess.Contexts;
+using MH.Capstone.Domain.DataAccess;
+using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
+using MH.Capstone.Domain.Services.Abstraction;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -36,15 +38,6 @@ namespace MH.Capstone.WebApp
                     sqlOptions => sqlOptions.EnableRetryOnFailure()) // Handle transient Azure SQL failures
             );
 
-            // Add AuthDbContext for Identity
-            builder.Services.AddDbContext<AuthDbContext>(opt => opt
-                .UseSqlServer(
-                    builder.Configuration.GetConnectionString(appConnStrName) // Using same database
-                        ?? throw new InvalidOperationException($"Connection string {appConnStrName} not found in app settings file.\n\t" +
-                                                               $"ENV is {builder.Environment.EnvironmentName}."),
-                    sqlOptions => sqlOptions.EnableRetryOnFailure()) // Handle transient Azure SQL failures
-            );
-
             // Configure Identity for authentication
             builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
                 {
@@ -58,7 +51,7 @@ namespace MH.Capstone.WebApp
                     // Sign-in settings
                     options.SignIn.RequireConfirmedEmail = false; // For MVP, no email confirmation required
                 })
-                .AddEntityFrameworkStores<AuthDbContext>()
+                .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
 
             // Configure Identity cookie settings (Remember Me functionality)
@@ -72,7 +65,9 @@ namespace MH.Capstone.WebApp
             });
 
             // Register real authentication service with Identity
+            builder.Services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
             builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+            builder.Services.AddScoped<ISightingsService, SightingsService>();
 
             // Register the Profile Image Service
             builder.Services.AddScoped<IProfileImageService, ProfileImageService>();

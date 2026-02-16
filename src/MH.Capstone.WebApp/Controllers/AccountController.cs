@@ -1,7 +1,7 @@
-using MH.Capstone.Domain.Services;
+using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.WebApp.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MH.Capstone.WebApp.Models.ViewModels;
 
 namespace MH.Capstone.WebApp.Controllers
 {

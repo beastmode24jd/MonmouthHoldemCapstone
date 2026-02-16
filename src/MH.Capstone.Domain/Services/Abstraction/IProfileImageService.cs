@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Http;
 
-namespace MH.Capstone.Domain.Services;
+namespace MH.Capstone.Domain.Services.Abstraction;
 
 public interface IProfileImageService
 {
