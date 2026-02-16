@@ -108,7 +108,7 @@ namespace MH.Capstone.Domain.Services
             var user = await GetUserByEmailAsync(email);
             if (user != null)
             {
-                user.ProfileImage = pictureData;
+                await _userManager.UpdateAsync(user);
                 _logger.LogInformation("Updated profile image for {Email}.", email);
             }
             else

@@ -45,7 +45,7 @@ namespace MH.Capstone.WebApp.Controllers
             }
             else
             {
-                ViewBag.ProfileImageUrl = "/imgs/profileDefault.jpeg";
+                ViewBag.ProfileImageUrl = "/imgs/profileDefault.jpg";
             }
 
             return View();
