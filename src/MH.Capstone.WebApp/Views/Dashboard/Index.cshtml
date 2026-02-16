@@ -15,14 +15,14 @@
                     @if (User.Identity?.IsAuthenticated == true)
                     {
                         <div class="alert alert-success" role="alert">
-                            <h4 class="alert-heading">
+                            <h4 class="alert-heading mb-3">
                                 <img src="@user.ProfileImageUrl()"
                                      class="dashboardProfile" 
                                 role="img" />
 
                                  Hello, @User.Identity.Name!
                             </h4>
-                            <p>You are successfully logged in.</p>
+                            @Html.Raw(ViewData["statusMsgHtml"])
                         </div>
 
                         <div class="mt-4">

@@ -31,22 +31,30 @@ namespace MH.Capstone.WebApp.Controllers
         }
 
         // Displays the main dashboard page for authenticated users. 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index([FromQuery] bool sighting_success = false)
         {
             var userEmail = User.Identity?.Name;
             var user = await _authService.GetUserByEmailAsync(userEmail ?? "");
             _logger.LogInformation("User {Email} accessed dashboard", User.Identity?.Name);
+            
+            var statusMsgHtml = "<p>You are successfully logged in. Time to explore our nature, together!</p>";
+            if (sighting_success)
+            {
+                statusMsgHtml = "<p class='fw-bold'>Congratulations! Your Sighting was uploaded successfully!</p>";
+            }
 
-            // Clear and possible outstanding ModelState errors to ensure a clean slate for the view.
-            // Doing this since we use custom modelErrors in the POST action, so ASP.NET's default
-            // validation service won't clear our errors for us.
-            ModelState.Clear();
+            ViewData["statusMsgHtml"] = statusMsgHtml;
             return View();
         }
 
         [HttpPost]
         public async Task<IActionResult> UploadProfileImage(IFormFile? profilePicture)
         {
+            // Clear and possible outstanding ModelState errors to ensure a clean slate for the view.
+            // Doing this since we use custom modelErrors in the POST action, so ASP.NET's default
+            // validation service won't clear our errors for us.
+            ModelState.Clear();
+
             // Ensures not null and has content before processing. Logs a warning if the file is null or empty.
             if (profilePicture is { Length: > 0 })
             {
