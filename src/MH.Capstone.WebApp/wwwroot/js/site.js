@@ -1,4 +1,6 @@
-﻿document.getElementById('uploadForm').onsubmit = function()
+﻿// Write your JavaScript code.
+
+document.getElementById('uploadForm').onsubmit = function()
 {
     const fileInput = document.getElementById('fileInput');
     if (fileInput.files.length > 0) {
@@ -12,3 +14,35 @@
         }
     }
 };
+
+document.addEventListener("DOMContentLoaded", registerAllNumericInputs);
+
+// Thanks, ChatGPT, for the help with this function!
+function registerAllNumericInputs() {
+    const inputs = document.querySelectorAll("[data-js-numericOnly]");
+    //console.log(inputs);
+
+    inputs.forEach(input => {
+        ensureNumericInput(input);
+    });
+}
+
+// Thanks, ChatGPT, for the help with this function!
+function ensureNumericInput(inputElm) {
+    if (!inputElm) return;
+
+    inputElm.addEventListener("input",
+        function() {
+            // Remove any character that is not a digit or decimal point
+            let value = this.value.replace(/[^0-9.-]/g, "");
+
+            // Allow only one decimal point
+            const parts = value.split(".");
+            if (parts.length > 2) {
+                value = parts[0] + "." + parts.slice(1).join("");
+            }
+
+            this.value = value;
+        }
+    );
+}
