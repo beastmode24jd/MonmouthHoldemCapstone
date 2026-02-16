@@ -2,8 +2,7 @@ using MH.Capstone.Domain.DataAccess.Contexts;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using MH.Capstone.WebApp.Services;
-using MH.Capstone.WebApp.Data;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace MH.Capstone.WebApp
@@ -21,9 +20,6 @@ namespace MH.Capstone.WebApp
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             // Register updated SQL service
-            builder.Services.AddScoped<IAuthenticationService, MockAuthenticationService>();
-            builder.Services.AddScoped<IProfileImageService, ProfileImageService>();
-            // ... other services like IProfileImageService
 
             // Configure cookie authentication
             builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

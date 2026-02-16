@@ -98,6 +98,16 @@ namespace MH.Capstone.Domain.Services
             return hasLetter && hasDigit && hasSymbol;
         }
 
+        public ApplicationUser? GetUserByEmail(string email)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void UpdateUserProfileImage(string email, byte[] pictureData)
+        {
+            throw new NotImplementedException();
+        }
+
 
         // implement sign in logic
         public async Task SignInUserAsync(HttpContext httpContext, string email, bool rememberMe)

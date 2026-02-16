@@ -8,8 +8,11 @@ namespace MH.Capstone.Domain.DataModels
     {
         // Identity already provides: Id, Email, UserName, PasswordHash, etc.
         // Add custom properties if needed:
-        
+
         // Example: public string? FirstName { get; set; }
         // Example: public string? LastName { get; set; }
+
+        // Sets profile icon to default in wwwroot folder if not custom
+        public byte[]? ProfileImage { get; set; }
     }
 }

@@ -1,16 +1,15 @@
-using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
+using System.Text;
+using MH.Capstone.Domain.DataModels;
+using MH.Capstone.Domain.Services;
+using MH.Capstone.WebApp.Controllers;
+using MH.Capstone.WebApp.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
-using MH.Capstone.WebApp.Controllers;
-using MH.Capstone.WebApp.Models.ViewModels;
-using MH.Capstone.WebApp.Services;
-using System.Security.Claims;
-using System.Text;
-using MH.Capstone.WebApp.Models;
 
-namespace MH.Capstone.Domain.Tests.Unit;
+namespace MH.Capstone.WebApp.Tests.Unit.Controllers;
 
 [TestFixture]
 public class DashboardControllerTests
