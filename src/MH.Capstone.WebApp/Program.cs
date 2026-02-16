@@ -15,8 +15,6 @@ namespace MH.Capstone.WebApp
 
             string appConnStrName = "DataDb"; // For application data
             
-            // Register updated SQL service
-
             // Configure cookie authentication
             builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
                 .AddCookie(options =>
@@ -28,6 +26,7 @@ namespace MH.Capstone.WebApp
                     options.Cookie.HttpOnly = true;
                 });
 
+            // Add EF Core DbContexts
             builder.Services.AddDbContext<ApplicationDbContext>(opt => opt
                 .UseLazyLoadingProxies()
                 .UseSqlServer(

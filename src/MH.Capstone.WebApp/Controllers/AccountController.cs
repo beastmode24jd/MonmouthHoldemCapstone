@@ -230,6 +230,38 @@ namespace MH.Capstone.WebApp.Controllers
             return RedirectToAction(nameof(Login));
         }
 
+	    [HttpGet]
+        public IActionResult Deactivate()
+        {
+            return View(new DeactivateAccountViewModel());
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Deactivate(DeactivateAccountViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+            {
+                return RedirectToAction("Login");
+            }
+
+            var result = await _authService.DeactivateAccountAsync(email, model.Password);
+            if (!result)
+            {
+                ModelState.AddModelError("Password", "Incorrect password");
+                return View(model);
+            }
+
+            await _authService.SignOutUserAsync(HttpContext);
+            TempData["SuccessMessage"] = "Your account has been deactivated.";
+            return RedirectToAction("Login");
+        }
 
         // Logs the current user out and clears authentication cookies.
         [HttpPost]

@@ -14,7 +14,8 @@ public class AuthenticationServiceTests
     private AuthDbContext _context;
     private UserManager<ApplicationUser> _userManager;
     private SignInManager<ApplicationUser> _signInManager;
-    private IAuthenticationService? _authService;
+    private IAuthenticationService _authService;
+    
     [SetUp]
     public async Task Setup()
     {
@@ -177,7 +178,7 @@ public class AuthenticationServiceTests
         });
     }
 
-    //  IsPasswordValid Tests 
+    // ==================== IsPasswordValid Tests ====================
 
     [Test]
     public void IsPasswordValid_WithValidPassword_ReturnsTrue()
@@ -272,5 +273,100 @@ public class AuthenticationServiceTests
 
         // Assert
         Assert.That(result, Is.False, "Whitespace-only password should return false");
+    }
+
+    // ==================== DeactivateAccountAsync Tests ====================
+
+    [Test]
+    public async Task DeactivateAccountAsync_WithValidCredentials_ReturnsTrue()
+    {
+        // Arrange - register a user first
+        await _authService.RegisterUserAsync("test@example.com", "Test@123");
+
+        // Act
+        var result = await _authService.DeactivateAccountAsync("test@example.com", "Test@123");
+
+        // Assert
+        Assert.That(result, Is.True);
+    }
+
+    [Test]
+    public async Task DeactivateAccountAsync_WithValidCredentials_SetsIsDeactivatedFlag()
+    {
+        // Arrange
+        await _authService.RegisterUserAsync("test@example.com", "Test@123");
+
+        // Act
+        await _authService.DeactivateAccountAsync("test@example.com", "Test@123");
+
+        // Assert
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == "test@example.com");
+        Assert.That(user!.IsDeactivated, Is.True);
+    }
+
+    [Test]
+    public async Task DeactivateAccountAsync_WithValidCredentials_SetsDisplayNameToDeactivated()
+    {
+        // Arrange
+        await _authService.RegisterUserAsync("test@example.com", "Test@123");
+
+        // Act
+        await _authService.DeactivateAccountAsync("test@example.com", "Test@123");
+
+        // Assert
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == "test@example.com");
+        Assert.That(user!.UserName, Is.EqualTo("Deactivated User").IgnoreCase);
+        Assert.That(user!.NormalizedUserName, Is.EqualTo("Deactivated User").IgnoreCase);
+    }
+
+    [Test]
+    public async Task DeactivateAccountAsync_WithWrongPassword_ReturnsFalse()
+    {
+        // Arrange
+        await _authService.RegisterUserAsync("test@example.com", "Test@123");
+
+        // Act
+        var result = await _authService.DeactivateAccountAsync("test@example.com", "WrongPassword!");
+
+        // Assert
+        Assert.That(result, Is.False);
+    }
+
+    [Test]
+    public async Task DeactivateAccountAsync_WithWrongPassword_DoesNotDeactivate()
+    {
+        // Arrange
+        await _authService.RegisterUserAsync("test@example.com", "Test@123");
+
+        // Act
+        await _authService.DeactivateAccountAsync("test@example.com", "WrongPassword!");
+
+        // Assert
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == "test@example.com");
+        Assert.That(user!.IsDeactivated, Is.False);
+    }
+
+    [Test]
+    public async Task DeactivateAccountAsync_WithNonexistentUser_ReturnsFalse()
+    {
+        // Act
+        var result = await _authService.DeactivateAccountAsync("nonexistent@example.com", "Test@123");
+
+        // Assert
+        Assert.That(result, Is.False);
+    }
+
+    [Test]
+    public async Task ValidateCredentialsAsync_WithDeactivatedAccount_ReturnsFalse()
+    {
+        // Arrange
+        await _authService.RegisterUserAsync("test@example.com", "Test@123");
+        await _authService.DeactivateAccountAsync("test@example.com", "Test@123");
+
+        // Act
+        var result = await _authService.ValidateCredentialsAsync("test@example.com", "Test@123");
+
+        // Assert
+        Assert.That(result, Is.False);
     }
 }

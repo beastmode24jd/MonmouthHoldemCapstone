@@ -19,5 +19,7 @@ namespace MH.Capstone.Domain.DataModels
         // The imageType of the profile image (e.g., "image/png", "image/jpeg", etc.)
         [MaxLength(50)]
         public string? ProfileImageType { get; set; } = null;
+
+        public bool IsDeactivated { get; set; } = false;
     }
 }

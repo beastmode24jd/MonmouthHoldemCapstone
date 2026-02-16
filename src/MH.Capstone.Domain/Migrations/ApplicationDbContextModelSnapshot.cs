@@ -25,6 +25,38 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("MH.Capstone.Domain.DataModels.ApplicationUser", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<bool>("IsDeactivated")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("User");
+                });
+
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Sighting", b =>
                 {
                     b.Property<Guid>("Id")
@@ -53,7 +85,25 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Sighting", (string)null);
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Sighting");
+                });
+
+            modelBuilder.Entity("MH.Capstone.Domain.DataModels.Sighting", b =>
+                {
+                    b.HasOne("MH.Capstone.Domain.DataModels.ApplicationUser", "User")
+                        .WithMany("Sightings")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MH.Capstone.Domain.DataModels.ApplicationUser", b =>
+                {
+                    b.Navigation("Sightings");
                 });
 #pragma warning restore 612, 618
         }
