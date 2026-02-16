@@ -425,3 +425,5 @@ FodyWeavers.xsd
 prb.md
 newpr
 **/run*.bat
+**/.config
+**/Properties/ServiceDependencies
