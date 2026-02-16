@@ -1,6 +1,7 @@
 using MH.Capstone.Domain.DataModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 
 namespace MH.Capstone.Domain.Services
 {
@@ -10,13 +11,16 @@ namespace MH.Capstone.Domain.Services
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly ILogger<AuthenticationService> _logger;
 
         public AuthenticationService(
             UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager)
+            SignInManager<ApplicationUser> signInManager,
+            ILogger<AuthenticationService> logger)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _logger = logger;
         }
 
         public async Task<bool> RegisterUserAsync(string email, string password)
@@ -37,7 +41,7 @@ namespace MH.Capstone.Domain.Services
         }
 
 
-        // implement crediential validation logic
+        // implement credential validation logic
         public async Task<bool> ValidateCredentialsAsync(string email, string password)
         {
             // Find the user by email
@@ -54,6 +58,44 @@ namespace MH.Capstone.Domain.Services
 
             // Return true if password is correct
             return result.Succeeded;
+        }
+
+        public async Task<bool> ResetPasswordAsync(string identifier, string newPassword)
+        {
+            // First validate the new password against the policy
+            if (!IsPasswordValid(newPassword))
+            {
+                throw new ArgumentException(
+                    "The given new password does not meet the policy standards and cannot be set.", nameof(newPassword));
+            }
+
+            // Find the user by email (identifier)
+            var user = await _userManager.FindByEmailAsync(identifier);
+
+            // If user doesn't exist, return false
+            if (user == null)
+            {
+                return false;
+            }
+
+            // TODO - In the future, we should implement a proper password reset flow that involves sending a reset token
+            // to the user's email. For now, we will generate a reset token and use it immediately to reset the password.
+            var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var result = await _userManager.ResetPasswordAsync(user, resetToken, newPassword);
+
+            return result.Succeeded;
+        }
+        
+        public bool IsPasswordValid(string password)
+        {
+           
+            if (string.IsNullOrWhiteSpace(password) || password.Length < 8) return false;
+
+            var hasLetter = password.Any(char.IsLetter);
+            var hasDigit = password.Any(char.IsDigit);
+            var hasSymbol = password.Any(ch => !char.IsLetterOrDigit(ch));
+
+            return hasLetter && hasDigit && hasSymbol;
         }
 
 

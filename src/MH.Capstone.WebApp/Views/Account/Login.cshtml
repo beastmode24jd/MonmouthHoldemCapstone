@@ -8,7 +8,12 @@
         <div class="card shadow">
             <div class="card-body">
                 <h2 class="card-title text-center mb-4">Login</h2>
-
+                @if (TempData["PasswordResetSuccess"] is string msg)
+                {
+                    <div class="alert alert-success" role="alert">
+                        @msg
+                    </div>
+                }
                 <form asp-action="Login" asp-controller="Account" method="post" id="loginForm">
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
                     <input type="hidden" asp-for="ReturnUrl" />
@@ -28,6 +33,14 @@
                             </button>
                         </div>
                         <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+
+                    <div class="d-flex justify-content-end mb-2">
+                        <a asp-controller="Account"
+                            asp-action="ForgotPassword"
+                            class="link-primary text-decoration-underline">
+                            Forgot Password?
+                        </a>
                     </div>
 
                     <div class="mb-3 form-check">
