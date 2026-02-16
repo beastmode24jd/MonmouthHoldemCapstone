@@ -67,10 +67,6 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<byte[]>("ImageBuffer")
-                        .IsRequired()
-                        .HasColumnType("varbinary(max)");
-
                     b.Property<decimal>("Latitude")
                         .HasPrecision(9, 6)
                         .HasColumnType("decimal(9,6)")
@@ -84,11 +80,8 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.Property<DateTime>("TimeStamp")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("UserIdentityId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)")
-                        .HasColumnName("UserId");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 

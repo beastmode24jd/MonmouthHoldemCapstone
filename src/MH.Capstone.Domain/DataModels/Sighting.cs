@@ -13,6 +13,7 @@ namespace MH.Capstone.Domain.DataModels
     public class Sighting
     {
         [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public Guid Id { get; set; }
 
         [NotMapped]
@@ -22,21 +23,25 @@ namespace MH.Capstone.Domain.DataModels
             set => UserIdentityId = value.ToString(); // Convert Guid to string for storage in the AspNetCore Identity ID column
         }
 
+        [Required]
         [Column("UserId")]
         [MaxLength(450)] // The size of the UserId column should match the size of the primary key in the AspNetUsers table (nvarchar(450))
         [ForeignKey(nameof(User))]
         public string UserIdentityId { get; set; }
 
+        [Required]
         [Column("Lat")]
         [Range(-90, 90, ErrorMessage = "Latitude must be within -90 and 90 inclusive")]
         [Precision(9,6)] // Maps to DECIMAL(9,6) in the database
         public decimal Latitude { get; set; }
 
+        [Required]
         [Column("Long")]
         [Range(-180, 180, ErrorMessage = "Longitude must be within -180 and 180 inclusive")]
         [Precision(9, 6)] // Maps to DECIMAL(9,6) in the database
         public decimal Longitude { get; set; }
 
+        [Required]
         [PastDateTime]
         public DateTime Timestamp { get; set; }
 
@@ -46,7 +51,6 @@ namespace MH.Capstone.Domain.DataModels
         [Length(1, 2 * (1024 * 1024))] // must not be of size 0 but less than 2 MB (MB = 1024 * 1024 bytes)
         public byte[] ImageBuffer { get; set; } = null!;
 
-        [NotMapped]
         public virtual ApplicationUser User { get; set; } = null!;
 
         public Sighting() {}
