@@ -15,10 +15,6 @@ namespace MH.Capstone.WebApp
 
             string appConnStrName = "DataDb"; // For application data
             
-            // Register Local DbContext
-            builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
             // Register updated SQL service
 
             // Configure cookie authentication
@@ -79,7 +75,7 @@ namespace MH.Capstone.WebApp
             // Register real authentication service with Identity
             builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
-            // Register the mocked Profile Image Service
+            // Register the Profile Image Service
             builder.Services.AddScoped<IProfileImageService, ProfileImageService>();
 
             // Add services to the container.
