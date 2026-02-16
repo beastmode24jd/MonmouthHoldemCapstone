@@ -14,6 +14,19 @@ namespace MH.Capstone.WebApp
             var builder = WebApplication.CreateBuilder(args);
 
             string appConnStrName = "DataDb"; // For application data
+            
+            // Register updated SQL service
+
+            // Configure cookie authentication
+            builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                .AddCookie(options =>
+                {
+                    options.LoginPath = "/Account/Login";
+                    options.AccessDeniedPath = "/Account/AccessDenied";
+                    options.ExpireTimeSpan = TimeSpan.FromDays(30);
+                    options.SlidingExpiration = true;
+                    options.Cookie.HttpOnly = true;
+                });
 
             builder.Services.AddDbContext<ApplicationDbContext>(opt => opt
                 .UseLazyLoadingProxies()
@@ -61,6 +74,9 @@ namespace MH.Capstone.WebApp
 
             // Register real authentication service with Identity
             builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+
+            // Register the Profile Image Service
+            builder.Services.AddScoped<IProfileImageService, ProfileImageService>();
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();

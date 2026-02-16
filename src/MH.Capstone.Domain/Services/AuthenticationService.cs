@@ -98,6 +98,28 @@ namespace MH.Capstone.Domain.Services
             return hasLetter && hasDigit && hasSymbol;
         }
 
+        public async Task<ApplicationUser?> GetUserByEmailAsync(string email)
+        {
+            return await _userManager.FindByEmailAsync(email);
+        }
+
+        public async Task UpdateUserProfileImageAsync(string email, byte[] pictureData, string contentType)
+        {
+            var user = await GetUserByEmailAsync(email);
+            if (user != null)
+            {
+                user.ProfileImage = pictureData;
+                user.ProfileImageType = contentType;
+                // Update the user in the database. UserManager is our repo for Identity
+                await _userManager.UpdateAsync(user);
+                _logger.LogInformation("Updated profile image for {Email}.", email);
+            }
+            else
+            {
+                _logger.LogInformation("User with {Email} email not found.", email);
+            }
+        }
+
 
         // implement sign in logic
         public async Task SignInUserAsync(HttpContext httpContext, string email, bool rememberMe)

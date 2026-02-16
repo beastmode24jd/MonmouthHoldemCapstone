@@ -2,7 +2,7 @@
     ViewData["Title"] = "Dashboard";
 }
 
-<div class="container mt-5">
+<div class="container mt-4">
     <div class="row">
         <div class="col-12">
             <div class="card shadow">
@@ -14,7 +14,11 @@
                     {
                         <div class="alert alert-success" role="alert">
                             <h4 class="alert-heading">
-                                <i class="bi bi-person-circle"></i> Hello, @User.Identity.Name!
+                                <img src="@ViewBag.ProfileImageUrl" 
+                                class="dashboardProfile" 
+                                role="Profile Picture" />
+
+                                 Hello, @User.Identity.Name!
                             </h4>
                             <p>You are successfully logged in.</p>
                         </div>
@@ -36,7 +40,7 @@
 
                         <div class="mt-4">
                             <form asp-action="Logout" asp-controller="Account" method="post">
-                                <button type="submit" class="btn btn-danger">
+                                <button type="submit" class="dropdown-menu">
                                     <i class="bi bi-box-arrow-right"></i> Logout
                                 </button>
                             </form>
@@ -53,14 +57,14 @@
         </div>
     </div>
 
-    <div class="row mt-4">
+    <div class="row mt-4 mb-4">
         <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">
                         <i class="bi bi-speedometer2"></i> Quick Stats
                     </h5>
-                    <p class="card-text">Dashboard statistics will appear here.</p>
+                    <p class="card-text">Current points: 0</p>
                 </div>
             </div>
         </div>
@@ -80,9 +84,15 @@
                     <h5 class="card-title">
                         <i class="bi bi-gear"></i> Settings
                     </h5>
-                    <p class="card-text">Manage your account settings.</p>
+                    <p class="card-text">Upload your profile picture:</p>
+                    <form id="uploadForm" asp-action="UploadProfileImage" method="Post" enctype="multipart/form-data">
+                        <input id="fileInput" class="form-control form-control-sm mb-2" type="file" accept="image/*" name="profilePicture" />
+                        <button type="submit" class="btnDark">Save Changes</button>
+                    </form>
+                    @* Adding a profile bio should also go here at some point. *@
                 </div>
             </div>
         </div>
+
     </div>
 </div>
