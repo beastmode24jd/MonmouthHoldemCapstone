@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Wildlife AID App</title>
     <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" /> 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/MH.Capstone.WebApp.styles.css" asp-append-version="true" />
@@ -16,19 +16,20 @@
             <div class="container-fluid">
                 <span class="logo" role="img" aria-label="Wildlife AID Logo Placeholder"></span>
                 <span class="navbar-brand">Wildlife AID</span>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
-                        aria-controls="navbarSupportedContent"                        aria-expanded="false" aria-label="Toggle navigation">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex">
-                    <ul class="navbar-nav flex-grow-1"></ul>
                     <ul class="navbar-nav">
                         <li class="nav-item">
                             <a class="nav-link text-light" asp-controller="Home" asp-action="About">
                                 <i class="bi bi-info-circle"></i> About Us
                             </a>
                         </li>
-
+                    </ul>
+                    <ul class="navbar-nav flex-grow-1"></ul>
+                    <ul class="navbar-nav">
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item">
@@ -36,10 +37,8 @@
                                     <i class="bi bi-speedometer2"></i> Dashboard
                                 </a>
                             </li>
-
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button"
-                                       data-bs-toggle="dropdown" aria-expanded="false">
+                                <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="bi bi-person-circle"></i> @User.Identity.Name
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
@@ -67,7 +66,6 @@
                             </li>
                         }
                     </ul>
-
                 </div>
             </div>
         </nav>
@@ -88,5 +86,4 @@
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
-
 </html>
