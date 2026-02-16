@@ -1,12 +1,12 @@
+using MH.Capstone.Domain.Services;
+using MH.Capstone.WebApp.Controllers;
+using MH.Capstone.WebApp.Models.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
-using MH.Capstone.WebApp.Controllers;
-using MH.Capstone.WebApp.Models.ViewModels;
-using MH.Capstone.WebApp.Services;
 
-namespace MH.Capstone.Domain.Tests.Unit;
+namespace MH.Capstone.WebApp.Tests.Unit.Controllers;
 
 [TestFixture]
 public class AccountControllerTests
@@ -122,7 +122,7 @@ public class AccountControllerTests
             ConfirmPassword = "Test@123"
         };
 
-        _mockAuthService.Setup(s => s.UserExists(registerModel.Email)).Returns(true);
+        _mockAuthService.Setup(s => s.UserExistsAsync(registerModel.Email)).ReturnsAsync(true);
 
         var result = await _controller.Register(registerModel);
 

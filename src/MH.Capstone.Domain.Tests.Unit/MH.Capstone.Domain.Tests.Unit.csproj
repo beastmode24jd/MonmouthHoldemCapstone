@@ -13,6 +13,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.2" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
     <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="NUnit" Version="4.4.0" />
@@ -29,12 +30,11 @@
 
   <ItemGroup>
     <Folder Include="DataAccess\" />
-    <Folder Include="TestInternal\" />
-    <Folder Include="Services\" />
+    <Folder Include="TestInternals\" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MH.Capstone.WebApp\MH.Capstone.WebApp.csproj" />
+    <ProjectReference Include="..\MH.Capstone.Domain\MH.Capstone.Domain.csproj" />
   </ItemGroup>
 
 </Project>

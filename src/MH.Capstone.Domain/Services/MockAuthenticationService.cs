@@ -2,11 +2,13 @@ using System.Linq;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 
 // This is a temporary mock service that will be replaced with ASP.NET Core Identity in the future. 
 // Once the database is set up, This is just to get the UI and testing working now.
-namespace MH.Capstone.WebApp.Services
+namespace MH.Capstone.Domain.Services
 {
 
     // Mock authentication service for testing purposes. In a real application, this would be replaced with a service that interacts with a database or an external authentication provider.
@@ -18,8 +20,6 @@ namespace MH.Capstone.WebApp.Services
         Task<bool> RegisterUserAsync(string email, string password);
         Task SignInUserAsync(HttpContext httpContext, string email, bool rememberMe);
         Task SignOutUserAsync(HttpContext httpContext);
-        bool UserExists(string email);
-
         Task<bool> UserExistsAsync(string identifier);
         Task<bool> ResetPasswordAsync(string identifier, string newPassword);
         bool IsPasswordValid(string password);
@@ -87,15 +87,16 @@ namespace MH.Capstone.WebApp.Services
 
             var idx = _users.FindIndex(u => u.Email.Equals(identifier, StringComparison.OrdinalIgnoreCase));
             if (idx < 0)
-             {
+            {
                 return Task.FromResult(false);
             }
 
-                _users[idx] = (_users[idx].Email, newPassword);
-                _logger.LogInformation("Password reset for {Identifier}", identifier);
+            _users[idx] = (_users[idx].Email, newPassword);
+            _logger.LogInformation("Password reset for {Identifier}", identifier);
 
-                return Task.FromResult(true);
-            }
+            return Task.FromResult(true);
+        }
+        
         public bool IsPasswordValid(string password)
         {
            
