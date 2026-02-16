@@ -1,3 +1,5 @@
+using MH.Capstone.Domain.DataAccess;
+using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
 using Microsoft.AspNetCore.Http;
@@ -13,15 +15,18 @@ namespace MH.Capstone.Domain.Services
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly ILogger<AuthenticationService> _logger;
+        private readonly IRepository<ApplicationUser, ApplicationDbContext> _authRepo;
 
         public AuthenticationService(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
-            ILogger<AuthenticationService> logger)
+            ILogger<AuthenticationService> logger,
+            IRepository<ApplicationUser, ApplicationDbContext> authRepo)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _logger = logger;
+            _authRepo = authRepo;
         }
 
         public async Task<bool> RegisterUserAsync(string email, string password)
@@ -124,6 +129,7 @@ namespace MH.Capstone.Domain.Services
             await _userManager.UpdateNormalizedUserNameAsync(user);
             // Save the changes to the database. UserManager is our repo for Identity, so we use it to update the user.
             await _userManager.UpdateAsync(user);
+            await _authRepo.AddOrUpdateAsync(user);
 
             _logger.LogInformation("Account {Email} deactivated", email);
             return true;
