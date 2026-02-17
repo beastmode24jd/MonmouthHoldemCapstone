@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace MH.Capstone.WebApp.Models.ViewModels
+namespace MH.Capstone.WebApp.Models
 {
     /// View model for user login.
     public class LoginViewModel

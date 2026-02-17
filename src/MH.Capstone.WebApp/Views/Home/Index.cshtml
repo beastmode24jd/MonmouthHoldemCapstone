@@ -17,7 +17,7 @@
 
                 <h3 class="mainHeader mt-4">How do I register?</h3>
                 <p class="displayText">
-                    Either by clicking the "Menu" in the upper right of the navigation bar on the application, or by clicking <a href="#">this link.</a>
+                    Either by clicking the "Menu" in the upper right of the navigation bar on the application, or by clicking <a asp-controller="Account" asp-action="Register">this link.</a>
                 </p>
             </div>
         </div>
@@ -26,7 +26,7 @@
     <div class="container">
         <div class="row pb-1 mb-2">
             <div class="col">
-                <button aria-label="Account Registration" class="btnDark">Make an account now!</button>
+                <button aria-label="Account Registration" class="btnDark" onclick="location = '@Url.Action("Register", "Account")'">Make an account now!</button>
             </div>
         </div>
     </div>

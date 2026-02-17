@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MH.Capstone.Tests.Integrati
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MH.Capstone.WebApp.Tests.Unit", "MH.Capstone.WebApp.Tests.Unit\MH.Capstone.WebApp.Tests.Unit.csproj", "{A0659029-5C88-4BF7-ACFF-EAEF23AEF14C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MH.Capstone.Tests.SharedInternals", "MH.Capstone.Tests.SharedInternals\MH.Capstone.Tests.SharedInternals.csproj", "{3C3B0B65-7DCF-4839-8D0D-7A4A07232897}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -47,6 +49,10 @@ Global
 		{A0659029-5C88-4BF7-ACFF-EAEF23AEF14C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A0659029-5C88-4BF7-ACFF-EAEF23AEF14C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A0659029-5C88-4BF7-ACFF-EAEF23AEF14C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C3B0B65-7DCF-4839-8D0D-7A4A07232897}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C3B0B65-7DCF-4839-8D0D-7A4A07232897}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C3B0B65-7DCF-4839-8D0D-7A4A07232897}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C3B0B65-7DCF-4839-8D0D-7A4A07232897}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -56,6 +62,7 @@ Global
 		{993DDF82-C630-4BE7-AA78-5838C9F6E1EF} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{BB6B2760-5D30-4B91-9079-323AA830DA7F} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{A0659029-5C88-4BF7-ACFF-EAEF23AEF14C} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{3C3B0B65-7DCF-4839-8D0D-7A4A07232897} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {43BFFCF5-532E-45CC-A837-D875CE7B825B}

@@ -1,4 +1,11 @@
-﻿<!DOCTYPE html>
+﻿@inject Microsoft.AspNetCore.Identity.UserManager<MH.Capstone.Domain.DataModels.ApplicationUser> _userManager
+@{
+    // Get the current user to access their profile image URL in the layout.
+    // This is done here instead of in the controller to ensure it's available for all views that use this layout
+    // without needing to set it in each controller action (DRY).
+    var user = await _userManager.GetUserAsync(User);
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -14,8 +21,10 @@
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark border-bottom box-shadow mb-0">
             <div class="container-fluid">
-                <span class="logo" role="img" aria-label="Wildlife AID Logo Placeholder"></span>
-                <span class="navbar-brand">Wildlife AID</span>
+                <a class="navbar-brand" asp-controller="Home" asp-action="Index">
+                    <img class="logo" role="img" alt="Wildlife AID Logo" aria-label="Wildlife AID Logo" src="~/imgs/ValleyPhoto1.jpg"/>
+                    Wildlife AID
+                </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -27,27 +36,45 @@
                                 <i class="bi bi-info-circle"></i> About Us
                             </a>
                         </li>
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-light" href="#" id="sightingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Sightings
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="sightingsDropdown">
+                                    <li>
+                                        <a class="dropdown-item text-light" asp-action="Upload" asp-controller="Sighting">Upload</a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
                     </ul>
+                    <!-- Allows for everything after this empty ul to be right-aligned -->
                     <ul class="navbar-nav flex-grow-1"></ul>
                     <ul class="navbar-nav">
                         @if (User.Identity?.IsAuthenticated == true)
                         {
-                            <li class="nav-item">
-                                <a class="nav-link text-light" asp-controller="Dashboard" asp-action="Index">
-                                    <i class="bi bi-speedometer2"></i> Dashboard
-                                </a>
-                            </li>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bi bi-person-circle"></i> @User.Identity.Name
+                                    <img src="@user.ProfileImageUrl()" 
+                                        alt="Profile Image"
+                                        class="navProfile" 
+                                        role="img" /> @User.Identity.Name
                                 </a>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                    <li>
-                                        <form asp-controller="Account" asp-action="Logout" method="post" class="px-3 py-2">
-                                            <button type="submit" class="btn btn-danger w-100">
-                                                <i class="bi bi-box-arrow-right"></i> Logout
-                                            </button>
+                                <ul class="dropdown-menu dropdown-menu-end pt-1 pb-1" aria-labelledby="userDropdown">
+                                    <li class="menuItem">
+                                        <a class="nav-link text-light" asp-controller="Dashboard" asp-action="Index">
+                                            <i class="bi bi-speedometer2"></i> Dashboard
+                                        </a>
+                                    </li>
+                                    <li class="menuItem">
+                                        <form id="logoutForm" class="d-none" asp-controller="Account" asp-action="Logout" method="post">
+                                            @Html.AntiForgeryToken()
                                         </form>
+                                        <a class="dropdown-item" href="javascript:document.getElementById('logoutForm').submit();">
+                                            <i class="bi bi-box-arrow-right"></i> Log out
+                                        </a>
                                     </li>
                                 </ul>
                             </li>

@@ -1,4 +1,7 @@
+using MH.Capstone.Domain.DataAccess;
+using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
+using MH.Capstone.Domain.Services.Abstraction;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
@@ -12,15 +15,18 @@ namespace MH.Capstone.Domain.Services
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly ILogger<AuthenticationService> _logger;
+        private readonly IRepository<ApplicationUser, ApplicationDbContext> _authRepo;
 
         public AuthenticationService(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
-            ILogger<AuthenticationService> logger)
+            ILogger<AuthenticationService> logger,
+            IRepository<ApplicationUser, ApplicationDbContext> authRepo)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _logger = logger;
+            _authRepo = authRepo;
         }
 
         public async Task<bool> RegisterUserAsync(string email, string password)
@@ -50,6 +56,12 @@ namespace MH.Capstone.Domain.Services
             // If user doesn't exist, return false
             if (user == null)
             {
+                return false;
+            }
+
+            if (user.IsDeactivated)
+            {
+                _logger.LogWarning("Failed login attempt for {Email} - account deactivated", email);
                 return false;
             }
 
@@ -87,15 +99,63 @@ namespace MH.Capstone.Domain.Services
         }
         
         public bool IsPasswordValid(string password)
+	{
+    		if (string.IsNullOrWhiteSpace(password) || password.Length < 8) return false;
+
+    		var hasLowercase = password.Any(char.IsLower);
+   		var hasUppercase = password.Any(char.IsUpper);
+    		var hasDigit = password.Any(char.IsDigit);
+    		var hasSymbol = password.Any(ch => !char.IsLetterOrDigit(ch));
+
+    		return hasLowercase && hasUppercase && hasDigit && hasSymbol;
+	}
+
+        public async Task<bool> DeactivateAccountAsync(string email, string password)
         {
-           
-            if (string.IsNullOrWhiteSpace(password) || password.Length < 8) return false;
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null) return false;
 
-            var hasLetter = password.Any(char.IsLetter);
-            var hasDigit = password.Any(char.IsDigit);
-            var hasSymbol = password.Any(ch => !char.IsLetterOrDigit(ch));
+            var result = await _signInManager
+                .CheckPasswordSignInAsync(user, password, false);
+            if (!result.Succeeded)
+            {
+                return false;
+            }
 
-            return hasLetter && hasDigit && hasSymbol;
+            user.IsDeactivated = true;
+            user.UserName = "Deactivated User";
+            // Since we changed the UserName, we need to update the normalized username as well
+            // so that the user cannot be found by their old username after deactivation
+            await _userManager.UpdateNormalizedUserNameAsync(user);
+            // Save the changes to the database. UserManager is our repo for Identity, so we use it to update the user.
+            await _userManager.UpdateAsync(user);
+            await _authRepo.AddOrUpdateAsync(user);
+
+            _logger.LogInformation("Account {Email} deactivated", email);
+            return true;
+        }
+
+
+        public async Task<ApplicationUser?> GetUserByEmailAsync(string email)
+        {
+            return await _userManager.FindByEmailAsync(email);
+        }
+
+        public async Task UpdateUserProfileImageAsync(string email, byte[] pictureData, string contentType)
+        {
+            var user = await GetUserByEmailAsync(email);
+            if (user != null)
+            {
+                user.ProfileImage = pictureData;
+                user.ProfileImageType = contentType;
+                // Update the user in the database. UserManager is our repo for Identity
+                await _userManager.UpdateAsync(user);
+                _logger.LogInformation("Updated profile image for {Email}.", email);
+            }
+            else
+            {
+                _logger.LogInformation("User with {Email} email not found.", email);
+            }
         }
 
 

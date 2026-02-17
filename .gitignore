@@ -10,6 +10,7 @@
 *.userosscache
 *.sln.docstates
 *.env
+uploads/
 # Hide Development Enviornment settings from Git
 appsettings.Development.json
 
@@ -424,3 +425,5 @@ FodyWeavers.xsd
 prb.md
 newpr
 **/run*.bat
+**/.config
+**/Properties/ServiceDependencies

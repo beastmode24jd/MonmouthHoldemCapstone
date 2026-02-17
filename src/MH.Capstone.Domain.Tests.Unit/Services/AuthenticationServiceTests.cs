@@ -1,9 +1,12 @@
-using MH.Capstone.Domain.DataAccess.Contexts;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
+using MH.Capstone.Domain.DataAccess;
+using MH.Capstone.Domain.DataAccess.Repositories;
+using MH.Capstone.Domain.Services.Abstraction;
 
 namespace MH.Capstone.Domain.Tests.Unit.Services;
 
@@ -11,31 +14,34 @@ namespace MH.Capstone.Domain.Tests.Unit.Services;
 public class AuthenticationServiceTests
 {
     private ServiceProvider _serviceProvider;
-    private AuthDbContext _context;
+    private ApplicationDbContext _context;
     private UserManager<ApplicationUser> _userManager;
     private SignInManager<ApplicationUser> _signInManager;
-    private IAuthenticationService? _authService;
+    private IAuthenticationService _authService;
+    
     [SetUp]
     public async Task Setup()
     {
         // Create in-memory database for testing
         var services = new ServiceCollection();
-
+        
         // Add logging (required by Identity)
         services.AddLogging();
-
-        services.AddDbContext<AuthDbContext>(options =>
+        
+        services.AddDbContext<ApplicationDbContext>(options =>
             options.UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}"));
-
+        
         // Add Identity services
         services.AddIdentity<ApplicationUser, IdentityRole>()
-            .AddEntityFrameworkStores<AuthDbContext>()
+            .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
-
+        // Register repositories like we do in the actual application
+        services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
         // Register real AuthenticationService here when we create it
         services.AddScoped<IAuthenticationService, AuthenticationService>();
+
         _serviceProvider = services.BuildServiceProvider();
-        _context = _serviceProvider.GetRequiredService<AuthDbContext>();
+        _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
         _userManager = _serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         _signInManager = _serviceProvider.GetRequiredService<SignInManager<ApplicationUser>>();
         _authService = _serviceProvider.GetRequiredService<IAuthenticationService>();
@@ -53,17 +59,17 @@ public class AuthenticationServiceTests
 
     [Test]
     public async Task RegisterUserAsync_WithValidData_CreatesUserInDatabase()
-    {
+  {
         // Arrange - Set up our test data
         string email = "newuser@example.com";
         string password = "Test@123!";
-
+        
         // Act - Try to register the user
         var result = await _authService.RegisterUserAsync(email, password);
-
+        
         // Assert - Verify user was created
         Assert.That(result, Is.True, "Registration should succeed");
-
+        
         var userInDb = await _userManager.FindByEmailAsync(email);
         Assert.That(userInDb, Is.Not.Null, "User should exist in database");
         Assert.That(userInDb.Email, Is.EqualTo(email), "Email should match");
@@ -146,7 +152,6 @@ public class AuthenticationServiceTests
     }
     //  ResetPasswordAsync Tests 
 
-
     [Test]
     public async Task ResetPasswordAsync_WithNonExistentUser_ReturnsFalse()
     {
@@ -177,7 +182,7 @@ public class AuthenticationServiceTests
         });
     }
 
-    //  IsPasswordValid Tests 
+    // ==================== IsPasswordValid Tests ====================
 
     [Test]
     public void IsPasswordValid_WithValidPassword_ReturnsTrue()
@@ -272,5 +277,100 @@ public class AuthenticationServiceTests
 
         // Assert
         Assert.That(result, Is.False, "Whitespace-only password should return false");
+    }
+
+    // ==================== DeactivateAccountAsync Tests ====================
+
+    [Test]
+    public async Task DeactivateAccountAsync_WithValidCredentials_ReturnsTrue()
+    {
+        // Arrange - register a user first
+        await _authService.RegisterUserAsync("test@example.com", "Test@123");
+
+        // Act
+        var result = await _authService.DeactivateAccountAsync("test@example.com", "Test@123");
+
+        // Assert
+        Assert.That(result, Is.True);
+    }
+
+    [Test]
+    public async Task DeactivateAccountAsync_WithValidCredentials_SetsIsDeactivatedFlag()
+    {
+        // Arrange
+        await _authService.RegisterUserAsync("test@example.com", "Test@123");
+
+        // Act
+        await _authService.DeactivateAccountAsync("test@example.com", "Test@123");
+
+        // Assert
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == "test@example.com");
+        Assert.That(user!.IsDeactivated, Is.True);
+    }
+
+    [Test]
+    public async Task DeactivateAccountAsync_WithValidCredentials_SetsDisplayNameToDeactivated()
+    {
+        // Arrange
+        await _authService.RegisterUserAsync("test@example.com", "Test@123");
+
+        // Act
+        await _authService.DeactivateAccountAsync("test@example.com", "Test@123");
+
+        // Assert
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == "test@example.com");
+        Assert.That(user!.UserName, Is.EqualTo("Deactivated User").IgnoreCase);
+        Assert.That(user!.NormalizedUserName, Is.EqualTo("Deactivated User").IgnoreCase);
+    }
+
+    [Test]
+    public async Task DeactivateAccountAsync_WithWrongPassword_ReturnsFalse()
+    {
+        // Arrange
+        await _authService.RegisterUserAsync("test@example.com", "Test@123");
+
+        // Act
+        var result = await _authService.DeactivateAccountAsync("test@example.com", "WrongPassword!");
+
+        // Assert
+        Assert.That(result, Is.False);
+    }
+
+    [Test]
+    public async Task DeactivateAccountAsync_WithWrongPassword_DoesNotDeactivate()
+    {
+        // Arrange
+        await _authService.RegisterUserAsync("test@example.com", "Test@123");
+
+        // Act
+        await _authService.DeactivateAccountAsync("test@example.com", "WrongPassword!");
+
+        // Assert
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == "test@example.com");
+        Assert.That(user!.IsDeactivated, Is.False);
+    }
+
+    [Test]
+    public async Task DeactivateAccountAsync_WithNonexistentUser_ReturnsFalse()
+    {
+        // Act
+        var result = await _authService.DeactivateAccountAsync("nonexistent@example.com", "Test@123");
+
+        // Assert
+        Assert.That(result, Is.False);
+    }
+
+    [Test]
+    public async Task ValidateCredentialsAsync_WithDeactivatedAccount_ReturnsFalse()
+    {
+        // Arrange
+        await _authService.RegisterUserAsync("test@example.com", "Test@123");
+        await _authService.DeactivateAccountAsync("test@example.com", "Test@123");
+
+        // Act
+        var result = await _authService.ValidateCredentialsAsync("test@example.com", "Test@123");
+
+        // Assert
+        Assert.That(result, Is.False);
     }
 }

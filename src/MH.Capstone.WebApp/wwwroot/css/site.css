@@ -1,3 +1,5 @@
+@import "~/lib/bootstrap/dist/css/bootstrap-utilities.css"
+
 html {
   font-size: 14px;
 }
@@ -10,6 +12,10 @@ html {
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
   box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+div.form-group {
+    margin-bottom: 1rem;
 }
 
 html {
@@ -122,7 +128,7 @@ button.btnDark:hover {
 button.btnDark {
     font-family: Verdana, Tahoma, Arial, sans-serif;
     font-weight: bold;
-    margin: 10px;
+
     padding: 15px;
     border-radius: 20px;
     font-size: min(20vw, 16px);
@@ -146,12 +152,21 @@ a {
     color: #355012;
 }
 
-a:hover, a:focus {
+.dropdown-menu > li > a {
+    font-size: initial;
+}
+
+a:hover, a:focus, a:visited {
     color: #612916;
 }
 
-a:visited {
-    color: #612916;
+a.navbar-brand:focus, a.navbar-brand:visited {
+    /*color: #612916;*/
+    color: #c6e292;
+}
+
+a.navbar-brand:hover {
+    color: #9f6b3f;
 }
 
 .logo {
@@ -163,13 +178,25 @@ a:visited {
     margin: 10px;
 }
 
-.navbar-brand {
+/*.navbar-brand {
     cursor: default;
     color: white;
-}
+}*/
 
 .dropdown-menu {
     background-color: #154224;
+}
+
+.menuItem {
+    background-color: #154224;
+    margin: 5px;
+    color: white;
+    font-size: inherit;
+    text-align: right;
+}
+
+.menuItem:hover, .menuItem:focus {
+    background-color: #1D6234;
 }
 
 .dropdown-menu > li > a {
@@ -182,8 +209,30 @@ a:visited {
     background-color: #1D6234;
 }
 
+.dropdown-item {
+    font-size: inherit;
+    text-align: right;
+}
+
 .footerText {
     color: #C6E292;
+}
+
+.navProfile {
+    width: 24px;
+    height: 24px;
+    object-fit: cover;
+    border-radius: 50%;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+.dashboardProfile {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid #ddd;
 }
 
 .banner-img-1 {

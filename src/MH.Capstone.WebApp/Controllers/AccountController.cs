@@ -1,7 +1,7 @@
-using MH.Capstone.Domain.Services;
+using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.WebApp.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MH.Capstone.WebApp.Models.ViewModels;
 
 namespace MH.Capstone.WebApp.Controllers
 {
@@ -208,7 +208,7 @@ namespace MH.Capstone.WebApp.Controllers
 
             if (!_authService.IsPasswordValid(newPass))
             {
-                ModelState.AddModelError(nameof(model.NewPassword), "Password must be at least 8 characters and include a letter, number, and symbol.");
+                ModelState.AddModelError(nameof(model.NewPassword), "Password must be at least 8 characters and include an uppercase letter, lowercase letter, number, and symbol.");
                 return View(model);
             }
 
@@ -230,6 +230,38 @@ namespace MH.Capstone.WebApp.Controllers
             return RedirectToAction(nameof(Login));
         }
 
+	    [HttpGet]
+        public IActionResult Deactivate()
+        {
+            return View(new DeactivateAccountViewModel());
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Deactivate(DeactivateAccountViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+            {
+                return RedirectToAction("Login");
+            }
+
+            var result = await _authService.DeactivateAccountAsync(email, model.Password);
+            if (!result)
+            {
+                ModelState.AddModelError("Password", "Incorrect password");
+                return View(model);
+            }
+
+            await _authService.SignOutUserAsync(HttpContext);
+            TempData["SuccessMessage"] = "Your account has been deactivated.";
+            return RedirectToAction("Login");
+        }
 
         // Logs the current user out and clears authentication cookies.
         [HttpPost]
