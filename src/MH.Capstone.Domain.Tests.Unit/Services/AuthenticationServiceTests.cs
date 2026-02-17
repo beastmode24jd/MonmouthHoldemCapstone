@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using MH.Capstone.Domain.DataAccess;
+using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.Services.Abstraction;
 
 namespace MH.Capstone.Domain.Tests.Unit.Services;
@@ -34,8 +35,11 @@ public class AuthenticationServiceTests
         services.AddIdentity<ApplicationUser, IdentityRole>()
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
+        // Register repositories like we do in the actual application
+        services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
         // Register real AuthenticationService here when we create it
         services.AddScoped<IAuthenticationService, AuthenticationService>();
+
         _serviceProvider = services.BuildServiceProvider();
         _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
         _userManager = _serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
