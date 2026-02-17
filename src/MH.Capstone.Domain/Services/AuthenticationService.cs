@@ -99,16 +99,16 @@ namespace MH.Capstone.Domain.Services
         }
         
         public bool IsPasswordValid(string password)
-        {
-           
-            if (string.IsNullOrWhiteSpace(password) || password.Length < 8) return false;
+	{
+    		if (string.IsNullOrWhiteSpace(password) || password.Length < 8) return false;
 
-            var hasLetter = password.Any(char.IsLetter);
-            var hasDigit = password.Any(char.IsDigit);
-            var hasSymbol = password.Any(ch => !char.IsLetterOrDigit(ch));
+    		var hasLowercase = password.Any(char.IsLower);
+   		var hasUppercase = password.Any(char.IsUpper);
+    		var hasDigit = password.Any(char.IsDigit);
+    		var hasSymbol = password.Any(ch => !char.IsLetterOrDigit(ch));
 
-            return hasLetter && hasDigit && hasSymbol;
-        }
+    		return hasLowercase && hasUppercase && hasDigit && hasSymbol;
+	}
 
         public async Task<bool> DeactivateAccountAsync(string email, string password)
         {
