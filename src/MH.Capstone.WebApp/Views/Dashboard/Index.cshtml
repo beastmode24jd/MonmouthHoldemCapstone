@@ -1,0 +1,104 @@
+@inject Microsoft.AspNetCore.Identity.UserManager<MH.Capstone.Domain.DataModels.ApplicationUser> _userManager
+@{
+    ViewData["Title"] = "Dashboard";
+    var user = await _userManager.GetUserAsync(User);
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h1 class="card-title">Welcome to Your Dashboard</h1>
+                    <hr />
+                    
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <div class="alert alert-success" role="alert">
+                            <h4 class="alert-heading mb-3">
+                                <img src="@user.GetProfileImageUrl()"
+                                     class="dashboardProfile" 
+                                role="img" />
+
+                                 Hello, @User.Identity.Name!
+                            </h4>
+                            @Html.Raw(ViewData["statusMsgHtml"])
+                        </div>
+
+                        <div class="mt-4">
+                            <h5>Your Account Information</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">
+                                    <strong>Email:</strong> @User.Identity.Name
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>Authentication Type:</strong> @User.Identity.AuthenticationType
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>Status:</strong> <span class="badge bg-success">Active</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="mt-4">
+                            <form asp-action="Logout" asp-controller="Account" method="post">
+                                <button type="submit" class="dropdown-menu">
+                                    <i class="bi bi-box-arrow-right"></i> Logout
+                                </button>
+                            </form>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning" role="alert">
+                            You are not logged in. Please <a asp-action="Login" asp-controller="Account">login</a> to access your dashboard.
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4 mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-speedometer2"></i> Quick Stats
+                    </h5>
+                    <p class="card-text">Current points: 0</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-bell"></i> Notifications
+                    </h5>
+                    <p class="card-text">No new notifications.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-gear"></i> Account Settings
+                    </h5>
+                    <p class="card-text">Upload your profile picture:</p>
+                    <form id="uploadForm" asp-action="UploadProfileImage" method="Post" enctype="multipart/form-data">
+                        <input id="fileInput" class="form-control form-control-sm mb-2" type="file" accept="image/*" name="profilePicture" />
+                        <button type="submit" class="btnDark">Upload &AMP; Save</button>
+                    </form>
+                    @* Adding a profile bio should also go here at some point. *@
+                    <p class="card-text">Manage your account settings.</p>
+                    <a asp-action="Deactivate" asp-controller="Account" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-person-x"></i> Deactivate Account
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

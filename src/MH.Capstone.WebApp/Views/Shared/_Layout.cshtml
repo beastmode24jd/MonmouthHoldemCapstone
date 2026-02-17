@@ -1,31 +1,97 @@
-﻿<!DOCTYPE html>
+﻿@inject Microsoft.AspNetCore.Identity.UserManager<MH.Capstone.Domain.DataModels.ApplicationUser> _userManager
+@{
+    // Get the current user to access their profile image URL in the layout.
+    // This is done here instead of in the controller to ensure it's available for all views that use this layout
+    // without needing to set it in each controller action (DRY).
+    var user = await _userManager.GetUserAsync(User);
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - MH.Capstone.WebApp</title>
+    <title>@ViewData["Title"] - Wildlife AID App</title>
     <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" /> 
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/MH.Capstone.WebApp.styles.css" asp-append-version="true" />
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark border-bottom box-shadow mb-0">
             <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">MH.Capstone.WebApp</a>
+                <a class="navbar-brand" asp-controller="Home" asp-action="Index">
+                    <img class="logo" role="img" alt="Wildlife AID Logo" aria-label="Wildlife AID Logo" src="~/imgs/site-logo.png"/>
+                    Wildlife AID
+                </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
+                <div class="navbar-collapse collapse d-sm-inline-flex">
+                    <ul class="navbar-nav">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            <a class="nav-link text-light" asp-controller="Home" asp-action="About">
+                                <i class="bi bi-info-circle"></i> About Us
+                            </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-light" href="#" id="sightingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Sightings
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="sightingsDropdown">
+                                    <li>
+                                        <a class="dropdown-item text-light" asp-action="Upload" asp-controller="Sighting">Upload</a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                    </ul>
+                    <!-- Allows for everything after this empty ul to be right-aligned -->
+                    <ul class="navbar-nav flex-grow-1"></ul>
+                    <ul class="navbar-nav">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <img src="@user.GetProfileImageUrl()" 
+                                        alt="Profile Image"
+                                        class="navProfile" 
+                                        role="img" /> @User.Identity.Name
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end pt-1 pb-1" aria-labelledby="userDropdown">
+                                    <li class="menuItem">
+                                        <a class="nav-link text-light" asp-controller="Dashboard" asp-action="Index">
+                                            <i class="bi bi-speedometer2"></i> Dashboard
+                                        </a>
+                                    </li>
+                                    <li class="menuItem">
+                                        <form id="logoutForm" class="d-none" asp-controller="Account" asp-action="Logout" method="post">
+                                            @Html.AntiForgeryToken()
+                                        </form>
+                                        <a class="dropdown-item" href="javascript:document.getElementById('logoutForm').submit();">
+                                            <i class="bi bi-box-arrow-right"></i> Log out
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-light" asp-controller="Account" asp-action="Login">
+                                    <i class="bi bi-box-arrow-in-right"></i> Login
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-light" asp-controller="Account" asp-action="Register">
+                                    <i class="bi bi-person-plus"></i> Register
+                                </a>
+                            </li>
+                        }
                     </ul>
                 </div>
             </div>
@@ -37,9 +103,9 @@
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - MH.Capstone.WebApp - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+    <footer class="footer text-light">
+        <div class="container-fluid ps-4">
+            <p class="footerText">Wildlife AID &copy; - 2026</p>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
