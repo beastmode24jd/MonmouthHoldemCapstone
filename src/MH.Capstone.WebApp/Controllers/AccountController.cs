@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace MH.Capstone.WebApp.Controllers
 {
     [Authorize]
+    [Route("account")]
     public class AccountController : Controller
     {
         private readonly IAuthenticationService _authService;
@@ -67,6 +68,7 @@ namespace MH.Capstone.WebApp.Controllers
         // If the user is already authenticated, they are redirected to the dashboard.     
         [HttpGet]
         [AllowAnonymous]
+        [Route("login")]
         public IActionResult Login(string? returnUrl = null)
         {
             // Prevent logged-in users from accessing the login page
@@ -87,6 +89,7 @@ namespace MH.Capstone.WebApp.Controllers
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
+        [Route("login")]
         public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
         {
             // Preserve return URL across postback
@@ -139,6 +142,7 @@ namespace MH.Capstone.WebApp.Controllers
         // Redirects authenticated users to the dashboard.
         [HttpGet]
         [AllowAnonymous]
+        [Route("Register")]
         public IActionResult Register()
         {
             // Prevent logged-in users from registering again
@@ -157,6 +161,7 @@ namespace MH.Capstone.WebApp.Controllers
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
+        [Route("Register")]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
             // Stop processing if validation attributes fail
@@ -210,6 +215,7 @@ namespace MH.Capstone.WebApp.Controllers
 
         [HttpGet]
         [AllowAnonymous]
+        [Route("ForgotPassword")]
         public IActionResult ForgotPassword()
         {
             return View(new ForgotPasswordViewModel());
@@ -218,6 +224,7 @@ namespace MH.Capstone.WebApp.Controllers
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
+        [Route("ForgotPassword")]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
         {
             model.Identifier = (model.Identifier ?? string.Empty).Trim();
@@ -272,6 +279,7 @@ namespace MH.Capstone.WebApp.Controllers
         }
 
 	    [HttpGet]
+        [Route("Deactivate")]
         public IActionResult Deactivate()
         {
             return View(new DeactivateAccountViewModel());
@@ -279,6 +287,7 @@ namespace MH.Capstone.WebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Route("Deactivate")]
         public async Task<IActionResult> Deactivate(DeactivateAccountViewModel model)
         {
             if (!ModelState.IsValid)
@@ -307,6 +316,7 @@ namespace MH.Capstone.WebApp.Controllers
         // Logs the current user out and clears authentication cookies.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Route("Logout")]
         public async Task<IActionResult> Logout()
         {
             // Sign out the user
