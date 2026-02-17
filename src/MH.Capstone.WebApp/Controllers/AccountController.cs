@@ -1,14 +1,18 @@
+using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.WebApp.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MH.Capstone.WebApp.Controllers
 {
+    [Authorize]
+    [Route("account")]
     public class AccountController : Controller
     {
-        // Authentication service abstraction (mock for now, replaceable later)
         private readonly IAuthenticationService _authService;
+        private readonly UserManager<ApplicationUser> _userManager;
 
         // Logger for tracking authentication-related events
         private readonly ILogger<AccountController> _logger;
@@ -16,16 +20,57 @@ namespace MH.Capstone.WebApp.Controllers
         // Constructor: injects authentication service and logger via dependency injection
         public AccountController(
             IAuthenticationService authService,
+            UserManager<ApplicationUser> userManager,
             ILogger<AccountController> logger)
         {
             _authService = authService;
+            _userManager = userManager;
             _logger = logger;
+        }
+
+        [HttpGet]
+        [Route("")]
+        [Route("{id:guid}")]
+        public async Task<IActionResult> Index(Guid? id)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            AccountViewModel vm;
+
+            if (user == null)
+            {
+                return Unauthorized("You must be logged in and have a valid User Identity Claim to access this endpoint");
+            }
+
+            // Check if the optional id parameter is provided and valid,
+            if (!id.HasValue || id == Guid.Empty)
+            {
+                // If not, use the current authenticated user
+                // This is hit when the route("") endpoint is used, which allows for the "/account" endpoint
+                vm = new AccountViewModel(user, true);
+                _logger.LogInformation("No Id provided");
+            }
+            else
+            {
+                // If an ID is provided, this that id for viewing the account instead of the current user
+                var userFromId = await _userManager.FindByIdAsync(id.Value.ToString());
+                if (userFromId == null)
+                {
+                    return NotFound("No user found with the provided ID");
+                }
+
+                // Create an Account ViewModel for the user being viewed, and indicate whether they are the authenticated user
+                vm = new AccountViewModel(userFromId, userFromId.Id == user.Id);
+                _logger.LogInformation("Id provided");
+            }
+
+            return View(vm);
         }
 
         // Displays the login page.
         // If the user is already authenticated, they are redirected to the dashboard.     
         [HttpGet]
         [AllowAnonymous]
+        [Route("login")]
         public IActionResult Login(string? returnUrl = null)
         {
             // Prevent logged-in users from accessing the login page
@@ -46,6 +91,7 @@ namespace MH.Capstone.WebApp.Controllers
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
+        [Route("login")]
         public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
         {
             // Preserve return URL across postback
@@ -98,6 +144,7 @@ namespace MH.Capstone.WebApp.Controllers
         // Redirects authenticated users to the dashboard.
         [HttpGet]
         [AllowAnonymous]
+        [Route("Register")]
         public IActionResult Register()
         {
             // Prevent logged-in users from registering again
@@ -116,6 +163,7 @@ namespace MH.Capstone.WebApp.Controllers
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
+        [Route("Register")]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
             // Stop processing if validation attributes fail
@@ -169,6 +217,7 @@ namespace MH.Capstone.WebApp.Controllers
 
         [HttpGet]
         [AllowAnonymous]
+        [Route("ForgotPassword")]
         public IActionResult ForgotPassword()
         {
             return View(new ForgotPasswordViewModel());
@@ -177,6 +226,7 @@ namespace MH.Capstone.WebApp.Controllers
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
+        [Route("ForgotPassword")]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
         {
             model.Identifier = (model.Identifier ?? string.Empty).Trim();
@@ -231,6 +281,7 @@ namespace MH.Capstone.WebApp.Controllers
         }
 
 	    [HttpGet]
+        [Route("Deactivate")]
         public IActionResult Deactivate()
         {
             return View(new DeactivateAccountViewModel());
@@ -238,6 +289,7 @@ namespace MH.Capstone.WebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Route("Deactivate")]
         public async Task<IActionResult> Deactivate(DeactivateAccountViewModel model)
         {
             if (!ModelState.IsValid)
@@ -266,6 +318,7 @@ namespace MH.Capstone.WebApp.Controllers
         // Logs the current user out and clears authentication cookies.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Route("Logout")]
         public async Task<IActionResult> Logout()
         {
             // Sign out the user

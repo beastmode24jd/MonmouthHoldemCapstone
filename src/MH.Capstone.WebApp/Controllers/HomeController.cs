@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace MH.Capstone.WebApp.Controllers
 {
+    [AllowAnonymous]
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
@@ -25,7 +26,6 @@ namespace MH.Capstone.WebApp.Controllers
         }
 
         [HttpGet]
-        [AllowAnonymous]
         public IActionResult About()
         {
             return View();

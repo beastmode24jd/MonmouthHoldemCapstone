@@ -1,7 +1,9 @@
+using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.WebApp.Controllers;
 using MH.Capstone.WebApp.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -20,7 +22,8 @@ public class AccountControllerTests
     {
         _mockAuthService = new Mock<IAuthenticationService>();
         _mockLogger = new Mock<ILogger<AccountController>>();
-        _controller = new AccountController(_mockAuthService.Object, _mockLogger.Object);
+        
+        _controller = new AccountController(_mockAuthService.Object, null!, _mockLogger.Object);
         
         _controller.ControllerContext = new ControllerContext
         {

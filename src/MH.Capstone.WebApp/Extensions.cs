@@ -7,9 +7,11 @@ namespace MH.Capstone.WebApp
     [ExcludeFromCodeCoverage]
     internal static class Extensions
     {
+        // TODO - Make this part of the configuration settings to allow for easier updates and
+        // potential future changes to the default profile image.
         private const string DefaultProfileImageUrl = "/imgs/profileDefault.jpg";
 
-        public static string ProfileImageUrl(this ApplicationUser? user)
+        public static string GetProfileImageUrl(this ApplicationUser? user)
         {
             // Fetch the user profile image from the Model.
             // Defaults to the placeholder profile image if not found.
