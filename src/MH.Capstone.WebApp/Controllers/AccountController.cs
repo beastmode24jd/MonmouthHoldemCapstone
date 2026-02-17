@@ -47,6 +47,7 @@ namespace MH.Capstone.WebApp.Controllers
                 // If not, use the current authenticated user
                 // This is hit when the route("") endpoint is used, which allows for the "/account" endpoint
                 vm = new AccountViewModel(user, true);
+                _logger.LogInformation("No Id provided");
             }
             else
             {
@@ -59,6 +60,7 @@ namespace MH.Capstone.WebApp.Controllers
 
                 // Create an Account ViewModel for the user being viewed, and indicate whether they are the authenticated user
                 vm = new AccountViewModel(userFromId, userFromId.Id == user.Id);
+                _logger.LogInformation("Id provided");
             }
 
             return View(vm);

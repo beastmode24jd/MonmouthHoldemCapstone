@@ -11,19 +11,14 @@ namespace MH.Capstone.WebApp.Models
 
         public string? Email { get; set; }
 
-        public bool IsDeactivated { get; set; }
+        public bool IsDeactivated { get; set; } = false; // Default to false since the deactivation status is unknown.
 
-        public string ProfileImageUrl { get; }
+        public string ProfileImageUrl { get; set; } = string.Empty; // Initialize to avoid null reference issues.
 
-        public bool IsAuthenticatedUser { get; }
+        public bool IsAuthenticatedUser { get; set; } = false; // Default to false since the current authenticated user is unknown.
 
         // For ASP.NET Core model binding
-        public AccountViewModel()
-        {
-            ProfileImageUrl = string.Empty; // Initialize to avoid null reference issues.
-            IsAuthenticatedUser = false; // Default to false since the current authenticated user is unknown.
-            IsDeactivated = false; // Default to false since the deactivation status is unknown.
-        }
+        public AccountViewModel() { }
 
         // Constructor to initialize the view model from an ApplicationUser
         public AccountViewModel(ApplicationUser user, bool isAuthedUser = false)
