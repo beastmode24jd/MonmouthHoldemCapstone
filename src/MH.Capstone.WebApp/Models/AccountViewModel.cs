@@ -13,12 +13,23 @@ namespace MH.Capstone.WebApp.Models
 
         public string ProfileImageUrl { get; }
 
-        public AccountViewModel(ApplicationUser user)
+        public bool IsAuthenticatedUser { get; }
+
+        // For ASP.NET Core model binding
+        public AccountViewModel()
+        {
+            ProfileImageUrl = string.Empty; // Initialize to avoid null reference issues.
+            IsAuthenticatedUser = false; // Default to false since the current authenticated user is unknown.
+        }
+
+        // Constructor to initialize the view model from an ApplicationUser
+        public AccountViewModel(ApplicationUser user, bool isAuthedUser = false)
         {
             Id = Guid.Parse(user.Id);
             Name = user.UserName;
             Email = user.Email;
             ProfileImageUrl = user.GetProfileImageUrl();
-        } 
+            IsAuthenticatedUser = isAuthedUser;
+        }
     }
 }
