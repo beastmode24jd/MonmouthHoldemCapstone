@@ -208,7 +208,7 @@ namespace MH.Capstone.WebApp.Controllers
 
             if (!_authService.IsPasswordValid(newPass))
             {
-                ModelState.AddModelError(nameof(model.NewPassword), "Password must be at least 8 characters and include a letter, number, and symbol.");
+                ModelState.AddModelError(nameof(model.NewPassword), "Password must be at least 8 characters and include an uppercase letter, lowercase letter, number, and symbol.");
                 return View(model);
             }
 
