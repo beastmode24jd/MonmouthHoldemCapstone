@@ -75,6 +75,16 @@ namespace MH.Capstone.WebApp
             // Add services to the container.
             builder.Services.AddControllersWithViews();
 
+            // Configure Logging based on environment
+            if (builder.Environment.IsDevelopment())
+            {
+                builder.Logging.AddConsole();
+            }
+            else if (builder.Environment.IsProduction())
+            {
+                builder.Logging.AddAzureWebAppDiagnostics();
+            }
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
