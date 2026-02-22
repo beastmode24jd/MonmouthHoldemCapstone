@@ -78,12 +78,11 @@ namespace MH.Capstone.WebApp
             // Add services to the container.
             builder.Services.AddControllersWithViews();
 
-            // Configure Logging based on environment
-            if (builder.Environment.IsDevelopment())
-            {
-                builder.Logging.AddConsole();
-            }
-            else if (builder.Environment.IsProduction())
+            // Configure Logging, with some based on environment
+            // Note: DO NOT REMOVE THE CONSOLE LOGGER OR AZURE.
+            // Azure App Service relies on it for log collection.
+            builder.Logging.AddConsole();
+            if (builder.Environment.IsProduction())
             {
                 builder.Logging.AddAzureWebAppDiagnostics();
             }
