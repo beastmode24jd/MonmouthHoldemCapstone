@@ -24,7 +24,7 @@ jobs:
         id: artifact_download
         uses: actions/download-artifact@v7
         with:
-          name: $${{ vars.DOTNET_PUBLISH_UPLOAD_NAME }}
+          name: ${{ needs.build.outputs.artifcat_name }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -34,7 +34,7 @@ jobs:
           name: ${{ needs.build.outputs.version }}
           tag_name: ${{ needs.build.outputs.version }}
           generate_release_notes: true
-          files: ${{ github.workspace }}/${{ vars.DOTNET_PUBLISH_UPLOAD_NAME }}-${{ needs.build.outputs.version }}.zip
+          files: ${{ needs.build.outputs.artifcat_name }}
           target_commitish: ${{ github.sha }}
 
   deploy:
@@ -50,7 +50,7 @@ jobs:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: $${{ vars.DOTNET_PUBLISH_UPLOAD_NAME }}
+          name: ${{ needs.build.outputs.artifcat_name }}
       
       - name: Login to Azure
         uses: azure/login@v2
