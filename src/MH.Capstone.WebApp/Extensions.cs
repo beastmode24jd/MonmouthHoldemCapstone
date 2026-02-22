@@ -1,6 +1,7 @@
 ﻿using MH.Capstone.Domain.DataModels;
 using Microsoft.IdentityModel.Tokens;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 
 namespace MH.Capstone.WebApp
 {
@@ -19,6 +20,19 @@ namespace MH.Capstone.WebApp
             return (user?.ProfileImage != null && !string.IsNullOrEmpty(user.ProfileImageType)) ?
                 $"data:{user.ProfileImageType};base64,{Convert.ToBase64String(user.ProfileImage)}" :
                 DefaultProfileImageUrl; // Default profile image URL for users without a custom profile image (or null user obj).
+        }
+    }
+
+    [ExcludeFromCodeCoverage]
+    internal static class VersionHelper
+    {
+        public static string GetAppVersion()
+        {
+            var assembly = Assembly.GetEntryAssembly();
+            var informationalVersion = assembly?
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                .InformationalVersion;
+            return informationalVersion ?? assembly?.GetName().Version?.ToString() ?? "Version Unknown";
         }
     }
 }
