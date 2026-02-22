@@ -39,7 +39,7 @@ jobs:
         run: dotnet restore ./src
 
       - name: Build with dotnet
-        run: dotnet build ./src --no-restore --configuration Release /p:Version=${{ steps.release_version.outputs.version }}
+        run: dotnet build ./src --no-restore --configuration Release -p:Version=${{ steps.release_version.outputs.version }}
 
       - name: Test with dotnet
         run: dotnet test ./src --no-build --no-restore --configuration Release --verbosity normal
@@ -52,5 +52,5 @@ jobs:
       - name: Upload artifact for other jobs
         uses: actions/upload-artifact@v4
         with:
-          name: .net-app
+          name: $${{ vars.DOTNET_PUBLISH_UPLOAD_NAME }}
           path: ${{vars.DOTNET_ROOT}}/myapp
