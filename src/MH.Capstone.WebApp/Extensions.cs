@@ -32,7 +32,7 @@ namespace MH.Capstone.WebApp
             var informationalVersion = assembly?
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
                 .InformationalVersion;
-            return informationalVersion ?? assembly?.GetName().Version?.ToString() ?? "Version Unknown";
+            return assembly?.GetName().Version?.ToString() ?? informationalVersion ?? "Version Unknown";
         }
     }
 }
