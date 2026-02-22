@@ -36,13 +36,15 @@ jobs:
           echo "::notice file=version::$VR"
 
       - name: Restore with dotnet
-        run: dotnet restore
+        run: dotnet restore ./src
 
       - name: Build with dotnet
         run: dotnet build ./src --no-restore --configuration Release /p:Version=${{ steps.release_version.outputs.version }}
 
       - name: Test with dotnet
-        run: dotnet test --no-build --verbosity normal
+        run: dotnet test ./src --no-build --verbosity normal
+
+      #TODO - Add Jest testing once implemented
 
       - name: Publish with dotnet
         run: dotnet publish ./src/MH.Capstone.WebApp -c Release -o "${{vars.DOTNET_ROOT}}/myapp"
