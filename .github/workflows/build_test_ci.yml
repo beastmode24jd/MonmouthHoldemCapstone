@@ -31,7 +31,7 @@ jobs:
       - name: Get version number
         id: release_version
         run: | 
-          VR=$(date +%Y).$(date +%m).${{ github.run_number }}.${{ github.run_attempt }} &&
+          VR=$(date +%Y).$(date +%-m).${{ github.run_number }}.${{ github.run_attempt }} &&
           echo "version=$VR" >> "$GITHUB_OUTPUT" &&
           echo "::notice file=version::$VR"
 
@@ -42,7 +42,7 @@ jobs:
         run: dotnet build ./src --no-restore --configuration Release /p:Version=${{ steps.release_version.outputs.version }}
 
       - name: Test with dotnet
-        run: dotnet test ./src --no-build --verbosity normal
+        run: dotnet test ./src --no-build --no-restore --configuration Release --verbosity normal
 
       #TODO - Add Jest testing once implemented
 
