@@ -20,14 +20,22 @@ namespace MH.Capstone.Domain.Services
     {
         private readonly ILogger<SightingsService> _logger;
         private readonly IRepository<Sighting, ApplicationDbContext> _sightingsRepo;
+        private readonly IScoringService _scoringService;
+        private readonly IRepository<ApplicationUser, ApplicationDbContext> _userRepo;
 
-        public SightingsService(ILogger<SightingsService> logger, IRepository<Sighting, ApplicationDbContext> sightingsRepo)
+        public SightingsService(
+            ILogger<SightingsService> logger, 
+            IRepository<Sighting, ApplicationDbContext> sightingsRepo,
+            IScoringService scoringService,
+            IRepository<ApplicationUser, ApplicationDbContext> userRepo)
         {
             _logger = logger;
             _sightingsRepo = sightingsRepo;
+            _scoringService = scoringService;
+            _userRepo = userRepo;
         }
 
-        public async Task CreateSightingAsync(Sighting entity)
+        public async Task<int> CreateSightingAsync(Sighting entity)
         {
             if (!entity.TryValidateEntity(out var fails))
             {
@@ -40,7 +48,27 @@ namespace MH.Capstone.Domain.Services
 
             try
             {
+                // Step 1: Save the sighting to database
                 await _sightingsRepo.AddOrUpdateAsync(entity);
+
+                // Step 2: Calculate points based on rarity (CSP-104)
+                // TODO: Replace hardcoded speciesId with actual species when Species table exists
+                int globalCount = await _scoringService.GetGlobalSightingsCountAsync(1); // Placeholder species ID
+                int pointsEarned = await _scoringService.CalculatePointsAsync(globalCount);
+
+                // Step 3: Award points to the user
+                var users = await _userRepo.GetAllAsync();
+                var user = users.FirstOrDefault(u => u.Id == entity.UserIdentityId);
+                
+                if (user != null)
+                {
+                    user.Points += pointsEarned;
+                    await _userRepo.AddOrUpdateAsync(user);
+                    _logger.LogInformation("Awarded {Points} points to user {UserId} for sighting", pointsEarned, entity.UserId);
+                }
+
+                // Step 4: Return points to controller
+                return pointsEarned;
             }
             catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 547 })
             {
