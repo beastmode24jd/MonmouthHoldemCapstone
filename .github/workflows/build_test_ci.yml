@@ -1,0 +1,54 @@
+name: Build and Test (CI)
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
+  workflow_call:
+    outputs:
+      version:
+        description: "The version number from the build and that was assigned to the build"
+        value: ${{ jobs.buildtest.outputs.version }}    
+
+jobs:
+  buildtest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read #This is required for actions/checkout
+    outputs:
+      version: ${{ steps.release_version.outputs.version }} 
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.x'
+
+      - name: Get version number
+        id: release_version
+        run: | 
+          VR=$(date +%Y).$(date +%m).${{ github.run_number }}.${{ github.run_attempt }} &&
+          echo "version=$VR" >> "$GITHUB_OUTPUT" &&
+          echo "::notice file=version::$VR"
+
+      - name: Restore with dotnet
+        run: dotnet restore
+
+      - name: Build with dotnet
+        run: dotnet build ./src --no-restore --configuration Release /p:Version=${{ steps.release_version.outputs.version }}
+
+      - name: Test with dotnet
+        run: dotnet test --no-build --verbosity normal
+
+      - name: Publish with dotnet
+        run: dotnet publish ./src/MH.Capstone.WebApp -c Release -o "${{vars.DOTNET_ROOT}}/myapp"
+
+      - name: Upload artifact for other jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: .net-app
+          path: ${{vars.DOTNET_ROOT}}/myapp
