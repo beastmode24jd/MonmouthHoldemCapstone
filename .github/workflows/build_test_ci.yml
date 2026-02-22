@@ -36,18 +36,18 @@ jobs:
           echo "::notice file=version::$VR"
 
       - name: Restore with dotnet
-        run: dotnet restore ./src
+        run: dotnet restore ./src --verbosity normal
 
       - name: Build with dotnet
-        run: dotnet build ./src --no-restore --configuration Release -p:Version=${{ steps.release_version.outputs.version }}
+        run: dotnet build ./src --no-restore --configuration Release --verbosity normal -p:Version=${{ steps.release_version.outputs.version }}
 
       - name: Test with dotnet
-        run: dotnet test ./src --no-build --no-restore --configuration Release --verbosity normal
+        run: dotnet test ./src --no-restore --no-build --configuration Release --verbosity normal
 
       #TODO - Add Jest testing once implemented
 
       - name: Publish with dotnet
-        run: dotnet publish ./src/MH.Capstone.WebApp -c Release -o "${{vars.DOTNET_ROOT}}/myapp"
+        run: dotnet publish ./src/MH.Capstone.WebApp --no-restore --no-build --configuration Release --verbosity normal -o "${{vars.DOTNET_ROOT}}/myapp"
 
       - name: Upload artifact for other jobs
         uses: actions/upload-artifact@v4
