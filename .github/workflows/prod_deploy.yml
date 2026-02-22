@@ -50,7 +50,8 @@ jobs:
       - name: Create release version
         id: release_version
         run: | 
-          VR=$(date +%Y).$(date +%m).$(git rev-parse --short ${{ github.sha }}) &&
+          SHA=${{ github.sha }}
+          VR=$(date +%Y).$(date +%m).${SHA:0:7} &&
           echo "version=$VR" >> "$GITHUB_OUTPUT" &&
           echo "::notice file=version::$VR"
 
