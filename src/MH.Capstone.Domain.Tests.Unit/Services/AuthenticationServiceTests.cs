@@ -457,6 +457,7 @@ public class AuthenticationServiceTests
 
     /* Writing unit test ideas for userBio upload */
 
+    [Test]
     public async Task uploadUserBio_ValidInput_SavesTextBio()
     {   /*
         // Arrange
@@ -472,16 +473,17 @@ public class AuthenticationServiceTests
 
         // --------------------------------------
         // Set it up to fail at the end
-        // Act
+        // Arrange
         int set = 2;
         int to = 1;
         int fail = 3;
 
-        // Assert
+        // Act and Assert
         Assert.That((set + to + fail), Is.EqualTo(9));
 
     }
 
+    [Test]
         public async Task uploadUserBio_InvalidInput_AbortsProcess()
     {   /*
         // Arrange
@@ -504,16 +506,17 @@ public class AuthenticationServiceTests
 
         // --------------------------------------
         // Set it up to fail at the end
-        // Act
+        // Arrange
         int set = 2;
         int to = 1;
         int fail = 3;
 
-        // Assert
+        // Act and Assert
         Assert.That((set + to + fail), Is.EqualTo(9));
 
     }
 
+    [Test]
     public async Task uploadUserBio_UserNotFound_AbortsProcess()
     {   /*
         // Arrange
@@ -530,12 +533,12 @@ public class AuthenticationServiceTests
 
         // --------------------------------------
         // Set it up to fail at the end
-        // Act
+        // Arrange
         int set = 2;
         int to = 1;
         int fail = 3;
 
-        // Assert
+        // Act and Assert
         Assert.That((set + to + fail), Is.EqualTo(9));
 
     }
