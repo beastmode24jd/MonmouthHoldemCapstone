@@ -70,7 +70,8 @@ jobs:
 
       - name: Create EF Core bundle
         if: inputs.deploy
-        run: dotnet ef migrations bundle --self-contained --configuration Release --no-build -o "${{ vars.DOTNET_ROOT }}/myapp/${{ vars.DOTNET_EF_BUNDLE_NAME }}" \
+        run: |
+          dotnet ef migrations bundle --self-contained --configuration Release --no-build -o "${{ vars.DOTNET_ROOT }}/myapp/${{ vars.DOTNET_EF_BUNDLE_NAME }}" \
           -p ./src/MH.Capstone.Domain -s ./src/MH.Capstone.WebApp -c ApplicationDbContext
       
       - name: Get artifact name
