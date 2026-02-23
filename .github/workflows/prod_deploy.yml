@@ -78,4 +78,6 @@ jobs:
       - name: Deploy EF Core migration bundle
         id: deploy-to-db
         if: ${{ success() }}
-        run: ${{ vars.DOTNET_EF_BUNDLE_NAME }} --connection "${{ secrets.AZUREAPPSERVICE_DBCONNSTR }}"
+        run: |
+          chmod +x ${{ vars.DOTNET_EF_BUNDLE_NAME }} &&
+          ${{ vars.DOTNET_EF_BUNDLE_NAME }} --connection "${{ secrets.AZUREAPPSERVICE_DBCONNSTR }}"
