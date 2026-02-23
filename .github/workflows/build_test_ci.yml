@@ -71,9 +71,9 @@ jobs:
 
       - name: Create EF Core bundle
         if: inputs.deploy
+        #export ConnectionStrings__DataDb="THIS WILL BE IGNORED" &&
+        #echo "DataDb = $ConnectionStrings__DataDb" &&
         run: |
-          export ConnectionStrings__DataDb="THIS WILL BE IGNORED" &&
-          echo "DataDb = $ConnectionStrings__DataDb" &&
           dotnet ef migrations bundle --self-contained --configuration Release --no-build -o "${{ vars.DOTNET_ROOT }}/myapp/${{ vars.DOTNET_EF_BUNDLE_NAME }}" \
           -p ./src/MH.Capstone.Domain -s ./src/MH.Capstone.WebApp -c ApplicationDbContext
       
