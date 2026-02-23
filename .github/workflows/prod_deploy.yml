@@ -11,59 +11,37 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read #This is required for actions/checkout
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up .NET Core
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.x'
-
-      - name: Build with dotnet
-        run: dotnet build ./src --configuration Release
-
-      - name: dotnet publish
-        run: dotnet publish ./src/MH.Capstone.WebApp -c Release -o "${{vars.DOTNET_ROOT}}/myapp"
-
-      - name: Upload artifact for deployment job
-        uses: actions/upload-artifact@v4
-        with:
-          name: .net-app
-          path: ${{vars.DOTNET_ROOT}}/myapp
+    uses: ./.github/workflows/build_test_ci.yml
 
   release:
     runs-on: ubuntu-latest
     needs: build
+    env:
+      ARTIFACT_ZIP_NAME: ${{ needs.build.outputs.artifcat_name }}.zip
     permissions:
       contents: write #This is required for the release action
       
     steps:
       - name: Download artifact from build job
-        uses: actions/download-artifact@v4
+        id: artifact_download
+        uses: actions/download-artifact@v7
         with:
-          name: .net-app
-      
-      - name: Create release version
-        id: release_version
-        run: | 
-          SHA=${{ github.sha }}
-          VR=$(date +%Y).$(date +%m).${SHA:0:7} &&
-          echo "version=$VR" >> "$GITHUB_OUTPUT" &&
-          echo "::notice file=version::$VR"
+          name: ${{ needs.build.outputs.artifcat_name }}
+          path: app
+
+      - name: Zip artifact for release
+        run: zip -r ${{ env.ARTIFACT_ZIP_NAME }} ./app
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           draft: false
           prerelease: true
-          name: ${{ steps.release_version.outputs.version }}
-          tag_name: ${{ steps.release_version.outputs.version }}
+          name: ${{ needs.build.outputs.version }}
+          tag_name: ${{ needs.build.outputs.version }}
           generate_release_notes: true
-          files: .
+          files: ${{ env.ARTIFACT_ZIP_NAME }}
+          target_commitish: ${{ github.sha }}
 
   deploy:
     runs-on: ubuntu-latest
@@ -78,7 +56,7 @@ jobs:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: .net-app
+          name: ${{ needs.build.outputs.artifcat_name }}
       
       - name: Login to Azure
         uses: azure/login@v2
@@ -94,4 +72,11 @@ jobs:
           app-name: 'wildlifeaid2'
           slot-name: 'Production'
           package: .
-          
+
+  debug:
+    runs-on: ubuntu-latest
+    needs: [build, deploy]
+    if: ${{ failure() }}
+    
+    steps:
+      - run: echo "Failed to build and deploy..."
