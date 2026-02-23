@@ -3,7 +3,6 @@ using MH.Capstone.Domain.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.EntityFrameworkCore;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.Services.Abstraction;
@@ -373,4 +372,93 @@ public class AuthenticationServiceTests
         // Assert
         Assert.That(result, Is.False);
     }
+
+    /* Writing unit test ideas for userBio upload */
+
+    public async Task uploadUserBio_ValidInput_SavesTextBio()
+    {   /*
+        // Arrange
+        string email = "email@123.com";
+        string bio = "I am John who works job at place";
+        // May need some sort of mocked user initialization, refine later
+
+        // Act
+        var result = await _authService.uploadUserBio("I am John who works job at place", email);
+
+        // Assert
+        Assert.That(result, Is.True); */
+
+        // --------------------------------------
+        // Set it up to fail at the end
+        // Act
+        int set = 2;
+        int to = 1;
+        int fail = 3;
+
+        // Assert
+        Assert.That((set + to + fail), Is.EqualTo(9));
+
+    }
+
+        public async Task uploadUserBio_InvalidInput_AbortsProcess()
+    {   /*
+        // Arrange
+        string email = "email@123.com";
+        string over250Characters = 
+            "PUSS IN BOOTS:TLW 10-11-22 FINAL WRITER CONFORM v3 Revised P.FISHER 1 EXT. A STARSCAPE 
+            A scene of surpassing beauty: ethereal light, vibrant cosmic
+            clouds, jewel-like constellations. Celestial gases swirl--
+            then FLARE as A NEW STAR blazes to life. PUSS (V.O.) Star light, star bright, first star
+            I see tonight-- I wish I may, I wish I might, have this wish I wish tonight.";
+
+        // May need some sort of mocked user initialization, refine later
+
+        // Act
+        var result = await _authService.uploadUserBio(over250Characters, email);
+
+        // Assert
+        Assert.That(result, Is.False);
+        // Also check logger for error message */
+
+        // --------------------------------------
+        // Set it up to fail at the end
+        // Act
+        int set = 2;
+        int to = 1;
+        int fail = 3;
+
+        // Assert
+        Assert.That((set + to + fail), Is.EqualTo(9));
+
+    }
+
+    public async Task uploadUserBio_UserNotFound_AbortsProcess()
+    {   /*
+        // Arrange
+        string email = "email@123.com";
+        string bio = "I am John who works job at place";
+        // USER SHOULD NOT EXIST IN LOCAL OR PRODUCTION DB!!!
+
+        // Act
+        var result = await _authService.uploadUserBio("I am John who works job at place", email);
+
+        // Assert
+        Assert.That(result, Is.False);
+        // Also check logger for error message */
+
+        // --------------------------------------
+        // Set it up to fail at the end
+        // Act
+        int set = 2;
+        int to = 1;
+        int fail = 3;
+
+        // Assert
+        Assert.That((set + to + fail), Is.EqualTo(9));
+
+    }
+
+    /* Everything else I can think of is more granular integration testing,
+        please reference "userBioTests.cs" with Reqnroll for more */
+
 }
