@@ -2,11 +2,18 @@ name: Build and Test (CI)
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, edited]
     branches:
       - main
       - dev
   workflow_dispatch:
   workflow_call:
+    inputs:
+      deploy:
+        required: true
+        type: boolean
+        default: false
+
     outputs:
       version:
         description: "The version number from the build and that was assigned to the build"
@@ -36,12 +43,17 @@ jobs:
         with:
           dotnet-version: '9.x'
 
+      - name: Install dotnet-ef tool
+        run: dotnet tool install --global dotnet-ef --version ${{ vars.DOTNET_EF_VERSION }}
+
       - name: Get version number
         id: release_version
-        run: | 
-          VR=$(date +%Y).$(date +%-m).${{ github.run_number }}.${{ github.run_attempt }} &&
-          echo "version=$VR" >> "$GITHUB_OUTPUT" &&
-          echo "::notice file=version::$VR"
+        run: echo "version=$(date +%Y).$(date +%-m).${{ github.run_number }}.${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
+          
+      - name: Debug
+        run: |
+          echo "::notice file=version::${{ steps.release_version.outputs.version }}" &&
+          echo "::notice file=deploy_input::${{ inputs.deploy }}"
 
       - name: Restore with dotnet
         run: dotnet restore ./src --verbosity normal
@@ -55,15 +67,24 @@ jobs:
       #TODO - Add Jest testing once implemented
 
       - name: Publish with dotnet
-        run: dotnet publish ./src/MH.Capstone.WebApp --no-restore --no-build --configuration Release --verbosity normal -o "${{vars.DOTNET_ROOT}}/myapp"
+        run: dotnet publish ./src/MH.Capstone.WebApp --no-restore --no-build --configuration Release --verbosity normal -o "${{ vars.DOTNET_ROOT }}/myapp"
 
+      - name: Create EF Core bundle
+        if: inputs.deploy
+        #export ConnectionStrings__DataDb="THIS WILL BE IGNORED" &&
+        #echo "DataDb = $ConnectionStrings__DataDb" &&
+        run: |
+          dotnet ef migrations bundle --self-contained --configuration Release --no-build -o "${{ vars.DOTNET_ROOT }}/myapp/${{ vars.DOTNET_EF_BUNDLE_NAME }}" \
+          -p ./src/MH.Capstone.Domain -s ./src/MH.Capstone.WebApp -c ApplicationDbContext
+      
       - name: Get artifact name
         id: artifact_name
         run: echo "name=${{ vars.DOTNET_PUBLISH_UPLOAD_NAME }}-${{ steps.release_version.outputs.version }}" >> "$GITHUB_OUTPUT"
       
-      - name: Upload artifact for other jobs
+      - name: Upload build artifact for other jobs
         id: artifact_upload
         uses: actions/upload-artifact@v4
+        if: inputs.deploy
         with:
           name: ${{ steps.artifact_name.outputs.name }}
-          path: ${{vars.DOTNET_ROOT}}/myapp
+          path: ${{ vars.DOTNET_ROOT }}/myapp
