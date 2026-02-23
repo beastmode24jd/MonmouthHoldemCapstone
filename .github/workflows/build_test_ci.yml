@@ -42,6 +42,9 @@ jobs:
         with:
           dotnet-version: '9.x'
 
+      - name: Install dotnet-ef tool
+        run: dotnet tool install --global dotnet-ef --version ${{ vars.DOTNET_EF_VERSION }}
+
       - name: Get version number
         id: release_version
         run: echo "version=$(date +%Y).$(date +%-m).${{ github.run_number }}.${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
