@@ -57,13 +57,19 @@ jobs:
       - name: Publish with dotnet
         run: dotnet publish ./src/MH.Capstone.WebApp --no-restore --no-build --configuration Release --verbosity normal -o "${{vars.DOTNET_ROOT}}/myapp"
 
+      - name: Create EF Core bundle
+        if: github.event_name == 'workflow_call'
+        run: dotnet ef migrations bundle --self-contained --configuration Release --no-build -o "${{vars.DOTNET_ROOT}}/myapp/${{ vars.DOTNET_EF_BUNDLE_NAME }}" \
+          -p ./src/MH.Capstone.Domain -s ./src/MH.Capstone.WebApp -c ApplicationDbContext
+      
       - name: Get artifact name
         id: artifact_name
         run: echo "name=${{ vars.DOTNET_PUBLISH_UPLOAD_NAME }}-${{ steps.release_version.outputs.version }}" >> "$GITHUB_OUTPUT"
       
-      - name: Upload artifact for other jobs
+      - name: Upload build artifact for other jobs
         id: artifact_upload
         uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_call'
         with:
           name: ${{ steps.artifact_name.outputs.name }}
           path: ${{vars.DOTNET_ROOT}}/myapp
