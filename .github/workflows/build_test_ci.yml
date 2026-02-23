@@ -55,11 +55,14 @@ jobs:
       #TODO - Add Jest testing once implemented
 
       - name: Publish with dotnet
-        run: dotnet publish ./src/MH.Capstone.WebApp --no-restore --no-build --configuration Release --verbosity normal -o "${{vars.DOTNET_ROOT}}/myapp"
+        run: dotnet publish ./src/MH.Capstone.WebApp --no-restore --no-build --configuration Release --verbosity normal -o "${{ vars.DOTNET_ROOT }}/myapp"
+
+      - name: Debug
+        run: echo "event_name = ${{ github.event_name }}"
 
       - name: Create EF Core bundle
         if: github.event_name == 'workflow_call'
-        run: dotnet ef migrations bundle --self-contained --configuration Release --no-build -o "${{vars.DOTNET_ROOT}}/myapp/${{ vars.DOTNET_EF_BUNDLE_NAME }}" \
+        run: dotnet ef migrations bundle --self-contained --configuration Release --no-build -o "${{ vars.DOTNET_ROOT }}/myapp/${{ vars.DOTNET_EF_BUNDLE_NAME }}" \
           -p ./src/MH.Capstone.Domain -s ./src/MH.Capstone.WebApp -c ApplicationDbContext
       
       - name: Get artifact name
@@ -72,4 +75,4 @@ jobs:
         if: github.event_name == 'workflow_call'
         with:
           name: ${{ steps.artifact_name.outputs.name }}
-          path: ${{vars.DOTNET_ROOT}}/myapp
+          path: ${{ vars.DOTNET_ROOT }}/myapp
