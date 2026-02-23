@@ -52,7 +52,7 @@ namespace MH.Capstone.Domain.Services
         {
             // Find the user by email
             var user = await _userManager.FindByEmailAsync(email);
-            
+
             // If user doesn't exist, return false
             if (user == null)
             {
@@ -97,18 +97,18 @@ namespace MH.Capstone.Domain.Services
 
             return result.Succeeded;
         }
-        
+
         public bool IsPasswordValid(string password)
-	{
-    		if (string.IsNullOrWhiteSpace(password) || password.Length < 8) return false;
+        {
+            if (string.IsNullOrWhiteSpace(password) || password.Length < 8) return false;
 
-    		var hasLowercase = password.Any(char.IsLower);
-   		var hasUppercase = password.Any(char.IsUpper);
-    		var hasDigit = password.Any(char.IsDigit);
-    		var hasSymbol = password.Any(ch => !char.IsLetterOrDigit(ch));
+            var hasLowercase = password.Any(char.IsLower);
+            var hasUppercase = password.Any(char.IsUpper);
+            var hasDigit = password.Any(char.IsDigit);
+            var hasSymbol = password.Any(ch => !char.IsLetterOrDigit(ch));
 
-    		return hasLowercase && hasUppercase && hasDigit && hasSymbol;
-	}
+            return hasLowercase && hasUppercase && hasDigit && hasSymbol;
+        }
 
         public async Task<bool> DeactivateAccountAsync(string email, string password)
         {
@@ -123,13 +123,11 @@ namespace MH.Capstone.Domain.Services
             }
 
             user.IsDeactivated = true;
-            user.UserName = "Deactivated User";
-            // Since we changed the UserName, we need to update the normalized username as well
-            // so that the user cannot be found by their old username after deactivation
-            await _userManager.UpdateNormalizedUserNameAsync(user);
-            // Save the changes to the database. UserManager is our repo for Identity, so we use it to update the user.
+            // Don't change UserName - it must remain unique in the database
+            // The display name "Deactivated User" should be handled at the presentation layer
+            // when checking user.IsDeactivated
+
             await _userManager.UpdateAsync(user);
-            await _authRepo.AddOrUpdateAsync(user);
 
             _logger.LogInformation("Account {Email} deactivated", email);
             return true;
@@ -158,13 +156,35 @@ namespace MH.Capstone.Domain.Services
             }
         }
 
+        public async Task<bool> ReactivateAccountAsync(string email, string password)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null) return false;
+
+            // User must be deactivated to reactivate
+            if (!user.IsDeactivated) return false;
+
+            var result = await _signInManager.CheckPasswordSignInAsync(user, password, false);
+            if (!result.Succeeded)
+            {
+                return false;
+            }
+
+            user.IsDeactivated = false;
+
+            await _userManager.UpdateAsync(user);
+
+            _logger.LogInformation("Account {Email} reactivated", email);
+            return true;
+        }
+
 
         // implement sign in logic
         public async Task SignInUserAsync(HttpContext httpContext, string email, bool rememberMe)
         {
             // Find the user by email
             var user = await _userManager.FindByEmailAsync(email);
-            
+
             if (user == null)
             {
                 throw new InvalidOperationException($"User with email {email} not found");

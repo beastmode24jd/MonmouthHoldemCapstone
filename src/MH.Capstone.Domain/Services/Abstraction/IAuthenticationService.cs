@@ -12,6 +12,7 @@ namespace MH.Capstone.Domain.Services.Abstraction
     {
         Task<bool> ValidateCredentialsAsync(string email, string password);
         Task<bool> DeactivateAccountAsync(string email, string password);
+	Task<bool> ReactivateAccountAsync(string email, string password);
         Task<bool> RegisterUserAsync(string email, string password);
         Task SignInUserAsync(HttpContext httpContext, string email, bool rememberMe);
         Task SignOutUserAsync(HttpContext httpContext);

@@ -66,8 +66,6 @@ namespace MH.Capstone.WebApp.Controllers
             return View(vm);
         }
 
-        // Displays the login page.
-        // If the user is already authenticated, they are redirected to the dashboard.     
         [HttpGet]
         [AllowAnonymous]
         [Route("login")]
@@ -86,8 +84,8 @@ namespace MH.Capstone.WebApp.Controllers
             return View();
         }
 
-        // Processes login form submission.
-        // Validates credentials and signs the user in if successful.
+        // Displays the login page.
+        // If the user is already authenticated, they are redirected to the dashboard.     
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
@@ -100,6 +98,17 @@ namespace MH.Capstone.WebApp.Controllers
             // Stop processing if validation attributes fail
             if (!ModelState.IsValid)
             {
+                return View(model);
+            }
+
+            // Check if user exists and is deactivated
+            var user = await _authService.GetUserByEmailAsync(model.Email);
+            if (user != null && user.IsDeactivated)
+            {
+                // Store email in TempData for the reactivation page
+                TempData["DeactivatedEmail"] = model.Email;
+                ModelState.AddModelError(string.Empty, "This account has been deactivated.");
+                ViewData["ShowReactivateOption"] = true;
                 return View(model);
             }
 
@@ -157,7 +166,7 @@ namespace MH.Capstone.WebApp.Controllers
             return View();
         }
 
-        
+
         // Processes registration form submission.
         // Creates a new user account and signs them in upon success.
         [HttpPost]
@@ -280,7 +289,7 @@ namespace MH.Capstone.WebApp.Controllers
             return RedirectToAction(nameof(Login));
         }
 
-	    [HttpGet]
+        [HttpGet]
         [Route("Deactivate")]
         public IActionResult Deactivate()
         {
@@ -329,6 +338,64 @@ namespace MH.Capstone.WebApp.Controllers
 
             // Redirect to home page after logout
             return RedirectToAction("Index", "Home");
+        }
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("Reactivate")]
+        public IActionResult Reactivate()
+        {
+            var model = new ReactivateAccountViewModel();
+
+            // Pre-fill email if coming from login page
+            if (TempData["DeactivatedEmail"] is string email)
+            {
+                model.Email = email;
+            }
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        [Route("Reactivate")]
+        public async Task<IActionResult> Reactivate(ReactivateAccountViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            // Check if user exists
+            var user = await _authService.GetUserByEmailAsync(model.Email);
+            if (user == null)
+            {
+                ModelState.AddModelError(string.Empty, "Account not found.");
+                return View(model);
+            }
+
+            // Check if account is actually deactivated
+            if (!user.IsDeactivated)
+            {
+                ModelState.AddModelError(string.Empty, "This account is already active. Please log in.");
+                return View(model);
+            }
+
+            // Attempt to reactivate
+            var result = await _authService.ReactivateAccountAsync(model.Email, model.Password);
+            if (!result)
+            {
+                ModelState.AddModelError("Password", "Incorrect password");
+                return View(model);
+            }
+
+            // Sign the user in after reactivation
+            await _authService.SignInUserAsync(HttpContext, model.Email, rememberMe: false);
+
+            _logger.LogInformation("Account {Email} reactivated and signed in", model.Email);
+
+            TempData["SuccessMessage"] = "Your account has been reactivated!";
+            return RedirectToAction("Index", "Dashboard");
         }
     }
 }
