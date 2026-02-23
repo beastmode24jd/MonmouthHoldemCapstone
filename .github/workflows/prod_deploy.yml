@@ -78,7 +78,7 @@ jobs:
       - name: Deploy EF Core migration bundle
         id: deploy-to-db
         if: ${{ success() }}
+        #export ConnectionStrings__DataDb='Fake ConnStr' &&
         run: |
-          export ConnectionStrings__DataDb='Fake ConnStr' &&
           chmod +x ${{ vars.DOTNET_EF_BUNDLE_NAME }} &&
-          ${{ vars.DOTNET_EF_BUNDLE_NAME }} --connection '${{ secrets.AZUREAPPSERVICE_DBCONNSTR }}'
+          ${{ vars.DOTNET_EF_BUNDLE_NAME }} --connection '${{ secrets.AZUREAPPSERVICE_DBCONNSTR }}' --verbose
