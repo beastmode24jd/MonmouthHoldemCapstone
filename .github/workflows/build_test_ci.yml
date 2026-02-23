@@ -13,7 +13,10 @@ on:
         value: ${{ jobs.buildtest.outputs.version }}
       artifcat_name:
         description: "The name of the file uploaded to the artifcat server from dotnet publish"
-        value: ${{ jobs.buildtest.outputs.artifact_name }}    
+        value: ${{ jobs.buildtest.outputs.artifact_name }}
+      artifact_id:
+        description: "The id of the file uploaded to the artifcat server from dotnet publish"
+        value: ${{ jobs.buildtest.outputs.artifact_id }}
 
 jobs:
   buildtest:
@@ -23,6 +26,7 @@ jobs:
     outputs:
       version: ${{ steps.release_version.outputs.version }}
       artifact_name: ${{ steps.artifact_name.outputs.name }}
+      artifact_id: ${{ steps.artifact_upload.outputs.artifact-id }}
 
     steps:
       - uses: actions/checkout@v4
@@ -58,6 +62,7 @@ jobs:
         run: echo "name=${{ vars.DOTNET_PUBLISH_UPLOAD_NAME }}-${{ steps.release_version.outputs.version }}" >> "$GITHUB_OUTPUT"
       
       - name: Upload artifact for other jobs
+        id: artifact_upload
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.artifact_name.outputs.name }}
