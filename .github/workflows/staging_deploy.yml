@@ -26,16 +26,19 @@ jobs:
         with:
           name: ${{ needs.build.outputs.artifcat_name }}
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: false
-          prerelease: true
-          name: ${{ needs.build.outputs.version }}
-          tag_name: ${{ needs.build.outputs.version }}
-          generate_release_notes: true
-          files: ${{ github.workspace }}/${{ needs.build.outputs.artifcat_name }}.zip
-          target_commitish: ${{ github.sha }}
+      - name: Debugging the artifact
+        run: ls -R
+
+      # - name: Create Release
+      #   uses: softprops/action-gh-release@v2
+      #   with:
+      #     draft: false
+      #     prerelease: true
+      #     name: ${{ needs.build.outputs.version }}
+      #     tag_name: ${{ needs.build.outputs.version }}
+      #     generate_release_notes: true
+      #     files: ${{ github.workspace }}/${{ needs.build.outputs.artifcat_name }}
+      #     target_commitish: ${{ github.sha }}
 
   deploy:
     runs-on: ubuntu-latest

@@ -34,7 +34,7 @@ jobs:
           name: ${{ needs.build.outputs.version }}
           tag_name: ${{ needs.build.outputs.version }}
           generate_release_notes: true
-          files: ${{ github.workspace }}/${{ needs.build.outputs.artifcat_name }}.zip
+          files: ${{ github.workspace }}/${{ needs.build.outputs.artifcat_name }}
           target_commitish: ${{ github.sha }}
 
   deploy:
