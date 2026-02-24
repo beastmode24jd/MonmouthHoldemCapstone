@@ -22,21 +22,41 @@ jobs:
       prod_env: azure_prod
       staging_env: azure_staging
     outputs:
-      deploy_env: ${{ steps.set_configs.outputs.deploy_env }}
-      is_prerelease: ${{ steps.set_configs.outputs.is_prerelease }}
+      deploy_env: ${{ steps.output_configs.outputs.deploy_env }}
+      is_prerelease: ${{ steps.output_configs.outputs.is_prerelease }}
       
     steps:
-      - name: Determine needed values for deployment & release
-        id: set_configs
+      - name: Set config values for PROD (branch main)
+        if: github.ref_name == 'main'
+        id: config_prod
         run: |
-          if ["${{ github.ref_name }}" == "main" ]; then
-            echo "::notice::Deployment being configured under PROD. Branch name is ${{ github.ref_name }}";
-            echo "is_prerelease=false" >> "$GITHUB_OUTPUT";
-            echo "deploy_env=${{ env.prod_env }}" >> "$GITHUB_OUTPUT";
+          echo "::notice::Deployment being configured under PROD. Branch name is ${{ github.ref_name }}";
+          echo "is_prerelease=false" >> "$GITHUB_OUTPUT";
+          echo "deploy_env=${{ env.prod_env }}" >> "$GITHUB_OUTPUT";
+      
+      - name: Set config values for STAGING (branch dev)
+        if: github.ref_name == 'dev'
+        id: config_staging
+        run: |
+          echo "::notice::Deployment being configured under STAGING. Branch name is ${{ github.ref_name }}";
+          echo "is_prerelease=true" >> "$GITHUB_OUTPUT";
+          echo "deploy_env=${{ env.staging_env }}" >> "$GITHUB_OUTPUT";
+
+      - name: Output config values
+        if: always()
+        id: output_configs
+        run: |
+          if [ "${{ steps.config_prod.outcome}}" == "success"]; then
+            echo "::notice::Deployment being configured under PROD.";
+            echo "is_prerelease=${{ steps.config_prod.outputs.is_prerelease }}" >> "$GITHUB_OUTPUT";
+            echo "deploy_env=${{ steps.config_prod.outputs.deploy_env }}" >> "$GITHUB_OUTPUT";
+          elif [ "${{ steps.config_staging.outcome}}" == "success"]; then
+            echo "::notice::Deployment being configured under STAGING.";
+            echo "is_prerelease=${{ steps.config_staging.outputs.is_prerelease }}" >> "$GITHUB_OUTPUT";
+            echo "deploy_env=${{ steps.config_staging.outputs.deploy_env }}" >> "$GITHUB_OUTPUT";
           else
-            echo "::notice::Deployment being configured under STAGING. Branch name is ${{ github.ref_name }}";
-            echo "is_prerelease=true" >> "$GITHUB_OUTPUT";
-            echo "deploy_env=${{ env.staging_env }}" >> "$GITHUB_OUTPUT";
+            echo "::error::Something went wrong with the config and it could not be determined, so script is bailing on fatal"
+            exit 1
           fi
 
   release:
