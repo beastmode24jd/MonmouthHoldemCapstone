@@ -31,7 +31,7 @@ namespace MH.Capstone.WebApp.Controllers
         }
 
         // Displays the main dashboard page for authenticated users. 
-        public async Task<IActionResult> Index([FromQuery] bool sighting_success = false)
+        public async Task<IActionResult> Index([FromQuery] bool sighting_success = false, [FromQuery] int? points_earned = null)
         {
             var userEmail = User.Identity?.Name;
             var user = await _authService.GetUserByEmailAsync(userEmail ?? "");
@@ -40,7 +40,15 @@ namespace MH.Capstone.WebApp.Controllers
             var statusMsgHtml = "<p>You are successfully logged in. Time to explore our nature, together!</p>";
             if (sighting_success)
             {
-                statusMsgHtml = "<p class='fw-bold'>Congratulations! Your Sighting was uploaded successfully!</p>";
+                if (points_earned.HasValue)
+                {
+                    statusMsgHtml = $"<p class='fw-bold'>Congratulations! Your Sighting was uploaded successfully!</p>" +
+                                  $"<p class='text-success fw-bold'>You earned {points_earned.Value} points for this sighting!</p>";
+                }
+                else
+                {
+                    statusMsgHtml = "<p class='fw-bold'>Congratulations! Your Sighting was uploaded successfully!</p>";
+                }
             }
 
             ViewData["statusMsgHtml"] = statusMsgHtml;

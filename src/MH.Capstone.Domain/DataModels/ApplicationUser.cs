@@ -22,6 +22,9 @@ namespace MH.Capstone.Domain.DataModels
 
         public bool IsDeactivated { get; set; } = false;
 
+        // CSP-110 : Total points earned from wildlife sightings and badges
+        public int Points { get; set; } = 0;
+
         public virtual List<Sighting> Sightings { get; set; } = new List<Sighting>();
     }
 }
