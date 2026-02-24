@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MH.Capstone.Domain.DataAccess;
+using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
 using Microsoft.EntityFrameworkCore;
@@ -11,14 +12,15 @@ using Microsoft.Extensions.Logging;
 
 namespace MH.Capstone.Domain.Services.Notifications
 {
-    public abstract class NotificationServiceBase<TDbContext> : INotificationService where TDbContext : DbContext
+    public abstract class NotificationServiceBase
     {
-        protected readonly TDbContext _dbContext;
+        protected readonly IRepository<Notification, ApplicationDbContext> _notificationRepo;
         protected readonly ILogger<INotificationService> _logger;
 
-        protected NotificationServiceBase(TDbContext dbContext, ILogger<INotificationService> logger)
+        protected NotificationServiceBase(IRepository<Notification, ApplicationDbContext> repo, 
+            ILogger<INotificationService> logger)
         {
-            _dbContext = dbContext;
+            _notificationRepo = repo;
             _logger = logger;
         }
 
