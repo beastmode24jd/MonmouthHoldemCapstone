@@ -3,29 +3,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
+using Microsoft.Extensions.Logging;
 
 namespace MH.Capstone.Domain.Services.Notifications
 {
-    public class InAppNotificationService : INotificationService
+    public class InAppNotificationService : NotificationServiceBase<ApplicationDbContext>
     {
-        public async Task SendNotificationAsync(Notification notification)
-        {
-            throw new NotImplementedException();
-        }
+        public InAppNotificationService(ApplicationDbContext dbContext, ILogger<INotificationService> logger) 
+            : base(dbContext, logger) { }
 
-        public async Task<IEnumerable<Notification>> GetPendingNotificationsAsync(Guid userId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<IEnumerable<Notification>> GetAllNotificationsAsync(Guid userId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task MarkNotificationAsReadAsync(Guid notificationId)
+        public override async Task SendNotificationAsync(Notification notification)
         {
             throw new NotImplementedException();
         }

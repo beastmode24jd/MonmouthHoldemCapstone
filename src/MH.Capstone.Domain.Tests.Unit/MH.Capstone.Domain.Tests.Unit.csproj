@@ -37,6 +37,7 @@
 
   <ItemGroup>
     <Folder Include="DataAccess\" />
+    <Folder Include="Services\Notifications\" />
   </ItemGroup>
 
   <ItemGroup>
