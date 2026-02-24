@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     environment:
-      name: azure_pord
+      name: azure_prod
     permissions:
       id-token: write #This is required for requesting the JWT
       contents: read #This is required for actions/checkout
