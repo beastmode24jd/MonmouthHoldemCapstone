@@ -4,13 +4,17 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, edited]
   workflow_dispatch:
+    inputs:
+      deploy:
+        required: true
+        type: boolean
+        default: false
   workflow_call:
     inputs:
       deploy:
         required: true
         type: boolean
         default: false
-
     outputs:
       version:
         description: "The version number from the build and that was assigned to the build"
@@ -46,11 +50,6 @@ jobs:
       - name: Get version number
         id: release_version
         run: echo "version=$(date +%Y).$(date +%-m).${{ github.run_number }}.${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
-          
-      - name: Debug
-        run: |
-          echo "::notice file=version::${{ steps.release_version.outputs.version }}" &&
-          echo "::notice file=deploy_input::${{ inputs.deploy }}"
 
       - name: Restore with dotnet
         run: dotnet restore ./src --verbosity normal
@@ -68,8 +67,6 @@ jobs:
 
       - name: Create EF Core bundle
         if: inputs.deploy
-        #export ConnectionStrings__DataDb="THIS WILL BE IGNORED" &&
-        #echo "DataDb = $ConnectionStrings__DataDb" &&
         run: |
           dotnet ef migrations bundle --self-contained --configuration Release --no-build -o "${{ vars.DOTNET_ROOT }}/myapp/${{ vars.DOTNET_EF_BUNDLE_NAME }}" \
           -p ./src/MH.Capstone.Domain -s ./src/MH.Capstone.WebApp -c ApplicationDbContext
