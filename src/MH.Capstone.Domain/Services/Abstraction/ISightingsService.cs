@@ -10,7 +10,8 @@ namespace MH.Capstone.Domain.Services.Abstraction
 {
     public interface ISightingsService
     {
-        Task CreateSightingAsync(Sighting entity);
+        // Returns the points earned for the sighting
+        Task<int> CreateSightingAsync(Sighting entity);
 
         Task<Sighting> GetSightingByIdAsync(Guid id);
 
