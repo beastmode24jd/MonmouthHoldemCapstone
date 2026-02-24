@@ -31,33 +31,23 @@ jobs:
         id: config_prod
         run: |
           echo "::notice::Deployment being configured under PROD. Branch name is ${{ github.ref_name }}";
-          echo "is_prerelease=false" >> "$GITHUB_OUTPUT";
-          echo "deploy_env=${{ env.prod_env }}" >> "$GITHUB_OUTPUT";
+          echo "ISPRE=false" >> "$GITHUB_ENV";
+          echo "DENV=${{ env.prod_env }}" >> "$GITHUB_ENV";
       
       - name: Set config values for STAGING (branch dev)
         if: github.ref_name == 'dev'
         id: config_staging
         run: |
           echo "::notice::Deployment being configured under STAGING. Branch name is ${{ github.ref_name }}";
-          echo "is_prerelease=true" >> "$GITHUB_OUTPUT";
-          echo "deploy_env=${{ env.staging_env }}" >> "$GITHUB_OUTPUT";
+          echo "ISPRE=true" >> "$GITHUB_ENV";
+          echo "DENV=${{ env.staging_env }}" >> "$GITHUB_ENV";
 
       - name: Output config values
         if: always()
         id: output_configs
         run: |
-          if [ "${{ steps.config_prod.outcome}}" == "success"]; then
-            echo "::notice::Deployment being configured under PROD.";
-            echo "is_prerelease=${{ steps.config_prod.outputs.is_prerelease }}" >> "$GITHUB_OUTPUT";
-            echo "deploy_env=${{ steps.config_prod.outputs.deploy_env }}" >> "$GITHUB_OUTPUT";
-          elif [ "${{ steps.config_staging.outcome}}" == "success"]; then
-            echo "::notice::Deployment being configured under STAGING.";
-            echo "is_prerelease=${{ steps.config_staging.outputs.is_prerelease }}" >> "$GITHUB_OUTPUT";
-            echo "deploy_env=${{ steps.config_staging.outputs.deploy_env }}" >> "$GITHUB_OUTPUT";
-          else
-            echo "::error::Something went wrong with the config and it could not be determined, so script is bailing on fatal"
-            exit 1
-          fi
+          echo "is_prerelease=${{ env.ISPRE }}" >> "$GITHUB_OUTPUT";
+          echo "deploy_env=${{ env.DENV }}" >> "$GITHUB_OUTPUT";
 
   release:
     runs-on: ubuntu-latest
