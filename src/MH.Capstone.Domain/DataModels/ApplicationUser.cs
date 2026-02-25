@@ -26,5 +26,7 @@ namespace MH.Capstone.Domain.DataModels
         public int Points { get; set; } = 0;
 
         public virtual List<Sighting> Sightings { get; set; } = new List<Sighting>();
+
+        public string? Bio { get; set; }
     }
 }
