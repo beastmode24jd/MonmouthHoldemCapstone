@@ -1,0 +1,84 @@
+name: Build and Test (CI)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+  workflow_dispatch:
+    inputs:
+      deploy:
+        required: true
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      deploy:
+        required: true
+        type: boolean
+        default: false
+    outputs:
+      version:
+        description: "The version number from the build and that was assigned to the build"
+        value: ${{ jobs.buildtest.outputs.version }}
+      artifcat_name:
+        description: "The name of the file uploaded to the artifcat server from dotnet publish"
+        value: ${{ jobs.buildtest.outputs.artifact_name }}
+      artifact_id:
+        description: "The id of the file uploaded to the artifcat server from dotnet publish"
+        value: ${{ jobs.buildtest.outputs.artifact_id }}
+
+jobs:
+  buildtest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read #This is required for actions/checkout
+    outputs:
+      version: ${{ steps.release_version.outputs.version }}
+      artifact_name: ${{ steps.artifact_name.outputs.name }}
+      artifact_id: ${{ steps.artifact_upload.outputs.artifact-id }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.x'
+
+      - name: Install dotnet-ef tool
+        run: dotnet tool install --global dotnet-ef --version ${{ vars.DOTNET_EF_VERSION }}
+
+      - name: Get version number
+        id: release_version
+        run: echo "version=$(date +%Y).$(date +%-m).${{ github.run_number }}.${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore with dotnet
+        run: dotnet restore ./src --verbosity normal
+
+      - name: Build with dotnet
+        run: dotnet build ./src --no-restore --configuration Release --verbosity normal -p:Version=${{ steps.release_version.outputs.version }}
+
+      - name: Test with dotnet
+        run: dotnet test ./src --no-restore --no-build --configuration Release --verbosity normal
+
+      #TODO - Add Jest testing once implemented
+
+      - name: Publish with dotnet
+        run: dotnet publish ./src/MH.Capstone.WebApp --no-restore --no-build --configuration Release --verbosity normal -o "${{ vars.DOTNET_ROOT }}/myapp"
+
+      - name: Create EF Core bundle
+        if: inputs.deploy
+        run: |
+          dotnet ef migrations bundle --self-contained --configuration Release --no-build -o "${{ vars.DOTNET_ROOT }}/myapp/${{ vars.DOTNET_EF_BUNDLE_NAME }}" \
+          -p ./src/MH.Capstone.Domain -s ./src/MH.Capstone.WebApp -c ApplicationDbContext
+      
+      - name: Get artifact name
+        id: artifact_name
+        run: echo "name=${{ vars.DOTNET_PUBLISH_UPLOAD_NAME }}-${{ steps.release_version.outputs.version }}" >> "$GITHUB_OUTPUT"
+      
+      - name: Upload build artifact for other jobs
+        id: artifact_upload
+        uses: actions/upload-artifact@v4
+        if: inputs.deploy
+        with:
+          name: ${{ steps.artifact_name.outputs.name }}
+          path: ${{ vars.DOTNET_ROOT }}/myapp

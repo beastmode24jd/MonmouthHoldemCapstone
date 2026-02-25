@@ -1,4 +1,5 @@
 ﻿@inject Microsoft.AspNetCore.Identity.UserManager<MH.Capstone.Domain.DataModels.ApplicationUser> _userManager
+@using static MH.Capstone.WebApp.VersionHelper
 @{
     // Get the current user to access their profile image URL in the layout.
     // This is done here instead of in the controller to ensure it's available for all views that use this layout
@@ -105,7 +106,8 @@
 
     <footer class="footer text-light">
         <div class="container-fluid ps-4">
-            <p class="footerText">Wildlife AID &copy; - 2026</p>
+            <p class="footerText d-inline">Wildlife AID &copy; - @DateTime.Now.Year</p>
+            <p class="footerText text-end d-inline">Version: @GetAppVersion()</p>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
