@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MH.Capstone.Domain.Tools;
 
 namespace MH.Capstone.Domain.DataModels
 {
@@ -29,10 +30,12 @@ namespace MH.Capstone.Domain.DataModels
         public string RecipientIdentityId { get; set; }
 
         [Required]
+        [MinLength(1)]
         [MaxLength(50)]
         public string Title { get; set; } = string.Empty;
 
-        [Required] 
+        [Required]
+        [MinLength(1)]
         [MaxLength(250)] 
         public string Message { get; set; } = string.Empty;
 
@@ -45,5 +48,20 @@ namespace MH.Capstone.Domain.DataModels
         public bool IsPostdated => SentAt.UtcDateTime > DateTime.UtcNow;
 
         public virtual ApplicationUser Recipient { get; set; } = null!;
+
+        // EF Core requires a parameterless constructor for materialization of entities from the database,
+        // so we need to include one even though we don't want it to be used directly in our code.
+        public Notification() {}
+
+        // For testing and general use within the application, we want to require all properties to be set
+        // at the time of object creation, so we provide this constructor for that purpose.
+        public Notification(Guid id, Guid recipientId, string title, string message, DateTimeOffset sentAt)
+        {
+            Id = id;
+            RecipientId = recipientId;
+            Title = title;
+            Message = message;
+            SentAt = sentAt;
+        }
     }
 }

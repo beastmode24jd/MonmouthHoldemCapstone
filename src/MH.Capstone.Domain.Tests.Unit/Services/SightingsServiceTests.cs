@@ -11,7 +11,6 @@ using MH.Capstone.Domain.Tools;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http.Internal;
-using NUnit.Framework.Legacy;
 using MH.Capstone.Domain.DataAccess;
 
 #pragma warning disable CA1416
