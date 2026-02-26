@@ -8,7 +8,7 @@ namespace MH.Capstone.Domain.Services.Abstraction
 {
     public interface IUserProfileService
     {
-        void UpdateUserBio(ApplicationUser user, string? newBio);
+        Task UpdateUserBio(ApplicationUser user, string? newBio);
     }
 
 }
