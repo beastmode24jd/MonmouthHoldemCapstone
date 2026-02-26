@@ -65,6 +65,17 @@ public class UserProfileServiceTests
     }
 
     // Bio of more than 250 char creates invalid object
+
+    [Test]
+    public async Task setBio_Over250CharInput_Rejected()
+    {
+        // Arrange and Act
+        var user = new ApplicationUser();
+        user.Bio = "over 250 char string";
+
+        // Assert
+        Assert.That(user.Bio, Is.EqualTo("Default bio"));
+    }
     
 
     /* Everything else I can think of is more granular integration testing,
