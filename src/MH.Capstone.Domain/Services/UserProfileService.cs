@@ -16,7 +16,7 @@ namespace MH.Capstone.Domain.Services
 
         public async Task UpdateUserBio(ApplicationUser user, string? newBio)
         {
-            if (!string.IsNullOrEmpty(newBio) && newBio.Length < 251)
+            if (!string.IsNullOrWhiteSpace(newBio) && newBio.Length < 251)
             {
                 user.Bio = newBio;
             }
