@@ -58,9 +58,12 @@ public class UserProfileServiceTests
         var profileService = _serviceProvider.GetRequiredService<IUserProfileService>();
         var user = new ApplicationUser
         {
-            Email = "email@123.com",
-            UserName = "johnDoe",
+            UserName = "testUser"
         };
+
+        // Add to DB so update method has a target, and compiler is happy
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
 
         string bio = "I am John who works job at place";
 
@@ -68,6 +71,7 @@ public class UserProfileServiceTests
         await profileService.UpdateUserBio(user, bio);
 
         // Assert
+        // Verifies local object
         Assert.That(user.Bio, Is.EqualTo("I am John who works job at place"));
     }
 
@@ -118,7 +122,6 @@ public class UserProfileServiceTests
             Email = "email@123.com",
             UserName = "johnDoe",
             Bio = "Enter a unique profile bio."
-
         };
 
         _context.Users.Add(user);
@@ -132,10 +135,12 @@ public class UserProfileServiceTests
         // Fetch from _context to assert that it has been saved to the DB
         var userFromDb = await _context.Users.FindAsync(user.Id);
 
-        // Check that the user is in the DB, before comparing userFromDb.Bio to updatedBio
-        // Stops the test and displays the error message if not found
-        Assert.That(userFromDb, Is.Not.Null, "User was not found in the database after update.");
-        Assert.That(userFromDb.Bio, Is.EqualTo(updatedBio));
+        Assert.Multiple(() => { 
+            // Check that the user is in the DB, before comparing values
+            // Stops the test and displays an error message if not found
+            Assert.That(userFromDb, Is.Not.Null, "User should exist in the DB.");
+            Assert.That(userFromDb!.Bio, Is.EqualTo(updatedBio));
+        });
     }
     
 }
