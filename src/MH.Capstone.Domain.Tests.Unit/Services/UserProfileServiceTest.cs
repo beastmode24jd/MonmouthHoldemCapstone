@@ -51,15 +51,17 @@ public class UserProfileServiceTests
         await _serviceProvider.DisposeAsync();
     }
 
-    // Writing unit tests for userBio upload
-
     [Test]
     public async Task setBio_ValidInput_SavesTextBio()
     {   
         // Arrange
         var profileService = _serviceProvider.GetRequiredService<IUserProfileService>();
-        var user = new ApplicationUser();
-        user.Email = "email@123.com";
+        var user = new ApplicationUser
+        {
+            Email = "email@123.com",
+            UserName = "johnDoe",
+        };
+
         string bio = "I am John who works job at place";
 
         // Act
@@ -71,7 +73,7 @@ public class UserProfileServiceTests
 
     // Bio of more than 250 char creates invalid object
     [Test]
-    public async Task setBio_Over250CharInput_Rejected()
+    public async Task UpdateUserBio_Over250CharInput_Rejected()
     {
         // Arrange
         var profileService = _serviceProvider.GetRequiredService<IUserProfileService>();
@@ -106,5 +108,34 @@ public class UserProfileServiceTests
     /* Everything else I can think of is more granular integration testing,
         please reference "userBioTests.cs" with Gherkin scenarios from Jira for more */
 
+    [Test]
+    public async Task UpdateUserBio_ValidInput_SavesTextBioToDB()
+    {   
+        // Arrange
+        var profileService = _serviceProvider.GetRequiredService<IUserProfileService>();
+        var user = new ApplicationUser
+        {
+            Email = "email@123.com",
+            UserName = "johnDoe",
+            Bio = "Enter a unique profile bio."
+
+        };
+
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        // Act
+        string updatedBio = "I am John who works job at place";
+        await profileService.UpdateUserBio(user, updatedBio);
+
+        // Assert
+        // Fetch from _context to assert that it has been saved to the DB
+        var userFromDb = await _context.Users.FindAsync(user.Id);
+
+        // Check that the user is in the DB, before comparing userFromDb.Bio to updatedBio
+        // Stops the test and displays the error message if not found
+        Assert.That(userFromDb, Is.Not.Null, "User was not found in the database after update.");
+        Assert.That(userFromDb.Bio, Is.EqualTo(updatedBio));
+    }
     
 }
