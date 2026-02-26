@@ -107,10 +107,6 @@ public class UserProfileServiceTests
 
         Assert.That(user.Bio, Is.EqualTo("Enter a unique profile bio."));
     }
-    
-
-    /* Everything else I can think of is more granular integration testing,
-        please reference "userBioTests.cs" with Gherkin scenarios from Jira for more */
 
     [Test]
     public async Task UpdateUserBio_ValidInput_SavesTextBioToDB()
@@ -140,6 +136,24 @@ public class UserProfileServiceTests
             // Stops the test and displays an error message if not found
             Assert.That(userFromDb, Is.Not.Null, "User should exist in the DB.");
             Assert.That(userFromDb!.Bio, Is.EqualTo(updatedBio));
+        });
+    }
+
+    /* Technically not a UserProfileService.cs test, but tests the default value
+       of the bio field in a user account. */
+    [Test]
+    public void ApplicationUser_Initialization_SetsDefaultBio()
+    {
+        // Arrange and Act
+        // Initialize a generic user, without providing a bio.
+        var user = new ApplicationUser();
+
+        // Assert
+        // Verify it matches the default string given in the data model.
+        Assert.Multiple(() =>
+        {
+            Assert.That(user.Bio, Is.Not.Null, "Default user bio was not set.");
+            Assert.That(user.Bio!, Is.EqualTo("Enter a unique profile bio."));
         });
     }
     
