@@ -51,35 +51,52 @@ public class UserProfileServiceTests
         await _serviceProvider.DisposeAsync();
     }
 
-    // Writing unit test ideas for userBio upload
+    // Writing unit tests for userBio upload
 
     [Test]
     public async Task setBio_ValidInput_SavesTextBio()
     {   
-        // Arrange and Act
+        // Arrange
+        var profileService = _serviceProvider.GetRequiredService<IUserProfileService>();
         var user = new ApplicationUser();
         user.Email = "email@123.com";
-        user.Bio = "I am John who works job at place";
+        string bio = "I am John who works job at place";
+
+        // Act
+        await profileService.UpdateUserBio(user, bio);
 
         // Assert
         Assert.That(user.Bio, Is.EqualTo("I am John who works job at place"));
     }
 
     // Bio of more than 250 char creates invalid object
-
     [Test]
     public async Task setBio_Over250CharInput_Rejected()
     {
         // Arrange
         var profileService = _serviceProvider.GetRequiredService<IUserProfileService>();
         var user = new ApplicationUser();
+
         // String over 250 char (this is 251)
         string longBio = new string ('Y', 251);
 
         // Act
-        profileService.UpdateUserBio(user, longBio);
+        await profileService.UpdateUserBio(user, longBio);
 
         // Assert
+        Assert.That(user.Bio, Is.EqualTo("Enter a unique profile bio."));
+    }
+
+    [Test]
+    public async Task setBio_EmptyStringInput_UsesDefaultValue()
+    {
+        // Arrange
+        var profileService = _serviceProvider.GetRequiredService<IUserProfileService>();
+        var user = new ApplicationUser();
+
+        // Act
+        await profileService.UpdateUserBio(user, "");
+
         Assert.That(user.Bio, Is.EqualTo("Enter a unique profile bio."));
     }
     
