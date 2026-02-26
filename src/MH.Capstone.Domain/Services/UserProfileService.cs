@@ -14,17 +14,27 @@ namespace MH.Capstone.Domain.Services
         Removed from the ApplicationUser data model, for clarity and ease of
         EF Migrations and DB updates. */
 
+        private readonly ApplicationDbContext _context;
+
+        public UserProfileService(ApplicationDbContext context)
+        {
+            // Dependency Injection of DB Context
+            _context = context;
+        }
+
         public async Task UpdateUserBio(ApplicationUser user, string? newBio)
         {
             if (!string.IsNullOrWhiteSpace(newBio) && newBio.Length < 251)
             {
                 user.Bio = newBio;
-            }
-            // Doesn't reset the Bio string's default, if it is over 250 char.
-            
-            // Will need to add DB logic here later
-            // await _context.SaveChangesAsync();
 
+                // Mark as changed, save to LocalDB.
+                _context.Users.Update(user);
+                await _context.SaveChangesAsync();
+
+            }
+            
+            // Doesn't reset the Bio string's default, if it is over 250 char.
             await Task.CompletedTask;
         }
     }
