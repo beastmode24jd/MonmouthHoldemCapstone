@@ -87,15 +87,17 @@ public class UserProfileServiceTests
         Assert.That(user.Bio, Is.EqualTo("Enter a unique profile bio."));
     }
 
-    [Test]
-    public async Task setBio_EmptyStringInput_UsesDefaultValue()
+    [TestCase("")]
+    [TestCase(null)]
+    [TestCase("             ")]
+    public async Task setBio_InvalidInput_UsesDefaultValue(string? invalidInput)
     {
         // Arrange
         var profileService = _serviceProvider.GetRequiredService<IUserProfileService>();
         var user = new ApplicationUser();
 
         // Act
-        await profileService.UpdateUserBio(user, "");
+        await profileService.UpdateUserBio(user, invalidInput);
 
         Assert.That(user.Bio, Is.EqualTo("Enter a unique profile bio."));
     }
