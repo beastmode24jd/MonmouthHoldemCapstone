@@ -36,6 +36,7 @@ public class UserProfileServiceTests
         services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
         // Register real AuthenticationService here when we create it
         services.AddScoped<IAuthenticationService, AuthenticationService>();
+        services.AddScoped<IUserProfileService, UserProfileService>();
 
         _serviceProvider = services.BuildServiceProvider();
         _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
@@ -50,7 +51,7 @@ public class UserProfileServiceTests
         await _serviceProvider.DisposeAsync();
     }
 
-    /* Writing unit test ideas for userBio upload */
+    // Writing unit test ideas for userBio upload
 
     [Test]
     public async Task setBio_ValidInput_SavesTextBio()
@@ -69,17 +70,22 @@ public class UserProfileServiceTests
     [Test]
     public async Task setBio_Over250CharInput_Rejected()
     {
-        // Arrange and Act
+        // Arrange
+        var profileService = _serviceProvider.GetRequiredService<IUserProfileService>();
         var user = new ApplicationUser();
-        user.Bio = "over 250 char string";
+        // String over 250 char (this is 251)
+        string longBio = new string ('Y', 251);
+
+        // Act
+        profileService.UpdateUserBio(user, longBio);
 
         // Assert
-        Assert.That(user.Bio, Is.EqualTo("Default bio"));
+        Assert.That(user.Bio, Is.EqualTo("Enter a unique profile bio."));
     }
     
 
     /* Everything else I can think of is more granular integration testing,
-        please reference "userBioTests.cs" with Reqnroll for more */
+        please reference "userBioTests.cs" with Gherkin scenarios from Jira for more */
 
     
 }
