@@ -12,6 +12,8 @@ namespace MH.Capstone.Domain.Tests.Unit.Services;
 [TestFixture]
 public class UserProfileServiceTests
 {
+    // Need to mock user service to get tests to pass?
+    // Also refactor, to accomodate null as new bio field placeholder value
     private ServiceProvider _serviceProvider;
     private ApplicationDbContext _context;
     
@@ -90,7 +92,7 @@ public class UserProfileServiceTests
         await profileService.UpdateUserBio(user, longBio);
 
         // Assert
-        Assert.That(user.Bio, Is.EqualTo("Enter a unique profile bio."));
+        Assert.That(user.Bio, Is.EqualTo(null));
     }
 
     [TestCase("")]
@@ -105,7 +107,7 @@ public class UserProfileServiceTests
         // Act
         await profileService.UpdateUserBio(user, invalidInput);
 
-        Assert.That(user.Bio, Is.EqualTo("Enter a unique profile bio."));
+        Assert.That(user.Bio, Is.EqualTo(null));
     }
 
     [Test]
@@ -117,7 +119,7 @@ public class UserProfileServiceTests
         {
             Email = "email@123.com",
             UserName = "johnDoe",
-            Bio = "Enter a unique profile bio."
+            Bio = null
         };
 
         _context.Users.Add(user);
@@ -135,7 +137,8 @@ public class UserProfileServiceTests
         { 
             // Check that the user is in the DB, before comparing values
             // Stops the test and displays an error message if not found
-            Assert.That(userFromDb, Is.Not.Null, "User should exist in the DB.");
+            Assert.That(userFromDb, Is.Not.Null, "User does exist in the DB.");
+            Assert.That(userFromDb.Bio, Is.Not.Null, "User bio was not updated.");
             Assert.That(userFromDb!.Bio, Is.EqualTo(updatedBio));
         });
     }
@@ -153,8 +156,8 @@ public class UserProfileServiceTests
         // Verify it matches the default string given in the data model.
         Assert.Multiple(() =>
         {
-            Assert.That(user.Bio, Is.Not.Null, "Default user bio was not set.");
-            Assert.That(user.Bio!, Is.EqualTo("Enter a unique profile bio."));
+            Assert.That(user.Bio, Is.Null, "Default user bio was not set to null.");
+            Assert.That(user.Bio!, Is.EqualTo(null));
         });
     }
     

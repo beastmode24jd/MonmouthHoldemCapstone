@@ -28,7 +28,7 @@ namespace MH.Capstone.Domain.Services
             {
                 user.Bio = newBio;
 
-                // Mark as changed, save to LocalDB.
+                // Mark as changed, save.
                 _context.Users.Update(user);
                 await _context.SaveChangesAsync();
 
