@@ -1,4 +1,4 @@
-﻿// Write your JavaScript code.
+﻿// The communal JS file...
 
 document.getElementById('uploadForm')?.addEventListener("submit", function()
 {
@@ -13,6 +13,48 @@ document.getElementById('uploadForm')?.addEventListener("submit", function()
             return false; // Prevents the form from submitting
         }
     }
+});
+
+/* document.getElementById("DOMContentLoaded"), function()
+{
+    // Get element data from document
+    const newBio = document.getElementById('bioInput');
+    const errorDisplay = document.getElementById('bioErrorMsg');
+
+    if (newBio.length > 0 && ) {
+
+    }
+    else
+    {
+        // User has entered an empty field.
+    }
+}); */
+
+document.addEventListener("DOMContentLoaded", function ()
+{
+    const bioArea = document.getElementById('bioInput');
+    const counter = document.getElementById('charCount');
+    const bioForm = document.getElementById('bioForm');
+
+    function updateCounter() {
+        const length = bioArea.value.length;
+        counter.textContent = `${length}/250`;
+                
+        // Change text color if approaching submission limit
+        if (length >= 240) {
+            counter.classList.replace('text-dark', 'text-danger');
+        } else {
+            counter.classList.add('text-dark');
+            counter.classList.remove('text-danger');
+        }
+    }
+
+    // Initialize counter on page load
+    // (User text doesn't auto-clear yet, will fix later)
+    updateCounter();
+
+    // Listen for user input
+    bioArea.addEventListener('input', updateCounter);
 });
 
 document.addEventListener("DOMContentLoaded", registerAllNumericInputs);
@@ -46,3 +88,4 @@ function ensureNumericInput(inputElm) {
         }
     );
 }
+
