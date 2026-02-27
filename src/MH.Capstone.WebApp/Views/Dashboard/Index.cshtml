@@ -80,8 +80,11 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card">
+    </div>
+
+    <div class="row mt-4 mb-4">
+        <div class="col-12">
+            <div class="card shadow">
                 <div class="card-body">
                     <h5 class="card-title">
                         <i class="bi bi-gear"></i> Account Settings
@@ -92,6 +95,7 @@
                         <button type="submit" class="btnDark">Upload &AMP; Save</button>
                     </form>
                     @* Adding a profile bio should also go here at some point. *@
+                    <br>
                     <p class="card-text">Manage your account settings.</p>
                     <a asp-action="Deactivate" asp-controller="Account" class="btn btn-outline-danger btn-sm">
                         <i class="bi bi-person-x"></i> Deactivate Account
@@ -99,6 +103,5 @@
                 </div>
             </div>
         </div>
-
     </div>
 </div>

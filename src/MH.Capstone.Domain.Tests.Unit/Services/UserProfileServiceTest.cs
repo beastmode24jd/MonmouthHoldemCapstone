@@ -34,7 +34,7 @@ public class UserProfileServiceTests
             .AddDefaultTokenProviders();
         // Register repositories like we do in the actual application
         services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
-        // Register real AuthenticationService here when we create it
+
         services.AddScoped<IAuthenticationService, AuthenticationService>();
         services.AddScoped<IUserProfileService, UserProfileService>();
 
@@ -131,7 +131,8 @@ public class UserProfileServiceTests
         // Fetch from _context to assert that it has been saved to the DB
         var userFromDb = await _context.Users.FindAsync(user.Id);
 
-        Assert.Multiple(() => { 
+        Assert.Multiple(() =>
+        { 
             // Check that the user is in the DB, before comparing values
             // Stops the test and displays an error message if not found
             Assert.That(userFromDb, Is.Not.Null, "User should exist in the DB.");
