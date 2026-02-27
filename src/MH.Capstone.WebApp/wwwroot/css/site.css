@@ -127,8 +127,8 @@ button.btnDark {
     font-family: Verdana, Tahoma, Arial, sans-serif;
     font-weight: bold;
 
-    padding: 15px;
-    border-radius: 20px;
+    padding: 5px;
+    border-radius: 10px;
     font-size: min(20vw, 16px);
     color: white;
     background-color: #1C261C;
