@@ -38,7 +38,8 @@
                                     <strong>Status:</strong> <span class="badge bg-success">Active</span>
                                 </li>
                                 <li class="list-group-item">
-                                    <strong>Bio: </strong> @* Display text bio here *@
+                                    <strong>Bio: </strong> @* (User.Identity.Bio ?? "Enter a custom text bio!") *@
+                                    @* REVIEW SOON *@
                                 </li>
                             </ul>
                         </div>
@@ -92,14 +93,22 @@
                     <h5 class="card-title">
                         <i class="bi bi-gear"></i> Account Settings
                     </h5>
-                    <p class="card-text">Upload your profile picture:</p>
+                    <p class="card-text mb-1 mt-3">Upload your profile picture:</p>
                     <form id="uploadForm" asp-action="UploadProfileImage" method="Post" enctype="multipart/form-data">
-                        <input id="fileInput" class="form-control form-control-sm mb-2" type="file" accept="image/*" name="profilePicture" />
+                        <input id="fileInput" class="form-control form-control-sm mb-3 mt-2" type="file" accept="image/*" name="profilePicture" />
                         <button type="submit" class="btnDark">Upload Image</button>
                     </form>
-                    @* Adding a profile bio should also go here at some point. *@
                     <br>
-                    <p class="card-text">Manage your account settings.</p>
+                    <p class="card-text mb-1">Update your profile bio:</p>
+                    <form id="uploadForm" asp-action="UpdateUserBio" method="Post">
+                        <div class="mb-3 mt-1">
+                            <textarea name="newBio" class="form-control" rows="3" maxlength="250" placeholder="Tell us about yourself...">@user.Bio</textarea>
+                            <div class="form-text">Profile bio should be 250 characters or less.</div>
+                        </div>
+                        <button type="submit" class="btnDark">Update Bio</button>
+                    </form>
+                    <br>
+                    <p class="card-text mb-2">Account Deactivation:</p>
                     <a asp-action="Deactivate" asp-controller="Account" class="btn btn-outline-danger btn-sm">
                         <i class="bi bi-person-x"></i> Deactivate Account
                     </a>

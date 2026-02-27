@@ -110,5 +110,23 @@ namespace MH.Capstone.WebApp.Controllers
             // Send this information back to the main dashboard page.
             return RedirectToAction("Index");
         }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdateUserBio(string newBio)
+        {
+            var userEmail = User.Identity?.Name;
+            
+            // If no user is found, for whatever reason, this should return null
+            var user = await _authService.GetUserByEmailAsync(userEmail ?? "");
+
+            if (user != null)
+            {
+                // Delegate actual logic to the UserProfileService
+                await _profileService.UpdateUserBio(user, newBio);
+                _logger.LogInformation("Bio field updated for {Email}", userEmail);
+            }
+
+            return RedirectToAction("Index");
+        }
     }
 }
