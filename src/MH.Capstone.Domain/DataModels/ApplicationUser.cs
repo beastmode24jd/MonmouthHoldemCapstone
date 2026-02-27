@@ -28,6 +28,6 @@ namespace MH.Capstone.Domain.DataModels
         public virtual List<Sighting> Sightings { get; set; } = new List<Sighting>();
 
         [StringLength(250)]
-        public string? Bio { get; set; } = "Enter a unique profile bio.";
+        public string? Bio { get; set; } = null; // Default to null for placeholder value
     }
 }

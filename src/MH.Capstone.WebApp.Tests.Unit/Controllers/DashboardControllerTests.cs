@@ -19,6 +19,7 @@ public class DashboardControllerTests
     private Mock<IProfileImageService> _mockService;
     private Mock<ILogger<DashboardController>> _mockLogger;
     private DashboardController _controller;
+    private Mock<IUserProfileService> _mockProfileService;
     private const string TestEmail = "namesNameington@mail.wou";
 
     [SetUp]
@@ -27,7 +28,8 @@ public class DashboardControllerTests
         _mockAuthService = new Mock<IAuthenticationService>();
         _mockService = new Mock<IProfileImageService>();
         _mockLogger = new Mock<ILogger<DashboardController>>();
-        _controller = new DashboardController(_mockLogger.Object, _mockService.Object, _mockAuthService.Object);
+        _mockProfileService = new Mock<IUserProfileService>();
+        _controller = new DashboardController(_mockLogger.Object, _mockService.Object, _mockAuthService.Object, _mockProfileService.Object);
 
         // Mock the user, so the display name isn't null while testing
         var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
