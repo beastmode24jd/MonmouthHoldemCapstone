@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Drawing;
-using System.Drawing.Imaging;
 using Microsoft.AspNetCore.Http;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Png;
 using Microsoft.AspNetCore.Http.Internal;
+using SixLabors.ImageSharp.PixelFormats;
 using static MH.Capstone.Tests.SharedInternals.RandomData;
 
 namespace MH.Capstone.Tests.SharedInternals
@@ -26,10 +27,12 @@ namespace MH.Capstone.Tests.SharedInternals
         {
             var height = GetRandomIntInRange(1, 25000);
             var width = GetRandomIntInRange(1, 25000);
-            using var bitmap = new Bitmap(width, height);
+            using var img = new Image<Rgba32>(width, height); // Cross-platform image creation using ImageSharp
+            //using var bitmap = new Bitmap(width, height); // Windows-specific, not cross-platform
             var fileSteam = new MemoryStream();
             _generatedStreams.Add(fileSteam);
-            bitmap.Save(fileSteam, ImageFormat.Png);
+            img.SaveAsPng(fileSteam); // Cross-platform image creation using ImageSharp
+            //bitmap.Save(fileSteam, ImageFormat.Png); // Windows-specific, not cross-platform
             fileSteam.Position = 0; // Reset stream position to the beginning after writing the image data
 
             // Create a fake IFormFile using the stream containing the image data

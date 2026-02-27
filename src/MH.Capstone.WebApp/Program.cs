@@ -72,8 +72,20 @@ namespace MH.Capstone.WebApp
             // Register the Profile Image Service
             builder.Services.AddScoped<IProfileImageService, ProfileImageService>();
 
+            // Register the Scoring Service (CSP-104)
+            builder.Services.AddScoped<IScoringService, ScoringService>();
+
             // Add services to the container.
             builder.Services.AddControllersWithViews();
+
+            // Configure Logging, with some based on environment
+            // Note: DO NOT REMOVE THE CONSOLE LOGGER OR AZURE.
+            // Azure App Service relies on it for log collection.
+            builder.Logging.AddConsole();
+            if (builder.Environment.IsProduction())
+            {
+                builder.Logging.AddAzureWebAppDiagnostics();
+            }
 
             var app = builder.Build();
 

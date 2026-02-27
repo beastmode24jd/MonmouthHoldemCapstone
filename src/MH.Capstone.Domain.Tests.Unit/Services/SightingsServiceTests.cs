@@ -1,6 +1,7 @@
 ﻿using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
+using MH.Capstone.Domain.Services.Abstraction;
 using static MH.Capstone.Tests.SharedInternals.RandomData;
 using MH.Capstone.Tests.SharedInternals;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -24,6 +25,8 @@ public class SightingsServiceTests
 {
     private Sighting _validSighting;
     private Mock<IRepository<Sighting, ApplicationDbContext>> _sightingsRepoMock;
+    private Mock<IScoringService> _scoringServiceMock;
+    private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock;
     private FakeImageGenerator _imageGenerator;
 
     // Remember: Arrange, Act, Assert
@@ -33,6 +36,8 @@ public class SightingsServiceTests
         _imageGenerator = new FakeImageGenerator(); 
         _validSighting = SightingValidValuesSource.DefaultValidSighting;
         _sightingsRepoMock = new Mock<IRepository<Sighting, ApplicationDbContext>>();
+        _scoringServiceMock = new Mock<IScoringService>();
+        _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
     }
 
     [TearDown]
@@ -42,7 +47,7 @@ public class SightingsServiceTests
     }
 
     private SightingsService CreateSut() =>
-        new (NullLogger<SightingsService>.Instance, _sightingsRepoMock.Object);
+        new (NullLogger<SightingsService>.Instance, _sightingsRepoMock.Object, _scoringServiceMock.Object, _userRepoMock.Object);
 
     private void AssertAllMockVerifications()
     {

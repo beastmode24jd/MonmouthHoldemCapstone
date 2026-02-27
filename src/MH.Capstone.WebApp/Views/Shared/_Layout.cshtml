@@ -1,4 +1,5 @@
 ﻿@inject Microsoft.AspNetCore.Identity.UserManager<MH.Capstone.Domain.DataModels.ApplicationUser> _userManager
+@using static MH.Capstone.WebApp.VersionHelper
 @{
     // Get the current user to access their profile image URL in the layout.
     // This is done here instead of in the controller to ensure it's available for all views that use this layout
@@ -22,7 +23,7 @@
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark border-bottom box-shadow mb-0">
             <div class="container-fluid">
                 <a class="navbar-brand" asp-controller="Home" asp-action="Index">
-                    <img class="logo" role="img" alt="Wildlife AID Logo" aria-label="Wildlife AID Logo" src="~/imgs/ValleyPhoto1.jpg"/>
+                    <img class="logo" role="img" alt="Wildlife AID Logo" aria-label="Wildlife AID Logo" src="~/imgs/site-logo.png"/>
                     Wildlife AID
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
@@ -57,7 +58,7 @@
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <img src="@user.ProfileImageUrl()" 
+                                    <img src="@user.GetProfileImageUrl()" 
                                         alt="Profile Image"
                                         class="navProfile" 
                                         role="img" /> @User.Identity.Name
@@ -105,7 +106,8 @@
 
     <footer class="footer text-light">
         <div class="container-fluid ps-4">
-            <p class="footerText">Wildlife AID &copy; - 2026</p>
+            <p class="footerText d-inline">Wildlife AID &copy; - @DateTime.Now.Year</p>
+            <p class="footerText text-end d-inline">Version: @GetAppVersion()</p>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

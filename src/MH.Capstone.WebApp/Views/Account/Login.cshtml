@@ -14,20 +14,31 @@
                         @msg
                     </div>
                 }
+                @if (ViewData["ShowReactivateOption"] is bool showReactivate && showReactivate)
+                {
+                    <div class="alert alert-warning" role="alert">
+                        <p class="mb-2">This account has been deactivated.</p>
+                        <a asp-action="Reactivate" asp-controller="Account" class="btn btn-warning btn-sm">
+                            Reactivate My Account
+                        </a>
+                    </div>
+                }
                 <form asp-action="Login" asp-controller="Account" method="post" id="loginForm">
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
                     <input type="hidden" asp-for="ReturnUrl" />
-                    
+
                     <div class="mb-3">
                         <label asp-for="Email" class="form-label">Email</label>
-                        <input asp-for="Email" class="form-control" type="email" placeholder="Enter your email" required />
+                        <input asp-for="Email" class="form-control" type="email" placeholder="Enter your email"
+                               required />
                         <span asp-validation-for="Email" class="text-danger"></span>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="Password" class="form-label">Password</label>
                         <div class="input-group">
-                            <input asp-for="Password" class="form-control" type="password" id="passwordField" placeholder="Enter your password" required />
+                            <input asp-for="Password" class="form-control" type="password" id="passwordField"
+                                   placeholder="Enter your password" required />
                             <button class="btn btn-outline-secondary" type="button" id="togglePassword">
                                 <i class="bi bi-eye" id="toggleIcon"></i>
                             </button>
@@ -36,9 +47,8 @@
                     </div>
 
                     <div class="d-flex justify-content-end mb-2">
-                        <a asp-controller="Account"
-                            asp-action="ForgotPassword"
-                            class="link-primary text-decoration-underline">
+                        <a asp-controller="Account"     asp-action="ForgotPassword"
+                               class="link-primary text-decoration-underline">
                             Forgot Password?
                         </a>
                     </div>
@@ -53,12 +63,14 @@
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
                             <span id="buttonText">Login</span>
-                            <span id="loadingSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                            <span id="loadingSpinner" class="spinner-border spinner-border-sm d-none" role="status"
+                                  aria-hidden="true"></span>
                         </button>
                     </div>
 
                     <div class="text-center mt-3">
-                        <p>Don't have an account? <a asp-action="Register" asp-controller="Account">Register here</a></p>
+                        <p>Don't have an account? <a asp-action="Register" asp-controller="Account">Register here</a>
+                        </p>
                     </div>
                 </form>
             </div>
@@ -69,45 +81,45 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        // Password visibility toggle
-        document.getElementById('togglePassword').addEventListener('click', function() {
-            const passwordField = document.getElementById('passwordField');
-            const toggleIcon = document.getElementById('toggleIcon');
-            
-            if (passwordField.type === 'password') {
-                passwordField.type = 'text';
-                toggleIcon.classList.remove('bi-eye');
-                toggleIcon.classList.add('bi-eye-slash');
-            } else {
-                passwordField.type = 'password';
-                toggleIcon.classList.remove('bi-eye-slash');
-                toggleIcon.classList.add('bi-eye');
+            // Password visibility toggle
+            document.getElementById('togglePassword').addEventListener('click', function () {
+                const passwordField = document.getElementById('passwordField');
+                const toggleIcon = document.getElementById('toggleIcon');
+
+                if (passwordField.type === 'password') {
+                    passwordField.type = 'text';
+                    toggleIcon.classList.remove('bi-eye');
+                    toggleIcon.classList.add('bi-eye-slash');
+                } else {
+                    passwordField.type = 'password';
+                    toggleIcon.classList.remove('bi-eye-slash');
+                    toggleIcon.classList.add('bi-eye');
+                }
+            });
+
+            // Form validation and button state
+            const form = document.getElementById('loginForm');
+            const emailInput = document.querySelector('input[name="Email"]');
+            const passwordInput = document.querySelector('input[name="Password"]');
+            const submitBtn = document.getElementById('submitBtn');
+
+            function validateForm() {
+                const emailValid = emailInput.value.trim() !== '' && emailInput.validity.valid;
+                const passwordValid = passwordInput.value.trim() !== '';
+                submitBtn.disabled = !(emailValid && passwordValid);
             }
-        });
 
-        // Form validation and button state
-        const form = document.getElementById('loginForm');
-        const emailInput = document.querySelector('input[name="Email"]');
-        const passwordInput = document.querySelector('input[name="Password"]');
-        const submitBtn = document.getElementById('submitBtn');
+            emailInput.addEventListener('input', validateForm);
+            passwordInput.addEventListener('input', validateForm);
 
-        function validateForm() {
-            const emailValid = emailInput.value.trim() !== '' && emailInput.validity.valid;
-            const passwordValid = passwordInput.value.trim() !== '';
-            submitBtn.disabled = !(emailValid && passwordValid);
-        }
+            // Initial validation
+            validateForm();
 
-        emailInput.addEventListener('input', validateForm);
-        passwordInput.addEventListener('input', validateForm);
-
-        // Initial validation
-        validateForm();
-
-        // Loading state on submit
-        form.addEventListener('submit', function() {
-            submitBtn.disabled = true;
-            document.getElementById('buttonText').classList.add('d-none');
-            document.getElementById('loadingSpinner').classList.remove('d-none');
-        });
+            // Loading state on submit
+            form.addEventListener('submit', function () {
+                submitBtn.disabled = true;
+                document.getElementById('buttonText').classList.add('d-none');
+                document.getElementById('loadingSpinner').classList.remove('d-none');
+            });
     </script>
 }

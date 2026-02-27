@@ -1,0 +1,42 @@
+﻿@model AccountViewModel
+@{
+    ViewData["Title"] = "Account Details";
+    // If the user not the authenticated user, show the user's name, email or id in the title, depending on what is set.
+    // Otherwise, show a title indicated that a user is viewing their own account.
+    var titleString = Model.IsAuthenticatedUser ? "Showing info for Your Account" :
+        $"Showing info for {Model.Username ?? Model.Email ?? Model.Id.ToString()}";
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-body">
+            <h1 class="card-title">Account Info</h1>
+            <div class="mt-4">
+                <h5>@titleString</h5>
+                <div class="row">
+                    <div class="col-12 col-md-2 d-flex justify-content-center align-items-center">
+                        <img class="dashboardProfile img-fluid" src="@Model.ProfileImageUrl" aria-label="@Model.Username Profile Image" />
+                    </div>
+                    <div class="col-12 col-md-10">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">
+                                <strong>Email:</strong> @Model.Email
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Status:</strong>
+                                @if (Model.IsDeactivated)
+                                {
+                                    <span class="badge bg-error">Deactivated</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">Active</span>
+                                }
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

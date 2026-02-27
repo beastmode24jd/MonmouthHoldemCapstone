@@ -59,8 +59,8 @@ namespace MH.Capstone.WebApp.Controllers
             }
 
             var dataModel = sightingUpload.ToDataModel(Guid.Parse(user.Id));
-            await _sightingsService.CreateSightingAsync(dataModel);
-            return RedirectToAction("Index", "Dashboard", new { sighting_success = true });
+            int pointsEarned = await _sightingsService.CreateSightingAsync(dataModel);
+            return RedirectToAction("Index", "Dashboard", new { sighting_success = true, points_earned = pointsEarned });
         }
     }
 }
