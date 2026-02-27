@@ -15,21 +15,45 @@ document.getElementById('uploadForm')?.addEventListener("submit", function()
     }
 });
 
-/* document.getElementById("DOMContentLoaded"), function()
-{
-    // Get element data from document
-    const newBio = document.getElementById('bioInput');
+// Provides front-end error messages for invalid text inputs for User Bio
+// Used Gemini for catching mismatched id labels and capitalization.
+document.addEventListener("DOMContentLoaded", function () {
+    const bioForm = document.getElementById('bioForm');
+    const bioInput = document.getElementById('bioInput');
     const errorDisplay = document.getElementById('bioErrorMsg');
 
-    if (newBio.length > 0 && ) {
+    if (bioForm && bioInput) {
+        bioForm.addEventListener('submit', function (event) {
 
-    }
-    else
-    {
-        // User has entered an empty field.
-    }
-}); */
+            // uses .trim to detect purely whitespace input
+            const bioValue = bioInput.value.trim();
+            let errorMsg = "";
 
+            if (bioValue.length === 0) {
+                errorMsg = "Bio cannot be empty, or consist of only whitespace characters."
+            }
+            else if (bioValue.length > 250) {
+                // This case would only be available if someone modified the front-end HTML attributes.
+                // Leaving it here in case anyone does that.
+                errorMsg = "Bio is too long: cannot be over 250 characters."
+            }
+            
+            if (errorMsg !== "")
+            {
+                // Prevent the form from submitting to the server
+                event.preventDefault();
+
+                // Display the error message
+                errorDisplay.textContent = errorMsg;
+                errorDisplay.style.display = 'block';
+            }
+
+        });
+    }
+
+});
+
+// Updates the user bio character counter.
 document.addEventListener("DOMContentLoaded", function ()
 {
     const bioArea = document.getElementById('bioInput');

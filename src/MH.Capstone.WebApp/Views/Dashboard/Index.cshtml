@@ -102,7 +102,7 @@
                     <p class="card-text mb-1">Update your profile bio:</p>
                     <form id="bioForm" asp-action="UpdateUserBio" method="Post">
                         <div class="mb-3 mt-1">
-                            <textarea id="bioInput" name="newBio" class="form-control" rows="3" maxlength="250" required placeholder="Tell us about yourself...">@user.Bio</textarea>
+                            <textarea id="bioInput" name="newBio" class="form-control" rows="3" maxlength="250" placeholder="Tell us about yourself..."></textarea>
                             <div class="form-text">Profile bio should be 250 characters or less.</div>
                             <span id="charCount" class="form-text">0/250</span>
                             <div id="bioErrorMsg" class="text-danger fw-bold small mt-1" style="display:none;"></div>
