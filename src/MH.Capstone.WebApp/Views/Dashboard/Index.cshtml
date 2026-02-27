@@ -37,6 +37,9 @@
                                 <li class="list-group-item">
                                     <strong>Status:</strong> <span class="badge bg-success">Active</span>
                                 </li>
+                                <li class="list-group-item">
+                                    <strong>Bio: </strong> @* Display text bio here *@
+                                </li>
                             </ul>
                         </div>
 
@@ -92,7 +95,7 @@
                     <p class="card-text">Upload your profile picture:</p>
                     <form id="uploadForm" asp-action="UploadProfileImage" method="Post" enctype="multipart/form-data">
                         <input id="fileInput" class="form-control form-control-sm mb-2" type="file" accept="image/*" name="profilePicture" />
-                        <button type="submit" class="btnDark">Upload &AMP; Save</button>
+                        <button type="submit" class="btnDark">Upload Image</button>
                     </form>
                     @* Adding a profile bio should also go here at some point. *@
                     <br>
