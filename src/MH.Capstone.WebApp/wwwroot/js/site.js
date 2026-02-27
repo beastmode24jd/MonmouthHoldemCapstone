@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", function () {
             let errorMsg = "";
 
             if (bioValue.length === 0) {
-                errorMsg = "Bio cannot be empty, or consist of only whitespace characters."
+                errorMsg = "Cannot submit empty text field."
             }
             else if (bioValue.length > 250) {
                 // This case would only be available if someone modified the front-end HTML attributes.
