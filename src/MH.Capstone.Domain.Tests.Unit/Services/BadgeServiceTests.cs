@@ -15,6 +15,7 @@ public class BadgeServiceTests
     private ServiceProvider _serviceProvider;
     private ApplicationDbContext _context;
     private IBadgeService _badgeService;
+    private Guid _testBadgeId;
     
 
     [SetUp]
@@ -45,19 +46,23 @@ public class BadgeServiceTests
 
         _serviceProvider = services.BuildServiceProvider();
         _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
-        
+
         _badgeService = _serviceProvider.GetRequiredService<IBadgeService>();
 
         await _context.Database.EnsureCreatedAsync();
 
         // MOCK BADGE
         // Adds a dummy badge to local DB mock, so search feature can find a badge to add.
-        _context.Set<Badge>().Add(new Badge 
+        var testBadge = new Badge
         { 
-            BadgeID = 1, 
+            BadgeID = Guid.NewGuid(),
             Title = "Custom Profile Icon", 
             PointValue = 10
-        });
+        };
+
+        // Store the Guid to the private testBadgeId field
+        _testBadgeId = testBadge.BadgeID;
+        _context.Set<Badge>().Add(testBadge);
 
         await _context.SaveChangesAsync();
     }
@@ -79,7 +84,7 @@ public class BadgeServiceTests
         - Badges should increment the points a user has, by about 10~15 per badge
 
         Badge data:
-        - Should BadgeID become a GUID?
+        - Should BadgeID become a GUID? -- Yes
         
         Front end ideas (ONLY IMPLEMENT AFTER NUNIT TESTS, EF, AND BACKEND IS GOOD)
         This is here so I don't accidently turn them into tests somehow
@@ -97,15 +102,12 @@ public class BadgeServiceTests
 
         // User's point count defaults to zero on initialization.
         var user = new ApplicationUser();
+
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
-        
-        var service = _serviceProvider.GetRequiredService<IBadgeService>();
-
-        int badgeID = 1;
 
         // Act
-        await _badgeService.AddBadge(user, badgeID);
+        await _badgeService.AddBadge(user, _testBadgeId);
 
         // Assert
         // Test badge is worth 10 points, check to see if point increment is the same

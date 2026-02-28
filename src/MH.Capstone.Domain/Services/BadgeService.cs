@@ -19,7 +19,7 @@ namespace MH.Capstone.Domain.Services
             _context = context;
         }
 
-        public async Task AddBadge(ApplicationUser user, int newBadgeID)
+        public async Task AddBadge(ApplicationUser user, Guid newBadgeID)
         {
 
             // If user already has badge (check badgeID in user's badge list),
@@ -41,7 +41,8 @@ namespace MH.Capstone.Domain.Services
                 var earnedBadge = new UserBadge
                 {
                     User = user,
-                    Badge = badgeTemplate,
+                    UserId = user.Id,
+                    BadgeId = badgeTemplate.BadgeID,
                     BadgeEarned = DateTime.UtcNow
                 };
 
@@ -59,7 +60,7 @@ namespace MH.Capstone.Domain.Services
         }
 
         // Helper method to retrieve badge data from LocalDB
-        public async Task<Badge?> GetBadgeDetails(int newBadgeId)
+        public async Task<Badge?> GetBadgeDetails(Guid newBadgeId)
         {
             // Looks for badge using ID from pool of badges in the DB
             return await _context.Set<Badge>().FirstOrDefaultAsync(b => b.BadgeID == newBadgeId);

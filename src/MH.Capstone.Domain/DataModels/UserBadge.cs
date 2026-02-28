@@ -14,18 +14,21 @@ namespace MH.Capstone.Domain.DataModels
 
         // Primary key
         [Key]
-        public int UserBadgeId { get; set; }
+        public Guid UserBadgeId { get; set; }
 
         // Foreign Key for the UserID
-        public string UserId { get; set; } = "";
-        [ForeignKey("UserId")]
+        // It's a string due to ApplicationUser inheriting the field from IdentityUser
+        [Column("User ID")]
+        [MaxLength(450)]
+        public string UserId { get; set; } = string.Empty;
+
+        [ForeignKey(nameof(UserId))]
         public virtual ApplicationUser User { get; set; } = null!;
 
-        // Foreign Key for the badgeID
-        public int BadgeId { get; set; }
+        [Column("Badge ID")]
+        public Guid BadgeId { get; set; }
 
-        // Inherits
-        [ForeignKey("BadgeId")]
+        [ForeignKey(nameof(BadgeId))]
         public virtual Badge Badge { get; set; } = null!;
 
         // Timestamp for when the user earned the badge

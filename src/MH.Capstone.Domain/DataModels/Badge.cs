@@ -10,7 +10,7 @@ namespace MH.Capstone.Domain.DataModels
     public class Badge
     {
         [Key]
-        public int BadgeID { get; set; }
+        public Guid BadgeID { get; set; } = Guid.NewGuid();
 
         // Title and description, for displaying on the frontend later.
         // 150 character maximum.

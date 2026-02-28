@@ -8,8 +8,8 @@ namespace MH.Capstone.Domain.Services.Abstraction
 {
     public interface IBadgeService
     {
-        Task AddBadge(ApplicationUser user, int badgeID);
-        Task<Badge?> GetBadgeDetails(int badgeID);
+        Task AddBadge(ApplicationUser user, Guid badgeID);
+        Task<Badge?> GetBadgeDetails(Guid badgeID);
     }
 
 }
