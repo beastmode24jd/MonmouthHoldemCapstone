@@ -72,6 +72,9 @@ namespace MH.Capstone.WebApp
             // Register the Profile Image Service
             builder.Services.AddScoped<IProfileImageService, ProfileImageService>();
 
+            // Register the User Profile Service
+            builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+
             // Register the Scoring Service (CSP-104)
             builder.Services.AddScoped<IScoringService, ScoringService>();
 

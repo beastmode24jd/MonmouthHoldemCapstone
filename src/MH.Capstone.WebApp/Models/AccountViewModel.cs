@@ -17,6 +17,11 @@ namespace MH.Capstone.WebApp.Models
 
         public bool IsAuthenticatedUser { get; set; } = false; // Default to false since the current authenticated user is unknown.
 
+        /* Default to placeholder prompt for user to submit custom bio.
+           Accepts nulls and reverts them to placeholder string, in case
+           this is called on older account entries without a bio parameter. */
+        public string? Bio { get; set; } = "Enter a unique profile bio.";
+
         // For ASP.NET Core model binding
         public AccountViewModel() { }
 
@@ -29,6 +34,7 @@ namespace MH.Capstone.WebApp.Models
             ProfileImageUrl = user.GetProfileImageUrl();
             IsAuthenticatedUser = isAuthedUser;
             IsDeactivated = user.IsDeactivated;
+            Bio = user.Bio;
         }
     }
 }

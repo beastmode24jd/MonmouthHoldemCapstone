@@ -14,20 +14,24 @@ namespace MH.Capstone.WebApp.Controllers
         // 2MB Image file limit.
         // TODO - Consider moving this to a configuration file or constant class for better maintainability.
         const long MAX_IMG_SIZE = 2 * 1024 * 1024;
+        
         // Logger to track dashboard access and activity. 
         private readonly ILogger<DashboardController> _logger;
 
-        // Dep. Injection for image upload and authentication services.
+        // Dep. Injection for image upload, profile bio, and authentication services.
         private readonly IProfileImageService _imageService;
 
         private readonly IAuthenticationService _authService;
 
+        private readonly IUserProfileService _profileService;
+
         // Constructor that injects the logger dependency
-        public DashboardController(ILogger<DashboardController> logger, IProfileImageService imageService, IAuthenticationService authService)
+        public DashboardController(ILogger<DashboardController> logger, IProfileImageService imageService, IAuthenticationService authService, IUserProfileService profileService)
         {
             _logger = logger;
             _imageService = imageService;
             _authService = authService;
+            _profileService = profileService;
         }
 
         // Displays the main dashboard page for authenticated users. 
@@ -104,6 +108,24 @@ namespace MH.Capstone.WebApp.Controllers
             }
 
             // Send this information back to the main dashboard page.
+            return RedirectToAction("Index");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdateUserBio(string newBio)
+        {
+            var userEmail = User.Identity?.Name;
+            
+            // If no user is found, for whatever reason, this should return null
+            var user = await _authService.GetUserByEmailAsync(userEmail ?? "");
+
+            if (user != null)
+            {
+                // Delegate actual logic to the UserProfileService
+                await _profileService.UpdateUserBio(user, newBio);
+                _logger.LogInformation("Bio field updated for {Email}", userEmail);
+            }
+
             return RedirectToAction("Index");
         }
     }
