@@ -99,7 +99,6 @@ public class BadgeServiceTests
     public async Task AddBadge_ToValidUser_IncrementsUserPoints()
     {
         // Arrange
-
         // User's point count defaults to zero on initialization.
         var user = new ApplicationUser();
 
@@ -111,7 +110,39 @@ public class BadgeServiceTests
 
         // Assert
         // Test badge is worth 10 points, check to see if point increment is the same
-        Assert.That(user.Points, Is.EqualTo(10), "AddBadge() did not add 10 points to the user.");
-        
+        Assert.That(user.Points, Is.EqualTo(10), "AddBadge() did not add 10 points to the user."); 
+    }
+
+    [Test]
+    public async Task AddBadge_ToValidUser_IncrementsBadgeList()
+    {
+        // Arrange
+        var user = new ApplicationUser();
+
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        // Act
+        // Add the test badge to the user object.
+        await _badgeService.AddBadge(user, _testBadgeId);
+
+        // Assert
+        Assert.That(user.UserBadges.Count, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task GetBadgeDetails_BadgeExists_ReturnsBadgeDetails()
+    {
+        // Arrange
+
+        // Custom Profile Badge mock is added to memory during Test Setup().
+
+        // Act
+
+        var searchBadge = await _badgeService.GetBadgeDetails(_testBadgeId);
+
+        // Assert
+
+        Assert.That(searchBadge, Is.Not.Null);
     }
 }
