@@ -37,12 +37,10 @@ public class BadgeServiceTests
 
         services.AddScoped<IAuthenticationService, AuthenticationService>();
 
-        // Add IBadgeService and BadgeService here
-
         //          Will need to implement in Program.cs later,
         //              as well as mocking in Dashboard Tests
 
-        services.AddScoped<IBadgeService, BadgeServiceTests>();
+        services.AddScoped<IBadgeService, BadgeServiceTests>(); // This line is having issues.
 
         _serviceProvider = services.BuildServiceProvider();
         _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
@@ -67,7 +65,7 @@ public class BadgeServiceTests
         - Badges should increment the points a user has, by about 10~15 per badge
 
         Badge data:
-        - DateTime timestamp
+        - DateTime timestamp (time badge was earned)
         - GUID? (Badge ID)
             - User ID as well
         - Badge icon image (public byte[])
