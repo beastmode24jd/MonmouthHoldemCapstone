@@ -1,6 +1,9 @@
+<<<<<<< HEAD
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
+=======
+>>>>>>> 6ec8685 (Added UserBadge Join Table class, connected BadgeServices to build files.)
 using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
 using Microsoft.AspNetCore.Authorization;
@@ -34,18 +37,29 @@ namespace MH.Capstone.WebApp.Controllers
 
         private readonly IRepository<Notification, ApplicationDbContext> _notificationRepo;
 
+        private readonly IBadgeService _badgeService;
+
         // Constructor that injects the logger dependency
+<<<<<<< HEAD
         public DashboardController(ILogger<DashboardController> logger,
             IProfileImageService imageService, IAuthenticationService authService,
             IUserService userService, INotificationService notificationService,
             IRepository<Notification, ApplicationDbContext> notificationRepo)
+=======
+        public DashboardController(ILogger<DashboardController> logger, IProfileImageService imageService, IAuthenticationService authService, IUserProfileService profileService, IBadgeService badgeService)
+>>>>>>> 6ec8685 (Added UserBadge Join Table class, connected BadgeServices to build files.)
         {
             _logger = logger;
             _imageService = imageService;
             _authService = authService;
+<<<<<<< HEAD
             _userService = userService;
             _notificationService = notificationService;
             _notificationRepo = notificationRepo;
+=======
+            _profileService = profileService;
+            _badgeService = badgeService;
+>>>>>>> 6ec8685 (Added UserBadge Join Table class, connected BadgeServices to build files.)
         }
 
         // Displays the main dashboard page for authenticated users. 

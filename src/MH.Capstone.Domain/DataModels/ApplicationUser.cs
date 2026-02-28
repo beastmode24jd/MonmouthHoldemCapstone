@@ -39,7 +39,7 @@ namespace MH.Capstone.Domain.DataModels
 
         public virtual List<Sighting> Sightings { get; set; } = new List<Sighting>();
 
-        public virtual List<Badge> Badges { get; set; } = new List<Badge>();
+        public virtual List<UserBadge> UserBadges { get; set; } = new List<UserBadge>();
 
         [StringLength(250)]
         public string? Bio { get; set; } = null; // Default to null for placeholder value

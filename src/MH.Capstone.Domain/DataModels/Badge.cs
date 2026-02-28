@@ -9,11 +9,8 @@ namespace MH.Capstone.Domain.DataModels
     [Table("Badges")]
     public class Badge
     {
-        // Turn into GUID?
         [Key]
         public int BadgeID { get; set; }
-
-        // Add in a userID field as a foreign key?
 
         // Title and description, for displaying on the frontend later.
         // 150 character maximum.
@@ -27,10 +24,5 @@ namespace MH.Capstone.Domain.DataModels
 
         public byte[]? BadgeIcon { get; set; }
 
-        // Represents when the user got the achievement
-        public DateTime? BadgeEarned { get; set; } = null;
-        
-
     }
-
 }

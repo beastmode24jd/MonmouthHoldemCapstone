@@ -75,20 +75,15 @@ public class BadgeServiceTests
             - Custom Bio Upload
             - Custom Profile Icon Upload
 
-        - User data model needs list of badges (similar to list of sightings)
         - Badges should increment the points a user has, by about 10~15 per badge
 
         Badge data:
-        - DateTime timestamp (time badge was earned)
-        - GUID? (Badge ID)
-            - User ID as well
-        - Badge icon image (public byte[])
-        - Point value (int)
-        - BadgeType (string???)
+        - Should BadgeID become a GUID?
         
         Front end ideas (ONLY IMPLEMENT AFTER NUNIT TESTS, EF, AND BACKEND IS GOOD)
         This is here so I don't accidently turn them into tests somehow
         - Custom display page for badges
+        - Placeholder display "icon" jpg, for badges
         - Dashboard display of badges collected
             - If no badges, display placeholder text with hints
         - Display both badges in descending order of chronologic earning
@@ -101,20 +96,17 @@ public class BadgeServiceTests
 
         // User's point count defaults to zero on initialization.
         var user = new ApplicationUser();
-        var badge = new Badge();
-
-        // Add the user to DB context
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
+        
+        var service = _serviceProvider.GetRequiredService<IBadgeService>();
 
         int badgeID = 1;
-        int pointsBeforeBadge = user.Points;
 
         // Act
         await _badgeService.AddBadge(user, badgeID);
 
         // Assert
-        
         // Test badge is worth 10 points, check to see if point increment is the same
         Assert.That(user.Points, Is.EqualTo(10), "AddBadge() did not add 10 points to the user.");
         

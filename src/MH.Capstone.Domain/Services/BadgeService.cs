@@ -25,7 +25,7 @@ namespace MH.Capstone.Domain.Services
             // If user already has badge (check badgeID in user's badge list),
             //      does not add nor increment point count.
 
-            if (user.Badges.Any(b => b.BadgeID == newBadgeID))
+            if (user.UserBadges.Any(ub => ub.BadgeId == newBadgeID))
             {
                 // User already has this badge. Exit.
                 return;
@@ -34,17 +34,26 @@ namespace MH.Capstone.Domain.Services
             // Get the parameters of this new badge.
             var badgeTemplate = await GetBadgeDetails(newBadgeID);
 
+            // If-clause catches invalid/unknown badgeID
             if (badgeTemplate != null)
             {
-                // Catches invalid/unknown badgeID
+                // Adds the new badge
+                var earnedBadge = new UserBadge
+                {
+                    User = user,
+                    Badge = badgeTemplate,
+                    BadgeEarned = DateTime.UtcNow
+                };
 
-                badgeTemplate.BadgeEarned = DateTime.UtcNow;
-                user.Badges.Add(badgeTemplate);
+                // Increment points after adding the badge to the UserBadges list.
+                user.UserBadges.Add(earnedBadge);
                 user.Points += badgeTemplate.PointValue;
+
+                await _context.SaveChangesAsync();
             }
 
             // If the loop completes without badgeID found,
-            // it will simply finish this task.
+            // simply finish this task.
             await Task.CompletedTask;
             
         }
