@@ -9,7 +9,7 @@ namespace MH.Capstone.Domain.Services.Abstraction
     public interface IBadgeService
     {
         Task AddBadge(ApplicationUser user, int badgeID);
-        Task GetBadgeDetails(int badgeID);
+        Task<Badge?> GetBadgeDetails(int badgeID);
     }
 
 }

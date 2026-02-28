@@ -14,6 +14,7 @@ public class BadgeServiceTests
 {
     private ServiceProvider _serviceProvider;
     private ApplicationDbContext _context;
+    private BadgeService _badgeService;
     
 
     [SetUp]
@@ -40,10 +41,12 @@ public class BadgeServiceTests
         //          Will need to implement in Program.cs later,
         //              as well as mocking in Dashboard Tests
 
-        services.AddScoped<IBadgeService, BadgeServiceTests>(); // This line is having issues.
+        services.AddScoped<IBadgeService, BadgeService>();
 
         _serviceProvider = services.BuildServiceProvider();
         _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
+        _badgeService = _serviceProvider.GetRequiredService<BadgeService>();
+
         await _context.Database.EnsureCreatedAsync();
     }
 
@@ -95,7 +98,7 @@ public class BadgeServiceTests
         int pointsBeforeBadge = user.Points;
 
         // Act
-        await badgeService.AddBadge(badgeID);
+        await _badgeService.AddBadge(badgeID);
 
         // Assert
         Assert.That(user.Points, Is.EqualTo(pointsBeforeBadge));

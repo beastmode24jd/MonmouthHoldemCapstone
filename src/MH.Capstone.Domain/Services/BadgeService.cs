@@ -10,10 +10,6 @@ namespace MH.Capstone.Domain.Services
 {
     public class BadgeService : IBadgeService
     {
-        /* Update the user bio only if it is 250 characters or below.
-        Removed from the ApplicationUser data model, for clarity and ease of
-        EF Migrations and DB updates. */
-
         private readonly ApplicationDbContext _context;
 
         public BadgeService(ApplicationDbContext context)
@@ -28,34 +24,35 @@ namespace MH.Capstone.Domain.Services
             // If user already has badge (check badgeID in user's badge list),
             //      does not add nor increment point count.
 
-            foreach (badge in user.BadgeList)
+            if (user.Badges.Any(b => b.BadgeID == newBadgeID))
             {
-                if (badge.ID != newBadgeID)
-                {
-                    // Badge does not exist in user's current list. Add.
-                    badge newBadge = await GetBadgeDetails(newBadgeID);
-                    user.BadgeList.Add(newBadge);
-
-                    // Increment the user's point count by how much the badge is worth.
-                    user.Points += newBadge.PointValue;
-
-                    // Save user changes to context.
-                    _context.Users.Update(user);
-                    await _context.SaveChangesAsync();
-                    
-                }
+                // User already has this badge. Exit.
+                return;
             }
 
-            // If the loop completes without badgeID being a new badge for the user,
+            // Get the parameters of this new badge.
+            var badgeTemplate = GetBadgeDetails(newBadgeID);
+
+            if (badgeTemplate != null)
+            {
+                // Catches invalid/unknown badgeID
+
+                badgeTemplate.BadgeEarned = DateTime.UtcNow;
+                user.Badges.Add(badgeTemplate);
+                user.Points += badgeTemplate.PointValue;
+            }
+
+            // If the loop completes without badgeID found,
             // it will simply finish this task.
             await Task.CompletedTask;
             
         }
 
         // Helper method to retrieve badge data from LocalDB?
-        public async Task GetBadgeDetails(int BadgeID)
+        public async Task<Badge?> GetBadgeDetails(int BadgeID)
         {
-            
+            // Looks for badge using ID from pool of badges in the DB
+            return await _context.Set<Badge>().FirstOrDefaultAsync(b => b.BadgeId == badgeId);
         }
 
     }
