@@ -48,6 +48,17 @@ public class BadgeServiceTests
         _badgeService = _serviceProvider.GetRequiredService<BadgeService>();
 
         await _context.Database.EnsureCreatedAsync();
+
+        // MOCK BADGE
+        // Adds a dummy badge to local DB mock, so search feature can find a badge to add.
+        _context.Set<Badge>().Add(new Badge 
+        { 
+            BadgeID = 1, 
+            Title = "Custom Profile Icon", 
+            PointValue = 10
+        });
+
+        await _context.SaveChangesAsync();
     }
 
     [TearDown]
@@ -87,10 +98,12 @@ public class BadgeServiceTests
     public async Task AddBadge_ToValidUser_IncrementsUserPoints()
     {
         // Arrange
+
+        // User's point count defaults to zero on initialization.
         var user = new ApplicationUser();
         var badge = new Badge();
 
-        // Add to DB context
+        // Add the user to DB context
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -98,10 +111,12 @@ public class BadgeServiceTests
         int pointsBeforeBadge = user.Points;
 
         // Act
-        await _badgeService.AddBadge(badgeID);
+        await _badgeService.AddBadge(user, badgeID);
 
         // Assert
-        Assert.That(user.Points, Is.EqualTo(pointsBeforeBadge));
+        
+        // Test badge is worth 10 points, check to see if point increment is the same
+        Assert.That(user.Points, Is.EqualTo(10), "AddBadge() did not add 10 points to the user.");
         
     }
 }

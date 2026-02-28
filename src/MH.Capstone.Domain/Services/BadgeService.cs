@@ -5,6 +5,7 @@ using MH.Capstone.Domain.Services.Abstraction;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 namespace MH.Capstone.Domain.Services
 {
@@ -31,7 +32,7 @@ namespace MH.Capstone.Domain.Services
             }
 
             // Get the parameters of this new badge.
-            var badgeTemplate = GetBadgeDetails(newBadgeID);
+            var badgeTemplate = await GetBadgeDetails(newBadgeID);
 
             if (badgeTemplate != null)
             {
@@ -48,11 +49,11 @@ namespace MH.Capstone.Domain.Services
             
         }
 
-        // Helper method to retrieve badge data from LocalDB?
-        public async Task<Badge?> GetBadgeDetails(int BadgeID)
+        // Helper method to retrieve badge data from LocalDB
+        public async Task<Badge?> GetBadgeDetails(int newBadgeId)
         {
             // Looks for badge using ID from pool of badges in the DB
-            return await _context.Set<Badge>().FirstOrDefaultAsync(b => b.BadgeId == badgeId);
+            return await _context.Set<Badge>().FirstOrDefaultAsync(b => b.BadgeID == newBadgeId);
         }
 
     }
