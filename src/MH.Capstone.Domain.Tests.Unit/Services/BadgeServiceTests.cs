@@ -82,14 +82,11 @@ public class BadgeServiceTests
             - Custom Profile Icon Upload
 
         - Badges should increment the points a user has, by about 10~15 per badge
-
-        Badge data:
-        - Should BadgeID become a GUID? -- Yes
         
         Front end ideas (ONLY IMPLEMENT AFTER NUNIT TESTS, EF, AND BACKEND IS GOOD)
         This is here so I don't accidently turn them into tests somehow
         - Custom display page for badges
-        - Placeholder display "icon" jpg, for badges
+        - Placeholder display "icon" jpg, for badges -- Actually, make this a test
         - Dashboard display of badges collected
             - If no badges, display placeholder text with hints
         - Display both badges in descending order of chronologic earning
@@ -134,15 +131,40 @@ public class BadgeServiceTests
     public async Task GetBadgeDetails_BadgeExists_ReturnsBadgeDetails()
     {
         // Arrange
-
         // Custom Profile Badge mock is added to memory during Test Setup().
 
         // Act
-
         var searchBadge = await _badgeService.GetBadgeDetails(_testBadgeId);
 
         // Assert
+        Assert.Multiple(() =>
+        {
+            // Check that the method found something...
+            Assert.That(searchBadge, Is.Not.Null);
 
-        Assert.That(searchBadge, Is.Not.Null);
+            // Then check that all the initialized details match.
+            Assert.That(searchBadge!.BadgeID, Is.EqualTo(_testBadgeId));
+            Assert.That(searchBadge!.Title, Is.EqualTo("Custom Profile Icon"));
+            Assert.That(searchBadge!.PointValue, Is.EqualTo(10));
+        });
+    }
+
+    [Test]
+    public async Task GetBadgeDetails_BadgeNotFound_ReturnsNull()
+    {
+        // Arrange
+        Guid fakeId = Guid.NewGuid();
+
+        // I doubt that fakeId would be the same Guid as _testBadgeId, but this checks anyway
+        if (fakeId == _testBadgeId)
+        {
+            fakeId = Guid.NewGuid();
+        }
+
+        // Act
+        var searchBadge = await _badgeService.GetBadgeDetails(fakeId);
+
+        // Assert
+        Assert.That(searchBadge, Is.Null);
     }
 }
