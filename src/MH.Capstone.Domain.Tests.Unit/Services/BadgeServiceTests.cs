@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.Services.Abstraction;
+using System.Text;
 
 namespace MH.Capstone.Domain.Tests.Unit.Services;
 
@@ -125,6 +126,30 @@ public class BadgeServiceTests
 
         // Assert
         Assert.That(user.UserBadges.Count, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task AddBadge_ToValidUser_InitializesDefaultBadgeIcon()
+    {
+        // Arrange
+        var user = new ApplicationUser();
+
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        byte[] defaultIconImg = Encoding.UTF8.GetBytes("~/imgs/BadgeIcon.jpg");
+
+        // Act
+        // Add the test badge to the user object.
+        await _badgeService.AddBadge(user, _testBadgeId);
+
+        // Assert
+        // Check if BadgeIcon data matches the default badge icon in wwwroot imgs folder.
+        Assert.Multiple(() =>
+        {
+            Assert.That(user.UserBadges.Count, Is.EqualTo(1));
+            Assert.That(user.UserBadges[0].Badge.BadgeIcon, Is.EqualTo(defaultIconImg));
+        });
     }
 
     [Test]
