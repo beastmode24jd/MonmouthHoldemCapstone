@@ -357,7 +357,7 @@ public class AuthenticationServiceTests
         // Assert
         Assert.That(result, Is.False);
     }
-    // == ReactivateAccountAsync Tests ==
+// == ReactivateAccountAsync Tests ==
 
     [Test]
     public async Task ReactivateAccountAsync_WithValidCredentials_ReturnsTrue()
