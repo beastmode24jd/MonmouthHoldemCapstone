@@ -14,7 +14,7 @@ public class BadgeServiceTests
 {
     private ServiceProvider _serviceProvider;
     private ApplicationDbContext _context;
-    private BadgeService _badgeService;
+    private IBadgeService _badgeService;
     
 
     [SetUp]
@@ -45,7 +45,8 @@ public class BadgeServiceTests
 
         _serviceProvider = services.BuildServiceProvider();
         _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
-        _badgeService = _serviceProvider.GetRequiredService<BadgeService>();
+        
+        _badgeService = _serviceProvider.GetRequiredService<IBadgeService>();
 
         await _context.Database.EnsureCreatedAsync();
 
