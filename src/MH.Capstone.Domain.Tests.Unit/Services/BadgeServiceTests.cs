@@ -36,7 +36,13 @@ public class BadgeServiceTests
         services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
 
         services.AddScoped<IAuthenticationService, AuthenticationService>();
-        // Will need to add IBadgeService and BadgeService here later!!!
+
+        // Add IBadgeService and BadgeService here
+
+        //          Will need to implement in Program.cs later,
+        //              as well as mocking in Dashboard Tests
+
+        services.AddScoped<IBadgeService, BadgeServiceTests>();
 
         _serviceProvider = services.BuildServiceProvider();
         _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
@@ -77,15 +83,24 @@ public class BadgeServiceTests
     */
 
     [Test]
-    public async Task addBadge_ToValidUser_IncrementsUserPoints()
+    public async Task AddBadge_ToValidUser_IncrementsUserPoints()
     {
         // Arrange
+        var user = new ApplicationUser();
+        var badge = new Badge();
 
+        // Add to DB context
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        int badgeID = 1;
+        int pointsBeforeBadge = user.Points;
 
         // Act
-
+        await badgeService.AddBadge(badgeID);
 
         // Assert
+        Assert.That(user.Points, Is.EqualTo(pointsBeforeBadge));
         
     }
 }
