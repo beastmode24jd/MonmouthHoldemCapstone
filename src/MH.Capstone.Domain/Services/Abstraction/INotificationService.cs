@@ -37,8 +37,7 @@ namespace MH.Capstone.Domain.Services.Abstraction
         /// A <see cref="Task"/> object containing an ><see cref="IEnumerable{T}"/> of <see cref="Notification"/>
         /// that have not yet been read by the intended user. Will be empty if the user has no pending notifications.
         /// </returns>
-        Task<IEnumerable<Notification>> GetPendingNotificationsAsync(ApplicationUser user)
-            => GetPendingNotificationsAsync(user.GuidId);
+        Task<IEnumerable<Notification>> GetPendingNotificationsAsync(ApplicationUser user);
 
         //TODO - Allow for date-range filtering of notifications, and/or pagination of results for users with many notifications.
         /// <summary>
@@ -59,41 +58,6 @@ namespace MH.Capstone.Domain.Services.Abstraction
         /// A <see cref="Task"/> object containing an ><see cref="IEnumerable{T}"/> of <see cref="Notification"/>
         /// that have been sent to the user. Will be empty if the user has no notifications.
         /// </returns>
-        Task<IEnumerable<Notification>> GetAllNotificationsAsync(ApplicationUser user)
-            => GetAllNotificationsAsync(user.GuidId);
-
-        /// <summary>
-        /// Marks a notification as read by the user.
-        /// </summary>
-        /// <param name="notificationId">The id of the notification to mark read.</param>
-        /// <returns>A <see cref="Task"/> object representing the async task for this method</returns>
-        Task MarkNotificationAsReadAsync(Guid notificationId);
-
-        /// <summary>
-        /// Marks a notification as read by the user.
-        /// </summary>
-        /// <param name="notification">The notification to mark read.</param>
-        /// <returns>A <see cref="Task"/> object representing the async task for this method</returns>
-        Task MarkNotificationAsReadAsync(Notification notification)
-            => MarkNotificationAsReadAsync(notification.Id);
-
-        /// <summary>
-        /// Marks each notification as read by the user in the provided <see cref="IEnumerable{T}"/> of notification ids.
-        /// </summary>
-        /// <param name="notificationIds">The <see cref="IEnumerable{T}"/> of notification ids to mark read by the user.</param>
-        /// <returns>A <see cref="Task"/> object representing the async task for this method</returns>
-        Task MarkNotificationsAsReadAsync(IEnumerable<Guid> notificationIds)
-            // One line implementation that calls the single notification overload of this method for each notification id 
-            // in the list, and waits for all of those tasks to complete before returning.
-            => Task.WhenAll(notificationIds.Select(MarkNotificationAsReadAsync));
-
-        /// <summary>
-        /// Marks each notification as read by the user in the provided <see cref="IEnumerable{T}"/> of notifications.
-        /// </summary>
-        /// <param name="notifications">The <see cref="IEnumerable{T}"/> of <see cref="Notification"/> to mark read by the user.</param>
-        /// <returns>A <see cref="Task"/> object representing the async task for this method</returns>
-        Task MarkNotificationsAsReadAsync(IEnumerable<Notification> notifications)
-            // Select the Id of each notification and pass that new list of ids the other overload of this method.
-            => MarkNotificationsAsReadAsync(notifications.Select(n => n.Id));
+        Task<IEnumerable<Notification>> GetAllNotificationsAsync(ApplicationUser user);
     }
 }
