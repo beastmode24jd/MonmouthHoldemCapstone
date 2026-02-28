@@ -17,6 +17,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
 
         protected override InAppNotificationService CreateSut()
             => new InAppNotificationService(_mockNotificationRepository.Object,
+                _mockAuthenticationService.Object,
                 NullLogger<INotificationService>.Instance);
 
         #endregion
@@ -59,7 +60,8 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
 
             // Simulate SQL foreign key violation when attempting to persist - repository throws DbUpdateException with inner SqlException(547)
             _mockNotificationRepository
-                .Setup(r => r.AddOrUpdateAsync(It.IsAny<Notification>()))
+                .Setup(r => r.AddOrUpdateAsync(
+                    It.Is<Notification>(n => n.Id == notif.Id)))
                 .ThrowsAsync(new DbUpdateException("Foreign key violation",
                     new SqlExceptionBuilder().WithNumber(547).Build()))
                 .Verifiable();
