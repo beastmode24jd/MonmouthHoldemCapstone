@@ -24,8 +24,14 @@ namespace MH.Capstone.Domain.Services
                 .ToListAsync();
         }
 
-        public Task<int> GetTotalUserCountAsync()
-            => throw new NotImplementedException();
+        public async Task<int> GetTotalUserCountAsync()
+        {
+            // want to count only active users.
+            // match the same filter as GetLeaderboardPageAsync to avoid counting deactivated users.
+            return await _context.Users
+                .Where(u => !u.IsDeactivated)
+                .CountAsync();
+        }
 
         public Task<int> GetUserRankAsync(string userId)
             => throw new NotImplementedException();
