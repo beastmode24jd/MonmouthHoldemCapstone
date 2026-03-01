@@ -6,6 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.Services.Abstraction;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace MH.Capstone.Domain.Tests.Unit.Services;
 
@@ -16,7 +18,9 @@ public class AuthenticationServiceTests
     private ApplicationDbContext _context;
     private UserManager<ApplicationUser> _userManager;
     private SignInManager<ApplicationUser> _signInManager;
+    private Mock<INotificationService> _notificationServiceMock;
     private IAuthenticationService _authService;
+    private IRepository<ApplicationUser, ApplicationDbContext> _userRepo;
 
     [SetUp]
     public async Task Setup()
@@ -43,7 +47,10 @@ public class AuthenticationServiceTests
         _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
         _userManager = _serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         _signInManager = _serviceProvider.GetRequiredService<SignInManager<ApplicationUser>>();
-        _authService = _serviceProvider.GetRequiredService<IAuthenticationService>();
+        _userRepo = _serviceProvider.GetRequiredService<IRepository<ApplicationUser, ApplicationDbContext>>();
+        _notificationServiceMock = new Mock<INotificationService>();
+        _authService = new AuthenticationService(_userManager, _signInManager, _notificationServiceMock.Object,
+            NullLogger<AuthenticationService>.Instance, _userRepo);
         await _context.Database.EnsureCreatedAsync();
     }
 
@@ -56,12 +63,21 @@ public class AuthenticationServiceTests
         await _serviceProvider.DisposeAsync();
     }
 
+    private void AssertAllMockVerifySetups()
+    {
+        _notificationServiceMock.VerifyAll();
+        _notificationServiceMock.VerifyNoOtherCalls();
+    }
+
     [Test]
     public async Task RegisterUserAsync_WithValidData_CreatesUserInDatabase()
     {
         // Arrange - Set up our test data
         string email = "newuser@example.com";
         string password = "Test@123!";
+
+        _notificationServiceMock.Setup(s => s.SendNotificationAsync(
+            It.IsAny<Notification>())).Verifiable(Times.Once);
 
         // Act - Try to register the user
         var result = await _authService.RegisterUserAsync(email, password);
@@ -72,6 +88,7 @@ public class AuthenticationServiceTests
         var userInDb = await _userManager.FindByEmailAsync(email);
         Assert.That(userInDb, Is.Not.Null, "User should exist in database");
         Assert.That(userInDb.Email, Is.EqualTo(email), "Email should match");
+        AssertAllMockVerifySetups();
     }
 
 
