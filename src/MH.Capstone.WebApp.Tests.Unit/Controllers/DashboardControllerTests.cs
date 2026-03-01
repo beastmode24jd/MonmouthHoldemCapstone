@@ -17,7 +17,8 @@ public class DashboardControllerTests
     // Mocks and method access
     private Mock<IAuthenticationService> _mockAuthService;
     private Mock<IUserService> _mockUserService;
-    private Mock<IProfileImageService> _mockService;
+    private Mock<IProfileImageService> _mockProfileImageService;
+    private Mock<INotificationService> _mockNotificationService;
     private Mock<ILogger<DashboardController>> _mockLogger;
     private DashboardController _controller;
     private const string TestEmail = "namesNameington@mail.wou";
@@ -26,11 +27,12 @@ public class DashboardControllerTests
     public void SetUp()
     {
         _mockAuthService = new Mock<IAuthenticationService>();
-        _mockService = new Mock<IProfileImageService>();
+        _mockProfileImageService = new Mock<IProfileImageService>();
         _mockLogger = new Mock<ILogger<DashboardController>>();
         _mockUserService = new Mock<IUserService>();
-        _controller = new DashboardController(_mockLogger.Object, _mockService.Object, 
-            _mockAuthService.Object, _mockUserService.Object);
+        _mockNotificationService = new Mock<INotificationService>();
+        _controller = new DashboardController(_mockLogger.Object, _mockProfileImageService.Object, 
+            _mockAuthService.Object, _mockUserService.Object, _mockNotificationService.Object);
 
         // Mock the user, so the display name isn't null while testing
         var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
@@ -61,7 +63,7 @@ public class DashboardControllerTests
         var dummyBytes = new byte[] { 0x20, 0x21, 0x22 }; // Creates dummy data
 
         // Tells service to return dummy bytes
-        _mockService.Setup(s => s.ConvertToBytesAsync(It.IsAny<IFormFile>()))
+        _mockProfileImageService.Setup(s => s.ConvertToBytesAsync(It.IsAny<IFormFile>()))
                     .ReturnsAsync(dummyBytes);
 
         // Act
