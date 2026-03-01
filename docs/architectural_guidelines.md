@@ -51,9 +51,9 @@ Our team will use "plain old Javascript" within the frontend of our project.
 Planned front-end JS libraries as of Feb. 2, 2026
 - [Jest](https://jestjs.io/docs/getting-started)
     - For JavaScript Unit Testing
-- [Google's Maps JavaScript API - Client-Side](https://developers.google.com/maps/documentation/javascript/overview)
+- [Leaflet.js](https://leafletjs.com/) with [OpenStreetMap](https://www.openstreetmap.org/)
     - For map related plotting, location selecting and location-oriented information displays
-
+    - Free and open-source, no API key required
 ## 5. Git Branching & General Development Workflow
 ### 5.1 Feature Branches
 <u>Feature branches will be named after the ticket/issue number in Jira the branch is being created to complete development for</u> (i.e. "CSP-13" for Jira Ticket ID CSP-13). 
