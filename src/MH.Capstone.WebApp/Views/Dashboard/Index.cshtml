@@ -79,7 +79,7 @@
                     <h5 class="card-title">
                         <i class="bi bi-bell"></i> Notifications
                     </h5>
-                    <button class="btn btnDark position-relative" asp-controller="Dashboard" asp-action="Notifications">
+                    <button class="btn btnDark position-relative" onclick="window.location = '@Url.Action("Notifications", "Dashboard")'">
                         View your Notifications
                         @if (user != null && user.Notifications.Exists(n => !n.IsRead))
                         {
