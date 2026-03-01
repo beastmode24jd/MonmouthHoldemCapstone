@@ -8,26 +8,30 @@
 }
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Wildlife AID App</title>
     <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" /> 
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/MH.Capstone.WebApp.styles.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
 </head>
+
 <body>
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark border-bottom box-shadow mb-0">
             <div class="container-fluid">
                 <a class="navbar-brand" asp-controller="Home" asp-action="Index">
-                    <img class="logo" role="img" alt="Wildlife AID Logo" aria-label="Wildlife AID Logo" src="~/imgs/site-logo.png"/>
+                    <img class="logo" role="img" alt="Wildlife AID Logo" aria-label="Wildlife AID Logo"
+                         src="~/imgs/site-logo.png" />
                     Wildlife AID
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
+                        aria-controls="navbarSupportedContent"                   aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex">
@@ -40,12 +44,20 @@
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle text-light" href="#" id="sightingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <a class="nav-link dropdown-toggle text-light" href="#" id="sightingsDropdown" role="button"
+                                       data-bs-toggle="dropdown" aria-expanded="false">
                                     Sightings
                                 </a>
                                 <ul class="dropdown-menu" aria-labelledby="sightingsDropdown">
                                     <li>
-                                        <a class="dropdown-item text-light" asp-action="Upload" asp-controller="Sighting">Upload</a>
+                                        <a class="dropdown-item text-light" asp-action="Index" asp-controller="Map">
+                                            <i class="bi bi-map"></i> View Map
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item text-light" asp-action="Upload" asp-controller="Sighting">
+                                            <i class="bi bi-camera"></i> Upload
+                                        </a>
                                     </li>
                                 </ul>
                             </li>
@@ -57,11 +69,10 @@
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <img src="@user.GetProfileImageUrl()" 
-                                        alt="Profile Image"
-                                        class="navProfile" 
-                                        role="img" /> @User.Identity.Name
+                                <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button"
+                                       data-bs-toggle="dropdown" aria-expanded="false">
+                                    <img src="@user.GetProfileImageUrl()"      alt="Profile Image"                      class="navProfile"
+                                         role="img" /> @User.Identity.Name
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end pt-1 pb-1" aria-labelledby="userDropdown">
                                     <li class="menuItem">
@@ -70,10 +81,12 @@
                                         </a>
                                     </li>
                                     <li class="menuItem">
-                                        <form id="logoutForm" class="d-none" asp-controller="Account" asp-action="Logout" method="post">
+                                        <form id="logoutForm" class="d-none" asp-controller="Account" asp-action="Logout"
+                                              method="post">
                                             @Html.AntiForgeryToken()
                                         </form>
-                                        <a class="dropdown-item" href="javascript:document.getElementById('logoutForm').submit();">
+                                        <a class="dropdown-item"
+                                               href="javascript:document.getElementById('logoutForm').submit();">
                                             <i class="bi bi-box-arrow-right"></i> Log out
                                         </a>
                                     </li>
@@ -115,4 +128,5 @@
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
+
 </html>
