@@ -83,6 +83,10 @@ public class DashboardControllerTests
         _mockProfileImageService.Setup(s => s.ConvertToBytesAsync(It.IsAny<IFormFile>()))
                     .ReturnsAsync(dummyBytes);
 
+        // Mocking the user lookup, which is required for the new UploadImage Badge
+        _mockAuthService.Setup(s => s.GetUserByEmailAsync(TestEmail))
+                .ReturnsAsync(new ApplicationUser { Email = TestEmail });
+
         // Act
         await _controller.UploadProfileImage(fileMock.Object);
 

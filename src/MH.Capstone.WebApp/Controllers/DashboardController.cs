@@ -6,6 +6,7 @@ using MH.Capstone.Domain.DataModels;
 >>>>>>> 6ec8685 (Added UserBadge Join Table class, connected BadgeServices to build files.)
 using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Constants;
+using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
@@ -104,16 +105,26 @@ namespace MH.Capstone.WebApp.Controllers
                 {
                     await _badgeService.AddBadge(user, BIO_BADGE_GUID);
                 }
-                else if (user.Sightings.Count >= 1)
+
+                if (user.Sightings.Count >= 1)
                 {
                     await _badgeService.AddBadge(user, SIGHTING_BADGE_GUID);
                 }
-                else if (user.ProfileImage != null)
+
+                if (user.ProfileImage != null)
                 {
                     await _badgeService.AddBadge(user, PROFILE_BADGE_GUID);
                 }
             }
 
+            // Get sorted Badges for display
+            var sortedBadges = new List<UserBadge>();
+            if (user != null)
+            {
+                sortedBadges = await _badgeService.SortBadgesByTime(user.UserBadges);
+            }
+
+            ViewData["SortedBadges"] = sortedBadges;
             ViewData["statusMsgHtml"] = statusMsgHtml;
             return View();
         }

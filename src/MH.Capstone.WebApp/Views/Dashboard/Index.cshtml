@@ -62,6 +62,8 @@
         </div>
     </div>
 
+    
+
     <div class="row mt-4 mb-4">
         <div class="col-md-6">
             <div class="card h-100">
@@ -73,15 +75,24 @@
                     <br>
                     <p class="card-text mb-1 mt-3">Recent Badges:</p>
                     <div class="mb-3 mt-1">
-                        @if(user != null && user.UserBadges.Count > 0)
+                        @{ var badges = ViewData["SortedBadges"] as List<MH.Capstone.Domain.DataModels.UserBadge>; }
+                        @if(badges != null && badges.Any())
                         {
-                            <p class="form-text">There be badges!!!!</p>
-                            <p class=""></p>
+                            <ul class="list-unstyled">
+                                @foreach(var ub in badges.Take(3)) // Show 3 most recent badges
+                                {
+                                    <li>
+                                        <i class="bi bi-patch-check-fill text-primary"></i>
+                                        @* <img src="~/imgs/badge/BadgeIcon1.jpg" class="dashboardProfile" role="img"/> *@
+                                        <strong>@ub.Badge.Title</strong> 
+                                        <small class="text-muted">(@ub.BadgeEarned?.ToString("MMM dd"))</small>
+                                    </li>
+                                }
+                            </ul>
                         }
                         else
                         {
-                            <p class="form-text">No badges.</p>
-                            <p class="form-text">Hint: try uploading a custom profile image!</p>
+                            <p class="form-text">No badges yet. Hint: try uploading a custom profile image!</p>
                         }
                     </div>
                 </div>
