@@ -7,12 +7,14 @@
     // without needing to set it in each controller action (DRY).
     var user = await _userManager.GetUserAsync(User);
     int? pendingNotifs = null;
+
     if (user != null)
     {
         var tmp = await _notificationService.GetPendingNotificationsAsync(user);
         var pendingNotifications = tmp.ToList();
         pendingNotifs = pendingNotifications.Count > 0 ? pendingNotifications.Count : null;
     }
+    var textCss = pendingNotifs.HasValue ? "text-danger" : "text-light";
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -78,16 +80,18 @@
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <img src="@user.GetProfileImageUrl()" 
-                                        alt="Profile Image"
-                                        class="navProfile" 
-                                        role="img" /> @User.Identity.Name
-                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    <span>
+                                        <img src="@user.GetProfileImageUrl()"
+                                             alt="Profile Image"
+                                             class="navProfile"
+                                             role="img"/> @User.Identity.Name
                                         @if (pendingNotifs.HasValue)
                                         {
-                                            @pendingNotifs
+                                            <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-danger">
+                                                @pendingNotifs
+                                                <span class="visually-hidden">unread messages</span>
+                                            </span>
                                         }
-                                        <span class="visually-hidden">unread messages</span>
                                     </span>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end pt-1 pb-1" aria-labelledby="userDropdown">
@@ -97,18 +101,11 @@
                                         </a>
                                     </li>
                                     <li class="menuItem">
-                                        <a class="nav-link text-light dropdown-item" asp-controller="Dashboard" asp-action="Notifcations">
+                                        <a class="nav-link @textCss dropdown-item" asp-controller="Dashboard" asp-action="Notifcations">
                                             <i class="bi bi-bell"></i> Notifications
-                                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                                                @if (pendingNotifs.HasValue)
-                                                {
-                                                    @pendingNotifs
-                                                }
-                                                <span class="visually-hidden">unread messages</span>
-                                            </span>
                                         </a>
                                     </li>
-                                    <li><hr class="dropdown-divider"></li>
+                                    <li class="menuItem"><hr class="dropdown-divider"></li>
                                     <li class="menuItem">
                                         <form id="logoutForm" class="d-none" asp-controller="Account" asp-action="Logout" method="post">
                                             @Html.AntiForgeryToken()
@@ -147,8 +144,10 @@
 
     <footer class="footer text-light">
         <div class="container-fluid ps-4">
-            <p class="footerText d-inline">Wildlife AID &copy; - @DateTime.Now.Year</p>
-            <p class="footerText text-end d-inline">Version: @GetAppVersion()</p>
+            <p class="footerText d-inline">
+                Wildlife AID &copy; - @DateTime.Now.Year |
+                Version: @GetAppVersion()
+            </p>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

@@ -187,6 +187,10 @@ a.navbar-brand:hover {
     text-align: right;
 }
 
+.menuItem > .dropdown-divider {
+    border-color: whitesmoke;
+}
+
 .menuItem:hover, .menuItem:focus {
     background-color: #1D6234;
 }
