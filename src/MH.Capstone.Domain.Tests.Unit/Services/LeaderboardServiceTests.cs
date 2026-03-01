@@ -111,4 +111,49 @@ public class LeaderboardServiceTests
     }
 
     #endregion
+
+    #region GetTotalUserCountAsync
+
+    [Test]
+    public async Task GetTotalUserCountAsync_WithThreeActiveUsers_Returns3()
+    {
+        // Arrange
+        await SeedUserAsync("user-1", "Alice", 100);
+        await SeedUserAsync("user-2", "Bob", 200);
+        await SeedUserAsync("user-3", "Charlie", 300);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetTotalUserCountAsync();
+
+        // Assert
+        Assert.That(result, Is.EqualTo(3));
+    }
+
+    [Test]
+    public async Task GetTotalUserCountAsync_DeactivatedUsersAreExcluded()
+    {
+        // Arrange 
+        await SeedUserAsync("user-1", "ActiveUser", 100);
+        _dbContext.Users.Add(new ApplicationUser
+        {
+            Id = "user-2",
+            UserName = "DeactivatedUser",
+            NormalizedUserName = "DEACTIVATEDUSER",
+            Email = "deactivated@test.com",
+            NormalizedEmail = "DEACTIVATED@TEST.COM",
+            Points = 9999,
+            IsDeactivated = true   
+        });
+        await _dbContext.SaveChangesAsync();
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetTotalUserCountAsync();
+
+        // Assert 
+        Assert.That(result, Is.EqualTo(1));
+    }
+
+    #endregion
 }
