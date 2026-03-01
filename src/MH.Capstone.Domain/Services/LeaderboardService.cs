@@ -33,7 +33,19 @@ namespace MH.Capstone.Domain.Services
                 .CountAsync();
         }
 
-        public Task<int> GetUserRankAsync(string userId)
-            => throw new NotImplementedException();
+        public async Task<int> GetUserRankAsync(string userId)
+        {
+            // Pull all active users ordered by points descending. same order as the leaderboard.
+            var orderedUsers = await _context.Users
+                .Where(u => !u.IsDeactivated)
+                .OrderByDescending(u => u.Points)
+                .Select(u => u.Id)
+                .ToListAsync();
+
+            // FindIndex returns -1 if not found, so we add 1 to convert to 1-based rank.
+            // If the user isn't in the list at all, we return 0 to signal "not found".
+            var index = orderedUsers.FindIndex(id => id == userId);
+            return index == -1 ? 0 : index + 1;
+        }
     }
 }
