@@ -17,5 +17,7 @@ namespace MH.Capstone.Domain.DataAccess
         // Add additional auth-related DbSets here if needed.
 
         public DbSet<Sighting> Sightings { get; set; } = null!;
+
+        public DbSet<Notification> Notifications { get; set; } = null!;
     }
 }

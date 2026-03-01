@@ -2,6 +2,7 @@
 using Microsoft.IdentityModel.Tokens;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using MH.Capstone.Domain.Services.Abstraction;
 
 namespace MH.Capstone.WebApp
 {
@@ -20,6 +21,19 @@ namespace MH.Capstone.WebApp
             return (user?.ProfileImage != null && !string.IsNullOrEmpty(user.ProfileImageType)) ?
                 $"data:{user.ProfileImageType};base64,{Convert.ToBase64String(user.ProfileImage)}" :
                 DefaultProfileImageUrl; // Default profile image URL for users without a custom profile image (or null user obj).
+        }
+
+        internal static async Task<int> GetPendingNotificationsCountAsync(this INotificationService service, ApplicationUser? user)
+        {
+            if (user == null)
+            {
+                return 0;
+            }
+
+            var tmp = await service.GetPendingNotificationsAsync(user);
+            var pendingNotifications = tmp.ToList();
+            return pendingNotifications.Count;
+
         }
     }
 

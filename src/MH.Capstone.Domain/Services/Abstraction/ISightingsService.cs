@@ -13,8 +13,6 @@ namespace MH.Capstone.Domain.Services.Abstraction
         // Returns the points earned for the sighting
         Task<int> CreateSightingAsync(Sighting entity);
 
-        Task<Sighting> GetSightingByIdAsync(Guid id);
-
         bool ValidateImage(IFormFile? imageBuffer);
     }
 }

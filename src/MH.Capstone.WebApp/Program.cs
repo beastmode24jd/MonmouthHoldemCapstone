@@ -3,6 +3,7 @@ using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.Domain.Services.Notifications;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -64,29 +65,31 @@ namespace MH.Capstone.WebApp
                 options.Cookie.HttpOnly = true;
             });
 
-            // Register real authentication service with Identity
+            // Register Generic Repository
             builder.Services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
+
+            // Register the User Services
+            builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+            builder.Services.AddScoped<IProfileImageService, ProfileImageService>();
+            builder.Services.AddScoped<IUserService, UserService>();
+
+            // Register Additional Services - Business Logic Layer
+            builder.Services.AddScoped<INotificationService, InAppNotificationService>();
+            builder.Services.AddScoped<IScoringService, ScoringService>();
             builder.Services.AddScoped<ISightingsService, SightingsService>();
 
-            // Register the Profile Image Service
-            builder.Services.AddScoped<IProfileImageService, ProfileImageService>();
-
-            // Register the User Profile Service
-            builder.Services.AddScoped<IUserProfileService, UserProfileService>();
-
-            // Register the Scoring Service (CSP-104)
-            builder.Services.AddScoped<IScoringService, ScoringService>();
-
             // Add services to the container.
-            builder.Services.AddControllersWithViews();
+            builder.Services.AddControllersWithViews()
+                .AddNewtonsoftJson();
 
             // Configure Logging, with some based on environment
             // Note: DO NOT REMOVE THE CONSOLE LOGGER OR AZURE.
             // Azure App Service relies on it for log collection.
             builder.Logging.AddConsole();
-            if (builder.Environment.IsProduction())
+            if (!builder.Environment.IsDevelopment())
             {
+                // Staging or Production - add Azure App Service diagnostics logging
                 builder.Logging.AddAzureWebAppDiagnostics();
             }
 
