@@ -17,13 +17,15 @@ namespace MH.Capstone.WebApp.Controllers
         private readonly ILogger<SightingController> _logger;
         private readonly ISightingsService _sightingsService;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IBadgeService _badgeService;
 
         public SightingController(ILogger<SightingController> logger, ISightingsService sightingsService,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager, IBadgeService badgeService)
         {
             _logger = logger;
             _sightingsService = sightingsService;
             _userManager = userManager;
+            _badgeService = badgeService;
         }
 
         [HttpGet]
@@ -59,8 +61,19 @@ namespace MH.Capstone.WebApp.Controllers
             }
 
             var dataModel = sightingUpload.ToDataModel(Guid.Parse(user.Id));
+<<<<<<< HEAD
             var pointsEarned = await _sightingsService.CreateSightingAsync(dataModel);
             return RedirectToAction("Index", "Dashboard");
+=======
+            int pointsEarned = await _sightingsService.CreateSightingAsync(dataModel);
+
+            // Since invalid Sightings were already checked, and the sighting has already been uploaded,
+            // give the user the First Sighting Badge
+
+            await _badgeService.AddBadge(user, MH.Capstone.Domain.Constants.BadgeId.FirstSightingBadgeGUID);
+
+            return RedirectToAction("Index", "Dashboard", new { sighting_success = true, points_earned = pointsEarned });
+>>>>>>> af45199 (Refactored SightingService to use BadgeService to add Sighting Badge.)
         }
     }
 }

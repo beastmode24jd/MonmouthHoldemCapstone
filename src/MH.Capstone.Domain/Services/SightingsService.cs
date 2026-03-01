@@ -18,16 +18,32 @@ namespace MH.Capstone.Domain.Services
         private readonly IScoringService _scoringService;
         private readonly INotificationService _notificationService;
 
+<<<<<<< HEAD
         public SightingsService(ILogger<SightingsService> logger, 
             IRepository<Sighting, ApplicationDbContext> sightingsRepo,
             IScoringService scoringService, INotificationService notificationService,
             IRepository<ApplicationUser, ApplicationDbContext> userRepo)
+=======
+        // To update user account with Badge on first upload
+        private readonly IBadgeService _badgeService;
+
+        public SightingsService(
+            ILogger<SightingsService> logger, 
+            IRepository<Sighting, ApplicationDbContext> sightingsRepo,
+            IScoringService scoringService,
+            IRepository<ApplicationUser, ApplicationDbContext> userRepo,
+            IBadgeService badgeService)
+>>>>>>> af45199 (Refactored SightingService to use BadgeService to add Sighting Badge.)
         {
             _logger = logger;
             _sightingsRepo = sightingsRepo;
             _scoringService = scoringService;
             _userRepo = userRepo;
+<<<<<<< HEAD
             _notificationService = notificationService;
+=======
+            _badgeService = badgeService;
+>>>>>>> af45199 (Refactored SightingService to use BadgeService to add Sighting Badge.)
         }
 
         public async Task<int> CreateSightingAsync(Sighting entity)

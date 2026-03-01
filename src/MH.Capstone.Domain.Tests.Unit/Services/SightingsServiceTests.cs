@@ -25,7 +25,11 @@ public class SightingsServiceTests
     private Sighting _validSighting;
     private Mock<IRepository<Sighting, ApplicationDbContext>> _sightingsRepoMock;
     private Mock<IScoringService> _scoringServiceMock;
+<<<<<<< HEAD
     private Mock<INotificationService> _notificationServiceMock;
+=======
+    private Mock<IBadgeService> _badgeServiceMock;
+>>>>>>> af45199 (Refactored SightingService to use BadgeService to add Sighting Badge.)
     private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock;
     private FakeImageGenerator _imageGenerator;
 
@@ -39,6 +43,7 @@ public class SightingsServiceTests
         _scoringServiceMock = new Mock<IScoringService>();
         _notificationServiceMock = new Mock<INotificationService>();
         _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
+        _badgeServiceMock = new Mock<IBadgeService>();
     }
 
     [TearDown]
@@ -48,9 +53,13 @@ public class SightingsServiceTests
     }
 
     private SightingsService CreateSut() =>
+<<<<<<< HEAD
         new (NullLogger<SightingsService>.Instance, _sightingsRepoMock.Object, 
             _scoringServiceMock.Object, _notificationServiceMock.Object,
             _userRepoMock.Object);
+=======
+        new (NullLogger<SightingsService>.Instance, _sightingsRepoMock.Object, _scoringServiceMock.Object, _userRepoMock.Object, _badgeServiceMock.Object);
+>>>>>>> af45199 (Refactored SightingService to use BadgeService to add Sighting Badge.)
 
     private void AssertAllMockVerifications()
     {
