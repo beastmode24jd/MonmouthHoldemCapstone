@@ -156,4 +156,54 @@ public class LeaderboardServiceTests
     }
 
     #endregion
+
+    #region GetUserRankAsync
+
+    [Test]
+    public async Task GetUserRankAsync_HighestScoringUser_Returns1()
+    {
+        // Arrange
+        await SeedUserAsync("user-1", "Alice", 100);
+        await SeedUserAsync("user-2", "Bob", 300);   // highest (should be rank 1)
+        await SeedUserAsync("user-3", "Charlie", 200);
+        var sut = CreateSut();
+
+        // Act
+        var rank = await sut.GetUserRankAsync("user-2");
+
+        // Assert
+        Assert.That(rank, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task GetUserRankAsync_LowestScoringUser_Returns3()
+    {
+        // Arrange
+        await SeedUserAsync("user-1", "Alice", 100);   // lowest (should be rank 3)
+        await SeedUserAsync("user-2", "Bob", 300);
+        await SeedUserAsync("user-3", "Charlie", 200);
+        var sut = CreateSut();
+
+        // Act
+        var rank = await sut.GetUserRankAsync("user-1");
+
+        // Assert
+        Assert.That(rank, Is.EqualTo(3));
+    }
+
+    [Test]
+    public async Task GetUserRankAsync_UnknownUserId_Returns0()
+    {
+        // Arrange
+        await SeedUserAsync("user-1", "Alice", 100);
+        var sut = CreateSut();
+
+        // Act
+        var rank = await sut.GetUserRankAsync("does-not-exist");
+
+        // Assert 
+        Assert.That(rank, Is.EqualTo(0)); // 0 is the "not found" sentinel value for this method. 
+    }
+
+    #endregion
 }
