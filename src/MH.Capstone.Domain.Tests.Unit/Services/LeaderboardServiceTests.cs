@@ -73,4 +73,42 @@ public class LeaderboardServiceTests
     }
 
     #endregion
+
+    #region GetLeaderboardPageAsync — Pagination
+
+    [Test]
+    public async Task GetLeaderboardPageAsync_FirstPageOf35Users_Returns30()
+    {
+        // Arrange 
+        for (int i = 1; i <= 35; i++)
+        {
+            await SeedUserAsync($"user-{i}", $"User{i:D2}", points: i * 10);
+        }
+        var sut = CreateSut();
+
+        // Act 
+        var result = await sut.GetLeaderboardPageAsync(page: 1);
+
+        // Assert 
+        Assert.That(result, Has.Count.EqualTo(30));
+    }
+
+    [Test]
+    public async Task GetLeaderboardPageAsync_SecondPageOf35Users_Returns5()
+    {
+        // Arrange 
+        for (int i = 1; i <= 35; i++)
+        {
+            await SeedUserAsync($"user-{i}", $"User{i:D2}", points: i * 10);
+        }
+        var sut = CreateSut();
+
+        // Act 
+        var result = await sut.GetLeaderboardPageAsync(page: 2);
+
+        // Assert
+        Assert.That(result, Has.Count.EqualTo(5));
+    }
+
+    #endregion
 }
