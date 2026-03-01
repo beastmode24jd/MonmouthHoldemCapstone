@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using System.Runtime.CompilerServices;
+using MH.Capstone.Domain.Migrations;
+using System.Reflection.Metadata;
 
 namespace MH.Capstone.Domain.Services
 {
@@ -38,15 +40,6 @@ namespace MH.Capstone.Domain.Services
             // If-clause catches invalid/unknown badgeID
             if (badgeTemplate != null)
             {
-                /*
-                Commenting out for now. Will get back to this functionality later.
-
-                if (badgeTemplate.BadgeIcon == null)
-                {
-                    badgeTemplate.BadgeIcon = await File.ReadAllBytesAsync("/imgs/badge/BadgeIcon1.jpg");
-                }
-                */
-
                 // Adds the new badge
                 var earnedBadge = new UserBadge
                 {
@@ -94,6 +87,64 @@ namespace MH.Capstone.Domain.Services
 
             // Return the sorted list.
             return await Task.FromResult(sortedList);
+        }
+
+        public async Task EnsureStandardBadgesCreated()
+        {
+            // This method gets called by Program.cs to create the default badges on runtime.
+
+            // Initialize consistent GUIDS for the badges
+            Guid ProfileBadgeGUID = Guid.Parse("A1B2C3D4-E5F6-4789-8A9B-0C1D2E3F4G5H");
+            Guid FirstSightingBadgeGUID = Guid.Parse("B2C3D4E5-F6A7-4890-9B0C-1D2E3F4G5H6I");
+            Guid CustomBioBadgeGUID = Guid.Parse("91E7773E-F6D7-457E-911E-8246891D65A2");
+
+            // Check if the badges exist already
+            var profileBadge = await _context.Set<Badge>().FindAsync(ProfileBadgeGUID);
+            var bioBadge = await _context.Set<Badge>().FindAsync(CustomBioBadgeGUID);
+            var firstSightingBadge = await _context.Set<Badge>().FindAsync(FirstSightingBadgeGUID);
+
+            if (profileBadge == null)
+            {
+                // No profileBadge was found in the local DB context.
+                // So we add it
+                _context.Set<Badge>().Add(new Badge
+                {
+                    // Uses a consistent and constant ID for the badge
+                    BadgeID = ProfileBadgeGUID,
+                    Title = "Custom Profile Badge",
+                    Description = "Uploaded a custom profile image.",
+                    PointValue = 10
+                    // Default profile image will be dealt with by frontend
+                });
+
+                await _context.SaveChangesAsync();
+            }
+
+            if (bioBadge == null)
+            {
+                _context.Set<Badge>().Add(new Badge
+                {
+                   BadgeID = CustomBioBadgeGUID,
+                   Title = "Custom Bio Badge",
+                   Description = "Updated your profile with a custom description.",
+                   PointValue = 10
+                });
+
+                await _context.SaveChangesAsync();
+            }
+
+            if (firstSightingBadge == null)
+            {
+                _context.Set<Badge>().Add(new Badge
+                {
+                    BadgeID = FirstSightingBadgeGUID,
+                    Title = "First Sighting Badge",
+                    Description = "Uploaded your first Sighting!",
+                    PointValue = 15
+                });
+
+                await _context.SaveChangesAsync();
+            }
         }
 
     }

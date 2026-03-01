@@ -12,6 +12,9 @@ namespace MH.Capstone.Domain.Services.Abstraction
         Task<Badge?> GetBadgeDetails(Guid badgeID);
 
         Task<List<UserBadge>> SortBadgesByTime(List<UserBadge> badgeList);
+
+        // Initialize the three default badges
+        Task EnsureStandardBadgesCreated();
     }
 
 }

@@ -12,7 +12,7 @@ namespace MH.Capstone.WebApp
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -91,7 +91,7 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<IScoringService, ScoringService>();
 
             // Register the Badge Service
-            builder.Services.AddScoped<IBadgeService, BadgeService>();
+            builder.Services.AddScoped<IBadgeService, BadgeService>(); 
 
 >>>>>>> 6ec8685 (Added UserBadge Join Table class, connected BadgeServices to build files.)
             // Add services to the container.
@@ -109,6 +109,23 @@ namespace MH.Capstone.WebApp
             }
 
             var app = builder.Build();
+
+            // INITIALIZING BADGE BLOCK
+            using (var scope = app.Services.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+                try
+                {
+                    var badgeService = services.GetRequiredService<IBadgeService>();
+                    await badgeService.EnsureStandardBadgesCreated();
+                }
+                catch (Exception ex)
+                {
+                    var logger = services.GetRequiredService<ILogger<Program>>();
+                    logger.LogError(ex, "An error occurred while seeding the Badges table.");
+                }
+            }
+            // ----------------
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())

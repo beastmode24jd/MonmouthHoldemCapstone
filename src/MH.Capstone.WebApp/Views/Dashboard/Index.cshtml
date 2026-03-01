@@ -69,7 +69,20 @@
                     <h5 class="card-title">
                         <i class="bi bi-speedometer2"></i> Quick Stats
                     </h5>
-                    <p class="card-text">Current points: 0</p>
+                    <p class="card-text">Current points: </p> @(user?.Points ?? 0)
+                    <br>
+                    <p class="card-text mb-1 mt-3">Recent Badges:</p>
+                    <div class="mb-3 mt-1">
+                        @if(user != null && user.UserBadges.Count > 0)
+                        {
+                            <p class="form-text">There be badges!!!!</p>
+                        }
+                        else
+                        {
+                            <p class="form-text">No badges.</p>
+                            <p class="form-text">Hint: try uploading a custom profile image!</p>
+                        }
+                    </div>
                 </div>
             </div>
         </div>

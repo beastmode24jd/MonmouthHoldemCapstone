@@ -73,11 +73,17 @@ namespace MH.Capstone.WebApp.Controllers
             var statusMsgHtml = "<p>You are successfully logged in. Time to explore our nature, together!</p>";
             if (sighting_success)
             {
-                if (points_earned.HasValue)
+                if (points_earned.HasValue && user != null && user.Sightings.Count > 0)
                 {
                     statusMsgHtml =
                         $"<p class='fw-bold'>Congratulations! Your Sighting was uploaded successfully!</p>" +
                         $"<p class='text-success fw-bold'>You earned {points_earned.Value} points for this sighting!</p>";
+                }
+                else if (points_earned.HasValue && user != null && user.UserBadges.Count > 0)
+                {
+                    var sortedList = await _badgeService.SortBadgesByTime(user.UserBadges);
+                    var latestBadgeTitle = sortedList.FirstOrDefault()?.Badge?.Title ?? "New";
+                    statusMsgHtml = $"<p class='fw-bold'>Congratulations! You earned the {latestBadgeTitle} Badge!";
                 }
                 else
                 {

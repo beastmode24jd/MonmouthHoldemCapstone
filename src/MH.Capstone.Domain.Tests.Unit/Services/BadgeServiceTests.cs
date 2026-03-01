@@ -86,11 +86,13 @@ public class BadgeServiceTests
         
         Front end ideas (ONLY IMPLEMENT AFTER NUNIT TESTS, EF, AND BACKEND IS GOOD)
         This is here so I don't accidently turn them into tests somehow
+        
         - Custom display page for badges
-        - Placeholder display "icon" jpg, for badges -- Actually, make this a test
+        - Default image display for badge icons (test for null value)
         - Dashboard display of badges collected
             - If no badges, display placeholder text with hints
-        - Display both badges in descending order of chronologic earning
+            - Max Dashboard display is three badges
+        - Display badges in descending order of chronologic earning
     */
 
     [Test]
@@ -127,36 +129,6 @@ public class BadgeServiceTests
         // Assert
         Assert.That(user.UserBadges.Count, Is.EqualTo(1));
     }
-
-
-    /*
-    I've spent hours trying to make this work.
-    Will revisit later, I need a break from this.
-    [Test]
-    public async Task AddBadge_ToValidUser_InitializesDefaultBadgeIcon()
-    {
-        // Arrange
-        var user = new ApplicationUser();
-
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-
-        // Act
-        // Add the test badge to the user object.
-        await _badgeService.AddBadge(user, _testBadgeId);
-
-        // Assert
-
-        // Check if BadgeIcon data matches the default badge icon in wwwroot imgs folder.
-        byte[] actualDefaultImg = await File.ReadAllBytesAsync("/imgs/badge/BadgeIcon1.jpg");
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(user.UserBadges.Count, Is.EqualTo(1));
-            Assert.That(user.UserBadges[0].Badge.BadgeIcon, Is.EqualTo(actualDefaultImg));
-        });
-    }
-    */
 
     [Test]
     public async Task GetBadgeDetails_BadgeExists_ReturnsBadgeDetails()
