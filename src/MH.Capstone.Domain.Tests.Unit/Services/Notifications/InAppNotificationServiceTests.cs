@@ -17,7 +17,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
 
         protected override InAppNotificationService CreateSut()
             => new InAppNotificationService(_mockNotificationRepository.Object,
-                _mockAuthenticationService.Object,
+                _mockUserService.Object,
                 NullLogger<INotificationService>.Instance);
 
         #endregion

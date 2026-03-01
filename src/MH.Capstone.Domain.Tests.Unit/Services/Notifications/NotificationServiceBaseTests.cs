@@ -24,14 +24,14 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
         #region TestOverhead
 
         protected Mock<IRepository<Notification, ApplicationDbContext>> _mockNotificationRepository;
-        protected Mock<IAuthenticationService> _mockAuthenticationService;
+        protected Mock<IUserService> _mockUserService;
 
         [SetUp]
         public void SetUp()
         {
             _mockNotificationRepository =
                 new Mock<IRepository<Notification, ApplicationDbContext>>();
-            _mockAuthenticationService = new Mock<IAuthenticationService>();
+            _mockUserService = new Mock<IUserService>();
         }
 
         protected abstract TService CreateSut();
@@ -183,7 +183,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
             // Arrange
             var userId = Guid.NewGuid();
 
-            _mockAuthenticationService.Setup(s => 
+            _mockUserService.Setup(s => 
                 s.UserExistsAsync(userId.ToString()))
                 .ReturnsAsync(false).Verifiable(Times.Once);
 
@@ -358,7 +358,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
             // Arrange
             var userId = Guid.NewGuid();
             
-            _mockAuthenticationService.Setup(s => 
+            _mockUserService.Setup(s => 
                     s.UserExistsAsync(userId.ToString()))
                 .ReturnsAsync(false).Verifiable(Times.Once);
 

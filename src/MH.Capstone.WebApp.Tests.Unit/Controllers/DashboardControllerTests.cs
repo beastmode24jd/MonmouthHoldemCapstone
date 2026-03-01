@@ -16,10 +16,10 @@ public class DashboardControllerTests
 {
     // Mocks and method access
     private Mock<IAuthenticationService> _mockAuthService;
+    private Mock<IUserService> _mockUserService;
     private Mock<IProfileImageService> _mockService;
     private Mock<ILogger<DashboardController>> _mockLogger;
     private DashboardController _controller;
-    private Mock<IUserProfileService> _mockProfileService;
     private const string TestEmail = "namesNameington@mail.wou";
 
     [SetUp]
@@ -28,8 +28,9 @@ public class DashboardControllerTests
         _mockAuthService = new Mock<IAuthenticationService>();
         _mockService = new Mock<IProfileImageService>();
         _mockLogger = new Mock<ILogger<DashboardController>>();
-        _mockProfileService = new Mock<IUserProfileService>();
-        _controller = new DashboardController(_mockLogger.Object, _mockService.Object, _mockAuthService.Object, _mockProfileService.Object);
+        _mockUserService = new Mock<IUserService>();
+        _controller = new DashboardController(_mockLogger.Object, _mockService.Object, 
+            _mockAuthService.Object, _mockUserService.Object);
 
         // Mock the user, so the display name isn't null while testing
         var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
@@ -69,7 +70,7 @@ public class DashboardControllerTests
         // Assert
         // Verify that the Auth Service was told to update the user's profile image
         // in localDB
-        _mockAuthService.Verify(s => s.UpdateUserProfileImageAsync(
+        _mockUserService.Verify(s => s.UpdateUserProfileImageAsync(
         TestEmail,
         It.Is<byte[]>(b => b.Length > 0),
         fileMock.Object.ContentType), 

@@ -17,14 +17,14 @@ namespace MH.Capstone.Domain.Services.Notifications
     public abstract class NotificationServiceBase : INotificationService
     {
         protected readonly IRepository<Notification, ApplicationDbContext> _notificationRepo;
-        protected readonly IAuthenticationService _authService;
+        protected readonly IUserService _userService;
         protected readonly ILogger<INotificationService> _logger;
 
         protected NotificationServiceBase(IRepository<Notification, ApplicationDbContext> repo,
-            IAuthenticationService authService, ILogger<INotificationService> logger)
+            IUserService userService, ILogger<INotificationService> logger)
         {
             _notificationRepo = repo;
-            _authService = authService;
+            _userService = userService;
             _logger = logger;
         }
 

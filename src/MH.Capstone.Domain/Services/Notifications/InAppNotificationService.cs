@@ -16,9 +16,9 @@ namespace MH.Capstone.Domain.Services.Notifications
 {
     public class InAppNotificationService : NotificationServiceBase
     {
-        public InAppNotificationService(IRepository<Notification, ApplicationDbContext> repo, 
-            IAuthenticationService authService, ILogger<INotificationService> logger) 
-            : base(repo, authService, logger) { }
+        public InAppNotificationService(IRepository<Notification, ApplicationDbContext> repo,
+            IUserService userService, ILogger<INotificationService> logger) 
+            : base(repo, userService, logger) { }
 
         public override async Task SendNotificationAsync(Notification notification)
         {

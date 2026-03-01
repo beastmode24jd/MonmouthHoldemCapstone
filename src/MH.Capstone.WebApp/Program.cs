@@ -64,19 +64,18 @@ namespace MH.Capstone.WebApp
                 options.Cookie.HttpOnly = true;
             });
 
-            // Register real authentication service with Identity
+            // Register Generic Repository
             builder.Services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
+
+            // Register the User Services
             builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
-            builder.Services.AddScoped<ISightingsService, SightingsService>();
-
-            // Register the Profile Image Service
             builder.Services.AddScoped<IProfileImageService, ProfileImageService>();
+            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IUserProfileService, UserService>();
 
-            // Register the User Profile Service
-            builder.Services.AddScoped<IUserProfileService, UserProfileService>();
-
-            // Register the Scoring Service (CSP-104)
+            // Register Additional Services - Business Logic Layer
             builder.Services.AddScoped<IScoringService, ScoringService>();
+            builder.Services.AddScoped<ISightingsService, SightingsService>();
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();

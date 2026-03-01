@@ -1,3 +1,4 @@
+using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
@@ -23,22 +24,24 @@ namespace MH.Capstone.WebApp.Controllers
 
         private readonly IAuthenticationService _authService;
 
-        private readonly IUserProfileService _profileService;
+        private readonly IUserService _userService;
 
         // Constructor that injects the logger dependency
-        public DashboardController(ILogger<DashboardController> logger, IProfileImageService imageService, IAuthenticationService authService, IUserProfileService profileService)
+        public DashboardController(ILogger<DashboardController> logger, 
+            IProfileImageService imageService, IAuthenticationService authService, 
+            IUserService userService)
         {
             _logger = logger;
             _imageService = imageService;
             _authService = authService;
-            _profileService = profileService;
+            _userService = userService;
         }
 
         // Displays the main dashboard page for authenticated users. 
         public async Task<IActionResult> Index([FromQuery] bool sighting_success = false, [FromQuery] int? points_earned = null)
         {
             var userEmail = User.Identity?.Name;
-            var user = await _authService.GetUserByEmailAsync(userEmail ?? "");
+            var user = await _userService.GetUserByEmailAsync(userEmail ?? "");
             _logger.LogInformation("User {Email} accessed dashboard", User.Identity?.Name);
             
             var statusMsgHtml = "<p>You are successfully logged in. Time to explore our nature, together!</p>";
@@ -98,7 +101,7 @@ namespace MH.Capstone.WebApp.Controllers
                 if (userEmail != null && imageData is { Length: > 0 })
                 {
                     // Save the actual bytes to the database via the service
-                    await _authService.UpdateUserProfileImageAsync(userEmail, imageData, profilePicture.ContentType);
+                    await _userService.UpdateUserProfileImageAsync(userEmail, imageData, profilePicture.ContentType);
                     _logger.LogInformation("Profile image updated for user {Email}", userEmail);
                 }
             }
@@ -117,12 +120,12 @@ namespace MH.Capstone.WebApp.Controllers
             var userEmail = User.Identity?.Name;
             
             // If no user is found, for whatever reason, this should return null
-            var user = await _authService.GetUserByEmailAsync(userEmail ?? "");
+            var user = await _userService.GetUserByEmailAsync(userEmail ?? "");
 
             if (user != null)
             {
                 // Delegate actual logic to the UserProfileService
-                await _profileService.UpdateUserBio(user, newBio);
+                await _userService.UpdateUserBioAsync(user, newBio);
                 _logger.LogInformation("Bio field updated for {Email}", userEmail);
             }
 

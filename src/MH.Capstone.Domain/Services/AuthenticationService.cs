@@ -133,29 +133,6 @@ namespace MH.Capstone.Domain.Services
             return true;
         }
 
-
-        public async Task<ApplicationUser?> GetUserByEmailAsync(string email)
-        {
-            return await _userManager.FindByEmailAsync(email);
-        }
-
-        public async Task UpdateUserProfileImageAsync(string email, byte[] pictureData, string contentType)
-        {
-            var user = await GetUserByEmailAsync(email);
-            if (user != null)
-            {
-                user.ProfileImage = pictureData;
-                user.ProfileImageType = contentType;
-                // Update the user in the database. UserManager is our repo for Identity
-                await _userManager.UpdateAsync(user);
-                _logger.LogInformation("Updated profile image for {Email}.", email);
-            }
-            else
-            {
-                _logger.LogInformation("User with {Email} email not found.", email);
-            }
-        }
-
         public async Task<bool> ReactivateAccountAsync(string email, string password)
         {
             var user = await _userManager.FindByEmailAsync(email);
@@ -199,13 +176,6 @@ namespace MH.Capstone.Domain.Services
         {
             // sign out the user and clear authentication cookie
             await _signInManager.SignOutAsync();
-        }
-
-        public async Task<bool> UserExistsAsync(string email)
-        {
-            // check if a user with the given email exists in the database asynchronously
-            var user = await _userManager.FindByEmailAsync(email);
-            return user != null;
         }
     }
 }
