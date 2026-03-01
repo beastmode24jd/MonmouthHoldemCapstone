@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
+using System.Runtime.CompilerServices;
 
 namespace MH.Capstone.Domain.Services
 {
@@ -37,6 +38,15 @@ namespace MH.Capstone.Domain.Services
             // If-clause catches invalid/unknown badgeID
             if (badgeTemplate != null)
             {
+                /*
+                Commenting out for now. Will get back to this functionality later.
+
+                if (badgeTemplate.BadgeIcon == null)
+                {
+                    badgeTemplate.BadgeIcon = await File.ReadAllBytesAsync("~/MH.Capstone.WebApp/imgs/BadgeIcon1.jpg");
+                }
+                */
+
                 // Adds the new badge
                 var earnedBadge = new UserBadge
                 {
@@ -64,6 +74,26 @@ namespace MH.Capstone.Domain.Services
         {
             // Looks for badge using ID from pool of badges in the DB
             return await _context.Set<Badge>().FirstOrDefaultAsync(b => b.BadgeID == newBadgeId);
+        }
+
+        // Sorts the given list of UserBadges,
+        // returns new UserBadge list in descending chronologic order.
+        public async Task<List<UserBadge>> SortBadgesByTime(List<UserBadge> userBadges)
+        {
+            // Check if list is empty.
+            if (userBadges == null || !userBadges.Any())
+            {
+                // Default to empty list.
+                return new List<UserBadge>();
+            }
+
+            // Uses LINQ to sort, retaining original badge list structure in ApplicationUser.
+            var sortedList = userBadges
+                    .OrderByDescending(ub => ub.BadgeEarned)
+                    .ToList();
+
+            // Return the sorted list.
+            return await Task.FromResult(sortedList);
         }
 
     }

@@ -10,6 +10,8 @@ namespace MH.Capstone.Domain.Services.Abstraction
     {
         Task AddBadge(ApplicationUser user, Guid badgeID);
         Task<Badge?> GetBadgeDetails(Guid badgeID);
+
+        Task<List<UserBadge>> SortBadgesByTime(List<UserBadge> badgeList);
     }
 
 }
