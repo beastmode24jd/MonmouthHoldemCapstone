@@ -24,15 +24,11 @@ namespace MH.Capstone.Domain.Services
 
         public async Task AddBadge(ApplicationUser user, Guid newBadgeID)
         {
+            // If this specific user already has this newBadgeID, exit.
+            var alreadyExists = await _context.Set<UserBadge>()
+                    .AnyAsync(ub => ub.UserId == user.Id && ub.BadgeId == newBadgeID);
 
-            // If user already has badge (check badgeID in user's badge list),
-            //      does not add nor increment point count.
-
-            if (user.UserBadges.Any(ub => ub.BadgeId == newBadgeID))
-            {
-                // User already has this badge. Exit.
-                return;
-            }
+            if (alreadyExists) { return; }
 
             // Get the parameters of this new badge.
             var badgeTemplate = await GetBadgeDetails(newBadgeID);
@@ -50,8 +46,8 @@ namespace MH.Capstone.Domain.Services
                 };
 
                 // Increment points after adding the badge to the UserBadges list.
-                user.UserBadges.Add(earnedBadge);
                 user.Points += badgeTemplate.PointValue;
+                _context.Set<UserBadge>().Add(earnedBadge);
 
                 await _context.SaveChangesAsync();
             }
@@ -93,15 +89,10 @@ namespace MH.Capstone.Domain.Services
         {
             // This method gets called by Program.cs to create the default badges on runtime.
 
-            // Initialize consistent GUIDS for the badges
-            Guid ProfileBadgeGUID = Guid.Parse("A1B2C3D4-E5F6-4789-8A9B-0C1D2E3F4G5H");
-            Guid FirstSightingBadgeGUID = Guid.Parse("B2C3D4E5-F6A7-4890-9B0C-1D2E3F4G5H6I");
-            Guid CustomBioBadgeGUID = Guid.Parse("91E7773E-F6D7-457E-911E-8246891D65A2");
-
             // Check if the badges exist already
-            var profileBadge = await _context.Set<Badge>().FindAsync(ProfileBadgeGUID);
-            var bioBadge = await _context.Set<Badge>().FindAsync(CustomBioBadgeGUID);
-            var firstSightingBadge = await _context.Set<Badge>().FindAsync(FirstSightingBadgeGUID);
+            var profileBadge = await _context.Set<Badge>().FindAsync(Constants.BadgeId.ProfileBadgeGUID);
+            var bioBadge = await _context.Set<Badge>().FindAsync(Constants.BadgeId.CustomBioBadgeGUID);
+            var firstSightingBadge = await _context.Set<Badge>().FindAsync(Constants.BadgeId.FirstSightingBadgeGUID);
 
             if (profileBadge == null)
             {
@@ -110,7 +101,7 @@ namespace MH.Capstone.Domain.Services
                 _context.Set<Badge>().Add(new Badge
                 {
                     // Uses a consistent and constant ID for the badge
-                    BadgeID = ProfileBadgeGUID,
+                    BadgeID = Constants.BadgeId.ProfileBadgeGUID,
                     Title = "Custom Profile Badge",
                     Description = "Uploaded a custom profile image.",
                     PointValue = 10
@@ -124,7 +115,7 @@ namespace MH.Capstone.Domain.Services
             {
                 _context.Set<Badge>().Add(new Badge
                 {
-                   BadgeID = CustomBioBadgeGUID,
+                   BadgeID = Constants.BadgeId.CustomBioBadgeGUID,
                    Title = "Custom Bio Badge",
                    Description = "Updated your profile with a custom description.",
                    PointValue = 10
@@ -137,7 +128,7 @@ namespace MH.Capstone.Domain.Services
             {
                 _context.Set<Badge>().Add(new Badge
                 {
-                    BadgeID = FirstSightingBadgeGUID,
+                    BadgeID = Constants.BadgeId.FirstSightingBadgeGUID,
                     Title = "First Sighting Badge",
                     Description = "Uploaded your first Sighting!",
                     PointValue = 15
