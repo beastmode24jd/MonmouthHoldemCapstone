@@ -110,7 +110,7 @@
                                              alt="Profile Image"
                                              class="navProfile"
                                              role="img"/> @User.Identity.Name
-                                        <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-danger"
+                                        <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-danger d-none"
                                             id="pendingNotifBadge">
                                             <span id="pendingNotifBadgeNum"></span>
                                             <span class="visually-hidden">unread messages</span>
@@ -124,7 +124,7 @@
                                         </a>
                                     </li>
                                     <li class="menuItem">
-                                        <a class="nav-link dropdown-item" id="notificationsMenuItem" asp-controller="Dashboard" asp-action="Notifications">
+                                        <a class="nav-link dropdown-item text-light" id="notificationsMenuItem" asp-controller="Dashboard" asp-action="Notifications">
                                             <i class="bi bi-bell"></i> Notifications
                                         </a>
                                     </li>

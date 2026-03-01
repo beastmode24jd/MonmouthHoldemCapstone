@@ -188,7 +188,7 @@ namespace MH.Capstone.WebApp.Controllers
         // It is designed to be called via AJAX from the frontend like an API endpoint.
         [HttpPut]
         [ValidateAntiForgeryToken]
-        [Route("/notifications/{nid:guid}/update")]
+        [Route("/notifications/{nid:guid}")]
         public async Task<IActionResult> UpdateNotification(Guid nid, bool toggleRead = false)
         {
             // Get the current user based on their claims principal. This is necessary to fetch their specific notifications.
@@ -223,18 +223,11 @@ namespace MH.Capstone.WebApp.Controllers
 
         [HttpDelete]
         [ValidateAntiForgeryToken]
-        [Route("/notifications/{nid:guid}/delete")]
+        [Route("/notifications/{nid:guid}")]
         public async Task<IActionResult> DeleteNotification(Guid nid)
         {
             // Get the current user based on their claims principal. This is necessary to fetch their specific notifications.
             var user = await _userService.GetUserByClaimsPrincipleAsync(User);
-
-            // If for some reason we can't find the user (which shouldn't happen since this controller is protected by [Authorize]),
-            // we return a 403 Forbidden response.
-            if (user == null)
-            {
-                return Forbid();
-            }
 
             // Find the specific notification by its GUID. This ensures the user can only delete their own notifications.
             var notification = await _notificationRepo.FindByIdAsync(nid);
@@ -245,8 +238,10 @@ namespace MH.Capstone.WebApp.Controllers
                 return NotFound();
             }
 
-            // If the notification doesn't belong to the current user, return a 403 Forbidden response.
-            if (notification.RecipientId != user.GuidId)
+            // If for some reason we can't find the user (which shouldn't happen since this controller is protected by [Authorize]),
+            // we return a 403 Forbidden response. Same for if the user tries to delete a notification that doesn't belong to them,
+            // we want to return a 403 Forbidden to prevent unauthorized access.
+            if (user == null || notification.RecipientId != user.GuidId)
             {
                 return Forbid();
             }
