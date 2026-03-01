@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
+using MH.Capstone.Tests.SharedInternals;
 using static MH.Capstone.Tests.SharedInternals.RandomData;
 using static Microsoft.ApplicationInsights.MetricDimensionNames.TelemetryContext;
 
@@ -51,7 +52,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
         #region GetPendingNotificationsAsyncTests
 
         private static Expression<Func<Notification, bool>> CreatePendingNotificationTestExpression(Guid userId)
-            => n => n.RecipientId == userId && !n.IsRead;
+            => n => n.LinkedUserIdentityId == userId.ToString() && !n.IsRead;
 
         [Test]
         public async Task GetPendingNotificationsAsyncGuidId_HasNoPendingNotifications_ReturnsTaskWithEmptyEnumerable()
@@ -224,7 +225,8 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
                         It.Is<Expression<Func<Notification, bool>>>(
                             e => Lambda.ExpressionsEqual(e, testExpression))
                         ))
-                .ThrowsAsync(new ArgumentException("User id not found"))
+                .ThrowsAsync(new SqlExceptionBuilder().WithNumber(
+                        (int)SqlErrorNumber.ForeignKeyConstraintViolation).Build())
                 .Verifiable(Times.Once);
 
             // Act
@@ -240,7 +242,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
         #region GetAllNotificationsAsyncTests
 
         private static Expression<Func<Notification, bool>> CreateAllNotificationTestExpression(Guid userId)
-            => n => n.RecipientId == userId;
+            => n => n.LinkedUserIdentityId == userId.ToString();
 
         [Test]
         public async Task GetAllNotificationsAsyncGuidId_HasNoNotifications_ReturnsTaskWithEmptyEnumerable()
@@ -413,7 +415,8 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
                     It.Is<Expression<Func<Notification, bool>>>(
                         e => Lambda.ExpressionsEqual(e, testExpression))
                 ))
-                .ThrowsAsync(new ArgumentException("User id not found"))
+                .ThrowsAsync(new SqlExceptionBuilder().WithNumber(
+                    (int)SqlErrorNumber.ForeignKeyConstraintViolation).Build())
                 .Verifiable(Times.Once);
 
             // Act

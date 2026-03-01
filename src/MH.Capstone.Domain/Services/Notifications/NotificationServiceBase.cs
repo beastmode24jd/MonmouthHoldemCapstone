@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -44,8 +45,10 @@ namespace MH.Capstone.Domain.Services.Notifications
         }
 
         public async Task<IEnumerable<Notification>> GetPendingNotificationsAsync(ApplicationUser user)
-            => await HandleSqlErrors(_notificationRepo.GetAllAsync(n => 
-                n.RecipientId == user.GuidId && !n.IsRead));
+            => await HandleSqlErrors(_notificationRepo.GetAllAsync(n =>
+                n.LinkedUserIdentityId == user.GuidId.ToString() && !n.IsRead));
+                //ModelHelpers.IsLinkedToUserExpression<Notification>(user.GuidId)
+                //    .AndAlso(n => !n.IsRead)));
 
         public async Task<IEnumerable<Notification>> GetAllNotificationsAsync(Guid userId)
         {
@@ -59,7 +62,10 @@ namespace MH.Capstone.Domain.Services.Notifications
         }
 
         public async Task<IEnumerable<Notification>> GetAllNotificationsAsync(ApplicationUser user)
-            => await HandleSqlErrors(_notificationRepo.GetAllAsync(n => n.RecipientId == user.GuidId));
+            => await HandleSqlErrors(_notificationRepo.GetAllAsync(n => 
+                n.LinkedUserIdentityId == user.GuidId.ToString()));
+
+        //ModelHelpers.IsLinkedToUserExpression<Notification>(user.GuidId))
 
         protected static async Task<TOut> HandleSqlErrors<TOut>(Task<TOut> repoCmd, string? paramName = null)
         {

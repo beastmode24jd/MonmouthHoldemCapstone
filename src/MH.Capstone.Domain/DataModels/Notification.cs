@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 using MH.Capstone.Domain.Tools;
@@ -19,15 +20,15 @@ namespace MH.Capstone.Domain.DataModels
         [NotMapped]
         public Guid RecipientId
         {
-            get => Guid.Parse(RecipientIdentityId);
-            set => RecipientIdentityId = value.ToString(); // Convert Guid to string for storage in the AspNetCore Identity ID column
+            get => Guid.Parse(LinkedUserIdentityId);
+            set => LinkedUserIdentityId = value.ToString(); // Convert Guid to string for storage in the AspNetCore Identity ID column
         }
 
         [Required]
         [Column("RecipientId")]
         [MaxLength(450)] // The size of the RecipientId column should match the size of the primary key in the AspNetUsers table (nvarchar(450))
         [ForeignKey(nameof(Recipient))]
-        public string RecipientIdentityId { get; set; }
+        public string LinkedUserIdentityId { get; set; }
 
         [Required]
         [MinLength(1)]

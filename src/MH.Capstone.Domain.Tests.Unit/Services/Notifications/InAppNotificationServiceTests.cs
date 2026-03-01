@@ -36,7 +36,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
             // Expect AddOrUpdateAsync to be called with the notification marked as unread (IsRead == false)
             _mockNotificationRepository
                 .Setup(r => r.AddOrUpdateAsync(It.Is<Notification>(n =>
-                    n.RecipientIdentityId == notif.RecipientIdentityId &&
+                    n.LinkedUserIdentityId == notif.LinkedUserIdentityId &&
                     n.Title == notif.Title &&
                     n.Message == notif.Message &&
                     n.SentAt == notif.SentAt &&

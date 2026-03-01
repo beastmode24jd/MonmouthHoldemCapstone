@@ -87,4 +87,14 @@ namespace MH.Capstone.Tests.SharedInternals
             return sqlException;
         }
     }
+
+    public enum SqlErrorNumber
+    {
+        UniqueConstraintViolation = 2627,
+        ForeignKeyConstraintViolation = 547,
+        CheckConstraintViolation = 547,
+        PrimaryKeyConstraintViolation = 2627,
+        DeadlockVictim = 1205,
+        TimeoutExpired = -2
+    }
 }
