@@ -3,6 +3,7 @@ using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.Domain.Services.Notifications;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -68,12 +69,13 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
 
             // Register the User Services
+            builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
             builder.Services.AddScoped<IProfileImageService, ProfileImageService>();
             builder.Services.AddScoped<IUserService, UserService>();
-            builder.Services.AddScoped<IUserProfileService, UserService>();
 
             // Register Additional Services - Business Logic Layer
+            builder.Services.AddScoped<INotificationService, InAppNotificationService>();
             builder.Services.AddScoped<IScoringService, ScoringService>();
             builder.Services.AddScoped<ISightingsService, SightingsService>();
 
@@ -84,8 +86,9 @@ namespace MH.Capstone.WebApp
             // Note: DO NOT REMOVE THE CONSOLE LOGGER OR AZURE.
             // Azure App Service relies on it for log collection.
             builder.Logging.AddConsole();
-            if (builder.Environment.IsProduction())
+            if (!builder.Environment.IsDevelopment())
             {
+                // Staging or Production - add Azure App Service diagnostics logging
                 builder.Logging.AddAzureWebAppDiagnostics();
             }
 
