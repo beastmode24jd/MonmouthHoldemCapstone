@@ -14,17 +14,20 @@ namespace MH.Capstone.Domain.Services
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly INotificationService _notificationService;
         private readonly ILogger<AuthenticationService> _logger;
         private readonly IRepository<ApplicationUser, ApplicationDbContext> _authRepo;
 
         public AuthenticationService(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
+            INotificationService notificationService,
             ILogger<AuthenticationService> logger,
             IRepository<ApplicationUser, ApplicationDbContext> authRepo)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _notificationService = notificationService;
             _logger = logger;
             _authRepo = authRepo;
         }
@@ -42,8 +45,17 @@ namespace MH.Capstone.Domain.Services
             // Use UserManager to create the user with the hashed password
             var result = await _userManager.CreateAsync(user, password);
 
-            // if ture return successful, otherwise return false
-            return result.Succeeded;
+            if (!result.Succeeded)
+            {
+                // failed to register user (e.g. email already exists, password doesn't meet requirements, etc.)
+                return false;
+            }
+
+            // Handle post-registration logic, such as sending a welcome notification
+            await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId, "Welcome to WildlifeAID!",
+                "Your account has been successfully created. It's now time to get wild and explore what the great outdoors has to offer!"));
+
+            return true;
         }
 
 
@@ -133,29 +145,6 @@ namespace MH.Capstone.Domain.Services
             return true;
         }
 
-
-        public async Task<ApplicationUser?> GetUserByEmailAsync(string email)
-        {
-            return await _userManager.FindByEmailAsync(email);
-        }
-
-        public async Task UpdateUserProfileImageAsync(string email, byte[] pictureData, string contentType)
-        {
-            var user = await GetUserByEmailAsync(email);
-            if (user != null)
-            {
-                user.ProfileImage = pictureData;
-                user.ProfileImageType = contentType;
-                // Update the user in the database. UserManager is our repo for Identity
-                await _userManager.UpdateAsync(user);
-                _logger.LogInformation("Updated profile image for {Email}.", email);
-            }
-            else
-            {
-                _logger.LogInformation("User with {Email} email not found.", email);
-            }
-        }
-
         public async Task<bool> ReactivateAccountAsync(string email, string password)
         {
             var user = await _userManager.FindByEmailAsync(email);
@@ -193,19 +182,18 @@ namespace MH.Capstone.Domain.Services
             // Sign in the user with cookie authentication
             // isPersistent = rememberMe creates a persistent cookie across browser sessions
             await _signInManager.SignInAsync(user, isPersistent: rememberMe);
+
+            // Send a notification about successful login
+            var now = DateTimeOffset.UtcNow;
+            await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId, "Successful Login",
+                $"Your account recorded a successful login at {now.ToLocalTime()}. Wasn't you? Reset your password now!", 
+                now));
         }
 
         public async Task SignOutUserAsync(HttpContext httpContext)
         {
             // sign out the user and clear authentication cookie
             await _signInManager.SignOutAsync();
-        }
-
-        public async Task<bool> UserExistsAsync(string email)
-        {
-            // check if a user with the given email exists in the database asynchronously
-            var user = await _userManager.FindByEmailAsync(email);
-            return user != null;
         }
     }
 }

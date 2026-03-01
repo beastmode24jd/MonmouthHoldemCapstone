@@ -1,4 +1,5 @@
 ﻿@inject Microsoft.AspNetCore.Identity.UserManager<MH.Capstone.Domain.DataModels.ApplicationUser> _userManager
+@inject MH.Capstone.Domain.Services.Abstraction.INotificationService _notificationService
 @using static MH.Capstone.WebApp.VersionHelper
 @{
     // Get the current user to access their profile image URL in the layout.
@@ -14,6 +15,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Wildlife AID App</title>
     <script type="importmap"></script>
+    <script type="text/javascript">
+        async function notificationAlertRefresh() {
+            const notifPendingBadge = document.getElementById("pendingNotifBadge");
+            const notifPendingBadgeNum = document.getElementById("pendingNotifBadgeNum");
+            const notifMenuItem = document.getElementById("notificationsMenuItem");
+
+            const res = await fetch('/notifications/pending-count', {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (!res.ok) {
+                console.error('Failed to fetch pending notifications count', res.status);
+                return;
+            }
+
+            // parse server response (int)
+            const pendingCount = await res.json();
+
+            if (pendingCount > 0) {
+                notifPendingBadgeNum.textContent = pendingCount;
+                notifMenuItem.classList.add("text-danger");
+                notifMenuItem.classList.remove("text-light");
+                notifPendingBadge.classList.remove("d-none");
+            } else {
+                notifMenuItem.classList.add("text-light");
+                notifMenuItem.classList.remove("text-danger");
+                notifPendingBadge.classList.add("d-none");
+                notifPendingBadgeNum.textContent = "";
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', notificationAlertRefresh);
+    </script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -65,24 +100,37 @@
                     </ul>
                     <!-- Allows for everything after this empty ul to be right-aligned -->
                     <ul class="navbar-nav flex-grow-1"></ul>
-                    <ul class="navbar-nav">
+                    <ul class="navbar-nav reload-on-notif-change">
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button"
-                                       data-bs-toggle="dropdown" aria-expanded="false">
-                                    <img src="@user.GetProfileImageUrl()"      alt="Profile Image"                      class="navProfile"
-                                         role="img" /> @User.Identity.Name
+                                <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span>
+                                        <img src="@user.GetProfileImageUrl()"
+                                             alt="Profile Image"
+                                             class="navProfile"
+                                             role="img"/> @User.Identity.Name
+                                        <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-danger d-none"
+                                            id="pendingNotifBadge">
+                                            <span id="pendingNotifBadgeNum"></span>
+                                            <span class="visually-hidden">unread messages</span>
+                                        </span>
+                                    </span>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end pt-1 pb-1" aria-labelledby="userDropdown">
-                                    <li class="menuItem">
-                                        <a class="nav-link text-light" asp-controller="Dashboard" asp-action="Index">
+                                    <li class="menuItem drop">
+                                        <a class="nav-link text-light dropdown-item" asp-controller="Dashboard" asp-action="Index">
                                             <i class="bi bi-speedometer2"></i> Dashboard
                                         </a>
                                     </li>
                                     <li class="menuItem">
-                                        <form id="logoutForm" class="d-none" asp-controller="Account" asp-action="Logout"
-                                              method="post">
+                                        <a class="nav-link dropdown-item text-light" id="notificationsMenuItem" asp-controller="Dashboard" asp-action="Notifications">
+                                            <i class="bi bi-bell"></i> Notifications
+                                        </a>
+                                    </li>
+                                    <li class="menuItem"><hr class="dropdown-divider"></li>
+                                    <li class="menuItem">
+                                        <form id="logoutForm" class="d-none" asp-controller="Account" asp-action="Logout" method="post">
                                             @Html.AntiForgeryToken()
                                         </form>
                                         <a class="dropdown-item"
@@ -119,8 +167,10 @@
 
     <footer class="footer text-light">
         <div class="container-fluid ps-4">
-            <p class="footerText d-inline">Wildlife AID &copy; - @DateTime.Now.Year</p>
-            <p class="footerText text-end d-inline">Version: @GetAppVersion()</p>
+            <p class="footerText d-inline">
+                Wildlife AID &copy; - @DateTime.Now.Year |
+                Version: @GetAppVersion()
+            </p>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

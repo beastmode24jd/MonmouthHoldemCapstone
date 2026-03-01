@@ -5,6 +5,8 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
+// ReSharper disable UseCollectionExpression
+// ReSharper disable PreferConcreteValueOverDefault
 
 namespace MH.Capstone.Tests.SharedInternals
 {
@@ -42,7 +44,7 @@ namespace MH.Capstone.Tests.SharedInternals
             var firstSqlErrorCtor = ctors.FirstOrDefault(
                 ctor =>
                     ctor.GetParameters().Count() == 8);
-            SqlError error = firstSqlErrorCtor.Invoke(
+            SqlError error = (firstSqlErrorCtor!.Invoke(
                 new object[]
                 {
                     this.errorNumber,
@@ -53,38 +55,48 @@ namespace MH.Capstone.Tests.SharedInternals
                     string.Empty,
                     new int(),
                     new Exception()  // for .NetCore 
-                }) as SqlError;
+                }) as SqlError)!;
 
-            return error;
+            return error!;
         }
 
         private SqlErrorCollection CreateErrorCollection(SqlError error)
         {
             // Create instance via reflection...
             var sqlErrorCollectionCtor = typeof(SqlErrorCollection).GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0];
-            SqlErrorCollection errorCollection = sqlErrorCollectionCtor.Invoke(new object[] { }) as SqlErrorCollection;
+            SqlErrorCollection errorCollection = (sqlErrorCollectionCtor.Invoke(new object[] { }) as SqlErrorCollection)!;
 
             // Add error...
-            typeof(SqlErrorCollection).GetMethod("Add", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(errorCollection, new object[] { error });
+            typeof(SqlErrorCollection).GetMethod("Add", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(errorCollection, new object[] { error });
 
-            return errorCollection;
+            return errorCollection!;
         }
 
         private SqlException CreateException(SqlErrorCollection errorCollection)
         {
             // Create instance via reflection...
             var ctor = typeof(SqlException).GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0];
-            SqlException sqlException = ctor.Invoke(
+            SqlException sqlException = (ctor.Invoke(
                 new object[]
                 { 
                     // With message and error collection...
-                    this.errorMessage,
+                    this.errorMessage!,
                     errorCollection,
-                    null,
+                    null!,
                     Guid.NewGuid()
-                }) as SqlException;
+                }) as SqlException)!;
 
             return sqlException;
         }
+    }
+
+    public enum SqlErrorNumber
+    {
+        UniqueConstraintViolation = 2627,
+        ForeignKeyConstraintViolation = 547,
+        CheckConstraintViolation = 547,
+        PrimaryKeyConstraintViolation = 2627,
+        DeadlockVictim = 1205,
+        TimeoutExpired = -2
     }
 }

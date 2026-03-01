@@ -12,6 +12,7 @@ namespace MH.Capstone.WebApp.Controllers
     public class AccountController : Controller
     {
         private readonly IAuthenticationService _authService;
+        private readonly IUserService _userService;
         private readonly UserManager<ApplicationUser> _userManager;
 
         // Logger for tracking authentication-related events
@@ -20,10 +21,12 @@ namespace MH.Capstone.WebApp.Controllers
         // Constructor: injects authentication service and logger via dependency injection
         public AccountController(
             IAuthenticationService authService,
+            IUserService userService,
             UserManager<ApplicationUser> userManager,
             ILogger<AccountController> logger)
         {
             _authService = authService;
+            _userService = userService;
             _userManager = userManager;
             _logger = logger;
         }
@@ -102,7 +105,7 @@ namespace MH.Capstone.WebApp.Controllers
             }
 
             // Check if user exists and is deactivated
-            var user = await _authService.GetUserByEmailAsync(model.Email);
+            var user = await _userService.GetUserByEmailAsync(model.Email);
             if (user != null && user.IsDeactivated)
             {
                 // Store email in TempData for the reactivation page
@@ -182,7 +185,7 @@ namespace MH.Capstone.WebApp.Controllers
             }
 
             // Prevent duplicate user accounts
-            if (await _authService.UserExistsAsync(model.Email))
+            if (await _userService.UserExistsAsync(model.Email))
             {
                 // Log specific reason server-side to avoid email enumeration in responses
                 _logger.LogWarning(
@@ -246,7 +249,7 @@ namespace MH.Capstone.WebApp.Controllers
                 return View(model);
             }
 
-            var exists = await _authService.UserExistsAsync(model.Identifier);
+            var exists = await _userService.UserExistsAsync(model.Identifier);
 
             if (!exists)
             {
@@ -367,7 +370,7 @@ namespace MH.Capstone.WebApp.Controllers
             }
 
             // Check if user exists
-            var user = await _authService.GetUserByEmailAsync(model.Email);
+            var user = await _userService.GetUserByEmailAsync(model.Email);
             if (user == null)
             {
                 ModelState.AddModelError(string.Empty, "Account not found.");
