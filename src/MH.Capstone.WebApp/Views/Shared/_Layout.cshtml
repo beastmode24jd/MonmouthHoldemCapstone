@@ -76,6 +76,11 @@
                                 <i class="bi bi-info-circle"></i> About Us
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-light" asp-controller="Leaderboard" asp-action="Index">
+                                <i class="bi bi-trophy-fill"></i> Leaderboard
+                            </a>
+                        </li>
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item dropdown">
