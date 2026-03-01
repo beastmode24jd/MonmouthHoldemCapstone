@@ -42,8 +42,9 @@ namespace MH.Capstone.WebApp.Controllers
             var sightings = new List<object>();
             
             _logger.LogInformation("Fetched {Count} sightings for map view", sightings.Count);
-            
-            return Json(sightings);
+
+            // Using Task.FromResult to simulate async behavior since we are not fetching real data yet
+            return await Task.FromResult(Json(sightings));
         }
     }
 }

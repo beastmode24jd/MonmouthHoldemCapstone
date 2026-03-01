@@ -27,7 +27,7 @@ namespace MH.Capstone.Domain.DataModels
         [Column("UserId")]
         [MaxLength(450)] // The size of the UserId column should match the size of the primary key in the AspNetUsers table (nvarchar(450))
         [ForeignKey(nameof(User))]
-        public string UserIdentityId { get; set; }
+        public string UserIdentityId { get; set; } = null!;
 
         [Required]
         [Column("Lat")]

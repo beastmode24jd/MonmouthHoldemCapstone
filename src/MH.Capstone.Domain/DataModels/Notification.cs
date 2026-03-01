@@ -29,7 +29,7 @@ namespace MH.Capstone.Domain.DataModels
         [Column("RecipientId")]
         [MaxLength(450)] // The size of the RecipientId column should match the size of the primary key in the AspNetUsers table (nvarchar(450))
         [ForeignKey(nameof(Recipient))]
-        public string LinkedUserIdentityId { get; set; }
+        public string LinkedUserIdentityId { get; set; } = null!;
 
         [Required]
         [MinLength(1)]

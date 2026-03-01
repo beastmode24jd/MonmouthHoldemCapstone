@@ -1,21 +1,12 @@
 ﻿using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
-using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.Domain.Tools;
 using MH.Capstone.Tests.SharedInternals;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using MH.Capstone.Domain.DataAccess.Repositories;
 
 namespace MH.Capstone.Domain.Tests.Unit.Services
@@ -277,7 +268,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services
         #region MyRegion
 
         [Test]
-        public async Task UpdateUserBio_ValidInput_SavesTextBio()
+        public async Task UpdateUserBioAsync_ValidInput_SavesTextBio()
         {
             // Arrange
             const string bio = "I am John who works job at place";
@@ -305,7 +296,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services
 
         // Bio of more than 250 char creates invalid object
         [Test]
-        public async Task UpdateUserBio_Over250CharInput_ThrowsArgumentOutOfRangeException()
+        public void UpdateUserBioAsync_Over250CharInput_ThrowsArgumentOutOfRangeException()
         {
             // Arrange
             var userToAssert = new ApplicationUser
@@ -329,7 +320,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services
         [TestCase("")]
         [TestCase(null)]
         [TestCase("             ")]
-        public async Task UpdateUserBio_InvalidInput_ThrowsArgumentOutOfRangeException(string? invalidInput)
+        public void UpdateUserBioAsync_InvalidInput_ThrowsArgumentOutOfRangeException(string? invalidInput)
         {
             // Arrange
             var userToAssert = new ApplicationUser
