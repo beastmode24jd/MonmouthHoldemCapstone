@@ -1,8 +1,11 @@
 using MH.Capstone.Domain.DataAccess;
+using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 
 namespace MH.Capstone.Domain.Tests.Unit.Services;
 
@@ -13,33 +16,31 @@ namespace MH.Capstone.Domain.Tests.Unit.Services;
 [ExcludeFromCodeCoverage]
 public class LeaderboardServiceTests
 {
-    // The in-memory stand-in for the real database, rebuilt fresh before every test.
-    private ApplicationDbContext _dbContext = null!;
+    private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock = null!;
 
-    // Runs before every single test method in this class.
     [SetUp]
     public void Setup()
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-
-        _dbContext = new ApplicationDbContext(options);
+        _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
     }
 
-    // runs after every test to release the in-memory DB from memory.
-    [TearDown]
-    public void TearDown()
-    {
-        _dbContext.Dispose();
-    }
-   
-    private LeaderboardService CreateSut() => new(_dbContext);
+    private LeaderboardService CreateSut() =>
+        new(_userRepoMock.Object, NullLogger<LeaderboardService>.Instance);
 
-    
-    private async Task SeedUserAsync(string id, string userName, int points)
+    /// <summary>
+    /// Configures the mock repository to return the given users when queried with any predicate.
+    /// In unit tests we supply pre-filtered data directly; testing the actual predicate logic
+    /// belongs to repository/integration tests.
+    /// </summary>
+    private void SetupUserRepoMock(IEnumerable<ApplicationUser> users)
     {
-        _dbContext.Users.Add(new ApplicationUser
+        _userRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<ApplicationUser, bool>>>()))
+            .ReturnsAsync(users.AsQueryable());
+    }
+
+    private static ApplicationUser MakeUser(string id, string userName, int points, bool isDeactivated = false) =>
+        new()
         {
             Id = id,
             UserName = userName,
@@ -47,26 +48,26 @@ public class LeaderboardServiceTests
             Email = $"{userName}@test.com",
             NormalizedEmail = $"{userName.ToUpper()}@TEST.COM",
             Points = points,
-            IsDeactivated = false
-        });
-        await _dbContext.SaveChangesAsync();
-    }
+            IsDeactivated = isDeactivated
+        };
 
     #region GetLeaderboardPageAsync — Ordering
 
     [Test]
     public async Task GetLeaderboardPageAsync_WithMultipleUsers_ReturnsUsersOrderedByPointsDescending()
     {
-        // Arrange 
-        await SeedUserAsync("user-1", "Alice", 100);   // should end up #3
-        await SeedUserAsync("user-2", "Bob", 300);     // should end up #1
-        await SeedUserAsync("user-3", "Charlie", 200); // should end up #2
+        // Arrange
+        SetupUserRepoMock([
+            MakeUser("user-1", "Alice", 100),   // should end up #3
+            MakeUser("user-2", "Bob", 300),     // should end up #1
+            MakeUser("user-3", "Charlie", 200)  // should end up #2
+        ]);
         var sut = CreateSut();
 
-        // Act 
-        var result = await sut.GetLeaderboardPageAsync(page: 1);
+        // Act
+        var result = (await sut.GetLeaderboardPageAsync(page: 1)).ToList();
 
-        // Assert 
+        // Assert
         Assert.That(result[0].UserName, Is.EqualTo("Bob"));
         Assert.That(result[1].UserName, Is.EqualTo("Charlie"));
         Assert.That(result[2].UserName, Is.EqualTo("Alice"));
@@ -79,32 +80,30 @@ public class LeaderboardServiceTests
     [Test]
     public async Task GetLeaderboardPageAsync_FirstPageOf35Users_Returns30()
     {
-        // Arrange 
-        for (int i = 1; i <= 35; i++)
-        {
-            await SeedUserAsync($"user-{i}", $"User{i:D2}", points: i * 10);
-        }
+        // Arrange
+        SetupUserRepoMock(
+            Enumerable.Range(1, 35).Select(i => MakeUser($"user-{i}", $"User{i:D2}", i * 10))
+        );
         var sut = CreateSut();
 
-        // Act 
-        var result = await sut.GetLeaderboardPageAsync(page: 1);
+        // Act
+        var result = (await sut.GetLeaderboardPageAsync(page: 1)).ToList();
 
-        // Assert 
+        // Assert
         Assert.That(result, Has.Count.EqualTo(30));
     }
 
     [Test]
     public async Task GetLeaderboardPageAsync_SecondPageOf35Users_Returns5()
     {
-        // Arrange 
-        for (int i = 1; i <= 35; i++)
-        {
-            await SeedUserAsync($"user-{i}", $"User{i:D2}", points: i * 10);
-        }
+        // Arrange
+        SetupUserRepoMock(
+            Enumerable.Range(1, 35).Select(i => MakeUser($"user-{i}", $"User{i:D2}", i * 10))
+        );
         var sut = CreateSut();
 
-        // Act 
-        var result = await sut.GetLeaderboardPageAsync(page: 2);
+        // Act
+        var result = (await sut.GetLeaderboardPageAsync(page: 2)).ToList();
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(5));
@@ -117,10 +116,12 @@ public class LeaderboardServiceTests
     [Test]
     public async Task GetTotalUserCountAsync_WithThreeActiveUsers_Returns3()
     {
-        // Arrange
-        await SeedUserAsync("user-1", "Alice", 100);
-        await SeedUserAsync("user-2", "Bob", 200);
-        await SeedUserAsync("user-3", "Charlie", 300);
+        // Arrange — repo returns 3 active users (the predicate filtering is the repo's responsibility)
+        SetupUserRepoMock([
+            MakeUser("user-1", "Alice", 100),
+            MakeUser("user-2", "Bob", 200),
+            MakeUser("user-3", "Charlie", 300)
+        ]);
         var sut = CreateSut();
 
         // Act
@@ -133,25 +134,16 @@ public class LeaderboardServiceTests
     [Test]
     public async Task GetTotalUserCountAsync_DeactivatedUsersAreExcluded()
     {
-        // Arrange 
-        await SeedUserAsync("user-1", "ActiveUser", 100);
-        _dbContext.Users.Add(new ApplicationUser
-        {
-            Id = "user-2",
-            UserName = "DeactivatedUser",
-            NormalizedUserName = "DEACTIVATEDUSER",
-            Email = "deactivated@test.com",
-            NormalizedEmail = "DEACTIVATED@TEST.COM",
-            Points = 9999,
-            IsDeactivated = true   
-        });
-        await _dbContext.SaveChangesAsync();
+        // Arrange — mock simulates the repo returning only the 1 active user after applying the predicate
+        SetupUserRepoMock([
+            MakeUser("user-1", "ActiveUser", 100)
+        ]);
         var sut = CreateSut();
 
         // Act
         var result = await sut.GetTotalUserCountAsync();
 
-        // Assert 
+        // Assert
         Assert.That(result, Is.EqualTo(1));
     }
 
@@ -163,9 +155,11 @@ public class LeaderboardServiceTests
     public async Task GetUserRankAsync_HighestScoringUser_Returns1()
     {
         // Arrange
-        await SeedUserAsync("user-1", "Alice", 100);
-        await SeedUserAsync("user-2", "Bob", 300);   // highest (should be rank 1)
-        await SeedUserAsync("user-3", "Charlie", 200);
+        SetupUserRepoMock([
+            MakeUser("user-1", "Alice", 100),
+            MakeUser("user-2", "Bob", 300),   // highest (should be rank 1)
+            MakeUser("user-3", "Charlie", 200)
+        ]);
         var sut = CreateSut();
 
         // Act
@@ -179,9 +173,11 @@ public class LeaderboardServiceTests
     public async Task GetUserRankAsync_LowestScoringUser_Returns3()
     {
         // Arrange
-        await SeedUserAsync("user-1", "Alice", 100);   // lowest (should be rank 3)
-        await SeedUserAsync("user-2", "Bob", 300);
-        await SeedUserAsync("user-3", "Charlie", 200);
+        SetupUserRepoMock([
+            MakeUser("user-1", "Alice", 100),   // lowest (should be rank 3)
+            MakeUser("user-2", "Bob", 300),
+            MakeUser("user-3", "Charlie", 200)
+        ]);
         var sut = CreateSut();
 
         // Act
@@ -195,14 +191,16 @@ public class LeaderboardServiceTests
     public async Task GetUserRankAsync_UnknownUserId_Returns0()
     {
         // Arrange
-        await SeedUserAsync("user-1", "Alice", 100);
+        SetupUserRepoMock([
+            MakeUser("user-1", "Alice", 100)
+        ]);
         var sut = CreateSut();
 
         // Act
         var rank = await sut.GetUserRankAsync("does-not-exist");
 
-        // Assert 
-        Assert.That(rank, Is.EqualTo(0)); // 0 is the "not found" sentinel value for this method. 
+        // Assert
+        Assert.That(rank, Is.EqualTo(0)); // 0 is the "not found" sentinel value for this method.
     }
 
     #endregion

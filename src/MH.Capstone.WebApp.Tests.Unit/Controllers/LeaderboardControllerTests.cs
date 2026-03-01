@@ -3,6 +3,7 @@ using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.WebApp.Controllers;
 using MH.Capstone.WebApp.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using System.Diagnostics.CodeAnalysis;
@@ -15,6 +16,7 @@ namespace MH.Capstone.WebApp.Tests.Unit.Controllers;
 public class LeaderboardControllerTests
 {
     private Mock<ILeaderboardService> _mockLeaderboardService = null!;
+    private Mock<UserManager<ApplicationUser>> _userManagerMock = null!;
     private LeaderboardController _controller = null!;
 
     [SetUp]
@@ -22,7 +24,11 @@ public class LeaderboardControllerTests
     {
         _mockLeaderboardService = new Mock<ILeaderboardService>();
 
-        _controller = new LeaderboardController(_mockLeaderboardService.Object);
+        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
+        _userManagerMock = new Mock<UserManager<ApplicationUser>>(
+            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+
+        _controller = new LeaderboardController(_mockLeaderboardService.Object, _userManagerMock.Object);
     }
 
     [TearDown]
@@ -31,23 +37,26 @@ public class LeaderboardControllerTests
         _controller?.Dispose();
     }
 
-    // simulates a logged-in user with a given ID attached to the controller's HttpContext.
+    // simulates a logged-in user: mocks UserManager.GetUserId to return the given ID.
     private void SetLoggedInUser(string userId)
     {
-        var user = new ClaimsPrincipal(new ClaimsIdentity(new[]
-        {
-            new Claim(ClaimTypes.NameIdentifier, userId)
-        }, "mock"));
+        _userManagerMock
+            .Setup(m => m.GetUserId(It.IsAny<ClaimsPrincipal>()))
+            .Returns(userId);
 
         _controller.ControllerContext = new ControllerContext
         {
-            HttpContext = new DefaultHttpContext { User = user }
+            HttpContext = new DefaultHttpContext()
         };
     }
 
-    // simulates a visitor who is not logged in by attaching an empty HttpContext with no User.
+    // simulates a visitor who is not logged in: UserManager.GetUserId returns null.
     private void SetAnonymousUser()
     {
+        _userManagerMock
+            .Setup(m => m.GetUserId(It.IsAny<ClaimsPrincipal>()))
+            .Returns((string?)null);
+
         _controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()
