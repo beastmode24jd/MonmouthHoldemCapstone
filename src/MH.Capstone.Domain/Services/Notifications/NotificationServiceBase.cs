@@ -34,23 +34,32 @@ namespace MH.Capstone.Domain.Services.Notifications
         
         public async Task<IEnumerable<Notification>> GetPendingNotificationsAsync(Guid userId)
         {
-            throw new NotImplementedException();
+            var user = await _userService.GetUserByIdAsync(userId);
+            if (user == null)
+            {
+                throw new ArgumentException($"User with id {userId} not found", nameof(userId));
+            }
+
+            return await GetPendingNotificationsAsync(user);
         }
 
         public async Task<IEnumerable<Notification>> GetPendingNotificationsAsync(ApplicationUser user)
-        {
-            throw new NotImplementedException();
-        }
+            => await HandleSqlErrors(_notificationRepo.GetAllAsync(n => 
+                n.RecipientId == user.GuidId && !n.IsRead));
 
         public async Task<IEnumerable<Notification>> GetAllNotificationsAsync(Guid userId)
         {
-            throw new NotImplementedException();
+            var user = await _userService.GetUserByIdAsync(userId);
+            if (user == null)
+            {
+                throw new ArgumentException($"User with id {userId} not found", nameof(userId));
+            }
+
+            return await GetAllNotificationsAsync(user);
         }
 
         public async Task<IEnumerable<Notification>> GetAllNotificationsAsync(ApplicationUser user)
-        {
-            throw new NotImplementedException();
-        }
+            => await HandleSqlErrors(_notificationRepo.GetAllAsync(n => n.RecipientId == user.GuidId));
 
         protected static async Task<TOut> HandleSqlErrors<TOut>(Task<TOut> repoCmd, string? paramName = null)
         {

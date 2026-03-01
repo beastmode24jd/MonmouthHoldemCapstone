@@ -57,8 +57,15 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
         public async Task GetPendingNotificationsAsyncGuidId_HasNoPendingNotifications_ReturnsTaskWithEmptyEnumerable()
         {
             // Arrange
-            var userId = Guid.NewGuid();
-            var testExpression = CreatePendingNotificationTestExpression(userId);
+            var userToAssert = new ApplicationUser
+            {
+                GuidId = Guid.NewGuid()
+            };
+            var testExpression = CreatePendingNotificationTestExpression(userToAssert.GuidId);
+
+            _mockUserService.Setup(s => 
+                s.GetUserByIdAsync(It.Is<Guid>(id => id == userToAssert.GuidId)))
+                .ReturnsAsync(userToAssert).Verifiable(Times.Once);
 
             _mockNotificationRepository.Setup(r =>
                     r.GetAllAsync(
@@ -70,7 +77,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
 
             // Act
             var sut = CreateSut();
-            var result = (await sut.GetPendingNotificationsAsync(userId)).ToList();
+            var result = (await sut.GetPendingNotificationsAsync(userToAssert.GuidId)).ToList();
 
             // Assert
             Assert.That(result, Is.Not.Null);
@@ -109,13 +116,20 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
             GetPendingNotificationsAsyncGuidId_HasPendingNotifications_ReturnsTaskWithEnumerableOfPendingNotifications()
         {
             // Arrange
-            var userId = Guid.NewGuid();
+            var userToAssert = new ApplicationUser
+            {
+                GuidId = Guid.NewGuid()
+            };
             var pending = new[]
             {
-                NotificationValidValuesSource.GetValidNotification(userId),
-                NotificationValidValuesSource.GetValidNotification(userId)
+                NotificationValidValuesSource.GetValidNotification(userToAssert.GuidId),
+                NotificationValidValuesSource.GetValidNotification(userToAssert.GuidId)
             };
-            var testExpression = CreatePendingNotificationTestExpression(userId);
+            var testExpression = CreatePendingNotificationTestExpression(userToAssert.GuidId);
+
+            _mockUserService.Setup(s =>
+                    s.GetUserByIdAsync(It.Is<Guid>(id => id == userToAssert.GuidId)))
+                .ReturnsAsync(userToAssert).Verifiable(Times.Once);
 
             _mockNotificationRepository.Setup(r =>
                     r.GetAllAsync(
@@ -127,7 +141,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
 
             // Act
             var sut = CreateSut();
-            var result = (await sut.GetPendingNotificationsAsync(userId)).ToList();
+            var result = (await sut.GetPendingNotificationsAsync(userToAssert.GuidId)).ToList();
 
             // Assert
             Assert.That(result, Is.Not.Null);
@@ -232,8 +246,15 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
         public async Task GetAllNotificationsAsyncGuidId_HasNoNotifications_ReturnsTaskWithEmptyEnumerable()
         {
             // Arrange
-            var userId = Guid.NewGuid();
-            var testExpression = CreateAllNotificationTestExpression(userId);
+            var userToAssert = new ApplicationUser
+            {
+                GuidId = Guid.NewGuid()
+            };
+            var testExpression = CreateAllNotificationTestExpression(userToAssert.GuidId);
+
+            _mockUserService.Setup(s => 
+                s.GetUserByIdAsync(It.Is<Guid>(id => id == userToAssert.GuidId)))
+                .ReturnsAsync(userToAssert).Verifiable(Times.Once);
 
             _mockNotificationRepository.Setup(r =>
                     r.GetAllAsync(
@@ -245,7 +266,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
 
             // Act
             var sut = CreateSut();
-            var result = (await sut.GetAllNotificationsAsync(userId)).ToList();
+            var result = (await sut.GetAllNotificationsAsync(userToAssert.GuidId)).ToList();
 
             // Assert
             Assert.That(result, Is.Not.Null);
@@ -285,13 +306,20 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
         public async Task GetPendingNotificationsAsyncGuidId_HasNotifications_ReturnsTaskWithEnumerableOfNotifications()
         {
             // Arrange
-            var userId = Guid.NewGuid();
+            var userToAssert = new ApplicationUser
+            {
+                GuidId = Guid.NewGuid()
+            };
             var all = new[]
             {
-                NotificationValidValuesSource.GetValidNotification(userId),
-                NotificationValidValuesSource.GetValidNotification(userId, true)
+                NotificationValidValuesSource.GetValidNotification(userToAssert.GuidId),
+                NotificationValidValuesSource.GetValidNotification(userToAssert.GuidId, true)
             };
-            var testExpression = CreateAllNotificationTestExpression(userId);
+            var testExpression = CreateAllNotificationTestExpression(userToAssert.GuidId);
+
+            _mockUserService.Setup(s =>
+                    s.GetUserByIdAsync(It.Is<Guid>(id => id == userToAssert.GuidId)))
+                .ReturnsAsync(userToAssert).Verifiable(Times.Once);
 
             _mockNotificationRepository.Setup(r =>
                     r.GetAllAsync(
@@ -303,7 +331,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
 
             // Act
             var sut = CreateSut();
-            var result = (await sut.GetAllNotificationsAsync(userId)).ToList();
+            var result = (await sut.GetAllNotificationsAsync(userToAssert.GuidId)).ToList();
 
             // Assert
             Assert.That(result, Is.Not.Null);
