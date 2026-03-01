@@ -148,7 +148,7 @@ public class BadgeServiceTests
         // Assert
 
         // Check if BadgeIcon data matches the default badge icon in wwwroot imgs folder.
-        byte[] actualDefaultImg = await File.ReadAllBytesAsync("~/MH.Capstone.WebApp/imgs/BadgeIcon1.jpg");
+        byte[] actualDefaultImg = await File.ReadAllBytesAsync("/imgs/badge/BadgeIcon1.jpg");
 
         Assert.Multiple(() =>
         {

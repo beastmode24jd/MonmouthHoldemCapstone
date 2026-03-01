@@ -43,7 +43,7 @@ namespace MH.Capstone.Domain.Services
 
                 if (badgeTemplate.BadgeIcon == null)
                 {
-                    badgeTemplate.BadgeIcon = await File.ReadAllBytesAsync("~/MH.Capstone.WebApp/imgs/BadgeIcon1.jpg");
+                    badgeTemplate.BadgeIcon = await File.ReadAllBytesAsync("/imgs/badge/BadgeIcon1.jpg");
                 }
                 */
 

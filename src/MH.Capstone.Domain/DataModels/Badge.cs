@@ -22,7 +22,7 @@ namespace MH.Capstone.Domain.DataModels
         // Baseline value of 10 points, for a badge.
         public int PointValue { get; set; } = 10;
 
-        public byte[]? BadgeIcon { get; set; }
+        public byte[]? BadgeIcon { get; set; } = null;
 
     }
 }
