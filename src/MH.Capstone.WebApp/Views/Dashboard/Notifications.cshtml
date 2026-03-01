@@ -1,3 +1,147 @@
-﻿@{
+﻿@model List<MH.Capstone.Domain.DataModels.Notification>
+@{
     ViewData["Title"] = "Notifications";
+}
+
+@section Styles
+{
+    <style>
+        /* Simple modern styles for notifications table-like list */
+        .notifications-card {
+            border: 0;
+        }
+
+        .notifications-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 0.5rem;
+        }
+
+            .notifications-table thead th {
+                border: 0;
+                background: transparent;
+            }
+
+        .notification-row {
+            transition: background-color .18s ease, transform .08s ease;
+            border-radius: .5rem;
+            overflow: hidden;
+        }
+
+            .notification-row:hover {
+                transform: translateY(-1px);
+            }
+            /* unread notifications should stand out slightly with a semi-transparent background */
+            .notification-row.unread {
+                background-color: rgba(13,110,253,0.06); /* subtle Bootstrap primary tint */
+                box-shadow: 0 1px 0 rgba(13,110,253,0.04) inset;
+            }
+
+        .notification-title {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .notification-message {
+            color: #6c757d;
+            font-size: 0.95rem;
+            margin-top: 0.25rem;
+            white-space: pre-wrap;
+        }
+
+        .notification-actions {
+            width: 180px;
+            text-align: right;
+            vertical-align: middle;
+        }
+
+        .btn-icon {
+            padding: .35rem .6rem;
+        }
+        /* delete button hidden from UI for now but present in DOM for future use */
+        .btn-delete.d-none {
+            display: none !important;
+        }
+    </style>
+}
+
+<div class="container mt-4">
+    <div class="card notifications-card shadow-sm">
+        <div class="card-body">
+            <div class="d-flex align-items-center mb-3">
+                <h3 class="mb-0 card-title"><i class="bi bi-bell-fill me-2"></i>Your Notifications</h3>
+            </div>
+
+            @if (Model == null || !Model.Any())
+            {
+                <div class="alert alert-info" role="alert">
+                    You have no notifications at this time.
+                </div>
+            }
+            else
+            {
+                <table class="notifications-table">
+                    <thead>
+                    <tr>
+                        <th class="text-start">Notification</th>
+                        <th class="notification-actions">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var n in Model)
+                    {
+                        var rowClass = n.IsRead ? "notification-row" : "notification-row unread";
+                        <tr class="@rowClass">
+                            <td class="px-3 py-3 align-middle">
+                                <div class="notification-title">@n.Title</div>
+                                <div class="notification-message">@n.Message</div>
+                            </td>
+                            <td class="notification-actions px-3 py-3">
+                                <div class="d-flex justify-content-end align-items-center gap-2">
+                                    @if (!n.IsRead)
+                                    {
+                                        @* Mark as read (only if unread) *@
+                                        <form asp-action="UpdateNotification" asp-controller="Dashboard" asp-route-notification="@Model.Find(m => m.Id == n.Id)" method="post" class="m-0">
+                                            <input type="hidden" name="toogleRead" value="true" />
+                                            <button type="submit" class="btn btn-sm btn-success btn-icon" title="Mark as read">
+                                                <i class="bi bi-check2-circle"></i>
+                                                <span class="visually-hidden">Mark as read</span>
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        @* Mark as unread (only if already read) *@
+                                        <form asp-action="UpdateNotification" asp-controller="Dashboard" asp-route-notification="@Model.Find(m => m.Id == n.Id)" method="post" class="m-0">
+                                            <input type="hidden" name="toogleRead" value="true" />
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary btn-icon" title="Mark as unread">
+                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                                <span class="visually-hidden">Mark as unread</span>
+                                            </button>
+                                        </form>
+                                    }
+
+                                    @* Delete button present in DOM but hidden from view for now *@
+                                    @* This is feature not yet implemented, but placing in DOM helps outline UI for future *@
+                                    <form asp-action="DeleteNotification" asp-controller="Dashboard" asp-route-notification="@Model.Find(m => m.Id == n.Id)" method="post" class="m-0">
+                                        @*<input type="hidden" name="notificationId" value="@n.Id" /> *@
+                                        <button type="submit" class="btn btn-sm btn-danger btn-icon btn-delete d-none" title="Delete notification">
+                                            <i class="bi bi-trash"></i>
+                                            <span class="visually-hidden">Delete</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts
+{
+    
 }

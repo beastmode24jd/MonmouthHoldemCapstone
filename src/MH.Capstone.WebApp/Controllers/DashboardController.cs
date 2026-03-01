@@ -10,6 +10,7 @@ namespace MH.Capstone.WebApp.Controllers
 
     // restricts access to this controller so only authenticated users can access it
     [Authorize]
+    [Route("dashboard")]
     public class DashboardController : Controller
     {
         // 2MB Image file limit.
@@ -26,15 +27,18 @@ namespace MH.Capstone.WebApp.Controllers
 
         private readonly IUserService _userService;
 
+        private readonly INotificationService _notificationService;
+
         // Constructor that injects the logger dependency
         public DashboardController(ILogger<DashboardController> logger, 
             IProfileImageService imageService, IAuthenticationService authService, 
-            IUserService userService)
+            IUserService userService, INotificationService notificationService)
         {
             _logger = logger;
             _imageService = imageService;
             _authService = authService;
             _userService = userService;
+            _notificationService = notificationService;
         }
 
         // Displays the main dashboard page for authenticated users. 
@@ -130,6 +134,22 @@ namespace MH.Capstone.WebApp.Controllers
             }
 
             return RedirectToAction("Index");
+        }
+
+        [HttpGet]
+        [Route("/notifications")]
+        public async Task<IActionResult> Notifications()
+        {
+            var user = await _userService.GetUserByClaimsPrincipleAsync(User);
+
+            if (user == null)
+            {
+                return Forbid();
+            }
+
+            var notifications = await _notificationService.GetAllNotificationsAsync(user);
+
+            return View(notifications.ToList());
         }
     }
 }

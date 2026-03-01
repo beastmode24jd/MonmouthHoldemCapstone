@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -16,6 +17,8 @@ namespace MH.Capstone.Domain.Services.Abstraction
         Task<ApplicationUser?> GetUserByIdAsync(string id);
 
         Task<ApplicationUser?> GetUserByIdAsync(Guid id) => GetUserByIdAsync(id.ToString());
+
+        Task<ApplicationUser?> GetUserByClaimsPrincipleAsync(ClaimsPrincipal user);
     }
 
     public interface IUserProfileService

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 using MH.Capstone.Domain.DataAccess;
@@ -35,6 +36,9 @@ namespace MH.Capstone.Domain.Services
 
         public async Task<ApplicationUser?> GetUserByIdAsync(string id) =>
             await _userManager.FindByIdAsync(id);
+
+        public async Task<ApplicationUser?> GetUserByClaimsPrincipleAsync(ClaimsPrincipal user)
+            => await _userManager.GetUserAsync(user);
 
         public async Task UpdateUserBioAsync(ApplicationUser user, string? newBio)
         {
