@@ -24,11 +24,11 @@ public class MapControllerTests
     {
         _mockLogger = new Mock<ILogger<MapController>>();
         _mockSightingsService = new Mock<ISightingsService>();
-        
+
         // Mock UserManager
         var store = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
-            store.Object, null, null, null, null, null, null, null, null);
+            store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
         _controller = new MapController(
             _mockLogger.Object,
@@ -74,7 +74,7 @@ public class MapControllerTests
             x => x.Log(
                 LogLevel.Information,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("accessed the sightings map")),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("accessed the sightings map")),
                 null,
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
@@ -120,7 +120,7 @@ public class MapControllerTests
             x => x.Log(
                 LogLevel.Information,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Fetched") && v.ToString().Contains("sightings")),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Fetched") && v.ToString()!.Contains("sightings")),                
                 null,
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
