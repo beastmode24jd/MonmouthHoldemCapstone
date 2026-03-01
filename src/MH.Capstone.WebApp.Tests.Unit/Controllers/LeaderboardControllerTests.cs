@@ -31,7 +31,7 @@ public class LeaderboardControllerTests
         _controller?.Dispose();
     }
 
-    // Helper — simulates a logged-in user with a given ID attached to the controller's HttpContext.
+    // simulates a logged-in user with a given ID attached to the controller's HttpContext.
     private void SetLoggedInUser(string userId)
     {
         var user = new ClaimsPrincipal(new ClaimsIdentity(new[]
@@ -45,7 +45,7 @@ public class LeaderboardControllerTests
         };
     }
 
-    // Helper — simulates no logged-in user (anonymous visitor).
+    // simulates a visitor who is not logged in by attaching an empty HttpContext with no User.
     private void SetAnonymousUser()
     {
         _controller.ControllerContext = new ControllerContext
@@ -59,7 +59,7 @@ public class LeaderboardControllerTests
     [Test]
     public async Task Index_ReturnsViewWithLeaderboardViewModel()
     {
-        // Arrange — service returns 3 users, total count is 3.
+        // Arrange 
         var fakeUsers = new List<ApplicationUser>
         {
             new() { Id = "user-1", UserName = "Alice", Points = 300 },
@@ -73,7 +73,7 @@ public class LeaderboardControllerTests
         // Act
         var result = await _controller.Index(page: 1) as ViewResult;
 
-        // Assert — result is a view with a LeaderboardViewModel as its model.
+        // Assert 
         Assert.That(result, Is.Not.Null);
         Assert.That(result!.Model, Is.InstanceOf<LeaderboardViewModel>());
     }
@@ -90,7 +90,7 @@ public class LeaderboardControllerTests
         var result = await _controller.Index(page: 1) as ViewResult;
         var vm = result!.Model as LeaderboardViewModel;
 
-        // Assert — no user logged in means no highlight should appear.
+        // Assert 
         Assert.That(vm!.CurrentUserId, Is.Null);
     }
 
@@ -107,7 +107,7 @@ public class LeaderboardControllerTests
         var result = await _controller.Index(page: 1) as ViewResult;
         var vm = result!.Model as LeaderboardViewModel;
 
-        // Assert — the ViewModel carries the logged-in user's ID so the view can highlight their row.
+        // Assert 
         Assert.That(vm!.CurrentUserId, Is.EqualTo("user-1"));
     }
 

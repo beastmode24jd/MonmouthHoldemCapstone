@@ -31,10 +31,12 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="NUnit3TestAdapter" Version="6.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\MH.Capstone.Domain\MH.Capstone.Domain.csproj" />
+    <ProjectReference Include="..\MH.Capstone.WebApp\MH.Capstone.WebApp.csproj" />
   </ItemGroup>
 
   <ItemGroup>

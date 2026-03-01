@@ -7,7 +7,7 @@ namespace MH.Capstone.Domain.Services.Abstraction
         // 
         // Returns one page of users sorted by Points descending.
         Task<List<ApplicationUser>> GetLeaderboardPageAsync(int page, int pageSize = 30);
-
+        
        
         // Returns the total number of non-deactivated users (used to calculate total pages).
         Task<int> GetTotalUserCountAsync();

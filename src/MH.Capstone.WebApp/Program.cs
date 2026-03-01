@@ -127,3 +127,6 @@ namespace MH.Capstone.WebApp
         }
     }
 }
+
+// Exposes Program to the integration test project so WebApplicationFactory<Program> can access it.
+public partial class Program { }
