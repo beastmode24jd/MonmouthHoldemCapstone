@@ -80,7 +80,8 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<ISightingsService, SightingsService>();
 
             // Add services to the container.
-            builder.Services.AddControllersWithViews();
+            builder.Services.AddControllersWithViews()
+                .AddNewtonsoftJson();
 
             // Configure Logging, with some based on environment
             // Note: DO NOT REMOVE THE CONSOLE LOGGER OR AZURE.

@@ -7,6 +7,7 @@ using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 using MH.Capstone.Domain.Tools;
+using Newtonsoft.Json;
 
 namespace MH.Capstone.Domain.DataModels
 {
@@ -41,12 +42,15 @@ namespace MH.Capstone.Domain.DataModels
         [MaxLength(250)]
         public string Message { get; set; } = string.Empty;
 
-        [Required] public DateTimeOffset SentAt { get; set; }
+        [Required] 
+        public DateTimeOffset SentAt { get; set; }
 
         public bool IsRead { get; set; } = false;
 
-        [NotMapped] public bool IsPostdated => SentAt.UtcDateTime > DateTime.UtcNow;
+        [NotMapped] 
+        public bool IsPostdated => SentAt.UtcDateTime > DateTime.UtcNow;
 
+        [JsonIgnore]
         public virtual ApplicationUser Recipient { get; set; } = null!;
 
         // EF Core requires a parameterless constructor for materialization of entities from the database,
