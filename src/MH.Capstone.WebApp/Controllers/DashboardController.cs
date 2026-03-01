@@ -1,3 +1,6 @@
+using MH.Capstone.Domain.DataAccess;
+using MH.Capstone.Domain.DataAccess.Repositories;
+using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
 using Microsoft.AspNetCore.Authorization;
@@ -16,7 +19,7 @@ namespace MH.Capstone.WebApp.Controllers
         // 2MB Image file limit.
         // TODO - Consider moving this to a configuration file or constant class for better maintainability.
         const long MAX_IMG_SIZE = 2 * 1024 * 1024;
-        
+
         // Logger to track dashboard access and activity. 
         private readonly ILogger<DashboardController> _logger;
 
@@ -29,32 +32,38 @@ namespace MH.Capstone.WebApp.Controllers
 
         private readonly INotificationService _notificationService;
 
+        private readonly IRepository<Notification, ApplicationDbContext> _notificationRepo;
+
         // Constructor that injects the logger dependency
-        public DashboardController(ILogger<DashboardController> logger, 
-            IProfileImageService imageService, IAuthenticationService authService, 
-            IUserService userService, INotificationService notificationService)
+        public DashboardController(ILogger<DashboardController> logger,
+            IProfileImageService imageService, IAuthenticationService authService,
+            IUserService userService, INotificationService notificationService,
+            IRepository<Notification, ApplicationDbContext> notificationRepo)
         {
             _logger = logger;
             _imageService = imageService;
             _authService = authService;
             _userService = userService;
             _notificationService = notificationService;
+            _notificationRepo = notificationRepo;
         }
 
         // Displays the main dashboard page for authenticated users. 
-        public async Task<IActionResult> Index([FromQuery] bool sighting_success = false, [FromQuery] int? points_earned = null)
+        public async Task<IActionResult> Index([FromQuery] bool sighting_success = false,
+            [FromQuery] int? points_earned = null)
         {
             var userEmail = User.Identity?.Name;
             var user = await _userService.GetUserByEmailAsync(userEmail ?? "");
             _logger.LogInformation("User {Email} accessed dashboard", User.Identity?.Name);
-            
+
             var statusMsgHtml = "<p>You are successfully logged in. Time to explore our nature, together!</p>";
             if (sighting_success)
             {
                 if (points_earned.HasValue)
                 {
-                    statusMsgHtml = $"<p class='fw-bold'>Congratulations! Your Sighting was uploaded successfully!</p>" +
-                                  $"<p class='text-success fw-bold'>You earned {points_earned.Value} points for this sighting!</p>";
+                    statusMsgHtml =
+                        $"<p class='fw-bold'>Congratulations! Your Sighting was uploaded successfully!</p>" +
+                        $"<p class='text-success fw-bold'>You earned {points_earned.Value} points for this sighting!</p>";
                 }
                 else
                 {
@@ -93,7 +102,8 @@ namespace MH.Capstone.WebApp.Controllers
                 // (e.g., checking file signatures) for better security.
                 if (!profilePicture.ContentType.StartsWith("image/"))
                 {
-                    _logger.LogWarning("Rejecting upload: Invalid content type {ContentType}.", profilePicture.ContentType);
+                    _logger.LogWarning("Rejecting upload: Invalid content type {ContentType}.",
+                        profilePicture.ContentType);
                     ModelState.AddModelError(nameof(profilePicture), "Invalid file type. Please upload an image.");
                     return RedirectToAction("Index");
                 }
@@ -109,7 +119,7 @@ namespace MH.Capstone.WebApp.Controllers
                     _logger.LogInformation("Profile image updated for user {Email}", userEmail);
                 }
             }
-            else 
+            else
             {
                 _logger.LogWarning("Upload attempted with null or empty file.");
             }
@@ -122,7 +132,7 @@ namespace MH.Capstone.WebApp.Controllers
         public async Task<IActionResult> UpdateUserBio(string newBio)
         {
             var userEmail = User.Identity?.Name;
-            
+
             // If no user is found, for whatever reason, this should return null
             var user = await _userService.GetUserByEmailAsync(userEmail ?? "");
 
@@ -140,8 +150,11 @@ namespace MH.Capstone.WebApp.Controllers
         [Route("/notifications")]
         public async Task<IActionResult> Notifications()
         {
+            // Get the current user based on their claims principal. This is necessary to fetch their specific notifications.
             var user = await _userService.GetUserByClaimsPrincipleAsync(User);
 
+            // If for some reason we can't find the user (which shouldn't happen since this controller is protected by [Authorize]),
+            // we return a 403 Forbidden response.
             if (user == null)
             {
                 return Forbid();
@@ -150,6 +163,80 @@ namespace MH.Capstone.WebApp.Controllers
             var notifications = await _notificationService.GetAllNotificationsAsync(user);
 
             return View(notifications.ToList());
+        }
+
+        // This action handles updates to notifications, such as toggling the read/unread status.
+        // It is designed to be called via AJAX from the frontend like an API endpoint.
+        [HttpPut]
+        [ValidateAntiForgeryToken]
+        [Route("/notifications/{nid:guid}/update")]
+        public async Task<IActionResult> UpdateNotification(Guid nid, bool toggleRead = false)
+        {
+            // Get the current user based on their claims principal. This is necessary to fetch their specific notifications.
+            var user = await _userService.GetUserByClaimsPrincipleAsync(User);
+
+            // If for some reason we can't find the user (which shouldn't happen since this controller is protected by [Authorize]),
+            // we return a 403 Forbidden response.
+            if (user == null)
+            {
+                return Forbid();
+            }
+
+            // Find the specific notification by its GUID. This ensures the user can only update their own notifications.
+            var notification = await _notificationRepo.FindByIdAsync(nid);
+
+            // If we can't find the notification, return a 404 Not Found response.
+            if (notification == null)
+            {
+                return NotFound();
+            }
+
+            // If toggleRead is true, we flip the IsRead status of the notification. This allows users to mark notifications as read/unread.
+            if (toggleRead)
+            {
+                notification.IsRead = !notification.IsRead;
+                await notification.SaveModelAsync(_notificationRepo);
+            }
+
+            // Return the updated notification as JSON. This can be used by the frontend to update the UI accordingly without a full page refresh.
+            return Ok(notification);
+        }
+
+        [HttpDelete]
+        [ValidateAntiForgeryToken]
+        [Route("/notifications/{nid:guid}/delete")]
+        public async Task<IActionResult> DeleteNotification(Guid nid)
+        {
+            // Get the current user based on their claims principal. This is necessary to fetch their specific notifications.
+            var user = await _userService.GetUserByClaimsPrincipleAsync(User);
+
+            // If for some reason we can't find the user (which shouldn't happen since this controller is protected by [Authorize]),
+            // we return a 403 Forbidden response.
+            if (user == null)
+            {
+                return Forbid();
+            }
+
+            // Find the specific notification by its GUID. This ensures the user can only delete their own notifications.
+            var notification = await _notificationRepo.FindByIdAsync(nid);
+
+            // If we can't find the notification, return a 404 Not Found response.
+            if (notification == null)
+            {
+                return NotFound();
+            }
+
+            // If the notification doesn't belong to the current user, return a 403 Forbidden response.
+            if (notification.RecipientId != user.GuidId)
+            {
+                return Forbid();
+            }
+
+            // Delete the notification from the database.
+            await _notificationRepo.DeleteAsync(notification);
+
+            // Return a success response. The frontend can use this to remove the notification from the UI without a full page refresh.
+            return Ok(new { message = "Notification deleted successfully." });
         }
     }
 }

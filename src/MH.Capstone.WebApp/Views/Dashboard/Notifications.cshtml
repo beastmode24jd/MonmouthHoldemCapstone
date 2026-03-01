@@ -17,10 +17,10 @@
             border-spacing: 0 0.5rem;
         }
 
-            .notifications-table thead th {
-                border: 0;
-                background: transparent;
-            }
+        .notifications-table thead th {
+            border: 0;
+            background: transparent;
+        }
 
         .notification-row {
             transition: background-color .18s ease, transform .08s ease;
@@ -28,14 +28,15 @@
             overflow: hidden;
         }
 
-            .notification-row:hover {
-                transform: translateY(-1px);
-            }
-            /* unread notifications should stand out slightly with a semi-transparent background */
-            .notification-row.unread {
-                background-color: rgba(13,110,253,0.06); /* subtle Bootstrap primary tint */
-                box-shadow: 0 1px 0 rgba(13,110,253,0.04) inset;
-            }
+        .notification-row:hover {
+            transform: translateY(-1px);
+        }
+
+        /* unread notifications should stand out slightly with a semi-transparent background */
+        .notification-row.unread {
+            background-color: rgba(13,110,253,0.06); /* subtle Bootstrap primary tint */
+            box-shadow: 0 1px 0 rgba(13,110,253,0.04) inset;
+        }
 
         .notification-title {
             font-weight: 600;
@@ -58,10 +59,7 @@
         .btn-icon {
             padding: .35rem .6rem;
         }
-        /* delete button hidden from UI for now but present in DOM for future use */
-        .btn-delete.d-none {
-            display: none !important;
-        }
+
     </style>
 }
 
@@ -75,7 +73,7 @@
             @if (Model == null || !Model.Any())
             {
                 <div class="alert alert-info" role="alert">
-                    You have no notifications at this time.
+                    You have no notifications at this time. Way to stay on top of things!
                 </div>
             }
             else
@@ -91,7 +89,7 @@
                     @foreach (var n in Model)
                     {
                         var rowClass = n.IsRead ? "notification-row" : "notification-row unread";
-                        <tr class="@rowClass">
+                        <tr class="@rowClass" data-notif-id="@n.Id">
                             <td class="px-3 py-3 align-middle">
                                 <div class="notification-title">@n.Title</div>
                                 <div class="notification-message">@n.Message</div>
@@ -101,8 +99,10 @@
                                     @if (!n.IsRead)
                                     {
                                         @* Mark as read (only if unread) *@
-                                        <form asp-action="UpdateNotification" asp-controller="Dashboard" asp-route-notification="@Model.Find(m => m.Id == n.Id)" method="post" class="m-0">
-                                            <input type="hidden" name="toogleRead" value="true" />
+                                        <form asp-action="UpdateNotification" asp-controller="Dashboard" asp-route-nid="@n.Id" data-notif-id="@n.Id"
+                                              method="post" class="m-0 notificationUpdateForm">
+                                            <input type="hidden" name="toggleRead" value="true" />
+                                            @Html.AntiForgeryToken()
                                             <button type="submit" class="btn btn-sm btn-success btn-icon" title="Mark as read">
                                                 <i class="bi bi-check2-circle"></i>
                                                 <span class="visually-hidden">Mark as read</span>
@@ -112,8 +112,10 @@
                                     else
                                     {
                                         @* Mark as unread (only if already read) *@
-                                        <form asp-action="UpdateNotification" asp-controller="Dashboard" asp-route-notification="@Model.Find(m => m.Id == n.Id)" method="post" class="m-0">
-                                            <input type="hidden" name="toogleRead" value="true" />
+                                        <form asp-action="UpdateNotification" asp-controller="Dashboard" asp-route-nid="@n.Id" data-notif-id="@n.Id"
+                                              method="post" class="m-0 notificationUpdateForm">
+                                            <input type="hidden" name="toggleRead" value="true" />
+                                            @Html.AntiForgeryToken()
                                             <button type="submit" class="btn btn-sm btn-outline-secondary btn-icon" title="Mark as unread">
                                                 <i class="bi bi-arrow-counterclockwise"></i>
                                                 <span class="visually-hidden">Mark as unread</span>
@@ -121,11 +123,10 @@
                                         </form>
                                     }
 
-                                    @* Delete button present in DOM but hidden from view for now *@
-                                    @* This is feature not yet implemented, but placing in DOM helps outline UI for future *@
-                                    <form asp-action="DeleteNotification" asp-controller="Dashboard" asp-route-notification="@Model.Find(m => m.Id == n.Id)" method="post" class="m-0">
-                                        @*<input type="hidden" name="notificationId" value="@n.Id" /> *@
-                                        <button type="submit" class="btn btn-sm btn-danger btn-icon btn-delete d-none" title="Delete notification">
+                                    <form asp-action="DeleteNotification" asp-controller="Dashboard" asp-route-nid="@n.Id" data-notif-id="@n.Id"
+                                          method="post" class="m-0" id="notificationDeleteForm">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-danger btn-icon btn-delete" title="Delete notification">
                                             <i class="bi bi-trash"></i>
                                             <span class="visually-hidden">Delete</span>
                                         </button>
@@ -143,5 +144,38 @@
 
 @section Scripts
 {
-    
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', function () {
+            // Attach submit event to all notification update forms
+            document.querySelectorAll('.notificationUpdateForm').forEach(form => {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault(); // Prevent default form submission
+                    const notifId = this.getAttribute('data-notif-id');
+                    const toggleReadValue = this.querySelector('input[name="toggleRead"]').value;
+                    fetch(this.action, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'RequestVerificationToken': this.querySelector('input[name="__RequestVerificationToken"]').value
+                            },
+                            body: new URLSearchParams({
+                                toggleRead: toggleReadValue
+                            })
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                // On success, toggle the row's unread class
+                                const row = document.querySelector(`tr[data-notif-id="${notifId}"]`);
+                                if (row) {
+                                    row.classList.toggle('unread');
+                                }
+                            } else {
+                                console.error('Failed to update notification status.');
+                            }
+                        })
+                        .catch(error => console.error('Error:', error));
+                });
+            });
+        });
+    </script>
 }

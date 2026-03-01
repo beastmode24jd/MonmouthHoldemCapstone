@@ -1,5 +1,7 @@
 using System.Security.Claims;
 using System.Text;
+using MH.Capstone.Domain.DataAccess;
+using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.WebApp.Controllers;
@@ -19,6 +21,7 @@ public class DashboardControllerTests
     private Mock<IUserService> _mockUserService;
     private Mock<IProfileImageService> _mockProfileImageService;
     private Mock<INotificationService> _mockNotificationService;
+    private Mock<IRepository<Notification, ApplicationDbContext>> _mockNotificationRepo;
     private Mock<ILogger<DashboardController>> _mockLogger;
     private DashboardController _controller;
     private const string TestEmail = "namesNameington@mail.wou";
@@ -31,8 +34,10 @@ public class DashboardControllerTests
         _mockLogger = new Mock<ILogger<DashboardController>>();
         _mockUserService = new Mock<IUserService>();
         _mockNotificationService = new Mock<INotificationService>();
+        _mockNotificationRepo = new Mock<IRepository<Notification, ApplicationDbContext>>();
         _controller = new DashboardController(_mockLogger.Object, _mockProfileImageService.Object, 
-            _mockAuthService.Object, _mockUserService.Object, _mockNotificationService.Object);
+            _mockAuthService.Object, _mockUserService.Object, _mockNotificationService.Object,
+            _mockNotificationRepo.Object);
 
         // Mock the user, so the display name isn't null while testing
         var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
