@@ -21,7 +21,8 @@ namespace MH.Capstone.Domain.DataModels
         public Guid RecipientId
         {
             get => Guid.Parse(LinkedUserIdentityId);
-            set => LinkedUserIdentityId = value.ToString(); // Convert Guid to string for storage in the AspNetCore Identity ID column
+            set => LinkedUserIdentityId =
+                value.ToString(); // Convert Guid to string for storage in the AspNetCore Identity ID column
         }
 
         [Required]
@@ -37,22 +38,32 @@ namespace MH.Capstone.Domain.DataModels
 
         [Required]
         [MinLength(1)]
-        [MaxLength(250)] 
+        [MaxLength(250)]
         public string Message { get; set; } = string.Empty;
 
-        [Required]
-        public DateTimeOffset SentAt { get; set; }
+        [Required] public DateTimeOffset SentAt { get; set; }
 
         public bool IsRead { get; set; } = false;
 
-        [NotMapped]
-        public bool IsPostdated => SentAt.UtcDateTime > DateTime.UtcNow;
+        [NotMapped] public bool IsPostdated => SentAt.UtcDateTime > DateTime.UtcNow;
 
         public virtual ApplicationUser Recipient { get; set; } = null!;
 
         // EF Core requires a parameterless constructor for materialization of entities from the database,
         // so we need to include one even though we don't want it to be used directly in our code.
-        public Notification() {}
+        public Notification()
+        {
+        }
+
+        // For general use within the application, we want to require all properties to be set at the time of object creation,
+        // so we provide this constructor for that purpose.
+        public Notification(Guid recipientId, string title, string message, DateTimeOffset sentAt)
+        {
+            RecipientId = recipientId;
+            Title = title;
+            Message = message;
+            SentAt = sentAt;
+        }
 
         // For testing and general use within the application, we want to require all properties to be set
         // at the time of object creation, so we provide this constructor for that purpose.
@@ -63,6 +74,22 @@ namespace MH.Capstone.Domain.DataModels
             Title = title;
             Message = message;
             SentAt = sentAt;
+        }
+
+        /// <summary>
+        /// Sends a notification to a recipient (<see cref="ApplicationUser"/>) with the specified title and message,
+        /// and an optional sentAt timestamp if not sent at the current time and date.
+        /// </summary>
+        /// <param name="recipientId">The id (<see cref="Guid"/>) of the recipient (<see cref="ApplicationUser"/>) to send the notification to</param>
+        /// <param name="title">The message of 50 characters or fewer for the notification</param>
+        /// <param name="message">The message of 250 characters or fewer for the notification</param>
+        /// <param name="sentAt">Timestamp of when the Notification was sent. Can be postdated (in the future).
+        /// A null value defaults to the current time</param>
+        /// <returns></returns>
+        public static Notification Create(Guid recipientId, string title, string message, DateTimeOffset? sentAt = null)
+        {
+            sentAt ??= DateTimeOffset.UtcNow;
+            return new Notification(recipientId, title, message, (DateTimeOffset)sentAt);
         }
     }
 }

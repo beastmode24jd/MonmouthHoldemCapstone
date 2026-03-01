@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MH.Capstone.Domain.DataAccess;
+﻿using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
@@ -12,7 +7,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using static MH.Capstone.Domain.Tools.DataAnnotationsValidator;
 
 namespace MH.Capstone.Domain.Services
 {
@@ -20,19 +14,20 @@ namespace MH.Capstone.Domain.Services
     {
         private readonly ILogger<SightingsService> _logger;
         private readonly IRepository<Sighting, ApplicationDbContext> _sightingsRepo;
-        private readonly IScoringService _scoringService;
         private readonly IRepository<ApplicationUser, ApplicationDbContext> _userRepo;
+        private readonly IScoringService _scoringService;
+        private readonly INotificationService _notificationService;
 
-        public SightingsService(
-            ILogger<SightingsService> logger, 
+        public SightingsService(ILogger<SightingsService> logger, 
             IRepository<Sighting, ApplicationDbContext> sightingsRepo,
-            IScoringService scoringService,
+            IScoringService scoringService, INotificationService notificationService,
             IRepository<ApplicationUser, ApplicationDbContext> userRepo)
         {
             _logger = logger;
             _sightingsRepo = sightingsRepo;
             _scoringService = scoringService;
             _userRepo = userRepo;
+            _notificationService = notificationService;
         }
 
         public async Task<int> CreateSightingAsync(Sighting entity)
@@ -64,6 +59,11 @@ namespace MH.Capstone.Domain.Services
                 {
                     user.Points += pointsEarned;
                     await _userRepo.AddOrUpdateAsync(user);
+                    await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId,
+                        "New Sighting Uploaded & Created!",
+                        $"Congratulations, You uploaded a new sighting at {entity.Timestamp} and " +
+                        $"earned {pointsEarned} points!"
+                        ));
                     _logger.LogInformation("Awarded {Points} points to user {UserId} for sighting", pointsEarned, entity.UserId);
                 }
 
@@ -77,11 +77,6 @@ namespace MH.Capstone.Domain.Services
                     $"Sighting entity validation failed. UserId {entity.UserId} does not exist.", nameof(entity.UserId),
                     ex);
             }
-        }
-
-        public async Task<Sighting> GetSightingByIdAsync(Guid id)
-        {
-            throw new NotImplementedException();
         }
 
         public bool ValidateImage(IFormFile? imageBuffer)
