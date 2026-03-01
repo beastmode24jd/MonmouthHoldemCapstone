@@ -96,33 +96,23 @@
                             </td>
                             <td class="notification-actions px-3 py-3">
                                 <div class="d-flex justify-content-end align-items-center gap-2">
-                                    @if (!n.IsRead)
-                                    {
-                                        @* Mark as read (only if unread) *@
-                                        <form asp-action="UpdateNotification" asp-controller="Dashboard" asp-route-nid="@n.Id" data-notif-id="@n.Id"
-                                              method="post" class="m-0 notificationUpdateForm">
-                                            <input type="hidden" name="toggleRead" value="true" />
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-success btn-icon" title="Mark as read">
-                                                <i class="bi bi-check2-circle"></i>
-                                                <span class="visually-hidden">Mark as read</span>
-                                            </button>
-                                        </form>
+                                    @{
+                                        var readBtnDisplayClass = n.IsRead ? "d-none" : string.Empty;
+                                        var unreadBtnDisplayClass = n.IsRead ? string.Empty : "d-none";
                                     }
-                                    else
-                                    {
-                                        @* Mark as unread (only if already read) *@
-                                        <form asp-action="UpdateNotification" asp-controller="Dashboard" asp-route-nid="@n.Id" data-notif-id="@n.Id"
-                                              method="post" class="m-0 notificationUpdateForm">
-                                            <input type="hidden" name="toggleRead" value="true" />
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-outline-secondary btn-icon" title="Mark as unread">
-                                                <i class="bi bi-arrow-counterclockwise"></i>
-                                                <span class="visually-hidden">Mark as unread</span>
-                                            </button>
-                                        </form>
-                                    }
-
+                                    <form asp-action="UpdateNotification" asp-controller="Dashboard" asp-route-nid="@n.Id" data-notif-id="@n.Id"
+                                          method="post" class="m-0 notificationUpdateForm">
+                                        <input type="hidden" name="toggleRead" value="true" />
+                                        @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-success btn-icon @readBtnDisplayClass" title="Mark as read" data-notif-id="@n.Id-read">
+                                            <i class="bi bi-check2-circle"></i>
+                                            <span class="visually-hidden">Mark as read</span>
+                                        </button>
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary btn-icon @unreadBtnDisplayClass" title="Mark as unread" data-notif-id="@n.Id-unread">
+                                            <i class="bi bi-arrow-counterclockwise"></i>
+                                            <span class="visually-hidden">Mark as unread</span>
+                                        </button>
+                                    </form>
                                     <form asp-action="DeleteNotification" asp-controller="Dashboard" asp-route-nid="@n.Id" data-notif-id="@n.Id"
                                           method="post" class="m-0" id="notificationDeleteForm">
                                         @Html.AntiForgeryToken()
@@ -164,11 +154,18 @@
                         })
                         .then(response => {
                             if (response.ok) {
-                                // On success, toggle the row's unread class
+                                // On success, toggle the row's unread class & the button's appearance
                                 const row = document.querySelector(`tr[data-notif-id="${notifId}"]`);
+                                const readBtn = this.querySelector(`button[data-notif-id="${notifId}-read"]`);
+                                const unreadBtn = this.querySelector(`button[data-notif-id="${notifId}-unread"]`);
                                 if (row) {
                                     row.classList.toggle('unread');
+                                    readBtn.classList.toggle('d-none');
+                                    unreadBtn.classList.toggle('d-none');
                                 }
+
+                                // Refresh (not by reload) the notifications badge in the navbar
+                                notificationAlertRefresh();
                             } else {
                                 console.error('Failed to update notification status.');
                             }

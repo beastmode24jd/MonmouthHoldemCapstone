@@ -165,6 +165,25 @@ namespace MH.Capstone.WebApp.Controllers
             return View(notifications.ToList());
         }
 
+        [HttpGet]
+        [Route("/notifications/pending-count")]
+        public async Task<IActionResult> GetPendingNotificationsCount()
+        {
+            // Get the current user based on their claims principal. This is necessary to fetch their specific notifications.
+            var user = await _userService.GetUserByClaimsPrincipleAsync(User);
+
+            // If for some reason we can't find the user (which shouldn't happen since this controller is protected by [Authorize]),
+            // we return a 403 Forbidden response.
+            if (user == null)
+            {
+                return Forbid();
+            }
+
+            var count = await _notificationService.GetPendingNotificationsCountAsync(user);
+
+            return Ok(count);
+        }
+
         // This action handles updates to notifications, such as toggling the read/unread status.
         // It is designed to be called via AJAX from the frontend like an API endpoint.
         [HttpPut]
