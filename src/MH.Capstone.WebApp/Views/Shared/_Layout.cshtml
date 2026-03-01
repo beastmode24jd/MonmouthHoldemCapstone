@@ -1,10 +1,18 @@
 ﻿@inject Microsoft.AspNetCore.Identity.UserManager<MH.Capstone.Domain.DataModels.ApplicationUser> _userManager
+@inject MH.Capstone.Domain.Services.Abstraction.INotificationService _notificationService
 @using static MH.Capstone.WebApp.VersionHelper
 @{
     // Get the current user to access their profile image URL in the layout.
     // This is done here instead of in the controller to ensure it's available for all views that use this layout
     // without needing to set it in each controller action (DRY).
     var user = await _userManager.GetUserAsync(User);
+    int? pendingNotifs = null;
+    if (user != null)
+    {
+        var tmp = await _notificationService.GetPendingNotificationsAsync(user);
+        var pendingNotifications = tmp.ToList();
+        pendingNotifs = pendingNotifications.Count > 0 ? pendingNotifications.Count : null;
+    }
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -69,20 +77,40 @@
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button"
-                                       data-bs-toggle="dropdown" aria-expanded="false">
-                                    <img src="@user.GetProfileImageUrl()"      alt="Profile Image"                      class="navProfile"
-                                         role="img" /> @User.Identity.Name
+                                <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <img src="@user.GetProfileImageUrl()" 
+                                        alt="Profile Image"
+                                        class="navProfile" 
+                                        role="img" /> @User.Identity.Name
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                        @if (pendingNotifs.HasValue)
+                                        {
+                                            @pendingNotifs
+                                        }
+                                        <span class="visually-hidden">unread messages</span>
+                                    </span>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end pt-1 pb-1" aria-labelledby="userDropdown">
-                                    <li class="menuItem">
-                                        <a class="nav-link text-light" asp-controller="Dashboard" asp-action="Index">
+                                    <li class="menuItem drop">
+                                        <a class="nav-link text-light dropdown-item" asp-controller="Dashboard" asp-action="Index">
                                             <i class="bi bi-speedometer2"></i> Dashboard
                                         </a>
                                     </li>
                                     <li class="menuItem">
-                                        <form id="logoutForm" class="d-none" asp-controller="Account" asp-action="Logout"
-                                              method="post">
+                                        <a class="nav-link text-light dropdown-item" asp-controller="Dashboard" asp-action="Notifcations">
+                                            <i class="bi bi-bell"></i> Notifications
+                                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                                @if (pendingNotifs.HasValue)
+                                                {
+                                                    @pendingNotifs
+                                                }
+                                                <span class="visually-hidden">unread messages</span>
+                                            </span>
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li class="menuItem">
+                                        <form id="logoutForm" class="d-none" asp-controller="Account" asp-action="Logout" method="post">
                                             @Html.AntiForgeryToken()
                                         </form>
                                         <a class="dropdown-item"
