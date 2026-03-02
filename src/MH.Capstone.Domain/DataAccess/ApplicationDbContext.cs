@@ -17,12 +17,11 @@ namespace MH.Capstone.Domain.DataAccess
         // Add additional auth-related DbSets here if needed.
 
         public DbSet<Sighting> Sightings { get; set; } = null!;
-<<<<<<< HEAD
 
         public DbSet<Notification> Notifications { get; set; } = null!;
-=======
-        public DbSet<Badge> Badges { get; set; }
-        public DbSet<UserBadge> UserBadges { get; set; }
->>>>>>> 513d1db (Fixed badge GUID bug, ran EF Migrations on Badge Data Models.)
+
+        public DbSet<Badge> Badges { get; set; } = null!;
+
+        public DbSet<UserBadge> UserBadges { get; set; } = null!;
     }
 }

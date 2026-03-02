@@ -76,24 +76,13 @@ namespace MH.Capstone.WebApp
 
             // Register Additional Services - Business Logic Layer
             builder.Services.AddScoped<INotificationService, InAppNotificationService>();
+            builder.Services.AddScoped<IBadgeService, BadgeService>();
             builder.Services.AddScoped<IScoringService, ScoringService>();
             builder.Services.AddScoped<ISightingsService, SightingsService>();
 
-<<<<<<< HEAD
-=======
-            // Register the Profile Image Service
-            builder.Services.AddScoped<IProfileImageService, ProfileImageService>();
-
-            // Register the User Profile Service
-            builder.Services.AddScoped<IUserProfileService, UserProfileService>();
-
-            // Register the Scoring Service (CSP-104)
-            builder.Services.AddScoped<IScoringService, ScoringService>();
-
             // Register the Badge Service
-            builder.Services.AddScoped<IBadgeService, BadgeService>(); 
+            
 
->>>>>>> 6ec8685 (Added UserBadge Join Table class, connected BadgeServices to build files.)
             // Add services to the container.
             builder.Services.AddControllersWithViews()
                 .AddNewtonsoftJson();

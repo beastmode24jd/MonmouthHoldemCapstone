@@ -23,13 +23,10 @@ namespace MH.Capstone.Domain.Tests.Unit.Services;
 public class SightingsServiceTests
 {
     private Sighting _validSighting;
-    private Mock<IRepository<Sighting, ApplicationDbContext>> _sightingsRepoMock;
     private Mock<IScoringService> _scoringServiceMock;
-<<<<<<< HEAD
     private Mock<INotificationService> _notificationServiceMock;
-=======
     private Mock<IBadgeService> _badgeServiceMock;
->>>>>>> af45199 (Refactored SightingService to use BadgeService to add Sighting Badge.)
+    private Mock<IRepository<Sighting, ApplicationDbContext>> _sightingsRepoMock;
     private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock;
     private FakeImageGenerator _imageGenerator;
 
@@ -53,13 +50,12 @@ public class SightingsServiceTests
     }
 
     private SightingsService CreateSut() =>
-<<<<<<< HEAD
-        new (NullLogger<SightingsService>.Instance, _sightingsRepoMock.Object, 
-            _scoringServiceMock.Object, _notificationServiceMock.Object,
+        new (NullLogger<SightingsService>.Instance,
+            _badgeServiceMock.Object,
+            _scoringServiceMock.Object,
+            _notificationServiceMock.Object,
+            _sightingsRepoMock.Object,
             _userRepoMock.Object);
-=======
-        new (NullLogger<SightingsService>.Instance, _sightingsRepoMock.Object, _scoringServiceMock.Object, _userRepoMock.Object, _badgeServiceMock.Object);
->>>>>>> af45199 (Refactored SightingService to use BadgeService to add Sighting Badge.)
 
     private void AssertAllMockVerifications()
     {

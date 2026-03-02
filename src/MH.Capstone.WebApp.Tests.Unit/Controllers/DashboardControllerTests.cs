@@ -24,11 +24,7 @@ public class DashboardControllerTests
     private Mock<IRepository<Notification, ApplicationDbContext>> _mockNotificationRepo;
     private Mock<ILogger<DashboardController>> _mockLogger;
     private DashboardController _controller;
-<<<<<<< HEAD
-=======
-    private Mock<IUserProfileService> _mockProfileService;
     private Mock<IBadgeService> _mockBadgeService;
->>>>>>> 6ec8685 (Added UserBadge Join Table class, connected BadgeServices to build files.)
     private const string TestEmail = "namesNameington@mail.wou";
 
     [SetUp]
@@ -37,20 +33,16 @@ public class DashboardControllerTests
         _mockAuthService = new Mock<IAuthenticationService>();
         _mockProfileImageService = new Mock<IProfileImageService>();
         _mockLogger = new Mock<ILogger<DashboardController>>();
-<<<<<<< HEAD
         _mockUserService = new Mock<IUserService>();
         _mockNotificationService = new Mock<INotificationService>();
         _mockNotificationRepo = new Mock<IRepository<Notification, ApplicationDbContext>>();
-        _controller = new DashboardController(_mockLogger.Object, _mockProfileImageService.Object, 
-            _mockAuthService.Object, _mockUserService.Object, _mockNotificationService.Object,
-            _mockNotificationRepo.Object);
-=======
-        _mockProfileService = new Mock<IUserProfileService>();
         _mockBadgeService = new Mock<IBadgeService>();
 
-        _controller = new DashboardController(_mockLogger.Object, _mockService.Object, _mockAuthService.Object, _mockProfileService.Object, _mockBadgeService.Object);
->>>>>>> 6ec8685 (Added UserBadge Join Table class, connected BadgeServices to build files.)
-
+        _controller = new DashboardController(_mockLogger.Object,
+            _mockProfileImageService.Object, _mockAuthService.Object,
+            _mockBadgeService.Object, _mockNotificationService.Object,
+            _mockUserService.Object, _mockNotificationRepo.Object);
+        
         // Mock the user, so the display name isn't null while testing
         var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
         {
@@ -61,8 +53,6 @@ public class DashboardControllerTests
         {
             HttpContext = new DefaultHttpContext() { User = user }
         };
-
-
     }
 
     [TearDown]
@@ -84,7 +74,7 @@ public class DashboardControllerTests
                     .ReturnsAsync(dummyBytes);
 
         // Mocking the user lookup, which is required for the new UploadImage Badge
-        _mockAuthService.Setup(s => s.GetUserByEmailAsync(TestEmail))
+        _mockUserService.Setup(s => s.GetUserByEmailAsync(TestEmail))
                 .ReturnsAsync(new ApplicationUser { Email = TestEmail });
 
         // Act

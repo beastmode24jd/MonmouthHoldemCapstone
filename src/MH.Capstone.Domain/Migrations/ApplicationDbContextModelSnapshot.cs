@@ -107,7 +107,6 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-<<<<<<< HEAD
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Notification", b =>
                 {
                     b.Property<Guid>("Id")
@@ -141,7 +140,8 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.HasIndex("RecipientIdentityId");
 
                     b.ToTable("Notification");
-=======
+                });
+                
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Badge", b =>
                 {
                     b.Property<Guid>("BadgeID")
@@ -166,7 +166,6 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.HasKey("BadgeID");
 
                     b.ToTable("Badges");
->>>>>>> 513d1db (Fixed badge GUID bug, ran EF Migrations on Badge Data Models.)
                 });
 
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Sighting", b =>

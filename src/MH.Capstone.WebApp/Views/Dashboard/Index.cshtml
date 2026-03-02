@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "Dashboard";
     var user = await _userManager.GetUserAsync(User);
+    var badges = ViewData["SortedBadges"] as List<MH.Capstone.Domain.DataModels.UserBadge>;
 }
 
 <div class="container mt-4">
@@ -63,7 +64,6 @@
     </div>
 
     <div class="row mt-4 mb-4">
-<<<<<<< HEAD
         <div class="col-md-6">
             <div class="card h-100">
                 <div class="card-body">
@@ -74,7 +74,6 @@
                     <br>
                     <p class="card-text mb-1 mt-3">Recent Badges:</p>
                     <div class="mb-3 mt-1">
-                        @{ var badges = ViewData["SortedBadges"] as List<MH.Capstone.Domain.DataModels.UserBadge>; }
                         @if(badges != null && badges.Any())
                         {
                             <ul class="list-unstyled">
@@ -99,10 +98,6 @@
         </div>
         <div class="col-md-6">
             <div class="card h-100">
-=======
-        <div class="col-mb-4">
-            <div class="card">
->>>>>>> fca246b (Refining Dashboard front-end Badge display.)
                 <div class="card-body">
                     <h5 class="card-title">
                         <i class="bi bi-bell"></i> Notifications
@@ -120,53 +115,6 @@
             </div>
         </div>
     </div>
-
-    <div class="row mt-4 mb-4">
-        <div class="col-mb-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">
-                        <i class="bi bi-speedometer2"></i> Quick Stats
-                    </h5>
-                    <p class="card-text mb-1 mt-2">Current points: </p> @(user?.Points ?? 0)
-
-                    <p class="card-text mb-1 mt-2">Recent Badges:</p>
-                    <div class="mb-0 mt-2">
-                        @{ var badges = ViewData["SortedBadges"] as List<MH.Capstone.Domain.DataModels.UserBadge>; }
-                        @if(badges != null && badges.Any())
-                        {
-                            <div class="row g-3">
-                                @foreach(var ub in badges.Take(3)) // Show 3 most recent badges
-                                {
-                                    <div class="col-4 text-center">
-                                        <div class="card h-100 border-3">
-                                            <div class="card-body p-3">
-                                                <img src="~/imgs/badge/BadgeIcon1.jpg" class="dashboardProfile" role="img"/>
-                                                <br><strong>@ub.Badge.Title</strong> 
-                                                <br>@ub.Badge.PointValue points
-                                                <br><small class="text-muted">@ub.BadgeEarned?.ToString("MM-dd-yyyy")</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="col text-left">
-                                <div class="card h-100 border-0">
-                                    <div class="card-body pt-1 pb-1">
-                                        <p class="form-text ml-0">No badges yet. Hint: try uploading a custom profile image!</p>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    </div>
-            </div>
-        </div>
-    </div>
-
-
     <div class="row mt-4 mb-4">
         <div class="col-mb-4">
             <div class="card shadow">
