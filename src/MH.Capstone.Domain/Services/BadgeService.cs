@@ -15,11 +15,22 @@ namespace MH.Capstone.Domain.Services
     public class BadgeService : IBadgeService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IRepository<Badge, ApplicationDbContext> _badgeRepo;
+        private readonly IRepository<UserBadge, ApplicationDbContext> _userBadgeRepo;
+        private readonly IRepository<ApplicationUser, ApplicationDbContext> _userRepo;
 
-        public BadgeService(ApplicationDbContext context)
+        public BadgeService(ApplicationDbContext context,
+        IRepository<Badge, ApplicationDbContext> badgeRepo,
+        IRepository<UserBadge, ApplicationDbContext> userBadgeRepo,
+        IRepository<ApplicationUser, ApplicationDbContext> userRepo)
         {
             // Dependency Injection of DB Context
             _context = context;
+
+            // Switch Dependency Injection of DB context fully over to Repository structure
+            _badgeRepo = badgeRepo;
+            _userBadgeRepo = userBadgeRepo;
+            _userRepo = userRepo;
         }
 
         public async Task AddBadge(ApplicationUser user, Guid newBadgeID)
@@ -47,9 +58,12 @@ namespace MH.Capstone.Domain.Services
 
                 // Increment points after adding the badge to the UserBadges list.
                 user.Points += badgeTemplate.PointValue;
-                _context.Set<UserBadge>().Add(earnedBadge);
+                await _userRepo.AddOrUpdateAsync(user);
+                
+                // Save the earnedBadge.
+                await _userBadgeRepo.AddOrUpdateAsync(earnedBadge);
 
-                await _context.SaveChangesAsync();
+                //await _context.SaveChangesAsync();
             }
 
             // If the loop completes without badgeID found,
@@ -62,7 +76,8 @@ namespace MH.Capstone.Domain.Services
         public async Task<Badge?> GetBadgeDetails(Guid newBadgeId)
         {
             // Looks for badge using ID from pool of badges in the DB
-            return await _context.Set<Badge>().FirstOrDefaultAsync(b => b.BadgeID == newBadgeId);
+            // return await _context.Set<Badge>().FirstOrDefaultAsync(b => b.BadgeID == id);
+            return await _badgeRepo.FindByIdAsync(newBadgeId);
         }
 
         // Sorts the given list of UserBadges,
@@ -90,15 +105,15 @@ namespace MH.Capstone.Domain.Services
             // This method gets called by Program.cs to create the default badges on runtime.
 
             // Check if the badges exist already
-            var profileBadge = await _context.Set<Badge>().FindAsync(Constants.BadgeId.ProfileBadgeGUID);
-            var bioBadge = await _context.Set<Badge>().FindAsync(Constants.BadgeId.CustomBioBadgeGUID);
-            var firstSightingBadge = await _context.Set<Badge>().FindAsync(Constants.BadgeId.FirstSightingBadgeGUID);
+            var profileBadge = await GetBadgeDetails(Constants.BadgeId.ProfileBadgeGUID);
+            var bioBadge = await GetBadgeDetails(Constants.BadgeId.CustomBioBadgeGUID);
+            var firstSightingBadge = await GetBadgeDetails(Constants.BadgeId.FirstSightingBadgeGUID);
 
             if (profileBadge == null)
             {
                 // No profileBadge was found in the local DB context.
                 // So we add it
-                _context.Set<Badge>().Add(new Badge
+                await new Badge
                 {
                     // Uses a consistent and constant ID for the badge
                     BadgeID = Constants.BadgeId.ProfileBadgeGUID,
@@ -106,35 +121,29 @@ namespace MH.Capstone.Domain.Services
                     Description = "Uploaded a custom profile image.",
                     PointValue = 10
                     // Default profile image will be dealt with by frontend
-                });
-
-                await _context.SaveChangesAsync();
+                }.SaveModelAsync(_badgeRepo);
             }
 
             if (bioBadge == null)
             {
-                _context.Set<Badge>().Add(new Badge
+                await new Badge
                 {
                    BadgeID = Constants.BadgeId.CustomBioBadgeGUID,
                    Title = "Custom Bio Badge",
                    Description = "Updated your profile with a custom description.",
                    PointValue = 10
-                });
-
-                await _context.SaveChangesAsync();
+                }.SaveModelAsync(_badgeRepo);
             }
 
             if (firstSightingBadge == null)
             {
-                _context.Set<Badge>().Add(new Badge
+                await new Badge
                 {
                     BadgeID = Constants.BadgeId.FirstSightingBadgeGUID,
                     Title = "First Sighting Badge",
                     Description = "Uploaded your first Sighting!",
                     PointValue = 15
-                });
-
-                await _context.SaveChangesAsync();
+                }.SaveModelAsync(_badgeRepo);
             }
         }
 

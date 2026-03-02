@@ -14,10 +14,13 @@ namespace MH.Capstone.Domain.DataModels
 
         // Title and description, for displaying on the frontend later.
         // 150 character maximum.
-        [StringLength(150)]
+
+        [MaxLength(150)]
         public string Description { get; set; } = "";
 
-        public string Title { get; set; } = "";
+        [MinLength(1)]
+        [MaxLength(50)]
+        public string Title { get; set; } = "A"; // Since a length of 1 is required, this is the default value
 
         // Baseline value of 10 points, for a badge.
         public int PointValue { get; set; } = 10;
