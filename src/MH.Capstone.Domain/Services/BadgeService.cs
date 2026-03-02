@@ -35,19 +35,21 @@ namespace MH.Capstone.Domain.Services
 
         public async Task AddBadge(ApplicationUser user, Guid newBadgeID)
         {
+            // Get the list of user badges.
+            var existingBadges = await _userBadgeRepo.GetAllAsync();
+
             // If this specific user already has this newBadgeID, exit.
-            var alreadyExists = await _context.Set<UserBadge>()
-                    .AnyAsync(ub => ub.UserId == user.Id && ub.BadgeId == newBadgeID);
+            var alreadyExists = existingBadges.Any(ub => ub.UserId == user.Id && ub.BadgeId == newBadgeID);
 
             if (alreadyExists) { return; }
 
             // Get the parameters of this new badge.
-            var badgeTemplate = await GetBadgeDetails(newBadgeID);
+            var badgeTemplate = await _badgeRepo.FindByIdAsync(newBadgeID);
 
             // If-clause catches invalid/unknown badgeID
             if (badgeTemplate != null)
             {
-                // Adds the new badge
+                // Adds the new join-table badge
                 var earnedBadge = new UserBadge
                 {
                     User = user,
@@ -56,14 +58,13 @@ namespace MH.Capstone.Domain.Services
                     BadgeEarned = DateTime.UtcNow
                 };
 
+                // Save it
+                await _userBadgeRepo.AddOrUpdateAsync(earnedBadge);
+
                 // Increment points after adding the badge to the UserBadges list.
                 user.Points += badgeTemplate.PointValue;
                 await _userRepo.AddOrUpdateAsync(user);
                 
-                // Save the earnedBadge.
-                await _userBadgeRepo.AddOrUpdateAsync(earnedBadge);
-
-                //await _context.SaveChangesAsync();
             }
 
             // If the loop completes without badgeID found,

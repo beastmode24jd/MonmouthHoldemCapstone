@@ -107,7 +107,7 @@ namespace MH.Capstone.WebApp.Controllers
             return View();
         }
 
-        [HttpPost]
+        [HttpPost("UploadImage")]
         public async Task<IActionResult> UploadProfileImage(IFormFile? profilePicture)
         {
             // Clear and possible outstanding ModelState errors to ensure a clean slate for the view.
@@ -166,7 +166,7 @@ namespace MH.Capstone.WebApp.Controllers
             return RedirectToAction("Index");
         }
 
-        [HttpPost]
+        [HttpPost("UpdateBio")]
         public async Task<IActionResult> UpdateUserBio(string newBio)
         {
             var userEmail = User.Identity?.Name;
