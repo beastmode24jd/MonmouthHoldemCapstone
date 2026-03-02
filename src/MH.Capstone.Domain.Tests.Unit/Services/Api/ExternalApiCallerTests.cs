@@ -1,6 +1,7 @@
 ﻿using Moq;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
+using MH.Capstone.Domain.ApiContracts;
 using Newtonsoft.Json;
 using RichardSzalay.MockHttp;
 using MH.Capstone.Domain.Services.Abstraction;
@@ -17,12 +18,16 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Api
         #region TestingOverhead
 
         private Mock<IHttpClientFactory> _httpClientFactoryMock;
+        private Mock<IApiConfigurationValues> _apiConfigMock;
         private MockHttpMessageHandler _mockHttp;
+        private static readonly ApiConfigurationValuesFake _configurationValuesFake 
+            = ApiConfigurationValuesFake.Instance;
 
         [SetUp]
         public void SetUp()
         {
             _httpClientFactoryMock = new Mock<IHttpClientFactory>();
+            _apiConfigMock = new Mock<IApiConfigurationValues>();
             _mockHttp = new MockHttpMessageHandler();
         }
 
@@ -32,14 +37,17 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Api
             _mockHttp.Dispose();
         }
 
-        private ExternalApiCaller CreateSut(string clientName) =>
-            new ExternalApiCaller(NullLogger<IApiCaller>.Instance, _httpClientFactoryMock.Object,
-                clientName);
+        private ExternalApiCaller<ApiConfigurationValuesFake> CreateSut() =>
+            new ExternalApiCaller<ApiConfigurationValuesFake>(
+                NullLogger<IApiCaller<ApiConfigurationValuesFake>>.Instance,
+                _httpClientFactoryMock.Object, _configurationValuesFake);
 
         private void AsseryAllMockVarifySetups()
         {
             _httpClientFactoryMock.VerifyAll();
             _httpClientFactoryMock.VerifyNoOtherCalls();
+
+            _mockHttp.VerifyNoOutstandingExpectation();
         }
 
         #endregion
@@ -47,21 +55,21 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Api
         #region GetAsyncTests
 
         [Test]
-        public async Task GetAsync_NoErrors_CallsHttpClientFactoryWithCorrectClientName()
+        public async Task GetAsync_NoErrors_ReturnsProperlyDeserializeReturn()
         {
             // Arrange
-            const string clientName = "TestClient";
-            const string expectedUrl = "http://example.com";
+            const string expectedUrl = "https://wou.edu";
             int[] expectedResponse = [1,2,3,4,5];
             var expectedResponseJson = JsonConvert.SerializeObject(expectedResponse);
 
-            _mockHttp.When(HttpMethod.Get, expectedUrl)
+            _mockHttp.Expect(HttpMethod.Get, expectedUrl)
                 .Respond("application/json", expectedResponseJson);
 
-            _httpClientFactoryMock.Setup(f => f.CreateClient(clientName))
+            _httpClientFactoryMock.Setup(f => f.CreateClient(
+                    _configurationValuesFake.HttpClientKey))
                     .Returns(_mockHttp.ToHttpClient()).Verifiable(Times.Once);
 
-            var sut = CreateSut(clientName);
+            var sut = CreateSut();
 
             // Act
             var result = await sut.GetAsync<int[]>(expectedUrl);
@@ -72,39 +80,19 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Api
         }
 
         [Test]
-        public void GetAsync_ClientNameNotFound_ThrowsInvalidOperationException()
-        {
-            // Arrange
-            const string expectedUrl = "http://example.com";
-            var expectedException = new InvalidOperationException("Client not found, thus base not set!");
-
-            _mockHttp.When(HttpMethod.Get, expectedUrl)
-                .Respond(_ => throw expectedException);
-
-            _httpClientFactoryMock.Setup(f => f.CreateClient(It.IsAny<string>()))
-                .Returns(_mockHttp.ToHttpClient()).Verifiable(Times.Once);
-
-            var sut = CreateSut("BadName");
-
-            // Act & Assert
-            Assert.ThrowsAsync<InvalidOperationException>(() => sut.GetAsync<object>(expectedUrl));
-            AsseryAllMockVarifySetups();
-        }
-
-        [Test]
         public void GetAsync_CallNotSuccessful_ThrowsHttpRequestException()
         {
             // Arrange
-            const string clientName = "TestClient";
-            const string expectedUrl = "http://example.com";
+            const string expectedUrl = "https://wou.edu";
             const HttpStatusCode expectedStatusCode = HttpStatusCode.BadRequest;
 
-            _mockHttp.When(HttpMethod.Get, expectedUrl).Respond(expectedStatusCode);
+            _mockHttp.Expect(HttpMethod.Get, expectedUrl).Respond(expectedStatusCode);
 
-            _httpClientFactoryMock.Setup(f => f.CreateClient(clientName))
+            _httpClientFactoryMock.Setup(f => f.CreateClient(
+                    _configurationValuesFake.HttpClientKey))
                 .Returns(_mockHttp.ToHttpClient()).Verifiable(Times.Once);
 
-            var sut = CreateSut(clientName);
+            var sut = CreateSut();
 
             // Act & Assert
             var actual = Assert.ThrowsAsync<HttpRequestException>(() => sut.GetAsync<object>(expectedUrl));
@@ -113,19 +101,19 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Api
         }
 
         [Test]
-        public void GetAsync_BadGenericTypePreventsJsonDeserialize_ThrowsJsonException()
+        public void GetAsync_BadGenericReturnTypePreventsJsonDeserialize_ThrowsJsonException()
         {
             // Arrange
-            const string clientName = "TestClient";
-            const string expectedUrl = "http://example.com";
+            const string expectedUrl = "https://wou.edu";
             const HttpStatusCode expectedStatusCode = HttpStatusCode.OK;
 
-            _mockHttp.When(HttpMethod.Get, expectedUrl).Respond(expectedStatusCode);
+            _mockHttp.Expect(HttpMethod.Get, expectedUrl).Respond(expectedStatusCode);
 
-            _httpClientFactoryMock.Setup(f => f.CreateClient(clientName))
+            _httpClientFactoryMock.Setup(f => f.CreateClient(
+                    _configurationValuesFake.HttpClientKey))
                 .Returns(_mockHttp.ToHttpClient()).Verifiable(Times.Once);
 
-            var sut = CreateSut(clientName);
+            var sut = CreateSut();
 
             // Act & Assert
             Assert.ThrowsAsync<JsonException>(() => sut.GetAsync<Mock>(expectedUrl));

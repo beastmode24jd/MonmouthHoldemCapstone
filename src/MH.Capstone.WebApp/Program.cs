@@ -1,3 +1,5 @@
+using MH.Capstone.Domain.ApiContracts;
+using MH.Capstone.Domain.ApiContracts.Ninjas;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
@@ -8,6 +10,7 @@ using MH.Capstone.Domain.Services.Notifications;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Protocols.Configuration;
 
 namespace MH.Capstone.WebApp
@@ -88,10 +91,13 @@ namespace MH.Capstone.WebApp
             // Done outside the HttpClient configuration to validate presence and provide clear and fast (at app startup)
             // error feedback if missing.
             const string ninjasApiConfigSection = "Api:External:Ninjas";
-            var apiBaseUrl = builder.Configuration[$"{ninjasApiConfigSection}:Endpoints:Animal"];
+            var ninjasApiConfigValues = builder.Configuration.GetSection(ninjasApiConfigSection).Get<NinjaApiConfigValues>();
             var apiKey = builder.Configuration[$"{ninjasApiConfigSection}:ApiKey"];
+            //var apiBaseUrl = builder.Configuration[$"{ninjasApiConfigSection}:BaseRoutes:Animal"];
 
-            if (string.IsNullOrWhiteSpace(apiBaseUrl) || string.IsNullOrWhiteSpace(apiKey))
+            // "is not" pattern matching syntax checks if the config values class isn't null plus that
+            // the required values are present and valid
+            if (string.IsNullOrWhiteSpace(apiKey) || ninjasApiConfigValues is not { IsValid: true })
             {
                 if (!builder.Environment.IsDevelopment())
                 {
@@ -103,18 +109,23 @@ namespace MH.Capstone.WebApp
                 }
 
                 throw new InvalidConfigurationException(
-                    $"Required API Configuration values {nameof(apiBaseUrl)} and/or " +
+                    $"Required API Configuration values {nameof(ninjasApiConfigValues.HttpClientKey)}," +
+                    $"{nameof(ninjasApiConfigValues.BaseUrl)} and/or " +
                     $"{nameof(apiKey)} were missing or unset. This is a fatal error!\n" +
-                    $"\t{nameof(apiBaseUrl)} = {apiBaseUrl}\n" +
+                    $"\t{nameof(ninjasApiConfigValues.HttpClientKey)} = {ninjasApiConfigValues?.HttpClientKey}\n" +
+                    $"\t{nameof(ninjasApiConfigValues.BaseUrl)} = {ninjasApiConfigValues?.BaseUrl}\n" +
                     $"\t{nameof(apiKey)} = {apiKey}");
             }
 
             // Configure HttpClient for external API calls (e.g., AnimalApi, Emailer, etc.)
-            builder.Services.AddHttpClient("NinjasAnimalApi", client =>
+            builder.Services.AddKeyedSingleton<IApiConfigurationValues>(typeof(NinjaApiConfigValues), 
+                ninjasApiConfigValues);
+            builder.Services.AddHttpClient(ninjasApiConfigValues.HttpClientKey, client =>
             {
                 // BaseAddress and other settings can be configured when injecting the client
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
                 client.DefaultRequestHeaders.Add("X-Api-Key", apiKey);
+                client.BaseAddress = new Uri(ninjasApiConfigValues.BaseUrl);
                 client.Timeout = TimeSpan.FromSeconds(15); // Set a reasonable timeout
             });
 
@@ -133,7 +144,7 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<IScoringService, ScoringService>();
             builder.Services.AddScoped<ISightingsService, SightingsService>();
             builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
-            builder.Services.AddScoped<IApiCallerFactory, ApiCallerFactory>();
+            builder.Services.AddScoped(typeof(IApiCallerFactory<>), typeof(ApiCallerFactory<>));
 
             // Add controllers with views and configure Newtonsoft.Json for JSON serialization
             builder.Services.AddControllersWithViews()

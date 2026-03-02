@@ -27,9 +27,11 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Api
             _httpClientFactoryMock = new Mock<IHttpClientFactory>();
         }
 
-        private ApiCallerFactory CreateSut() =>
-            new ApiCallerFactory(NullLogger<IApiCallerFactory>.Instance, NullLogger<IApiCaller>.Instance,
-                _httpClientFactoryMock.Object);
+        private ApiCallerFactory<ApiConfigurationValuesFake> CreateSut() =>
+            new ApiCallerFactory<ApiConfigurationValuesFake>(
+                NullLogger<IApiCallerFactory<ApiConfigurationValuesFake>>.Instance,
+                NullLogger<IApiCaller<ApiConfigurationValuesFake>>.Instance,
+                _httpClientFactoryMock.Object, ApiConfigurationValuesFake.Instance);
 
         private void AsseryAllMockVarifySetups()
         {
@@ -46,14 +48,12 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Api
         {
             // Arrange
             var sut = CreateSut();
-            const string clientName = "TestClient";
 
             // Act
-            var result = sut.CreateApiCaller(clientName);
+            var result = sut.CreateApiCaller();
 
             // Assert
-            Assert.That(result, Is.InstanceOf<ExternalApiCaller>().And
-                .Property(nameof(ExternalApiCaller.ClientName)).EqualTo(clientName));
+            Assert.That(result, Is.InstanceOf<ExternalApiCaller<ApiConfigurationValuesFake>>());
             AsseryAllMockVarifySetups();
         }
 

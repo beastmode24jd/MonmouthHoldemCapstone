@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MH.Capstone.Domain.ApiContracts;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,8 +7,11 @@ using System.Threading.Tasks;
 
 namespace MH.Capstone.Domain.Services.Abstraction
 {
-    public interface IApiCaller
+    public interface IApiCaller<out TConfig> where TConfig : class, IApiConfigurationValues
     {
-        Task<T> GetAsync<T>(string url);
+        TConfig ApiClientConfig { get; }
+
+        Task<T> GetAsync<T>(string url, params 
+            IEnumerable<KeyValuePair<string, string>>? queryParams);
     }
 }
