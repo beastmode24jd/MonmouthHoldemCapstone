@@ -7,6 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Migrations\ManualSqlFiles\**" />
+    <EmbeddedResource Remove="Migrations\ManualSqlFiles\**" />
+    <None Remove="Migrations\ManualSqlFiles\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="DataAccess\Repositories\" />
     <Folder Include="Dtos\" />
   </ItemGroup>
