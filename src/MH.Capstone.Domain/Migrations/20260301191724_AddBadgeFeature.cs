@@ -12,18 +12,18 @@ namespace MH.Capstone.Domain.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Badges",
+                name: "Badge",
                 columns: table => new
                 {
                     BadgeID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     PointValue = table.Column<int>(type: "int", nullable: false),
                     BadgeIcon = table.Column<byte[]>(type: "varbinary(max)", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Badges", x => x.BadgeID);
+                    table.PrimaryKey("PK_Badge", x => x.BadgeID);
                 });
 
             migrationBuilder.CreateTable(
@@ -45,9 +45,9 @@ namespace MH.Capstone.Domain.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_PersonalBadges_Badges_Badge ID",
+                        name: "FK_PersonalBadges_Badge_Badge ID",
                         column: x => x.BadgeID,
-                        principalTable: "Badges",
+                        principalTable: "Badge",
                         principalColumn: "BadgeID",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -70,7 +70,7 @@ namespace MH.Capstone.Domain.Migrations
                 name: "PersonalBadges");
 
             migrationBuilder.DropTable(
-                name: "Badges");
+                name: "Badge");
         }
     }
 }

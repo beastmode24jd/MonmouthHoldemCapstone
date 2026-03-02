@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using Microsoft.AspNetCore.Identity;
@@ -12,74 +13,31 @@ using Moq;
 namespace MH.Capstone.Domain.Tests.Unit.Services;
 
 [TestFixture]
+[Parallelizable]
+[ExcludeFromCodeCoverage]
 public class BadgeServiceTests
 {
-    private ServiceProvider _serviceProvider;
-    private ApplicationDbContext _context;
-    private IBadgeService _badgeService;
-
-    // Add in the IRepositories? ----------
     private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock;
     private Mock<IRepository<Badge, ApplicationDbContext>> _badgeRepoMock;
     private Mock<IRepository<UserBadge, ApplicationDbContext>> _userBadgeRepoMock;
-    // ------------------------------------
-
+    private IBadgeService _badgeService;
     private Guid _testBadgeId;
     
 
     [SetUp]
-    public async Task Setup()
+    public void Setup()
     {
-        // Create in-memory database for testing
-        var services = new ServiceCollection();
-
-        // Add logging (required by Identity)
-        services.AddLogging();
-
-        services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}"));
-
-        // Add Identity services
-        services.AddIdentity<ApplicationUser, IdentityRole>()
-            .AddEntityFrameworkStores<ApplicationDbContext>()
-            .AddDefaultTokenProviders();
-
-        services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
-
-        services.AddScoped<IAuthenticationService, AuthenticationService>();
-
-        services.AddScoped<IBadgeService, BadgeService>();
-
-        _serviceProvider = services.BuildServiceProvider();
-        _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
-
+        _testBadgeId = Guid.NewGuid();
         // Add in the Mocked Repositories
         _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
         _badgeRepoMock = new Mock<IRepository<Badge, ApplicationDbContext>>();
         _userBadgeRepoMock = new Mock<IRepository<UserBadge, ApplicationDbContext>>();
 
         _badgeService = new BadgeService(
-            _context,
             _badgeRepoMock.Object,
             _userBadgeRepoMock.Object,
             _userRepoMock.Object
         );
-
-        await _context.Database.EnsureCreatedAsync();
-
-        // Store the Guid to the private testBadgeId field
-        _testBadgeId = Guid.NewGuid();
-        //_context.Set<Badge>().Add(testBadge);
-
-        await _context.SaveChangesAsync();
-    }
-
-    [TearDown]
-    public async Task TearDown()
-    {
-        await _context.Database.EnsureDeletedAsync();
-        await _context.DisposeAsync();
-        await _serviceProvider.DisposeAsync();
     }
 
     [Test]

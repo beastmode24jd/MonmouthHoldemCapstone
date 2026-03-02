@@ -131,7 +131,7 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
 
                     b.HasKey("BadgeID");
 
-                    b.ToTable("Badges");
+                    b.ToTable("Badge");
                 });
 
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Notification", b =>

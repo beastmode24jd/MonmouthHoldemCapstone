@@ -57,8 +57,7 @@ namespace MH.Capstone.WebApp.Controllers
         public async Task<IActionResult> Index([FromQuery] bool sighting_success = false,
             [FromQuery] int? points_earned = null)
         {
-            var userEmail = User.Identity?.Name;
-            var user = await _userService.GetUserByEmailAsync(userEmail ?? "");
+            var user = await _userService.GetUserByClaimsPrincipleAsync(User);
             _logger.LogInformation("User {Email} accessed dashboard", User.Identity?.Name);
 
             var statusMsgHtml = "<p>You are successfully logged in. Time to explore our nature, together!</p>";

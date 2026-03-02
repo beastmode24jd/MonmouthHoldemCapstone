@@ -14,19 +14,14 @@ namespace MH.Capstone.Domain.Services
 {
     public class BadgeService : IBadgeService
     {
-        private readonly ApplicationDbContext _context;
         private readonly IRepository<Badge, ApplicationDbContext> _badgeRepo;
         private readonly IRepository<UserBadge, ApplicationDbContext> _userBadgeRepo;
         private readonly IRepository<ApplicationUser, ApplicationDbContext> _userRepo;
 
-        public BadgeService(ApplicationDbContext context,
-        IRepository<Badge, ApplicationDbContext> badgeRepo,
+        public BadgeService(IRepository<Badge, ApplicationDbContext> badgeRepo,
         IRepository<UserBadge, ApplicationDbContext> userBadgeRepo,
         IRepository<ApplicationUser, ApplicationDbContext> userRepo)
         {
-            // Dependency Injection of DB Context
-            _context = context;
-
             // Switch Dependency Injection of DB context fully over to Repository structure
             _badgeRepo = badgeRepo;
             _userBadgeRepo = userBadgeRepo;

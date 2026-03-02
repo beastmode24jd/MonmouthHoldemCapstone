@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace MH.Capstone.Domain.DataModels
 {
 
-    [Table("Badges")]
+    [Table("Badge")]
     public class Badge
     {
         [Key]

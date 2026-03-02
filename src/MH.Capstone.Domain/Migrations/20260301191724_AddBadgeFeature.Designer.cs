@@ -129,11 +129,12 @@ namespace MH.Capstone.Domain.Migrations
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.HasKey("BadgeID");
 
-                    b.ToTable("Badges");
+                    b.ToTable("Badge");
                 });
 
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Sighting", b =>
