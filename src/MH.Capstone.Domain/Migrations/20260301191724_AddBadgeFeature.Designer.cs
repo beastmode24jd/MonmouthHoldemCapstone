@@ -4,16 +4,19 @@ using MH.Capstone.Domain.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace MH.Capstone.Domain.DataAccess.Migrations
+namespace MH.Capstone.Domain.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260301191724_AddBadgeFeature")]
+    partial class AddBadgeFeature
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -132,41 +135,6 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.HasKey("BadgeID");
 
                     b.ToTable("Badge");
-                });
-
-            modelBuilder.Entity("MH.Capstone.Domain.DataModels.Notification", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("LinkedUserIdentityId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)")
-                        .HasColumnName("RecipientId");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
-
-                    b.Property<DateTimeOffset>("SentAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LinkedUserIdentityId");
-
-                    b.ToTable("Notification");
                 });
 
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Sighting", b =>
@@ -370,17 +338,6 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("MH.Capstone.Domain.DataModels.Notification", b =>
-                {
-                    b.HasOne("MH.Capstone.Domain.DataModels.ApplicationUser", "Recipient")
-                        .WithMany("Notifications")
-                        .HasForeignKey("LinkedUserIdentityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Recipient");
-                });
-
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Sighting", b =>
                 {
                     b.HasOne("MH.Capstone.Domain.DataModels.ApplicationUser", "User")
@@ -464,8 +421,6 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
 
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.ApplicationUser", b =>
                 {
-                    b.Navigation("Notifications");
-
                     b.Navigation("Sightings");
 
                     b.Navigation("UserBadges");

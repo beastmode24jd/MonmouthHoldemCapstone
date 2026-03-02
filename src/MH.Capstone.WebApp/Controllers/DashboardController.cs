@@ -1,12 +1,11 @@
+using MH.Capstone.Domain.Services;
+using MH.Capstone.Domain.Constants;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
-using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
-// ReSharper disable InvertIf
 
 namespace MH.Capstone.WebApp.Controllers
 {
@@ -19,7 +18,10 @@ namespace MH.Capstone.WebApp.Controllers
         // 2MB Image file limit.
         // TODO - Consider moving this to a configuration file or constant class for better maintainability.
         const long MAX_IMG_SIZE = 2 * 1024 * 1024;
-
+        //private readonly Guid PROFILE_BADGE_GUID = MH.Capstone.Domain.Constants.BadgeId.ProfileBadgeGUID;
+        //private readonly Guid BIO_BADGE_GUID = MH.Capstone.Domain.Constants.BadgeId.CustomBioBadgeGUID;
+        //private readonly Guid SIGHTING_BADGE_GUID = MH.Capstone.Domain.Constants.BadgeId.FirstSightingBadgeGUID;
+        
         // Logger to track dashboard access and activity. 
         private readonly ILogger<DashboardController> _logger;
 
@@ -34,17 +36,20 @@ namespace MH.Capstone.WebApp.Controllers
 
         private readonly IRepository<Notification, ApplicationDbContext> _notificationRepo;
 
+        private readonly IBadgeService _badgeService;
+
         // Constructor that injects the logger dependency
-        public DashboardController(ILogger<DashboardController> logger,
-            IProfileImageService imageService, IAuthenticationService authService,
-            IUserService userService, INotificationService notificationService,
-            IRepository<Notification, ApplicationDbContext> notificationRepo)
+        public DashboardController(ILogger<DashboardController> logger, 
+            IProfileImageService imageService, IAuthenticationService authService, 
+            IBadgeService badgeService, INotificationService notificationService, 
+            IUserService userService, IRepository<Notification, ApplicationDbContext> notificationRepo)
         {
             _logger = logger;
             _imageService = imageService;
             _authService = authService;
-            _userService = userService;
+            _badgeService = badgeService;
             _notificationService = notificationService;
+            _userService = userService;
             _notificationRepo = notificationRepo;
         }
 
@@ -52,14 +57,13 @@ namespace MH.Capstone.WebApp.Controllers
         public async Task<IActionResult> Index([FromQuery] bool sighting_success = false,
             [FromQuery] int? points_earned = null)
         {
-            var userEmail = User.Identity?.Name;
-            var user = await _userService.GetUserByEmailAsync(userEmail ?? "");
+            var user = await _userService.GetUserByClaimsPrincipleAsync(User);
             _logger.LogInformation("User {Email} accessed dashboard", User.Identity?.Name);
 
             var statusMsgHtml = "<p>You are successfully logged in. Time to explore our nature, together!</p>";
             if (sighting_success)
             {
-                if (points_earned.HasValue)
+                if (points_earned.HasValue && user != null && user.Sightings.Count > 0)
                 {
                     statusMsgHtml =
                         $"<p class='fw-bold'>Congratulations! Your Sighting was uploaded successfully!</p>" +
@@ -71,11 +75,38 @@ namespace MH.Capstone.WebApp.Controllers
                 }
             }
 
+            // Need to check if user has badges on initial page load
+            if (user is { UserBadges.Count: 0 })
+            {
+                if (user.Bio != null)
+                {
+                    await _badgeService.AddBadge(user, BadgeId.CustomBioBadgeGUID);
+                }
+
+                if (user.Sightings.Count >= 1)
+                {
+                    await _badgeService.AddBadge(user, BadgeId.FirstSightingBadgeGUID);
+                }
+
+                if (user.ProfileImage != null)
+                {
+                    await _badgeService.AddBadge(user, BadgeId.ProfileBadgeGUID);
+                }
+            }
+
+            // Get sorted Badges for display
+            var sortedBadges = new List<UserBadge>();
+            if (user != null)
+            {
+                sortedBadges = await _badgeService.SortBadgesByTime(user.UserBadges);
+            }
+
+            ViewData["SortedBadges"] = sortedBadges;
             ViewData["statusMsgHtml"] = statusMsgHtml;
             return View();
         }
 
-        [HttpPost]
+        [HttpPost("UploadImage")]
         public async Task<IActionResult> UploadProfileImage(IFormFile? profilePicture)
         {
             // Clear and possible outstanding ModelState errors to ensure a clean slate for the view.
@@ -111,12 +142,18 @@ namespace MH.Capstone.WebApp.Controllers
                 // Delegate to ProfileImageService
                 var imageData = await _imageService.ConvertToBytesAsync(profilePicture);
 
+                // Get the User object using the email from earlier
+                var user = await _userService.GetUserByEmailAsync(userEmail ?? "");
+
                 // Check for null before saving to DB
-                if (userEmail != null && imageData is { Length: > 0 })
+                if (userEmail != null && user != null && imageData is { Length: > 0 })
                 {
                     // Save the actual bytes to the database via the service
                     await _userService.UpdateUserProfileImageAsync(userEmail, imageData, profilePicture.ContentType);
                     _logger.LogInformation("Profile image updated for user {Email}", userEmail);
+
+                    // Add the Custom Profile Badge to the User object
+                    await _badgeService.AddBadge(user, BadgeId.ProfileBadgeGUID);
                 }
             }
             else
@@ -128,7 +165,7 @@ namespace MH.Capstone.WebApp.Controllers
             return RedirectToAction("Index");
         }
 
-        [HttpPost]
+        [HttpPost("UpdateBio")]
         public async Task<IActionResult> UpdateUserBio(string newBio)
         {
             var userEmail = User.Identity?.Name;
@@ -141,6 +178,10 @@ namespace MH.Capstone.WebApp.Controllers
                 // Delegate actual logic to the UserProfileService
                 await _userService.UpdateUserBioAsync(user, newBio);
                 _logger.LogInformation("Bio field updated for {Email}", userEmail);
+
+                // Add the custom Bio Badge to the UserBadges list.
+                // Does not add the badge if the user already has a custom bio.
+                await _badgeService.AddBadge(user, BadgeId.CustomBioBadgeGUID);
             }
 
             return RedirectToAction("Index");

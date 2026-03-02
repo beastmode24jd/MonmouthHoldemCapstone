@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "Dashboard";
     var user = await _userManager.GetUserAsync(User);
+    var badges = ViewData["SortedBadges"] as List<MH.Capstone.Domain.DataModels.UserBadge>;
 }
 
 <div class="container mt-4">
@@ -62,18 +63,8 @@
         </div>
     </div>
 
-    <div class="row mt-4 mb-4">
-        <div class="col-md-6">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">
-                        <i class="bi bi-speedometer2"></i> Quick Stats
-                    </h5>
-                    <p class="card-text">Current points: 0</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
+    <div class="row mt-4 mb-8">
+        <div class="col-md-4">
             <div class="card h-100">
                 <div class="card-body">
                     <h5 class="card-title">
@@ -91,10 +82,51 @@
                 </div>
             </div>
         </div>
+        <div class="col-md-8">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-speedometer2"></i> Quick Stats
+                    </h5>
+                    <p class="card-text mb-0 mt-1">Current points: </p> @(user?.Points ?? 0)
+                    <br>
+                    <p class="card-text mb-1 mt-2">Recent Badges:</p>
+                    <div class="mb-2 mt-0">
+                        @if(badges != null && badges.Any())
+                        {
+                            <div class="row g-3">
+                                @foreach(var ub in badges.Take(3)) // Show 3 most recent badges
+                                {
+                                    <div class="col-4 text-center">
+                                        <div class="card h-100 border-3">
+                                            <div class="card-body p-3">
+                                                <img src="~/imgs/badge/BadgeIcon1.jpg" class="dashboardProfile" role="img"/>
+                                                <br><strong>@ub.Badge.Title</strong> 
+                                                <br>@ub.Badge.PointValue points
+                                                <br><small class="text-muted">@ub.BadgeEarned?.ToString("MM-dd-yyyy")</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="col text-left">
+                                <div class="card h-100 border-0">
+                                    <div class="card-body pt-1 pb-1">
+                                        <p class="form-text">No badges yet. Hint: try uploading a custom profile image!</p>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-
     <div class="row mt-4 mb-4">
-        <div class="col-12">
+        <div class="col-mb-4">
             <div class="card shadow">
                 <div class="card-body">
                     <h5 class="card-title">

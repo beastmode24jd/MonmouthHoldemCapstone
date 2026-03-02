@@ -24,6 +24,7 @@ public class DashboardControllerTests
     private Mock<IRepository<Notification, ApplicationDbContext>> _mockNotificationRepo;
     private Mock<ILogger<DashboardController>> _mockLogger;
     private DashboardController _controller;
+    private Mock<IBadgeService> _mockBadgeService;
     private const string TestEmail = "namesNameington@mail.wou";
 
     [SetUp]
@@ -35,10 +36,13 @@ public class DashboardControllerTests
         _mockUserService = new Mock<IUserService>();
         _mockNotificationService = new Mock<INotificationService>();
         _mockNotificationRepo = new Mock<IRepository<Notification, ApplicationDbContext>>();
-        _controller = new DashboardController(_mockLogger.Object, _mockProfileImageService.Object, 
-            _mockAuthService.Object, _mockUserService.Object, _mockNotificationService.Object,
-            _mockNotificationRepo.Object);
+        _mockBadgeService = new Mock<IBadgeService>();
 
+        _controller = new DashboardController(_mockLogger.Object,
+            _mockProfileImageService.Object, _mockAuthService.Object,
+            _mockBadgeService.Object, _mockNotificationService.Object,
+            _mockUserService.Object, _mockNotificationRepo.Object);
+        
         // Mock the user, so the display name isn't null while testing
         var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
         {
@@ -49,8 +53,6 @@ public class DashboardControllerTests
         {
             HttpContext = new DefaultHttpContext() { User = user }
         };
-
-
     }
 
     [TearDown]
@@ -70,6 +72,10 @@ public class DashboardControllerTests
         // Tells service to return dummy bytes
         _mockProfileImageService.Setup(s => s.ConvertToBytesAsync(It.IsAny<IFormFile>()))
                     .ReturnsAsync(dummyBytes);
+
+        // Mocking the user lookup, which is required for the new UploadImage Badge
+        _mockUserService.Setup(s => s.GetUserByEmailAsync(TestEmail))
+                .ReturnsAsync(new ApplicationUser { Email = TestEmail });
 
         // Act
         await _controller.UploadProfileImage(fileMock.Object);
