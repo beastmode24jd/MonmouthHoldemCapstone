@@ -23,9 +23,10 @@ namespace MH.Capstone.Domain.Tests.Unit.Services;
 public class SightingsServiceTests
 {
     private Sighting _validSighting;
-    private Mock<IRepository<Sighting, ApplicationDbContext>> _sightingsRepoMock;
     private Mock<IScoringService> _scoringServiceMock;
     private Mock<INotificationService> _notificationServiceMock;
+    private Mock<IBadgeService> _badgeServiceMock;
+    private Mock<IRepository<Sighting, ApplicationDbContext>> _sightingsRepoMock;
     private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock;
     private FakeImageGenerator _imageGenerator;
 
@@ -39,6 +40,7 @@ public class SightingsServiceTests
         _scoringServiceMock = new Mock<IScoringService>();
         _notificationServiceMock = new Mock<INotificationService>();
         _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
+        _badgeServiceMock = new Mock<IBadgeService>();
     }
 
     [TearDown]
@@ -48,8 +50,11 @@ public class SightingsServiceTests
     }
 
     private SightingsService CreateSut() =>
-        new (NullLogger<SightingsService>.Instance, _sightingsRepoMock.Object, 
-            _scoringServiceMock.Object, _notificationServiceMock.Object,
+        new (NullLogger<SightingsService>.Instance,
+            _badgeServiceMock.Object,
+            _scoringServiceMock.Object,
+            _notificationServiceMock.Object,
+            _sightingsRepoMock.Object,
             _userRepoMock.Object);
 
     private void AssertAllMockVerifications()

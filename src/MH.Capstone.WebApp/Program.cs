@@ -12,7 +12,7 @@ namespace MH.Capstone.WebApp
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -76,8 +76,12 @@ namespace MH.Capstone.WebApp
 
             // Register Additional Services - Business Logic Layer
             builder.Services.AddScoped<INotificationService, InAppNotificationService>();
+            builder.Services.AddScoped<IBadgeService, BadgeService>();
             builder.Services.AddScoped<IScoringService, ScoringService>();
             builder.Services.AddScoped<ISightingsService, SightingsService>();
+
+            // Register the Badge Service
+            
 
             // Add services to the container.
             builder.Services.AddControllersWithViews()
@@ -94,6 +98,23 @@ namespace MH.Capstone.WebApp
             }
 
             var app = builder.Build();
+
+            // INITIALIZING BADGE BLOCK
+            using (var scope = app.Services.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+                try
+                {
+                    var badgeService = services.GetRequiredService<IBadgeService>();
+                    await badgeService.EnsureStandardBadgesCreated();
+                }
+                catch (Exception ex)
+                {
+                    var logger = services.GetRequiredService<ILogger<Program>>();
+                    logger.LogError(ex, "An error occurred while seeding the Badges table.");
+                }
+            }
+            // ----------------
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
