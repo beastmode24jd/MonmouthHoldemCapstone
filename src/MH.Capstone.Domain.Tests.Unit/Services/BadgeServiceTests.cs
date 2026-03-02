@@ -7,6 +7,7 @@ using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.Services.Abstraction;
 using System.Text;
+using Moq;
 
 namespace MH.Capstone.Domain.Tests.Unit.Services;
 
@@ -16,6 +17,13 @@ public class BadgeServiceTests
     private ServiceProvider _serviceProvider;
     private ApplicationDbContext _context;
     private IBadgeService _badgeService;
+
+    // Add in the IRepositories? ----------
+    private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock;
+    private Mock<IRepository<Badge, ApplicationDbContext>> _badgeRepoMock;
+    private Mock<IRepository<UserBadge, ApplicationDbContext>> _userBadgeRepoMock;
+    // ------------------------------------
+
     private Guid _testBadgeId;
     
 
@@ -40,15 +48,22 @@ public class BadgeServiceTests
 
         services.AddScoped<IAuthenticationService, AuthenticationService>();
 
-        //          Will need to implement in Program.cs later,
-        //              as well as mocking in Dashboard Tests
-
         services.AddScoped<IBadgeService, BadgeService>();
 
         _serviceProvider = services.BuildServiceProvider();
         _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
 
-        _badgeService = _serviceProvider.GetRequiredService<IBadgeService>();
+        // Add in the Mocked Repositories
+        _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
+        _badgeRepoMock = new Mock<IRepository<Badge, ApplicationDbContext>>();
+        _userBadgeRepoMock = new Mock<IRepository<UserBadge, ApplicationDbContext>>();
+
+        _badgeService = new BadgeService(
+            _context,
+            _badgeRepoMock.Object,
+            _userBadgeRepoMock.Object,
+            _userRepoMock.Object
+        );
 
         await _context.Database.EnsureCreatedAsync();
 
@@ -63,7 +78,7 @@ public class BadgeServiceTests
 
         // Store the Guid to the private testBadgeId field
         _testBadgeId = testBadge.BadgeID;
-        _context.Set<Badge>().Add(testBadge);
+        //_context.Set<Badge>().Add(testBadge);
 
         await _context.SaveChangesAsync();
     }
@@ -75,25 +90,6 @@ public class BadgeServiceTests
         await _context.DisposeAsync();
         await _serviceProvider.DisposeAsync();
     }
-
-    /*  Test ideas:
-        - 3 badge types:
-            - First Sighting Upload
-            - Custom Bio Upload
-            - Custom Profile Icon Upload
-
-        - Badges should increment the points a user has, by about 10~15 per badge
-        
-        Front end ideas (ONLY IMPLEMENT AFTER NUNIT TESTS, EF, AND BACKEND IS GOOD)
-        This is here so I don't accidently turn them into tests somehow
-        
-        - Custom display page for badges
-        - Default image display for badge icons (test for null value)
-        - Dashboard display of badges collected
-            - If no badges, display placeholder text with hints
-            - Max Dashboard display is three badges
-        - Display badges in descending order of chronologic earning
-    */
 
     [Test]
     public async Task AddBadge_ToValidUser_IncrementsUserPoints()
@@ -134,8 +130,17 @@ public class BadgeServiceTests
     public async Task GetBadgeDetails_BadgeExists_ReturnsBadgeDetails()
     {
         // Arrange
-        // Custom Profile Badge mock is added to memory during Test Setup().
 
+        var testBadge = new Badge {
+            BadgeID = _testBadgeId,
+            Title = "Custom Profile Icon",
+            PointValue = 10
+        };
+
+        // Set up the Mock to respond properly when called
+        _badgeRepoMock.Setup(repo => repo.FindByIdAsync(_testBadgeId))
+                  .ReturnsAsync(testBadge);
+        
         // Act
         var searchBadge = await _badgeService.GetBadgeDetails(_testBadgeId);
 
