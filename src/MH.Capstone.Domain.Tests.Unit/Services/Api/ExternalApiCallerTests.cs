@@ -3,11 +3,11 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using Newtonsoft.Json;
 using RichardSzalay.MockHttp;
-using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
 using Microsoft.Extensions.Logging.Abstractions;
+using MH.Capstone.Domain.Services.Api;
 
-namespace MH.Capstone.Domain.Tests.Unit.Services
+namespace MH.Capstone.Domain.Tests.Unit.Services.Api
 {
     [TestFixture]
     [Parallelizable]

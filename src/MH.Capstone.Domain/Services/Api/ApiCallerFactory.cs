@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using MH.Capstone.Domain.Services.Abstraction;
 using Microsoft.Extensions.Logging;
 
-namespace MH.Capstone.Domain.Services
+namespace MH.Capstone.Domain.Services.Api
 {
     public class ApiCallerFactory : IApiCallerFactory
     {

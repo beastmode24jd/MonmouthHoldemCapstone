@@ -4,12 +4,12 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.Domain.Services.Api;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
-namespace MH.Capstone.Domain.Tests.Unit.Services
+namespace MH.Capstone.Domain.Tests.Unit.Services.Api
 {
 
     [TestFixture]

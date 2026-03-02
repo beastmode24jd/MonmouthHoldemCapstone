@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
-namespace MH.Capstone.Domain.Services
+namespace MH.Capstone.Domain.Services.Api
 {
     public class ExternalApiCaller : IApiCaller
     {
