@@ -132,6 +132,7 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<IScoringService, ScoringService>();
             builder.Services.AddScoped<ISightingsService, SightingsService>();
             builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
+            builder.Services.AddScoped<IApiCallerFactory, ApiCallerFactory>();
 
             // Add controllers with views and configure Newtonsoft.Json for JSON serialization
             builder.Services.AddControllersWithViews()
