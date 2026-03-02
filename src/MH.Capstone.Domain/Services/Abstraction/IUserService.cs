@@ -10,6 +10,9 @@ namespace MH.Capstone.Domain.Services.Abstraction
 {
     public interface IUserService : IUserProfileService
     {
+        // Returns the total number of non-deactivated users.
+        Task<int> GetTotalUserCountAsync();
+
         Task<bool> UserExistsAsync(string identifier);
 
         Task<ApplicationUser?> GetUserByEmailAsync(string email);

@@ -78,8 +78,10 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<IBadgeService, BadgeService>();
             builder.Services.AddScoped<IScoringService, ScoringService>();
             builder.Services.AddScoped<ISightingsService, SightingsService>();
-            builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();            
-            
+
+            // Register the Leaderboard Service (CSP-97)
+            builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
+
             // Add services to the container.
             builder.Services.AddControllersWithViews()
                 .AddNewtonsoftJson();

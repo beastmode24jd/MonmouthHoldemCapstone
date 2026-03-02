@@ -16,6 +16,7 @@ namespace MH.Capstone.WebApp.Tests.Unit.Controllers;
 public class LeaderboardControllerTests
 {
     private Mock<ILeaderboardService> _mockLeaderboardService = null!;
+    private Mock<IUserService> _mockUserService = null!;
     private Mock<UserManager<ApplicationUser>> _userManagerMock = null!;
     private LeaderboardController _controller = null!;
 
@@ -23,12 +24,13 @@ public class LeaderboardControllerTests
     public void SetUp()
     {
         _mockLeaderboardService = new Mock<ILeaderboardService>();
+        _mockUserService = new Mock<IUserService>();
 
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         _userManagerMock = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
-        _controller = new LeaderboardController(_mockLeaderboardService.Object, _userManagerMock.Object);
+        _controller = new LeaderboardController(_mockLeaderboardService.Object, _mockUserService.Object, _userManagerMock.Object);
     }
 
     [TearDown]
@@ -76,7 +78,7 @@ public class LeaderboardControllerTests
             new() { Id = "user-3", UserName = "Charlie", Points = 100 }
         };
         _mockLeaderboardService.Setup(s => s.GetLeaderboardPageAsync(1, 30)).ReturnsAsync(fakeUsers);
-        _mockLeaderboardService.Setup(s => s.GetTotalUserCountAsync()).ReturnsAsync(3);
+        _mockUserService.Setup(s => s.GetTotalUserCountAsync()).ReturnsAsync(3);
         SetAnonymousUser();
 
         // Act
@@ -92,7 +94,7 @@ public class LeaderboardControllerTests
     {
         // Arrange
         _mockLeaderboardService.Setup(s => s.GetLeaderboardPageAsync(1, 30)).ReturnsAsync(new List<ApplicationUser>());
-        _mockLeaderboardService.Setup(s => s.GetTotalUserCountAsync()).ReturnsAsync(0);
+        _mockUserService.Setup(s => s.GetTotalUserCountAsync()).ReturnsAsync(0);
         SetAnonymousUser();
 
         // Act
@@ -108,7 +110,7 @@ public class LeaderboardControllerTests
     {
         // Arrange
         _mockLeaderboardService.Setup(s => s.GetLeaderboardPageAsync(1, 30)).ReturnsAsync(new List<ApplicationUser>());
-        _mockLeaderboardService.Setup(s => s.GetTotalUserCountAsync()).ReturnsAsync(0);
+        _mockUserService.Setup(s => s.GetTotalUserCountAsync()).ReturnsAsync(0);
         _mockLeaderboardService.Setup(s => s.GetUserRankAsync("user-1")).ReturnsAsync(1);
         SetLoggedInUser("user-1");
 

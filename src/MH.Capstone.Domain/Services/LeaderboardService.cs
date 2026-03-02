@@ -26,13 +26,6 @@ namespace MH.Capstone.Domain.Services
                 .Take(pageSize); // limit to page size
         }
 
-        public async Task<int> GetTotalUserCountAsync()
-        {
-            // want to count only active users.
-            // match the same filter as GetLeaderboardPageAsync to avoid counting deactivated users.
-            return (await _userRepo.GetAllAsync(u => !u.IsDeactivated)).Count();
-        }
-
         public async Task<int> GetUserRankAsync(string userId)
         {
             // Pull all active users ordered by points descending. same order as the leaderboard.

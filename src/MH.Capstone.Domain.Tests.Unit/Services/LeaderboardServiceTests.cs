@@ -111,44 +111,6 @@ public class LeaderboardServiceTests
 
     #endregion
 
-    #region GetTotalUserCountAsync
-
-    [Test]
-    public async Task GetTotalUserCountAsync_WithThreeActiveUsers_Returns3()
-    {
-        // Arrange — repo returns 3 active users (the predicate filtering is the repo's responsibility)
-        SetupUserRepoMock([
-            MakeUser("user-1", "Alice", 100),
-            MakeUser("user-2", "Bob", 200),
-            MakeUser("user-3", "Charlie", 300)
-        ]);
-        var sut = CreateSut();
-
-        // Act
-        var result = await sut.GetTotalUserCountAsync();
-
-        // Assert
-        Assert.That(result, Is.EqualTo(3));
-    }
-
-    [Test]
-    public async Task GetTotalUserCountAsync_DeactivatedUsersAreExcluded()
-    {
-        // Arrange — mock simulates the repo returning only the 1 active user after applying the predicate
-        SetupUserRepoMock([
-            MakeUser("user-1", "ActiveUser", 100)
-        ]);
-        var sut = CreateSut();
-
-        // Act
-        var result = await sut.GetTotalUserCountAsync();
-
-        // Assert
-        Assert.That(result, Is.EqualTo(1));
-    }
-
-    #endregion
-
     #region GetUserRankAsync
 
     [Test]

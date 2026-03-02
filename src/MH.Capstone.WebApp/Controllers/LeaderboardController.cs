@@ -10,11 +10,13 @@ namespace MH.Capstone.WebApp.Controllers
     public class LeaderboardController : Controller
     {
         private readonly ILeaderboardService _leaderboardService;
+        private readonly IUserService _userService;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public LeaderboardController(ILeaderboardService leaderboardService, UserManager<ApplicationUser> userManager)
+        public LeaderboardController(ILeaderboardService leaderboardService, IUserService userService, UserManager<ApplicationUser> userManager)
         {
             _leaderboardService = leaderboardService;
+            _userService = userService;
             _userManager = userManager;
         }
 
@@ -22,7 +24,7 @@ namespace MH.Capstone.WebApp.Controllers
         {
             // Get the current page of users and the total count in parallel.
             var users = (await _leaderboardService.GetLeaderboardPageAsync(page)).ToList();
-            var totalUsers = await _leaderboardService.GetTotalUserCountAsync();
+            var totalUsers = await _userService.GetTotalUserCountAsync();
 
             // Calculate total pages, rounding up so a partial page still counts.
             var totalPages = (int)Math.Ceiling(totalUsers / 30.0);

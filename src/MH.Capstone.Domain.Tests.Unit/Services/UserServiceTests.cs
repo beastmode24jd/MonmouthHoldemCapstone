@@ -357,5 +357,49 @@ namespace MH.Capstone.Domain.Tests.Unit.Services
                 Assert.That(user.Bio!, Is.EqualTo(null));
             });
         }
+
+    #region GetTotalUserCountAsync
+
+    [Test]
+    public async Task GetTotalUserCountAsync_WithThreeActiveUsers_Returns3()
+    {
+        // Arrange — repo returns 3 active users (the predicate filtering is the repo's responsibility)
+        _userRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>>())) 
+            .ReturnsAsync(new List<ApplicationUser>
+            {
+                new() { Id = "user-1", UserName = "Alice", Points = 100 },
+                new() { Id = "user-2", UserName = "Bob", Points = 200 },
+                new() { Id = "user-3", UserName = "Charlie", Points = 300 }
+            }.AsQueryable());
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetTotalUserCountAsync();
+
+        // Assert
+        Assert.That(result, Is.EqualTo(3));
+    }
+
+    [Test]
+    public async Task GetTotalUserCountAsync_DeactivatedUsersAreExcluded()
+    {
+        // Arrange — mock simulates the repo returning only the 1 active user after applying the predicate
+        _userRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>>())) 
+            .ReturnsAsync(new List<ApplicationUser>
+            {
+                new() { Id = "user-1", UserName = "ActiveUser", Points = 100 }
+            }.AsQueryable());
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetTotalUserCountAsync();
+
+        // Assert
+        Assert.That(result, Is.EqualTo(1));
+    }
+
+    #endregion
     }
 }
