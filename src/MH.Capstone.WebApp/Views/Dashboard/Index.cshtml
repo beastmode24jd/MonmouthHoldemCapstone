@@ -80,10 +80,9 @@
                                 @foreach(var ub in badges.Take(3)) // Show 3 most recent badges
                                 {
                                     <li>
-                                        <i class="bi bi-patch-check-fill text-primary"></i>
-                                        @* <img src="~/imgs/badge/BadgeIcon1.jpg" class="dashboardProfile" role="img"/> *@
+                                        <img src="~/imgs/badge/BadgeIcon1.jpg" class="dashboardProfile" role="img"/>
                                         <strong>@ub.Badge.Title</strong> 
-                                        <small class="text-muted">(@ub.BadgeEarned?.ToString("MMM dd"))</small>
+                                        <small class="text-muted">(@ub.BadgeEarned?.ToString("MM-dd-yyyy"))</small>
                                     </li>
                                 }
                             </ul>
