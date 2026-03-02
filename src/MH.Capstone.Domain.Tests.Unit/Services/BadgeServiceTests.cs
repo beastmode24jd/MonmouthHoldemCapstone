@@ -67,17 +67,8 @@ public class BadgeServiceTests
 
         await _context.Database.EnsureCreatedAsync();
 
-        // MOCK BADGE
-        // Adds a dummy badge to local DB mock, so search feature can find a badge to add.
-        var testBadge = new Badge
-        { 
-            BadgeID = Guid.NewGuid(),
-            Title = "Custom Profile Icon", 
-            PointValue = 10
-        };
-
         // Store the Guid to the private testBadgeId field
-        _testBadgeId = testBadge.BadgeID;
+        _testBadgeId = Guid.NewGuid();
         //_context.Set<Badge>().Add(testBadge);
 
         await _context.SaveChangesAsync();
@@ -92,38 +83,36 @@ public class BadgeServiceTests
     }
 
     [Test]
-    public async Task AddBadge_ToValidUser_IncrementsUserPoints()
+    public async Task AddBadge_ToValidUser_CallsReposAndUpdatesBadgesAndPoints()
     {
         // Arrange
         // User's point count defaults to zero on initialization.
-        var user = new ApplicationUser();
+        var user = new ApplicationUser{ Id = "testId", Points = 0 };
 
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+        var badgeTemplate = new Badge{BadgeID = _testBadgeId, PointValue = 15, Title = "Test Badge"};
+
+        _badgeRepoMock.Setup(r => r.FindByIdAsync(_testBadgeId))
+                  .ReturnsAsync(badgeTemplate);
 
         // Act
         await _badgeService.AddBadge(user, _testBadgeId);
 
         // Assert
-        // Test badge is worth 10 points, check to see if point increment is the same
-        Assert.That(user.Points, Is.EqualTo(10), "AddBadge() did not add 10 points to the user."); 
-    }
+        // Check that the Repos were called
+        _badgeRepoMock.Verify(r => r.FindByIdAsync(_testBadgeId), Times.Once);
 
-    [Test]
-    public async Task AddBadge_ToValidUser_IncrementsBadgeList()
-    {
-        // Arrange
-        var user = new ApplicationUser();
+        // Check That UserBadge Id and UserId mock calls match with input values
+        _userBadgeRepoMock.Verify(r => r.AddOrUpdateAsync(It.Is<UserBadge>(ub => 
+        ub.BadgeId == _testBadgeId && ub.UserId == user.Id)), Times.Once);
 
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+        // Checks if UserBadge directory was called to save a new object (UserBadge)
+        _userBadgeRepoMock.Verify(r => r.AddOrUpdateAsync(It.Is<UserBadge>(ub => 
+        ub.UserId == user.Id && 
+        ub.BadgeId == _testBadgeId)), Times.Once);
 
-        // Act
-        // Add the test badge to the user object.
-        await _badgeService.AddBadge(user, _testBadgeId);
+        // Test badge is worth 15 points, check to see if point increment is the same
+        _userRepoMock.Verify(r => r.AddOrUpdateAsync(It.Is<ApplicationUser>(u => u.Points == 15)), Times.Once);
 
-        // Assert
-        Assert.That(user.UserBadges.Count, Is.EqualTo(1));
     }
 
     [Test]
@@ -154,6 +143,7 @@ public class BadgeServiceTests
             Assert.That(searchBadge!.BadgeID, Is.EqualTo(_testBadgeId));
             Assert.That(searchBadge!.Title, Is.EqualTo("Custom Profile Icon"));
             Assert.That(searchBadge!.PointValue, Is.EqualTo(10));
+            _badgeRepoMock.Verify(r => r.FindByIdAsync(_testBadgeId), Times.Once);
         });
     }
 
@@ -163,11 +153,9 @@ public class BadgeServiceTests
         // Arrange
         Guid fakeId = Guid.NewGuid();
 
-        // I doubt that fakeId would be the same Guid as _testBadgeId, but this checks anyway
-        if (fakeId == _testBadgeId)
-        {
-            fakeId = Guid.NewGuid();
-        }
+        // Guarantee that the Mock will return a null value for searching fakeId.
+        _badgeRepoMock.Setup(r => r.FindByIdAsync(fakeId))
+                    .ReturnsAsync((Badge?)null);
 
         // Act
         var searchBadge = await _badgeService.GetBadgeDetails(fakeId);
@@ -202,5 +190,21 @@ public class BadgeServiceTests
             Assert.That(result[0].BadgeEarned, Is.EqualTo(newTime));
             Assert.That(result[1].BadgeEarned, Is.EqualTo(oldTime));
         });
+    }
+
+    [Test]
+    public async Task EnsureStandardBadgesCreated_SeedsMissingBadges()
+    {
+        // Arrange
+        // Guarantee that the mock will return null when called
+        // Simulates empty DB
+        _badgeRepoMock.Setup(r => r.FindByIdAsync(It.IsAny<Guid>()))
+                    .ReturnsAsync((Badge?)null);
+
+        // Act
+        await _badgeService.EnsureStandardBadgesCreated();
+
+        // Assert: Verify AddAsync was called 3 times (for Profile, Bio, and Sighting badges)
+        _badgeRepoMock.Verify(r => r.AddOrUpdateAsync(It.IsAny<Badge>()), Times.Exactly(3));
     }
 }
