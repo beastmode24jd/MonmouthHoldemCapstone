@@ -9,18 +9,18 @@ namespace MH.Capstone.Domain.Services.Api
     public class ExternalApiCaller<TConfig> : IApiCaller<TConfig> where TConfig : class, IApiConfigurationValues
     {
         public string ClientName { get; }
-        public TConfig ApiClientConfig { get; }
+        public TConfig ConfigValues { get; }
 
         private readonly ILogger<IApiCaller<TConfig>> _logger;
         private readonly IHttpClientFactory _httpClientFactory;
 
         public ExternalApiCaller(ILogger<IApiCaller<TConfig>> logger, IHttpClientFactory httpClientFac,
-            TConfig config)
+            TConfig configValues)
         {
             _logger = logger;
             _httpClientFactory = httpClientFac;
-            ClientName = config.HttpClientKey;
-            ApiClientConfig = config;
+            ClientName = configValues.HttpClientKey;
+            ConfigValues = configValues;
         }
 
         /// <summary>

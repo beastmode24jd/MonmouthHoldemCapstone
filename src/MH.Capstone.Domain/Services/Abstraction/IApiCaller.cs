@@ -9,7 +9,7 @@ namespace MH.Capstone.Domain.Services.Abstraction
 {
     public interface IApiCaller<out TConfig> where TConfig : class, IApiConfigurationValues
     {
-        TConfig ApiClientConfig { get; }
+        TConfig ConfigValues { get; }
 
         Task<T> GetAsync<T>(string url, params 
             IEnumerable<KeyValuePair<string, string>>? queryParams);
