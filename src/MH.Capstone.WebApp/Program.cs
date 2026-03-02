@@ -7,6 +7,7 @@ using MH.Capstone.Domain.Services.Notifications;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Protocols.Configuration;
 
 namespace MH.Capstone.WebApp
 {
@@ -82,6 +83,41 @@ namespace MH.Capstone.WebApp
                 options.Cookie.HttpOnly = true;
             });
 
+            // Get the base URL and API key from configuration (appsettings.json or environment variables)
+            // Done outside the HttpClient configuration to validate presence and provide clear and fast (at app startup)
+            // error feedback if missing.
+            const string ninjasApiConfigSection = "Api:External:Ninjas";
+            var apiBaseUrl = builder.Configuration[$"{ninjasApiConfigSection}:Endpoints:Animal"];
+            var apiKey = builder.Configuration[$"{ninjasApiConfigSection}:ApiKey"];
+
+            if (string.IsNullOrWhiteSpace(apiBaseUrl) || string.IsNullOrWhiteSpace(apiKey))
+            {
+                if (!builder.Environment.IsDevelopment())
+                {
+                    // In a non-development environment, we want to hide the API key value,
+                    // so we will obscure it in the error message.
+                    apiKey = string.IsNullOrWhiteSpace(apiKey)
+                        ? "MISSING"
+                        : $"{new string('X', apiKey.Length)}";
+                }
+
+                throw new InvalidConfigurationException(
+                    $"Required API Configuration values {nameof(apiBaseUrl)} and/or " +
+                    $"{nameof(apiKey)} were missing or unset. This is a fatal error!\n" +
+                    $"\t{nameof(apiBaseUrl)} = {apiBaseUrl}\n" +
+                    $"\t{nameof(apiKey)} = {apiKey}");
+            }
+
+            // Configure HttpClient for external API calls (e.g., AnimalApi, Emailer, etc.)
+            builder.Services.AddHttpClient("NinjasAnimalApi", client =>
+            {
+                // BaseAddress and other settings can be configured when injecting the client
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                client.DefaultRequestHeaders.Add("X-Api-Key", apiKey);
+                client.Timeout = TimeSpan.FromSeconds(15); // Set a reasonable timeout
+            });
+
+            // Configure Dependency Injection for Repositories and Services
             // Register Generic Repository
             builder.Services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
 
@@ -95,11 +131,9 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<IBadgeService, BadgeService>();
             builder.Services.AddScoped<IScoringService, ScoringService>();
             builder.Services.AddScoped<ISightingsService, SightingsService>();
-
-            // Register the Leaderboard Service (CSP-97)
             builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 
-            // Add services to the container.
+            // Add controllers with views and configure Newtonsoft.Json for JSON serialization
             builder.Services.AddControllersWithViews()
                 .AddNewtonsoftJson();
 
