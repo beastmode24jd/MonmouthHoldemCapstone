@@ -50,10 +50,10 @@ namespace MH.Capstone.WebApp.Controllers
                     .Value ?? throw new InvalidConfigurationException("The needed Animal endpoint could " +
                                                                       "not be found in the api caller's config values!");
 
-                var result = await apiCaller.GetAsync<IEnumerable<AnimalApiDto>>(url, 
-                    new KeyValuePair<string, string>("name", name));
+                var result = (await apiCaller.GetAsync<IEnumerable<AnimalApiDto>>(url, 
+                    new KeyValuePair<string, string>("name", name))).ToList();
 
-                if (result.Any())
+                if (result.Count > 0)
                 {
                     return Ok(result);
                 }
