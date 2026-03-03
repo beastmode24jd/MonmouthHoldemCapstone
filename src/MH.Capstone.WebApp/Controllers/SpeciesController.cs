@@ -1,4 +1,4 @@
-﻿using System.Net;
+﻿    using System.Net;
 using MH.Capstone.Domain.ApiContracts;
 using MH.Capstone.Domain.ApiContracts.Ninjas;
 using MH.Capstone.Domain.Services.Abstraction;
@@ -82,6 +82,23 @@ namespace MH.Capstone.WebApp.Controllers
                     $"An error occurred while trying to search for an animal/species with the name '{name}'.");
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
+        }
+
+        [HttpPost]
+        [Route("search/render")]
+        [IgnoreAntiforgeryToken]
+        [Produces("text/html")]
+        public IActionResult RenderPartial([FromBody] AnimalApiDto? item)
+        {
+            if (item is null)
+            {
+                _logger.LogInformation("RenderPartial called with null body");
+                return BadRequest();
+            }
+
+            // IMPORTANT: This action does NOT call the external API.
+            // It only renders the provided DTO as a PartialView.
+            return PartialView("_AnimalResult", item);
         }
     }
 }

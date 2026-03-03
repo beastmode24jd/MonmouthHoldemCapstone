@@ -1,4 +1,6 @@
 ﻿using MH.Capstone.Domain.Services.Abstraction;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using System;
 using System.Buffers.Text;
 using System.Collections.Generic;
@@ -25,6 +27,14 @@ namespace MH.Capstone.Domain.ApiContracts
         /// <returns>A <see cref="bool"/> indicating if this configuration property is currently in a valid state</returns>
         public virtual bool IsValid => !string.IsNullOrWhiteSpace(HttpClientKey) &&
                                        !string.IsNullOrWhiteSpace(BaseUrl);
+
+        public virtual JsonSerializerSettings JsonSerializerSettings { get; } = new JsonSerializerSettings
+        {
+            ContractResolver = new DefaultContractResolver
+            {
+                NamingStrategy = new SnakeCaseNamingStrategy()
+            }
+        };
 
 
         protected ApiConfigurationValues(string httpClientKey, string baseUrl,

@@ -54,7 +54,8 @@ namespace MH.Capstone.Domain.Services.Api
 
                 var content = await response.Content.ReadAsStringAsync();
                 _logger.LogCritical($"Content String:\n\n{content}");
-                return JsonConvert.DeserializeObject<TReturn>(content) ?? throw new JsonException("The api failed to deserialize " +
+                return JsonConvert.DeserializeObject<TReturn>(content, ConfigValues.JsonSerializerSettings) 
+                       ?? throw new JsonException("The api failed to deserialize " +
                     $"the api call response at {response.Headers.Location} to the requested type {typeof(TReturn)}");
             }
             // Exclude JsonExceptions from being caught here since we'll be throwing those ourselves with more context.

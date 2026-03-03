@@ -25,7 +25,16 @@
         <h2 id="resultsHeading" class="sr-only">Search results</h2>
 
         <div id="resultsContainer" class="results-container">
-            <div id="resultCard" class="result-card" aria-live="polite">Loading…</div>
+            <div id="resultCard" class="result-card" aria-live="polite">
+                @if (Model != null && Model.Any())
+                {
+                    @Html.Partial("_AnimalResult", Model.First())
+                }
+                else
+                {
+                    <div class="result-body"><p class="result-sub">No results.</p></div>
+                }
+            </div>
 
             <div class="pagination" aria-label="Result navigation">
                 <button id="prevBtn" class="btn" disabled aria-label="Previous result">Previous</button>
@@ -165,9 +174,7 @@
 @section Scripts
 {
     <script>
-        // Initial data from server (if any)
         const initialResults = @Html.Raw(initialJson ?? "[]");
-
         let results = Array.isArray(initialResults) ? initialResults : [];
         let currentIndex = 0;
 
@@ -180,76 +187,54 @@
         const searchStatus = document.getElementById('searchStatus');
         const clearBtn = document.getElementById('clearBtn');
 
-        function setStatus(text) {
+        function setStatus(text, isErr = false) {
             searchStatus.textContent = text || '';
+            searchStatus.style.color = isErr ? 'red' : 'inherit';
         }
 
-        function normalizeKey(k) {
-            return k ? k.toString() : '';
+        function updateControls() {
+            const count = results?.length || 0;
+            resultCounter.textContent = `${count ? currentIndex + 1 : 0} / ${count}`;
+            prevBtn.disabled = currentIndex <= 0 || count === 0;
+            nextBtn.disabled = currentIndex >= count - 1 || count === 0;
         }
 
-        function renderResult(index) {
-            if (!results || results.length === 0) {
+        // POST the single item JSON to the server to render as a partial.
+        // This does NOT trigger the external API again.
+        async function renderServerPartialForIndex(index) {
+            if (!results || !results.length || index < 0 || index >= results.length) {
                 resultCard.innerHTML = '<div class="result-body"><p class="result-sub">No results.</p></div>';
-                resultCounter.textContent = '0 / 0';
-                prevBtn.disabled = true;
-                nextBtn.disabled = true;
+                updateControls();
                 return;
             }
 
-            const i = Math.max(0, Math.min(index, results.length - 1));
-            currentIndex = i;
-            const item = results[i];
+            try {
+                const url = new URL('@Url.Action("RenderPartial", "Species")', window.location.origin);
+                const resp = await fetch(url.toString(), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'text/html'
+                    },
+                    body: JSON.stringify(results[index])
+                });
 
-            // Try common property names for primary fields
-            const name = item?.name ?? item?.Name ?? item?.commonName ?? item?.CommonName ?? 'Unknown';
-            const sci = item?.scientificName ?? item?.ScientificName ?? item?.latinName ?? item?.LatinName;
-            const desc = item?.description ?? item?.Description ?? item?.summary ?? '';
-            const image = item?.imageUrl ?? item?.ImageUrl ?? item?.thumbnail ?? item?.Thumbnail;
-
-            let html = '';
-
-            if (image) {
-                html += `<img src="${escapeHtml(String(image))}" alt="${escapeHtml(String(name))}" class="result-image" loading="lazy" />`;
-            }
-
-            html += '<div class="result-body">';
-            html += `<h3 class="result-title">${escapeHtml(String(name))}</h3>`;
-            if (sci) html += `<div class="result-sub">${escapeHtml(String(sci))}</div>`;
-            if (desc) html += `<div class="result-meta">${escapeHtml(String(desc))}</div>`;
-
-            // Render other attributes in a small list (only show simple primitives)
-            const known = new Set(['name', 'Name', 'commonName', 'CommonName', 'scientificName', 'ScientificName', 'latinName', 'LatinName', 'description', 'Description', 'summary', 'imageUrl', 'ImageUrl', 'thumbnail', 'Thumbnail', 'id', 'Id']);
-            const entries = Object.entries(item || {})
-                .filter(([k, v]) => !known.has(k) && (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'))
-                .slice(0, 10);
-
-            if (entries.length) {
-                html += '<dl class="result-meta">';
-                for (const [k, v] of entries) {
-                    html += `<dt style="font-weight:600;margin-top:.5rem;">${escapeHtml(k)}</dt><dd style="margin:0 0 .5rem 0;">${escapeHtml(String(v))}</dd>`;
+                if (resp.ok) {
+                    const html = await resp.text();
+                    resultCard.innerHTML = html;
+                    currentIndex = index;
+                    updateControls();
+                } else {
+                    const txt = await resp.text();
+                    setStatus('Failed to render result: ' + (txt || resp.statusText), true);
                 }
-                html += '</dl>';
+            } catch (err) {
+                console.error(err);
+                setStatus('Failed to render result.', true);
             }
-
-            html += '</div>'; // result-body
-
-            resultCard.innerHTML = html;
-            resultCounter.textContent = `${currentIndex + 1} / ${results.length}`;
-
-            prevBtn.disabled = currentIndex <= 0;
-            nextBtn.disabled = currentIndex >= results.length - 1;
         }
 
-        function escapeHtml(unsafe) {
-            return (unsafe ?? '').toString()
-                .replaceAll('&', '&amp;')
-                .replaceAll('<', '&lt;')
-                .replaceAll('>', '&gt;')
-                .replaceAll('"', '&quot;')
-                .replaceAll("'", '&#039;');
-        }
-
+        // Keeps the single API call per search: this fetch gets the full results list.
         async function doSearch(name) {
             setStatus('');
             if (!name || name.trim().length === 0) {
@@ -258,82 +243,87 @@
             }
 
             setStatus('Searching…');
-            console.log('Searching…');
             try {
                 const url = new URL(searchForm.action, window.location.origin);
                 url.searchParams.set('name', name);
 
-                console.log(`url = ${url.toString()}`);
-
-                const resp = await fetch(url.toString(),
-                    {
-                        method: 'GET',
-                        headers: {
-                            'Accept': 'application/json',
-                            'RequestVerificationToken': searchForm.querySelector('input[name="__RequestVerificationToken"]').value
-                        }
-                    });
+                const resp = await fetch(url.toString(), {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'RequestVerificationToken': searchForm.querySelector('input[name="__RequestVerificationToken"]').value
+                    }
+                });
 
                 if (!resp.ok) {
-                    console.log('error');
+                    if (resp.status === 404) {
+                        results = [];
+                        resultCard.innerHTML = '<div class="result-body"><p class="result-sub">No results.</p></div>';
+                        updateControls();
+                        setStatus('');
+                        return;
+                    }
                     const txt = await resp.text();
                     throw new Error(txt || resp.statusText);
                 }
 
-                console.log('success');
-
                 const data = await resp.json();
                 results = Array.isArray(data) ? data : [];
                 currentIndex = 0;
-                renderResult(currentIndex);
-                setStatus(`${results.length} result(s)`);
+                updateControls();
+
+                if (results.length > 0) {
+                    await renderServerPartialForIndex(0); // server renders selected item without calling API
+                    setStatus('');
+                } else {
+                    resultCard.innerHTML = '<div class="result-body"><p class="result-sub">No results.</p></div>';
+                    setStatus('');
+                }
             } catch (err) {
                 console.error(err);
-                setStatus('Search failed. ' + (err?.message ?? ''));
+                setStatus('Search failed. ' + (err?.message ?? ''), true);
                 results = [];
-                renderResult(0);
+                resultCard.innerHTML = '<div class="result-body"><p class="result-sub">No results.</p></div>';
+                updateControls();
             }
         }
 
-        // Wire up form with AJAX and graceful fallback (form action exists for non-JS)
-        searchForm.addEventListener('submit',
-            function(e) {
-                e.preventDefault();
-                const q = nameInput.value;
-                doSearch(q);
-            });
+        // Events
+        searchForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const q = nameInput.value;
+            doSearch(q);
+        });
 
-        prevBtn.addEventListener('click',
-            function() {
-                if (currentIndex > 0) {
-                    currentIndex -= 1;
-                    renderResult(currentIndex);
-                }
-            });
-        nextBtn.addEventListener('click',
-            function() {
-                if (currentIndex < results.length - 1) {
-                    currentIndex += 1;
-                    renderResult(currentIndex);
-                }
-            });
+        prevBtn.addEventListener('click', function () {
+            if (currentIndex > 0) {
+                renderServerPartialForIndex(currentIndex - 1);
+            }
+        });
 
-        clearBtn.addEventListener('click',
-            function() {
-                nameInput.value = '';
-                results = [];
+        nextBtn.addEventListener('click', function () {
+            if (currentIndex < (results.length - 1)) {
+                renderServerPartialForIndex(currentIndex + 1);
+            }
+        });
+
+        clearBtn.addEventListener('click', function () {
+            nameInput.value = '';
+            results = [];
+            currentIndex = 0;
+            resultCard.innerHTML = '<div class="result-body"><p class="result-sub">No results.</p></div>';
+            updateControls();
+            setStatus('');
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            if (results && results.length) {
                 currentIndex = 0;
-                renderResult(0);
-                setStatus('');
-            });
-
-        // Initialize view with server-provided model (if any)
-        document.addEventListener('DOMContentLoaded',
-            function() {
-                renderResult(0);
-                if (results && results.length) {
-                    setStatus(`${results.length} result(s)`);
-                }
-            });
+                updateControls();
+            } else {
+                resultCard.innerHTML = '<div class="result-body"><p class="result-sub">No results.</p></div>';
+                updateControls();
+            }
+        });
     </script>
 }
