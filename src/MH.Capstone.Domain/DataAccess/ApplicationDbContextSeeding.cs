@@ -2,14 +2,19 @@ using MH.Capstone.Domain.DataModels;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration; // Required for IConfiguration
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MH.Capstone.Domain.DataAccess 
 {
     public static class ApplicationDbContextSeeding
     {
-        private static readonly RoleManager<IdentityRole> roleManager;
 
-        public static async Task SeedDataAsync(ApplicationDbContext context, bool _, CancellationToken token) 
+        public static async Task SeedDataAsync(
+            ApplicationDbContext context, 
+            IServiceProvider serviceProvider, 
+            CancellationToken token) 
         {
             var badgeSeedList = new List<Badge>
             {
@@ -57,13 +62,44 @@ namespace MH.Capstone.Domain.DataAccess
 
             // Seed the data for UserRoles ****************
 
+            var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+
             string[] roles = {"User", "Admin"};
+
+            // Initialize roles.
 
             foreach (var role in roles)
             {
                 if (!await roleManager.RoleExistsAsync(role))
                 {
                     await roleManager.CreateAsync(new IdentityRole(role));
+                }
+            }
+
+            // Initialize an Admin-level account for testing.
+            var adminEmail = configuration.GetSection("AdminAccount:Hidden")["Email"];
+            var adminPassword = configuration.GetSection("AdminAccount:Hidden")["Password"];
+
+            if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword))
+            {
+                var adminUser = await userManager.FindByEmailAsync(adminEmail);
+                if (adminUser == null)
+                {
+                    adminUser = new ApplicationUser
+                    {
+                        UserName = adminEmail,
+                        Email = adminEmail,
+                        EmailConfirmed = true
+                    };
+
+                    // CreateAsync handles the account Password here
+                    var createAdmin = await userManager.CreateAsync(adminUser, adminPassword);
+                    if (createAdmin.Succeeded)
+                    {
+                        await userManager.AddToRoleAsync(adminUser, "Admin");
+                    }
                 }
             }
         

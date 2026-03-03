@@ -45,18 +45,19 @@ namespace MH.Capstone.WebApp
                         // Handle transient Azure SQL failures
                         sqlOptions.EnableRetryOnFailure())
                     // Must implement the synchronous SeedData method for EF Core Tooling.
-                    .UseSeeding((context, _) => {
+                    // "sp" is the Service Provider, used for Role designation.
+                    .UseSeeding((context, sp) => {
                         if (context is ApplicationDbContext appSyncContext)
                         {
-                            ApplicationDbContextSeeding.SeedDataAsync(appSyncContext, _, CancellationToken.None).GetAwaiter().GetResult();
+                            ApplicationDbContextSeeding.SeedDataAsync(appSyncContext, sp, CancellationToken.None).GetAwaiter().GetResult();
                         }
                     })
                     // This is will be the perfered call by any part of EF Core that can support Async calls.
-                    .UseAsyncSeeding(async (context, _, token) =>
+                    .UseAsyncSeeding(async (context, sp, token) =>
                     {
                         if (context is ApplicationDbContext appAsyncContext)
                         {
-                            await ApplicationDbContextSeeding.SeedDataAsync(appAsyncContext, _, token);
+                            await ApplicationDbContextSeeding.SeedDataAsync(appAsyncContext, sp, token);
                         }
                     })
             );
