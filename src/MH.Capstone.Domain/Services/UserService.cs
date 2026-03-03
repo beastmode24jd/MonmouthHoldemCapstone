@@ -69,5 +69,11 @@ namespace MH.Capstone.Domain.Services
                 _logger.LogInformation("User with {Email} email not found.", email);
             }
         }
+
+        public async Task<int> GetTotalUserCountAsync()
+        {
+            // Count only active (non-deactivated) users.
+            return (await _userRepo.GetAllAsync(u => !u.IsDeactivated)).Count();
+        }
     }
 }
