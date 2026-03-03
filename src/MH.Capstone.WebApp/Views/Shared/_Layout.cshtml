@@ -137,6 +137,16 @@
                                             <i class="bi bi-bell"></i> Notifications
                                         </a>
                                     </li>
+                                    @* Conditional link for Admins *@
+                                    @if (User.IsInRole("Admin"))
+                                    {
+                                        <li class="menuItem"><hr class="dropdown-divider"></li>
+                                        <li class="nav-item">
+                                            <a class="nav-link text-light dropdown-item" asp-controller="Manage" asp-action="Index">
+                                                <i class="bi bi-gear-wide-connected"></i> Admin Panel
+                                            </a>
+                                        </li>
+                                    }
                                     <li class="menuItem"><hr class="dropdown-divider"></li>
                                     <li class="menuItem">
                                         <form id="logoutForm" class="d-none" asp-controller="Account" asp-action="Logout" method="post">
