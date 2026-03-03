@@ -11,11 +11,7 @@ namespace MH.Capstone.Domain.DataAccess
 {
     public static class ApplicationDbContextSeeding
     {
-
-        public static async Task SeedDataAsync(
-            ApplicationDbContext context, 
-            bool _,
-            CancellationToken token) 
+        public static async Task SeedDataAsync(ApplicationDbContext context, bool _, CancellationToken token) 
         {
             var badgeSeedList = new List<Badge>
             {
@@ -88,6 +84,21 @@ namespace MH.Capstone.Domain.DataAccess
                 if (!await roleManager.RoleExistsAsync(role))
                 {
                     await roleManager.CreateAsync(new IdentityRole(role));
+                    logger.LogInformation("Role created: {Role}", role);
+                }
+            }
+
+            // Default pre-existing accounts (before Identity implementation) as Users
+            // Checks entire user list:
+            //              not scalable, but will work for a testing/dev environment.
+            var allUsers = await userManager.Users.ToListAsync();
+            foreach (var user in allUsers)
+            {
+                var existingRoles = await userManager.GetRolesAsync(user);
+                if (existingRoles.Count == 0)
+                {
+                    await userManager.AddToRoleAsync(user, "User");
+                    logger.LogInformation("Assigned default 'User' role to: {Email}", user.Email);
                 }
             }
 
