@@ -96,52 +96,5 @@ namespace MH.Capstone.Domain.Services
             return await Task.FromResult(sortedList);
         }
 
-        public async Task EnsureStandardBadgesCreated()
-        {
-            // This method gets called by Program.cs to create the default badges on runtime.
-
-            // Check if the badges exist already
-            var profileBadge = await GetBadgeDetails(Constants.BadgeId.ProfileBadgeGUID);
-            var bioBadge = await GetBadgeDetails(Constants.BadgeId.CustomBioBadgeGUID);
-            var firstSightingBadge = await GetBadgeDetails(Constants.BadgeId.FirstSightingBadgeGUID);
-
-            if (profileBadge == null)
-            {
-                // No profileBadge was found in the local DB context.
-                // So we add it
-                await new Badge
-                {
-                    // Uses a consistent and constant ID for the badge
-                    BadgeID = Constants.BadgeId.ProfileBadgeGUID,
-                    Title = "Custom Profile Badge",
-                    Description = "Uploaded a custom profile image.",
-                    PointValue = 10
-                    // Default profile image will be dealt with by frontend
-                }.SaveModelAsync(_badgeRepo);
-            }
-
-            if (bioBadge == null)
-            {
-                await new Badge
-                {
-                   BadgeID = Constants.BadgeId.CustomBioBadgeGUID,
-                   Title = "Custom Bio Badge",
-                   Description = "Updated your profile with a custom description.",
-                   PointValue = 10
-                }.SaveModelAsync(_badgeRepo);
-            }
-
-            if (firstSightingBadge == null)
-            {
-                await new Badge
-                {
-                    BadgeID = Constants.BadgeId.FirstSightingBadgeGUID,
-                    Title = "First Sighting Badge",
-                    Description = "Uploaded your first Sighting!",
-                    PointValue = 15
-                }.SaveModelAsync(_badgeRepo);
-            }
-        }
-
     }
 }
