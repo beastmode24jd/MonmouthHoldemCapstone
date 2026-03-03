@@ -88,21 +88,29 @@ namespace MH.Capstone.WebApp.Controllers
             }
 
             var user = await _userManager.FindByEmailAsync(email);
-            if (user == null)
+
+            // Catches if the account is a User, not an Admin
+            if (user == null || !await _userManager.IsInRoleAsync(user, "Admin"))
             {
                 TempData["Error"] = "Please enter a valid email address.";
                 return RedirectToAction(nameof(Manage));
             }
 
-            var result = await _userManager.RemoveFromRoleAsync(user, "Admin");
+            // If the clause above passes, account is an Admin
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            await _userManager.RemoveFromRolesAsync(user, currentRoles);
+
+            var result = await _userManager.AddToRoleAsync(user, "User");
+
             if (result.Succeeded)
             {
-                TempData["Success"] = $"User {email} has been demoted to a standard user.";
+                TempData["Success"] = $"User {email} is now a standard User.";
             }
             else
             {
-                TempData["Error"] = "Could not remove Admin role from this user.";
+                TempData["Error"] = "Please enter a valid email address.";
             }
+
             return RedirectToAction(nameof(Manage));
         }
     }
