@@ -133,23 +133,32 @@ namespace MH.Capstone.WebApp.Controllers
             var adminUser = await _userManager.GetUserAsync(User);
             if (adminUser == null || !await _userManager.CheckPasswordAsync(adminUser, adminPassword))
             {
-                TempData["Error"] = "Security Check Failed: Incorrect Admin password.";
+                TempData["Error"] = "Please enter valid credentials.";
                 return RedirectToAction(nameof(Manage));
             }
 
             // Prevent the Admin from deactivating themselves
             if (targetEmail.Equals(adminUser.Email, StringComparison.OrdinalIgnoreCase))
             {
-                TempData["Error"] = "You cannot deactivate your own account from this panel.";
+                TempData["Error"] = "You cannot deactivate your account from the Admin Management page.";
+                return RedirectToAction(nameof(Manage));
+            }
+
+            // Find the selected User account
+            var targetUser = await _userManager.FindByEmailAsync(targetEmail);
+            if (targetUser == null || targetUser.Email == null || targetUser.PasswordHash == null)
+            {
+                TempData["Error"] = "Please enter a valid email address.";
                 return RedirectToAction(nameof(Manage));
             }
 
             // Use AuthenticationService to perform the deactivation
-            var success = await _authService.DeactivateAccountAsync(targetEmail);
+            // targetUser has already been verified to not be null.
+            var success = await _authService.DeactivateAccountAsync(targetUser.Email!, targetUser.PasswordHash!);
 
             if (success)
             {
-                TempData["Success"] = $"Account {targetEmail} has been successfully deactivated.";
+                TempData["Success"] = $"Account {targetUser.Email} has been successfully deactivated.";
             }
             else
             {
