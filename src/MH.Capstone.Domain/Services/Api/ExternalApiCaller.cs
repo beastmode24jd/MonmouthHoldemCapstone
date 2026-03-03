@@ -6,7 +6,7 @@ using MH.Capstone.Domain.ApiContracts;
 
 namespace MH.Capstone.Domain.Services.Api
 {
-    public class ExternalApiCaller<TConfig> : IApiCaller<TConfig> where TConfig : class, IApiConfigurationValues
+    public class ExternalApiCaller<TConfig> : IApiCaller<TConfig> where TConfig : ApiConfigurationValues<TConfig>
     {
         public string ClientName { get; }
         public TConfig ConfigValues { get; }

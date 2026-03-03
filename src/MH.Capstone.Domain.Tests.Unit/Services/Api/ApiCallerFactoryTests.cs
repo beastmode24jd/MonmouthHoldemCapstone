@@ -32,7 +32,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Api
             new ApiCallerFactory<ApiConfigurationValuesFake>(
                 NullLogger<IApiCallerFactory<ApiConfigurationValuesFake>>.Instance,
                 NullLogger<IApiCaller<ApiConfigurationValuesFake>>.Instance,
-                _httpClientFactoryMock.Object, ApiConfigurationValuesFake.Instance);
+                _httpClientFactoryMock.Object, new ApiConfigurationValuesFake());
 
         private void AsseryAllMockVarifySetups()
         {

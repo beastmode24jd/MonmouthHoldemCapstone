@@ -91,9 +91,8 @@ namespace MH.Capstone.WebApp
             // Done outside the HttpClient configuration to validate presence and provide clear and fast (at app startup)
             // error feedback if missing.
             const string ninjasApiConfigSection = "Api:External:Ninjas";
-            var ninjasApiConfigValues = builder.Configuration.GetSection(ninjasApiConfigSection).Get<NinjaApiConfigValues>();
-            var apiKey = builder.Configuration[$"{ninjasApiConfigSection}:ApiKey"];
-            //var apiBaseUrl = builder.Configuration[$"{ninjasApiConfigSection}:BaseRoutes:Animal"];
+            var ninjasApiConfigValues = builder.Configuration.GetSection(ninjasApiConfigSection)
+                .GetApiConfig<NinjaApiConfigValues>(out var apiKey);
 
             // "is not" pattern matching syntax checks if the config values class isn't null plus that
             // the required values are present and valid

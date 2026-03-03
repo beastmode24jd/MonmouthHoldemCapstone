@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace MH.Capstone.Domain.Services.Abstraction
 {
-    public interface IApiCaller<out TConfig> where TConfig : class, IApiConfigurationValues
+    public interface IApiCaller<out TConfig> where TConfig : ApiConfigurationValues<TConfig>
     {
         TConfig ConfigValues { get; }
 

@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace MH.Capstone.Domain.Services.Api
 {
-    public class ApiCallerFactory<TConfig> : IApiCallerFactory<TConfig> where TConfig : class, IApiConfigurationValues
+    public class ApiCallerFactory<TConfig> : IApiCallerFactory<TConfig> where TConfig : ApiConfigurationValues<TConfig>
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<IApiCallerFactory<TConfig>> _logger;

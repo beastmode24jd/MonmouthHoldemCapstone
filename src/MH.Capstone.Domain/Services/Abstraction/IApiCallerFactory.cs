@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace MH.Capstone.Domain.Services.Abstraction
 {
-    public interface IApiCallerFactory<out TConfig> where TConfig : class, IApiConfigurationValues
+    public interface IApiCallerFactory<out TConfig> where TConfig : ApiConfigurationValues<TConfig>
     {
         IApiCaller<TConfig> CreateApiCaller();
     }

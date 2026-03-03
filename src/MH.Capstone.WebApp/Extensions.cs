@@ -37,9 +37,8 @@ namespace MH.Capstone.WebApp
 
         }
 
-        internal static TConfigVals GetApiConfig<TConfigVals>(this IConfigurationSection configSection)
-            where TConfigVals : class, IApiConfigurationValues
-
+        internal static TConfigVals GetApiConfig<TConfigVals>(this IConfigurationSection configSection, out string apiKey)
+            where TConfigVals : ApiConfigurationValues<TConfigVals>
         {
             var endpointsSection = configSection.GetSection("Endpoints");
             if (!endpointsSection.Exists())
@@ -47,6 +46,9 @@ namespace MH.Capstone.WebApp
                 throw new InvalidOperationException($"Configuration section '{configSection.Path}' is " +
                                                     $"missing required 'Endpoints' subsection.");
             }
+
+            apiKey = configSection["ApiKey"] ?? throw new InvalidOperationException($"Configuration section " +
+                $"'{configSection.Path}' is missing required 'ApiKey' value.");
 
             var configValues = configSection.Get<TConfigVals>();
             if (configValues == null)
@@ -59,18 +61,19 @@ namespace MH.Capstone.WebApp
                 !string.IsNullOrEmpty(es.Value)).Select(es =>
                 new KeyValuePair<string, string>(es.Key, es.Value!)).ToList();
 
-            return configValues.Create<TConfigVals>(endpointOverride: endpoints);
+            return configValues.Create(endpointOverride: endpoints);
         }
 
-        internal static T Create<T>(this IApiConfigurationValues current, string? httpClientKetOverride = null,
-            string? baseUrlOverride = null,
+        internal static TConfigVals Create<TConfigVals>(this TConfigVals current, 
+            string? httpClientKetOverride = null, string? baseUrlOverride = null,
             List<KeyValuePair<string, string>>? endpointOverride = null)
-            where T : class, IApiConfigurationValues
+            where TConfigVals : ApiConfigurationValues<TConfigVals>
         {
             httpClientKetOverride ??= current.HttpClientKey;
             baseUrlOverride ??= current.BaseUrl;
             endpointOverride ??= current.Endpoints;
-            return T.Create<T>(httpClientKetOverride, baseUrlOverride, endpointOverride);
+           
+            return current.Create(httpClientKetOverride, baseUrlOverride, endpointOverride);
         }
     }
 
