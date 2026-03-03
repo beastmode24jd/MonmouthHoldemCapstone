@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration; // Required for IConfiguration
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace MH.Capstone.Domain.DataAccess 
 {
@@ -13,7 +14,7 @@ namespace MH.Capstone.Domain.DataAccess
 
         public static async Task SeedDataAsync(
             ApplicationDbContext context, 
-            IServiceProvider serviceProvider, 
+            bool _,
             CancellationToken token) 
         {
             var badgeSeedList = new List<Badge>
@@ -59,12 +60,24 @@ namespace MH.Capstone.Domain.DataAccess
                     context.Update(badge);
                 }
             }
+        
+            // Seed more data here later, if needed
+
+            // Now save it to the DB!
+            await context.SaveChangesAsync(token);
+        }
+
+        public static async Task SeedIdentityAsync(IServiceProvider serviceProvider)
+        {
+            // Needs to go after this in Program.cs: var app = builder.Build();
 
             // Seed the data for UserRoles ****************
 
             var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
             var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
             var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+
+            var logger = serviceProvider.GetRequiredService<ILogger<ApplicationDbContext>>();
 
             string[] roles = {"User", "Admin"};
 
@@ -99,14 +112,19 @@ namespace MH.Capstone.Domain.DataAccess
                     if (createAdmin.Succeeded)
                     {
                         await userManager.AddToRoleAsync(adminUser, "Admin");
+                        logger.LogInformation("Test Admin was successfully created.");
+                    }
+                    else
+                    {
+                        logger.LogInformation("Test Admin creation was unsuccessful.");
                     }
                 }
+                else
+                {
+                    logger.LogInformation("Test Admin already exists. Skipping initialization.");
+                }
             }
-        
-            // Seed more data here later, if needed
 
-            // Now save it to the DB!
-            await context.SaveChangesAsync(token);
         }
     }
 }

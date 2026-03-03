@@ -53,7 +53,7 @@ namespace MH.Capstone.WebApp
                             // Manually get IServiceProvider from the context
                             var sp = context.GetService<IServiceProvider>();
 
-                            ApplicationDbContextSeeding.SeedDataAsync(appSyncContext, sp, CancellationToken.None).GetAwaiter().GetResult();
+                            ApplicationDbContextSeeding.SeedDataAsync(appSyncContext, _, CancellationToken.None).GetAwaiter().GetResult();
                         }
                     })
                     // This is will be the perfered call by any part of EF Core that can support Async calls.
@@ -61,10 +61,7 @@ namespace MH.Capstone.WebApp
                     {
                         if (context is ApplicationDbContext appAsyncContext)
                         {
-                            // Second verse, same as the first
-                            var sp = context.GetService<IServiceProvider>();
-
-                            await ApplicationDbContextSeeding.SeedDataAsync(appAsyncContext, sp, token);
+                            await ApplicationDbContextSeeding.SeedDataAsync(appAsyncContext, _, token);
                         }
                     })
             );
@@ -167,6 +164,18 @@ namespace MH.Capstone.WebApp
             }
 
             var app = builder.Build();
+
+            // Seed Identity Roles and Admin User here
+            using (var scope = app.Services.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+                var context = services.GetRequiredService<ApplicationDbContext>();
+                
+                // You can still call your helper, but pass the scope's service provider
+                // Note: You might want to remove the Badge seeding from this specific call 
+                // if you keep it in .UseSeeding() to avoid double-processing.
+                ApplicationDbContextSeeding.SeedIdentityAsync(services).GetAwaiter().GetResult(); 
+            }
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
