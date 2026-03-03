@@ -89,7 +89,6 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
             builder.Services.AddScoped<IProfileImageService, ProfileImageService>();
-            builder.Services.AddScoped<IUserService, UserService>();
 
             // Register Additional Services - Business Logic Layer
             builder.Services.AddScoped<INotificationService, InAppNotificationService>();
@@ -97,8 +96,8 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<IScoringService, ScoringService>();
             builder.Services.AddScoped<ISightingsService, SightingsService>();
 
-            // Register the Badge Service
-            
+            // Register the Leaderboard Service (CSP-97)
+            builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 
             // Add services to the container.
             builder.Services.AddControllersWithViews()
@@ -142,3 +141,6 @@ namespace MH.Capstone.WebApp
         }
     }
 }
+
+// Exposes Program to the integration test project so WebApplicationFactory<Program> can access it.
+public partial class Program { }
