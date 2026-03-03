@@ -123,6 +123,7 @@ namespace MH.Capstone.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeactivateUser(string targetEmail, string adminPassword)
         {
+            // Front-end should catch this, but leaving this guard in
             if (string.IsNullOrWhiteSpace(targetEmail) || string.IsNullOrWhiteSpace(adminPassword))
             {
                 TempData["Error"] = "Both target email and your admin password are required.";
@@ -149,6 +150,13 @@ namespace MH.Capstone.WebApp.Controllers
             if (targetUser == null || targetUser.Email == null || targetUser.PasswordHash == null)
             {
                 TempData["Error"] = "Please enter a valid email address.";
+                return RedirectToAction(nameof(Manage));
+            }
+
+            // Prevent the Admin from deleting *other* Admins.
+            if (await _userManager.IsInRoleAsync(targetUser, "Admin"))
+            {
+                TempData["Error"] = "Security Restriction: You cannot deactivate another Administrator.";
                 return RedirectToAction(nameof(Manage));
             }
 
