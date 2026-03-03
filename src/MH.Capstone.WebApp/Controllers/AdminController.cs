@@ -41,12 +41,22 @@ namespace MH.Capstone.WebApp.Controllers
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null)
             {
-                // Generic error as requested if user is not found
+                // Generic error if user is not found
                 TempData["Error"] = "Please enter a valid email address.";
                 return RedirectToAction(nameof(Manage));
             }
 
+            // Ensure that an account only has a single role at a time (User, Admin)
+            var currentRoles = await _userManager.GetRolesAsync(user);
+
+            // Remove their current role(s), then default it to just the "Admin" role.
+            if (currentRoles.Any())
+            {
+                await _userManager.RemoveFromRolesAsync(user, currentRoles);
+            }
+
             var result = await _userManager.AddToRoleAsync(user, "Admin");
+
             if (result.Succeeded)
             {
                 TempData["Success"] = $"User {email} has been promoted to Admin.";
