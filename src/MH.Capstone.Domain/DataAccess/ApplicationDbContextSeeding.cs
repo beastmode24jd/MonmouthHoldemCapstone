@@ -1,11 +1,13 @@
 using MH.Capstone.Domain.DataModels;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 
 namespace MH.Capstone.Domain.DataAccess 
 {
     public static class ApplicationDbContextSeeding
     {
+        private static readonly RoleManager<IdentityRole> roleManager;
 
         public static async Task SeedDataAsync(ApplicationDbContext context, bool _, CancellationToken token) 
         {
@@ -53,13 +55,22 @@ namespace MH.Capstone.Domain.DataAccess
                 }
             }
 
-            // Now save it to the DB!
-            await context.SaveChangesAsync(token);
-        
+            // Seed the data for UserRoles ****************
 
-            // [FUTURE FEATURE: Seed the data for UserRoles] ****************
+            string[] roles = {"User", "Admin"};
+
+            foreach (var role in roles)
+            {
+                if (!await roleManager.RoleExistsAsync(role))
+                {
+                    await roleManager.CreateAsync(new IdentityRole(role));
+                }
+            }
         
             // Seed more data here later, if needed
+
+            // Now save it to the DB!
+            await context.SaveChangesAsync(token);
         }
     }
 }
