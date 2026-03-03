@@ -31,11 +31,18 @@ namespace MH.Capstone.WebApp.Controllers
                 return RedirectToAction(nameof(Manage));
             }
 
+            // Check if an admin is trying to redundantly promote themselves
+            if (email.Equals(User.Identity?.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["Error"] = "You are already an Admin.";
+                return RedirectToAction(nameof(Manage));
+            }
+
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null)
             {
                 // Generic error as requested if user is not found
-                TempData["Error"] = "Please provide a valid email address.";
+                TempData["Error"] = "Please enter a valid email address.";
                 return RedirectToAction(nameof(Manage));
             }
 
