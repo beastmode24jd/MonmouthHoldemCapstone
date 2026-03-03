@@ -7,9 +7,8 @@ namespace MH.Capstone.Domain.DataAccess
     public static class ApplicationDbContextSeeding
     {
 
-        public static async Task SeedData(ApplicationDbContext context, object _, CancellationToken token) 
+        public static async Task SeedDataAsync(ApplicationDbContext context, bool _, CancellationToken token) 
         {
-        // Seed data for Badge in DbSet?
             var badgeSeedList = new List<Badge>
             {
                 new Badge
@@ -17,7 +16,7 @@ namespace MH.Capstone.Domain.DataAccess
                     BadgeID = Constants.BadgeId.ProfileBadgeGUID,
                     Title = "Custom Profile Badge",
                     Description = "Uploaded a custom profile image.",
-                    PointValue = 15
+                    PointValue = 10
                     // Default profile image will be dealt with by frontend
                 },
 
@@ -26,7 +25,7 @@ namespace MH.Capstone.Domain.DataAccess
                     BadgeID = Constants.BadgeId.CustomBioBadgeGUID,
                     Title = "Custom Bio Badge",
                     Description = "Updated your profile with a custom description.",
-                    PointValue = 15
+                    PointValue = 10
                 },
 
                 new Badge
