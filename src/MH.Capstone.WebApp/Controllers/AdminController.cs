@@ -58,5 +58,42 @@ namespace MH.Capstone.WebApp.Controllers
 
             return RedirectToAction(nameof(Manage));
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DemoteFromAdmin(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                TempData["Error"] = "Please enter a valid email address.";
+                return RedirectToAction(nameof(Manage));
+            }
+
+            // Prevent an Admin from demoting themselves,
+            //          and crashing the page connection as a result
+            if (email.Equals(User.Identity?.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["Error"] = "Security Check: You cannot revoke your own Admin rights.";
+                return RedirectToAction(nameof(Manage));
+            }
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                TempData["Error"] = "Please enter a valid email address.";
+                return RedirectToAction(nameof(Manage));
+            }
+
+            var result = await _userManager.RemoveFromRoleAsync(user, "Admin");
+            if (result.Succeeded)
+            {
+                TempData["Success"] = $"User {email} has been demoted to a standard user.";
+            }
+            else
+            {
+                TempData["Error"] = "Could not remove Admin role from this user.";
+            }
+            return RedirectToAction(nameof(Manage));
+        }
     }
 }
