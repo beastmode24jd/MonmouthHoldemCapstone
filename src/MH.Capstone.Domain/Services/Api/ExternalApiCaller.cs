@@ -53,6 +53,7 @@ namespace MH.Capstone.Domain.Services.Api
                 response.EnsureSuccessStatusCode();
 
                 var content = await response.Content.ReadAsStringAsync();
+                _logger.LogCritical($"Content String:\n\n{content}");
                 return JsonConvert.DeserializeObject<TReturn>(content) ?? throw new JsonException("The api failed to deserialize " +
                     $"the api call response at {response.Headers.Location} to the requested type {typeof(TReturn)}");
             }

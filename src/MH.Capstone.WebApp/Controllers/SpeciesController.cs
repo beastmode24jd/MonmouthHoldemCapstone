@@ -55,12 +55,12 @@ namespace MH.Capstone.WebApp.Controllers
                                                                       "not be found in the api caller's config values!");
 
                 _logger.LogWarning($"This would be a call to the api! name = {name}");
-                var result = Array.Empty<AnimalApiDto>().ToList();
-                //var result = (await apiCaller.GetAsync<IEnumerable<AnimalApiDto>>(url, 
-                //    new KeyValuePair<string, string>("name", name))).ToList();
+                var result = (await apiCaller.GetAsync<IEnumerable<AnimalApiDto>>(url,
+                    new KeyValuePair<string, string>("name", name))).ToList();
 
                 if (result.Count > 0)
                 {
+                    _logger.LogInformation($"The name {name} yielded {result.Count} results. Returning to the caller...");
                     return Ok(result);
                 }
 

@@ -1,15 +1,12 @@
 ﻿namespace MH.Capstone.Domain.ApiContracts.Ninjas
 {
-    public record AnimalApiDto(string name, AnimalApiTaxonomyDto taxonomy, 
-        AnimalApiLocations locations, AnimalApiCharacteristics characteristics)
+    public record AnimalApiDto(string name, AnimalApiTaxonomyDto taxonomy,
+        IEnumerable<string> locations, AnimalApiCharacteristics characteristics)
     { }
 
     public record AnimalApiTaxonomyDto(string kingdom, string phylum,
         string taxClass, string order, string family, string genus,
         string scientificName)
-    { }
-
-    public record AnimalApiLocations(string[] locations)
     { }
 
     public record AnimalApiCharacteristics(
