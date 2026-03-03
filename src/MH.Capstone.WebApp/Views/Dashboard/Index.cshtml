@@ -4,14 +4,19 @@
     var user = await _userManager.GetUserAsync(User);
     var badges = ViewData["SortedBadges"] as List<MH.Capstone.Domain.DataModels.UserBadge>;
 
-    // Fetch current user Role (first Role)
+    // Fetch user Role
     string? displayRole = null;
-    IList<string> userRoles = new List<string>();
-
     if (user != null)
     {
-        userRoles = await _userManager.GetRolesAsync(user);
-        displayRole = userRoles.FirstOrDefault();
+        var userRoles = await _userManager.GetRolesAsync(user);
+        if (userRoles.Contains("Admin"))
+        {
+            displayRole = "Admin";
+        }
+        else
+        {
+            displayRole = userRoles.FirstOrDefault() ?? "User";
+        }
     }
 }
 
@@ -49,7 +54,7 @@
                                     <strong>Account Type:</strong> 
                                     @if (!string.IsNullOrEmpty(displayRole))
                                     {
-                                        <span class="badge bg-primary">@displayRole</span>
+                                        <span class="badge bg-primary"><i class="bi bi-shield-check"></i> @displayRole</span>
                                     }
                                     else
                                     {
