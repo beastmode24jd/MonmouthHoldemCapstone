@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using MH.Capstone.Domain.DataModels;
+using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.Domain.Services;
 
 namespace MH.Capstone.WebApp.Controllers
 {
@@ -9,10 +11,12 @@ namespace MH.Capstone.WebApp.Controllers
     public class AdminController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IAuthenticationService _authService;
 
-        public AdminController(UserManager<ApplicationUser> userManager)
+        public AdminController(UserManager<ApplicationUser> userManager, IAuthenticationService authService)
         {
             _userManager = userManager;
+            _authService = authService;
         }
 
         [HttpGet]
@@ -89,7 +93,8 @@ namespace MH.Capstone.WebApp.Controllers
 
             var user = await _userManager.FindByEmailAsync(email);
 
-            // Catches if the account is a User, not an Admin
+            // Catches if the account exists as a User, or doesn't exist at all
+            // Same error message is provided either way
             if (user == null || !await _userManager.IsInRoleAsync(user, "Admin"))
             {
                 TempData["Error"] = "Please enter a valid email address.";
@@ -109,6 +114,46 @@ namespace MH.Capstone.WebApp.Controllers
             else
             {
                 TempData["Error"] = "Please enter a valid email address.";
+            }
+
+            return RedirectToAction(nameof(Manage));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeactivateUser(string targetEmail, string adminPassword)
+        {
+            if (string.IsNullOrWhiteSpace(targetEmail) || string.IsNullOrWhiteSpace(adminPassword))
+            {
+                TempData["Error"] = "Both target email and your admin password are required.";
+                return RedirectToAction(nameof(Manage));
+            }
+
+            // Verify the Admin's identity and password
+            var adminUser = await _userManager.GetUserAsync(User);
+            if (adminUser == null || !await _userManager.CheckPasswordAsync(adminUser, adminPassword))
+            {
+                TempData["Error"] = "Security Check Failed: Incorrect Admin password.";
+                return RedirectToAction(nameof(Manage));
+            }
+
+            // Prevent the Admin from deactivating themselves
+            if (targetEmail.Equals(adminUser.Email, StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["Error"] = "You cannot deactivate your own account from this panel.";
+                return RedirectToAction(nameof(Manage));
+            }
+
+            // Use AuthenticationService to perform the deactivation
+            var success = await _authService.DeactivateAccountAsync(targetEmail);
+
+            if (success)
+            {
+                TempData["Success"] = $"Account {targetEmail} has been successfully deactivated.";
+            }
+            else
+            {
+                TempData["Error"] = "User not found or operation failed.";
             }
 
             return RedirectToAction(nameof(Manage));
