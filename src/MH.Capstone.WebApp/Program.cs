@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Protocols.Configuration;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace MH.Capstone.WebApp
 {
@@ -46,17 +47,23 @@ namespace MH.Capstone.WebApp
                         sqlOptions.EnableRetryOnFailure())
                     // Must implement the synchronous SeedData method for EF Core Tooling.
                     // "sp" is the Service Provider, used for Role designation.
-                    .UseSeeding((context, sp) => {
+                    .UseSeeding((context, _) => {
                         if (context is ApplicationDbContext appSyncContext)
                         {
+                            // Manually get IServiceProvider from the context
+                            var sp = context.GetService<IServiceProvider>();
+
                             ApplicationDbContextSeeding.SeedDataAsync(appSyncContext, sp, CancellationToken.None).GetAwaiter().GetResult();
                         }
                     })
                     // This is will be the perfered call by any part of EF Core that can support Async calls.
-                    .UseAsyncSeeding(async (context, sp, token) =>
+                    .UseAsyncSeeding(async (context, _, token) =>
                     {
                         if (context is ApplicationDbContext appAsyncContext)
                         {
+                            // Second verse, same as the first
+                            var sp = context.GetService<IServiceProvider>();
+
                             await ApplicationDbContextSeeding.SeedDataAsync(appAsyncContext, sp, token);
                         }
                     })
