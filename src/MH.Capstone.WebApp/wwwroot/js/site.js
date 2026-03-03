@@ -74,11 +74,31 @@ document.addEventListener("DOMContentLoaded", function ()
     }
 
     // Initialize counter on page load
-    // (User text doesn't auto-clear yet, will fix later)
     updateCounter();
 
     // Listen for user input
     bioArea.addEventListener('input', updateCounter);
+});
+
+// For my sanity, we are adding a visibility toggle function for passwords
+function togglePasswordVisibility(inputId, iconId) {
+    const passwordInput = document.getElementById(inputId);
+    const toggleIcon = document.getElementById(iconId);
+
+    if (passwordInput && toggleIcon) {
+        if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.replace('bi-eye', 'bi-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            toggleIcon.classList.replace('bi-eye-slash', 'bi-eye');
+        }
+    }
+}
+
+// Event Listener using togglePasswordVisibility for Admin page
+document.getElementById('togglePassword').addEventListener('click', function() {
+    togglePasswordVisibility('adminPassword', 'toggleIcon');
 });
 
 document.addEventListener("DOMContentLoaded", registerAllNumericInputs);
