@@ -38,12 +38,18 @@ namespace MH.Capstone.Domain.DataAccess
             };
 
             // Loop through the list, and check if ApplicationDbContext has them already.
-            // If it has them, it doesn't save. If it does, it uses EF to seed them.
+            // If it has them, process an update. If it does, it uses EF to seed them.
             foreach (var badge in badgeSeedList)
             {
                 if (!await context.Set<Badge>().AnyAsync(b => b.BadgeID == badge.BadgeID, token))
                 {
-                    context.Set<Badge>().Add(badge);
+                    // Db doesn't have the badge, so we need to add it to the DB.
+                    await context.AddAsync(badge, token);
+                }
+                else
+                {
+                    // Db has the badge, so we need to update it in the DB.
+                    context.Update(badge);
                 }
             }
 
