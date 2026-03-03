@@ -149,20 +149,4 @@ public class BadgeServiceTests
             Assert.That(result[1].BadgeEarned, Is.EqualTo(oldTime));
         });
     }
-
-    [Test]
-    public async Task EnsureStandardBadgesCreated_SeedsMissingBadges()
-    {
-        // Arrange
-        // Guarantee that the mock will return null when called
-        // Simulates empty DB
-        _badgeRepoMock.Setup(r => r.FindByIdAsync(It.IsAny<Guid>()))
-                    .ReturnsAsync((Badge?)null);
-
-        // Act
-        await _badgeService.EnsureStandardBadgesCreated();
-
-        // Assert: Verify AddAsync was called 3 times (for Profile, Bio, and Sighting badges)
-        _badgeRepoMock.Verify(r => r.AddOrUpdateAsync(It.IsAny<Badge>()), Times.Exactly(3));
-    }
 }

@@ -13,8 +13,7 @@ namespace MH.Capstone.Domain.Services.Abstraction
 
         Task<List<UserBadge>> SortBadgesByTime(List<UserBadge> badgeList);
 
-        // Initialize the three default badges
-        Task EnsureStandardBadgesCreated();
+        // Badge initialization is handled in ApplicationDbContextSeeding.cs
     }
 
 }
