@@ -28,7 +28,8 @@
             <div id="resultCard" class="result-card" aria-live="polite">
                 @if (Model != null && Model.Any())
                 {
-                    @Html.Partial("_AnimalResult", Model.First())
+                    //@Html.Partial("_AnimalResult", Model.First())
+                    <partial name="_AnimalResult" model="Model.First()"/>
                 }
                 else
                 {
