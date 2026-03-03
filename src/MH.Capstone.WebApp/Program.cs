@@ -12,7 +12,7 @@ namespace MH.Capstone.WebApp
 {
     public class Program
     {
-        public static async Task Main(string[] args)
+        public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -99,7 +99,7 @@ namespace MH.Capstone.WebApp
 
             var app = builder.Build();
 
-            // INITIALIZING BADGE BLOCK
+            // SEEDING DB WITH BADGES
             using (var scope = app.Services.CreateScope())
             {
                 var services = scope.ServiceProvider;
