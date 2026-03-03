@@ -3,6 +3,16 @@
     ViewData["Title"] = "Dashboard";
     var user = await _userManager.GetUserAsync(User);
     var badges = ViewData["SortedBadges"] as List<MH.Capstone.Domain.DataModels.UserBadge>;
+
+    // Fetch current user Role (first Role)
+    string? displayRole = null;
+    IList<string> userRoles = new List<string>();
+
+    if (user != null)
+    {
+        userRoles = await _userManager.GetRolesAsync(user);
+        displayRole = userRoles.FirstOrDefault();
+    }
 }
 
 <div class="container mt-4">
@@ -34,6 +44,17 @@
                                 </li>
                                 <li class="list-group-item">
                                     <strong>Authentication Type:</strong> @User.Identity.AuthenticationType
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>Account Type:</strong> 
+                                    @if (!string.IsNullOrEmpty(displayRole))
+                                    {
+                                        <span class="badge bg-primary">@displayRole</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Standard User</span>
+                                    }
                                 </li>
                                 <li class="list-group-item">
                                     <strong>Status:</strong> <span class="badge bg-success">Active</span>
