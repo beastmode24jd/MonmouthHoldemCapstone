@@ -55,6 +55,9 @@ namespace MH.Capstone.Domain.Services
             await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId, "Welcome to WildlifeAID!",
                 "Your account has been successfully created. It's now time to get wild and explore what the great outdoors has to offer!"));
 
+            // Add the default User role to new accounts
+            await _userManager.AddToRoleAsync(user, "User");
+
             return true;
         }
 
