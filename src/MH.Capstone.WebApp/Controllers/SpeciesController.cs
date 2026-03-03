@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Protocols.Configuration;
 
 namespace MH.Capstone.WebApp.Controllers
 {
+    [Route("animal")]
     [Route("species")]
     public class SpeciesController : Controller
     {
@@ -31,12 +32,12 @@ namespace MH.Capstone.WebApp.Controllers
         [Route("search/by-name")]
         [ValidateAntiForgeryToken]
         [Produces(typeof(IEnumerable<AnimalApiDto>))]
-        public async Task<IActionResult> Search([FromQuery] string? name)
+        public async Task<IActionResult> SearchByName([FromQuery] string? name)
         {
             if (string.IsNullOrEmpty(name))
             {
                 _logger.LogInformation($"Call made to our search action, but the name was null or empty.");
-                return View();
+                return BadRequest();
             }
 
             _logger.LogDebug($"Call made to our search action for an animal/species with the name '{name}'.");
@@ -45,13 +46,18 @@ namespace MH.Capstone.WebApp.Controllers
 
             try
             {
+                _logger.LogInformation($"Config Endpoints Length: {apiCaller.ConfigValues.Endpoints.Count}");
+                _logger.LogInformation($"Config ClientKey: {apiCaller.ConfigValues.HttpClientKey}");
+                _logger.LogInformation($"Config BaseUrl: {apiCaller.ConfigValues.BaseUrl}");
                 var url = apiCaller.ConfigValues.Endpoints
                     .FirstOrDefault(kvp => string.Equals(kvp.Key, "animal", StringComparison.InvariantCultureIgnoreCase))
                     .Value ?? throw new InvalidConfigurationException("The needed Animal endpoint could " +
                                                                       "not be found in the api caller's config values!");
 
-                var result = (await apiCaller.GetAsync<IEnumerable<AnimalApiDto>>(url, 
-                    new KeyValuePair<string, string>("name", name))).ToList();
+                _logger.LogWarning($"This would be a call to the api! name = {name}");
+                var result = Array.Empty<AnimalApiDto>().ToList();
+                //var result = (await apiCaller.GetAsync<IEnumerable<AnimalApiDto>>(url, 
+                //    new KeyValuePair<string, string>("name", name))).ToList();
 
                 if (result.Count > 0)
                 {
@@ -61,7 +67,6 @@ namespace MH.Capstone.WebApp.Controllers
                 // No results found, log this case and return a 404 response
                 _logger.LogInformation($"No animal/species found with the name '{name}'.");
                 return NotFound();
-
             }
             catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {

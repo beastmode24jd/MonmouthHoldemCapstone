@@ -2,6 +2,7 @@
 using Microsoft.IdentityModel.Tokens;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using MH.Capstone.Domain.ApiContracts;
 using MH.Capstone.Domain.Services.Abstraction;
 
 namespace MH.Capstone.WebApp
@@ -34,6 +35,42 @@ namespace MH.Capstone.WebApp
             var pendingNotifications = tmp.ToList();
             return pendingNotifications.Count;
 
+        }
+
+        internal static TConfigVals GetApiConfig<TConfigVals>(this IConfigurationSection configSection)
+            where TConfigVals : class, IApiConfigurationValues
+
+        {
+            var endpointsSection = configSection.GetSection("Endpoints");
+            if (!endpointsSection.Exists())
+            {
+                throw new InvalidOperationException($"Configuration section '{configSection.Path}' is " +
+                                                    $"missing required 'Endpoints' subsection.");
+            }
+
+            var configValues = configSection.Get<TConfigVals>();
+            if (configValues == null)
+            {
+                throw new InvalidOperationException($"Configuration section '{configSection.Path}' could " +
+                                                    $"not be bound to {typeof(TConfigVals).Name}.");
+            }
+
+            var endpoints = endpointsSection.GetChildren().Where(es =>
+                !string.IsNullOrEmpty(es.Value)).Select(es =>
+                new KeyValuePair<string, string>(es.Key, es.Value!)).ToList();
+
+            return configValues.Create<TConfigVals>(endpointOverride: endpoints);
+        }
+
+        internal static T Create<T>(this IApiConfigurationValues current, string? httpClientKetOverride = null,
+            string? baseUrlOverride = null,
+            List<KeyValuePair<string, string>>? endpointOverride = null)
+            where T : class, IApiConfigurationValues
+        {
+            httpClientKetOverride ??= current.HttpClientKey;
+            baseUrlOverride ??= current.BaseUrl;
+            endpointOverride ??= current.Endpoints;
+            return T.Create<T>(httpClientKetOverride, baseUrlOverride, endpointOverride);
         }
     }
 

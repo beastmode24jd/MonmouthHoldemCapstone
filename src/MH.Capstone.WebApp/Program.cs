@@ -118,8 +118,7 @@ namespace MH.Capstone.WebApp
             }
 
             // Configure HttpClient for external API calls (e.g., AnimalApi, Emailer, etc.)
-            builder.Services.AddKeyedSingleton<IApiConfigurationValues>(typeof(NinjaApiConfigValues), 
-                ninjasApiConfigValues);
+            builder.Services.AddSingleton(ninjasApiConfigValues);
             builder.Services.AddHttpClient(ninjasApiConfigValues.HttpClientKey, client =>
             {
                 // BaseAddress and other settings can be configured when injecting the client

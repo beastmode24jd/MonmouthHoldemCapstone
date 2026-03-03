@@ -8,7 +8,8 @@
     <section class="search-panel" aria-labelledby="searchHeading">
         <h2 id="searchHeading">Species Search</h2>
 
-        <form id="searchForm" method="get" asp-action="Search" asp-controller="Species" role="search" autocomplete="off">
+        <form id="searchForm" method="get" asp-action="SearchByName" asp-controller="Species" role="search" autocomplete="off">
+            @Html.AntiForgeryToken()
             <label for="nameInput" class="visually-hidden">Animal name</label>
             <input id="nameInput" name="name" type="search" class="text-input" placeholder="Search by name…" />
             <div class="form-actions">
@@ -179,16 +180,16 @@
         const searchStatus = document.getElementById('searchStatus');
         const clearBtn = document.getElementById('clearBtn');
 
-        function setStatus(text){
+        function setStatus(text) {
             searchStatus.textContent = text || '';
         }
 
-        function normalizeKey(k){
+        function normalizeKey(k) {
             return k ? k.toString() : '';
         }
 
-        function renderResult(index){
-            if(!results || results.length === 0){
+        function renderResult(index) {
+            if (!results || results.length === 0) {
                 resultCard.innerHTML = '<div class="result-body"><p class="result-sub">No results.</p></div>';
                 resultCounter.textContent = '0 / 0';
                 prevBtn.disabled = true;
@@ -208,24 +209,24 @@
 
             let html = '';
 
-            if(image){
+            if (image) {
                 html += `<img src="${escapeHtml(String(image))}" alt="${escapeHtml(String(name))}" class="result-image" loading="lazy" />`;
             }
 
             html += '<div class="result-body">';
             html += `<h3 class="result-title">${escapeHtml(String(name))}</h3>`;
-            if(sci) html += `<div class="result-sub">${escapeHtml(String(sci))}</div>`;
-            if(desc) html += `<div class="result-meta">${escapeHtml(String(desc))}</div>`;
+            if (sci) html += `<div class="result-sub">${escapeHtml(String(sci))}</div>`;
+            if (desc) html += `<div class="result-meta">${escapeHtml(String(desc))}</div>`;
 
             // Render other attributes in a small list (only show simple primitives)
-            const known = new Set(['name','Name','commonName','CommonName','scientificName','ScientificName','latinName','LatinName','description','Description','summary','imageUrl','ImageUrl','thumbnail','Thumbnail','id','Id']);
+            const known = new Set(['name', 'Name', 'commonName', 'CommonName', 'scientificName', 'ScientificName', 'latinName', 'LatinName', 'description', 'Description', 'summary', 'imageUrl', 'ImageUrl', 'thumbnail', 'Thumbnail', 'id', 'Id']);
             const entries = Object.entries(item || {})
-                .filter(([k,v]) => !known.has(k) && (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'))
+                .filter(([k, v]) => !known.has(k) && (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'))
                 .slice(0, 10);
 
-            if(entries.length){
+            if (entries.length) {
                 html += '<dl class="result-meta">';
-                for(const [k,v] of entries){
+                for (const [k, v] of entries) {
                     html += `<dt style="font-weight:600;margin-top:.5rem;">${escapeHtml(k)}</dt><dd style="margin:0 0 .5rem 0;">${escapeHtml(String(v))}</dd>`;
                 }
                 html += '</dl>';
@@ -240,43 +241,53 @@
             nextBtn.disabled = currentIndex >= results.length - 1;
         }
 
-        function escapeHtml(unsafe){
+        function escapeHtml(unsafe) {
             return (unsafe ?? '').toString()
-                .replaceAll('&','&amp;')
-                .replaceAll('<','&lt;')
-                .replaceAll('>','&gt;')
-                .replaceAll('"','&quot;')
-                .replaceAll("'",'&#039;');
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
         }
 
-        async function doSearch(name){
+        async function doSearch(name) {
             setStatus('');
-            if(!name || name.trim().length === 0){
+            if (!name || name.trim().length === 0) {
                 setStatus('Please enter a name to search.');
                 return;
             }
 
             setStatus('Searching…');
-            try{
-                const url = new URL('@Url.Action("Search", "Species")', window.location.origin);
+            console.log('Searching…');
+            try {
+                const url = new URL(searchForm.action, window.location.origin);
                 url.searchParams.set('name', name);
 
-                const resp = await fetch(url.toString(), {
-                    method:'GET',
-                    headers: { 'Accept': 'application/json' }
-                });
+                console.log(`url = ${url.toString()}`);
 
-                if(!resp.ok){
+                const resp = await fetch(url.toString(),
+                    {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                            'RequestVerificationToken': searchForm.querySelector('input[name="__RequestVerificationToken"]').value
+                        }
+                    });
+
+                if (!resp.ok) {
+                    console.log('error');
                     const txt = await resp.text();
                     throw new Error(txt || resp.statusText);
                 }
+
+                console.log('success');
 
                 const data = await resp.json();
                 results = Array.isArray(data) ? data : [];
                 currentIndex = 0;
                 renderResult(currentIndex);
                 setStatus(`${results.length} result(s)`);
-            }catch(err){
+            } catch (err) {
                 console.error(err);
                 setStatus('Search failed. ' + (err?.message ?? ''));
                 results = [];
@@ -285,29 +296,44 @@
         }
 
         // Wire up form with AJAX and graceful fallback (form action exists for non-JS)
-        searchForm.addEventListener('submit', function(e){
-            e.preventDefault();
-            const q = nameInput.value;
-            doSearch(q);
-        });
+        searchForm.addEventListener('submit',
+            function(e) {
+                e.preventDefault();
+                const q = nameInput.value;
+                doSearch(q);
+            });
 
-        prevBtn.addEventListener('click', function(){ if(currentIndex > 0){ currentIndex -= 1; renderResult(currentIndex); }});
-        nextBtn.addEventListener('click', function(){ if(currentIndex < results.length - 1){ currentIndex += 1; renderResult(currentIndex); }});
+        prevBtn.addEventListener('click',
+            function() {
+                if (currentIndex > 0) {
+                    currentIndex -= 1;
+                    renderResult(currentIndex);
+                }
+            });
+        nextBtn.addEventListener('click',
+            function() {
+                if (currentIndex < results.length - 1) {
+                    currentIndex += 1;
+                    renderResult(currentIndex);
+                }
+            });
 
-        clearBtn.addEventListener('click', function(){
-            nameInput.value = '';
-            results = [];
-            currentIndex = 0;
-            renderResult(0);
-            setStatus('');
-        });
+        clearBtn.addEventListener('click',
+            function() {
+                nameInput.value = '';
+                results = [];
+                currentIndex = 0;
+                renderResult(0);
+                setStatus('');
+            });
 
         // Initialize view with server-provided model (if any)
-        document.addEventListener('DOMContentLoaded', function(){
-            renderResult(0);
-            if(results && results.length){
-                setStatus(`${results.length} result(s)`);
-            }
-        });
+        document.addEventListener('DOMContentLoaded',
+            function() {
+                renderResult(0);
+                if (results && results.length) {
+                    setStatus(`${results.length} result(s)`);
+                }
+            });
     </script>
 }

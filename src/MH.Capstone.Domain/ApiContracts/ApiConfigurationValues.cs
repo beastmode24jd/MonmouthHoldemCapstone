@@ -8,13 +8,13 @@ using System.Threading.Tasks;
 
 namespace MH.Capstone.Domain.ApiContracts
 {
-    public abstract class ApiConfigurationValues : IApiConfigurationValues
+    public interface IApiConfigurationValues
     {
-        public string HttpClientKey { get; }
-
-        public string BaseUrl { get; }
+        string HttpClientKey { get; }
         
-        public KeyValuePair<string, string>[] Endpoints { get; }
+        string BaseUrl { get; }
+
+        List<KeyValuePair<string, string>> Endpoints { get; }
 
         /// <summary>
         /// Indicates whether this configuration is in a valid state to be used for making API calls.
@@ -23,25 +23,10 @@ namespace MH.Capstone.Domain.ApiContracts
         /// may have dynamic endpoints that are determined at runtime, so they are not included in this validation check.
         /// </summary>
         /// <returns>A <see cref="bool"/> indicating if this configuration property is currently in a valid state</returns>
-        public virtual bool IsValid => !string.IsNullOrEmpty(HttpClientKey) && !string.IsNullOrEmpty(BaseUrl);
-
-        protected ApiConfigurationValues(string httpClientKey, string baseUrl, 
-            KeyValuePair<string, string>[] endpoints)
-        {
-            HttpClientKey = httpClientKey;
-            BaseUrl = baseUrl;
-            Endpoints = endpoints;
-        }
-    }
-
-    public interface IApiConfigurationValues
-    {
-        string HttpClientKey { get; }
-        
-        string BaseUrl { get; }
-
-        KeyValuePair<string, string>[] Endpoints { get; }
-
         bool IsValid { get; }
+
+        static abstract T Create<T>(string httpClientKey, string baseUrl,
+            List<KeyValuePair<string, string>> endpoints)
+            where T : class, IApiConfigurationValues;
     }
 }

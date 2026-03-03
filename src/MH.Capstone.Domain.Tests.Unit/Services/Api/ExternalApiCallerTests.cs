@@ -18,7 +18,6 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Api
         #region TestingOverhead
 
         private Mock<IHttpClientFactory> _httpClientFactoryMock;
-        private Mock<IApiConfigurationValues> _apiConfigMock;
         private MockHttpMessageHandler _mockHttp;
         private static readonly ApiConfigurationValuesFake _configurationValuesFake 
             = ApiConfigurationValuesFake.Instance;
@@ -27,7 +26,6 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Api
         public void SetUp()
         {
             _httpClientFactoryMock = new Mock<IHttpClientFactory>();
-            _apiConfigMock = new Mock<IApiConfigurationValues>();
             _mockHttp = new MockHttpMessageHandler();
         }
 

@@ -9,12 +9,26 @@ using System.Threading.Tasks;
 
 namespace MH.Capstone.Domain.Tests.Unit.Services.Api
 {
-    internal class ApiConfigurationValuesFake : ApiConfigurationValues
+    internal class ApiConfigurationValuesFake : IApiConfigurationValues
     {
-        public ApiConfigurationValuesFake() : 
-            base("test", "http://www.example.com/api/vt", [])
-        { }
+        public ApiConfigurationValuesFake()
+        {
+            
+        }
 
         public static ApiConfigurationValuesFake Instance = new();
+
+        public string HttpClientKey { get; }
+
+        public string BaseUrl { get; }
+
+        public List<KeyValuePair<string, string>> Endpoints { get; }
+
+        public bool IsValid { get; }
+
+        public static T Create<T>(string httpClientKey, string baseUrl, 
+            List<KeyValuePair<string, string>> endpoints) where T 
+            : class, IApiConfigurationValues => new ApiConfigurationValuesFake() as T;
+
     }
 }
