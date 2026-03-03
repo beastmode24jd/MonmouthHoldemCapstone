@@ -34,9 +34,26 @@ namespace MH.Capstone.WebApp
                 .UseLazyLoadingProxies()
                 .UseSqlServer(
                     builder.Configuration.GetConnectionString(appConnStrName)
-                        ?? throw new InvalidOperationException($"Connection string {appConnStrName} not found in app settings file.\n\t" +
-                                                               $"ENV is {builder.Environment.EnvironmentName}."),
-                    sqlOptions => sqlOptions.EnableRetryOnFailure()) // Handle transient Azure SQL failures
+                    ?? throw new InvalidOperationException($"Connection string {appConnStrName} not found in app settings file.\n\t" +
+                        $"ENV is {builder.Environment.EnvironmentName}."),
+                    sqlOptions => 
+                        // Handle transient Azure SQL failures
+                        sqlOptions.EnableRetryOnFailure())
+                    // Must implement the synchronous SeedData method for EF Core Tooling.
+                    .UseSeeding((context, _) => {
+                        if (context is ApplicationDbContext appSyncContext)
+                        {
+                            ApplicationDbContextSeeding.SeedDataAsync(appSyncContext, _, CancellationToken.None).GetAwaiter().GetResult();
+                        }
+                    })
+                    // This is will be the perfered call by any part of EF Core that can support Async calls.
+                    .UseAsyncSeeding(async (context, _, token) =>
+                    {
+                        if (context is ApplicationDbContext appAsyncContext)
+                        {
+                            await ApplicationDbContextSeeding.SeedDataAsync(appAsyncContext, _, token);
+                        }
+                    })
             );
 
             // Configure Identity for authentication
@@ -98,23 +115,6 @@ namespace MH.Capstone.WebApp
             }
 
             var app = builder.Build();
-
-            // SEEDING DB WITH BADGES
-            using (var scope = app.Services.CreateScope())
-            {
-                var services = scope.ServiceProvider;
-                try
-                {
-                    var badgeService = services.GetRequiredService<IBadgeService>();
-                    await badgeService.EnsureStandardBadgesCreated();
-                }
-                catch (Exception ex)
-                {
-                    var logger = services.GetRequiredService<ILogger<Program>>();
-                    logger.LogError(ex, "An error occurred while seeding the Badges table.");
-                }
-            }
-            // ----------------
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
