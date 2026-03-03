@@ -2,6 +2,7 @@
 using Microsoft.IdentityModel.Tokens;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using MH.Capstone.Domain.ApiContracts;
 using MH.Capstone.Domain.Services.Abstraction;
 
 namespace MH.Capstone.WebApp
@@ -34,6 +35,45 @@ namespace MH.Capstone.WebApp
             var pendingNotifications = tmp.ToList();
             return pendingNotifications.Count;
 
+        }
+
+        internal static TConfigVals GetApiConfig<TConfigVals>(this IConfigurationSection configSection, out string apiKey)
+            where TConfigVals : ApiConfigurationValues<TConfigVals>
+        {
+            var endpointsSection = configSection.GetSection("Endpoints");
+            if (!endpointsSection.Exists())
+            {
+                throw new InvalidOperationException($"Configuration section '{configSection.Path}' is " +
+                                                    $"missing required 'Endpoints' subsection.");
+            }
+
+            apiKey = configSection["ApiKey"] ?? throw new InvalidOperationException($"Configuration section " +
+                $"'{configSection.Path}' is missing required 'ApiKey' value.");
+
+            var configValues = configSection.Get<TConfigVals>();
+            if (configValues == null)
+            {
+                throw new InvalidOperationException($"Configuration section '{configSection.Path}' could " +
+                                                    $"not be bound to {typeof(TConfigVals).Name}.");
+            }
+
+            var endpoints = endpointsSection.GetChildren().Where(es =>
+                !string.IsNullOrEmpty(es.Value)).Select(es =>
+                new KeyValuePair<string, string>(es.Key, es.Value!)).ToList();
+
+            return configValues.Create(endpointOverride: endpoints);
+        }
+
+        internal static TConfigVals Create<TConfigVals>(this TConfigVals current, 
+            string? httpClientKetOverride = null, string? baseUrlOverride = null,
+            List<KeyValuePair<string, string>>? endpointOverride = null)
+            where TConfigVals : ApiConfigurationValues<TConfigVals>
+        {
+            httpClientKetOverride ??= current.HttpClientKey;
+            baseUrlOverride ??= current.BaseUrl;
+            endpointOverride ??= current.Endpoints;
+           
+            return current.Create(httpClientKetOverride, baseUrlOverride, endpointOverride);
         }
     }
 

@@ -1,0 +1,106 @@
+@model MH.Capstone.Domain.ApiContracts.Ninjas.AnimalApiDto
+
+<div class="result-body" role="group" aria-labelledby="result-title-@Model.name.GetHashCode()">
+    <h3 id="result-title-@Model.name.GetHashCode()" class="result-title">@Model.name</h3>
+
+    @if (Model.taxonomy is not null)
+    {
+        <div class="result-sub" style="margin-bottom:.5rem;">
+            <strong>@Model.taxonomy.scientificName</strong>
+            <div style="color:var(--muted);font-size:.95rem;">
+                @Model.taxonomy.genus@if(!string.IsNullOrEmpty(Model.taxonomy.genus) && !string.IsNullOrEmpty(Model.taxonomy.family)){<text>, </text>}@Model.taxonomy.family
+                @if(!string.IsNullOrEmpty(Model.taxonomy.taxClass)){<text> • @Model.taxonomy.taxClass</text>}
+            </div>
+        </div>
+    }
+
+    @if (Model.locations is not null && Model.locations.Any())
+    {
+        <div class="result-meta" style="margin-bottom:.5rem;">
+            <strong>Locations:</strong>
+            <div>@string.Join(", ", Model.locations)</div>
+        </div>
+    }
+
+    @if (Model.characteristics is not null)
+    {
+        <div class="result-meta" style="margin-top:.25rem;">
+            <strong>Characteristics</strong>
+            <dl style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;margin:0.4rem 0 0 0;">
+
+                @if (!string.IsNullOrWhiteSpace(Model.characteristics.commonName))
+                {
+                    <dt style="font-weight:600">Common name</dt>
+                    <dd>@Model.characteristics.commonName</dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.characteristics.diet))
+                {
+                    <dt style="font-weight:600">Diet</dt>
+                    <dd>@Model.characteristics.diet</dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.characteristics.habitat))
+                {
+                    <dt style="font-weight:600">Habitat</dt>
+                    <dd>@Model.characteristics.habitat</dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.characteristics.lifestyle))
+                {
+                    <dt style="font-weight:600">Lifestyle</dt>
+                    <dd>@Model.characteristics.lifestyle</dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.characteristics.topSpeed))
+                {
+                    <dt style="font-weight:600">Top speed</dt>
+                    <dd>@Model.characteristics.topSpeed</dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.characteristics.lifespan))
+                {
+                    <dt style="font-weight:600">Lifespan</dt>
+                    <dd>@Model.characteristics.lifespan</dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.characteristics.weight))
+                {
+                    <dt style="font-weight:600">Weight</dt>
+                    <dd>@Model.characteristics.weight</dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.characteristics.height))
+                {
+                    <dt style="font-weight:600">Height</dt>
+                    <dd>@Model.characteristics.height</dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.characteristics.averageLitterSize))
+                {
+                    <dt style="font-weight:600">Average Litter</dt>
+                    <dd>@Model.characteristics.averageLitterSize</dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.characteristics.gestationPeriod))
+                {
+                    <dt style="font-weight:600">Gestation</dt>
+                    <dd>@Model.characteristics.gestationPeriod</dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.characteristics.biggestThreat))
+                {
+                    <dt style="font-weight:600">Biggest Threat</dt>
+                    <dd>@Model.characteristics.biggestThreat</dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.characteristics.mostDistinctiveFeature))
+                {
+                    <dt style="font-weight:600">Most Distinctive</dt>
+                    <dd>@Model.characteristics.mostDistinctiveFeature</dd>
+                }
+
+            </dl>
+        </div>
+    }
+</div>

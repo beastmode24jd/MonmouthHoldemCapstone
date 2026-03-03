@@ -1,5 +1,4 @@
 ﻿@inject Microsoft.AspNetCore.Identity.UserManager<MH.Capstone.Domain.DataModels.ApplicationUser> _userManager
-@inject MH.Capstone.Domain.Services.Abstraction.INotificationService _notificationService
 @using static MH.Capstone.WebApp.VersionHelper
 @{
     // Get the current user to access their profile image URL in the layout.
@@ -79,6 +78,11 @@
                         <li class="nav-item">
                             <a class="nav-link text-light" asp-controller="Leaderboard" asp-action="Index">
                                 <i class="bi bi-trophy-fill"></i> Leaderboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-light" asp-controller="Species" asp-action="Search">
+                                <i class="bi bi-search"></i> Search for Animals
                             </a>
                         </li>
                         @if (User.Identity?.IsAuthenticated == true)
