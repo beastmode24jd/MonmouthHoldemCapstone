@@ -13,6 +13,8 @@ namespace MH.Capstone.Domain.DataAccess
     {
         public static async Task SeedDataAsync(ApplicationDbContext context, bool _, CancellationToken token) 
         {
+            var sp = serviceProvider.GetRequiredService<IConfiguration>();
+
             var badgeSeedList = new List<Badge>
             {
                 new Badge
@@ -57,22 +59,22 @@ namespace MH.Capstone.Domain.DataAccess
                 }
             }
         
-            // Seed more data here later, if needed
+            // Seed more data here
+            await context.SaveChangesAsync.SeedIdentityAsync(sp);
+
 
             // Now save it to the DB!
             await context.SaveChangesAsync(token);
         }
 
-        public static async Task SeedIdentityAsync(IServiceProvider serviceProvider)
+        private static async Task SeedIdentityAsync(IServiceProvider serviceProvider)
         {
             // Needs to go after this in Program.cs: var app = builder.Build();
 
             // Seed the data for UserRoles ****************
 
-            var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-            var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
             var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-
             var logger = serviceProvider.GetRequiredService<ILogger<ApplicationDbContext>>();
 
             string[] roles = {"User", "Admin"};
@@ -81,26 +83,21 @@ namespace MH.Capstone.Domain.DataAccess
 
             foreach (var role in roles)
             {
-                if (!await roleManager.RoleExistsAsync(role))
+                var normalizedName = role.ToUpper();
+                if (!await context.Roles.AnyAsync(r => r.NormalizedName == normalizedName))
                 {
-                    await roleManager.CreateAsync(new IdentityRole(role));
+                    context.Roles.Add(new IdentityRole
+                    {
+                        // Id is an assigned GUID
+                        Name = role,
+                        NormalizedName = normalizedName
+                    });
+
                     logger.LogInformation("Role created: {Role}", role);
                 }
             }
 
-            // Default pre-existing accounts (before Identity implementation) as Users
-            // Checks entire user list:
-            //              not scalable, but will work for a testing/dev environment.
-            var allUsers = await userManager.Users.ToListAsync();
-            foreach (var user in allUsers)
-            {
-                var existingRoles = await userManager.GetRolesAsync(user);
-                if (existingRoles.Count == 0)
-                {
-                    await userManager.AddToRoleAsync(user, "User");
-                    logger.LogInformation("Assigned default 'User' role to: {Email}", user.Email);
-                }
-            }
+            await context.SaveChangesAsync();
 
             // Initialize an Admin-level account for testing.
             var adminEmail = configuration.GetSection("AdminAccount:Hidden")["Email"];
@@ -108,27 +105,36 @@ namespace MH.Capstone.Domain.DataAccess
 
             if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword))
             {
-                var adminUser = await userManager.FindByEmailAsync(adminEmail);
+                var normalizedEmail = adminEmail.ToUpper();
+                var adminUser = await context.Users.FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail);
                 if (adminUser == null)
                 {
                     adminUser = new ApplicationUser
                     {
                         UserName = adminEmail,
+                        NormalizedUserName = normalizedEmail,
                         Email = adminEmail,
                         EmailConfirmed = true
                     };
 
-                    // CreateAsync handles the account Password here
-                    var createAdmin = await userManager.CreateAsync(adminUser, adminPassword);
-                    if (createAdmin.Succeeded)
-                    {
-                        await userManager.AddToRoleAsync(adminUser, "Admin");
-                        logger.LogInformation("Test Admin was successfully created.");
-                    }
-                    else
-                    {
-                        logger.LogInformation("Test Admin creation was unsuccessful.");
-                    }
+                    // Manually hash the password
+                    var hasher = new PasswordHasher<ApplicationUser>();
+                    adminUser.PasswordHash = hasher.HashPassword(adminUser, adminPassword);
+
+                    context.Users.Add(adminUser);
+                    await context.SaveChangesAsync();
+
+                    // Assign the admin role
+                    var adminRole = await context.Roles.FirstAsync(r => r.NormalizedName == "ADMIN");
+                    context.UserRoles.Add(new IdentityUserRole<string> 
+                    { 
+                        UserId = adminUser.Id, 
+                        RoleId = adminRole.Id 
+                    });
+            
+                    await context.SaveChangesAsync();
+                    logger.LogInformation("Admin account and role assignment saved to database.");
+
                 }
                 else
                 {
