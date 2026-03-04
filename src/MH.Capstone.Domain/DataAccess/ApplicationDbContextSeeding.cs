@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration; // Required for IConfiguration
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace MH.Capstone.Domain.DataAccess 
 {
@@ -13,7 +14,6 @@ namespace MH.Capstone.Domain.DataAccess
     {
         public static async Task SeedDataAsync(ApplicationDbContext context, bool _, CancellationToken token) 
         {
-            var sp = serviceProvider.GetRequiredService<IConfiguration>();
 
             var badgeSeedList = new List<Badge>
             {
@@ -60,22 +60,19 @@ namespace MH.Capstone.Domain.DataAccess
             }
         
             // Seed more data here
-            await context.SaveChangesAsync.SeedIdentityAsync(sp);
+            await SeedIdentityAsync(context);
 
 
             // Now save it to the DB!
             await context.SaveChangesAsync(token);
         }
 
-        private static async Task SeedIdentityAsync(IServiceProvider serviceProvider)
+        private static async Task SeedIdentityAsync(ApplicationDbContext context)
         {
-            // Needs to go after this in Program.cs: var app = builder.Build();
-
             // Seed the data for UserRoles ****************
 
-            var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
-            var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-            var logger = serviceProvider.GetRequiredService<ILogger<ApplicationDbContext>>();
+            var configuration = context.GetService<IConfiguration>();
+            var logger = context.GetService<ILogger<ApplicationDbContext>>();
 
             string[] roles = {"User", "Admin"};
 
@@ -94,6 +91,10 @@ namespace MH.Capstone.Domain.DataAccess
                     });
 
                     logger.LogInformation("Role created: {Role}", role);
+                }
+                else
+                {
+                    logger.LogInformation($"Role with {role} already exists in database. Skipping creation.");
                 }
             }
 

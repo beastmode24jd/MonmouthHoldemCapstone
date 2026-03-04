@@ -8,6 +8,8 @@ using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.Services.Abstraction;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Http;
 
 namespace MH.Capstone.Domain.Tests.Unit.Services;
 
@@ -16,11 +18,11 @@ public class AuthenticationServiceTests
 {
     private ServiceProvider _serviceProvider;
     private ApplicationDbContext _context;
-    private UserManager<ApplicationUser> _userManager;
-    private SignInManager<ApplicationUser> _signInManager;
+    private Mock<UserManager<ApplicationUser>> _userManagerMock;
+    private Mock<SignInManager<ApplicationUser>> _signInManagerMock;
     private Mock<INotificationService> _notificationServiceMock;
-    private IAuthenticationService _authService;
-    private IRepository<ApplicationUser, ApplicationDbContext> _userRepo;
+    private IAuthenticationService _authService; // Do not mock this one
+    private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock;
 
     [SetUp]
     public async Task Setup()
@@ -31,13 +33,31 @@ public class AuthenticationServiceTests
         // Add logging (required by Identity)
         services.AddLogging();
 
+        services.AddSingleton<IConfiguration>();
+
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}"));
+            options.UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}")
+            .UseSeeding((context, _) => {
+                if (context is ApplicationDbContext appSyncContext)
+                    {
+                        ApplicationDbContextSeeding.SeedDataAsync(appSyncContext, _, CancellationToken.None).GetAwaiter().GetResult();
+                    }
+                })
+                // This is will be the perfered call by any part of EF Core that can support Async calls.
+                .UseAsyncSeeding(async (context, _, token) =>
+                {
+                    if (context is ApplicationDbContext appAsyncContext)
+                    {
+                        await ApplicationDbContextSeeding.SeedDataAsync(appAsyncContext, _, token);
+                    }
+                })
+            );
 
         // Add Identity services
         services.AddIdentity<ApplicationUser, IdentityRole>()
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
+
         // Register repositories like we do in the actual application
         services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
         // Register real AuthenticationService here when we create it
@@ -45,19 +65,44 @@ public class AuthenticationServiceTests
 
         _serviceProvider = services.BuildServiceProvider();
         _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
-        _userManager = _serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        _signInManager = _serviceProvider.GetRequiredService<SignInManager<ApplicationUser>>();
-        _userRepo = _serviceProvider.GetRequiredService<IRepository<ApplicationUser, ApplicationDbContext>>();
+
+        // Why weren't you mocked *********************
+
+        // Mock the store for _userManagerMock
+        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
+        
+        _userManagerMock = new Mock<UserManager<ApplicationUser>>(
+                userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+
+        // 3. Initialize SignInManager Mock (requires UserManager, IHttpContextAccessor, and ClaimsFactory)
+        _signInManagerMock = new Mock<SignInManager<ApplicationUser>>(
+            _userManagerMock.Object,
+            new Mock<IHttpContextAccessor>().Object,
+            new Mock<IUserClaimsPrincipalFactory<ApplicationUser>>().Object,
+            null!, null!, null!, null!);
+
+        _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
+
+        // *************************
+        
         _notificationServiceMock = new Mock<INotificationService>();
-        _authService = new AuthenticationService(_userManager, _signInManager, _notificationServiceMock.Object,
-            NullLogger<AuthenticationService>.Instance, _userRepo);
+
+        // Do not mock
+        _authService = new AuthenticationService(
+            _userManagerMock.Object,
+            _signInManagerMock.Object,
+            _notificationServiceMock.Object,
+            NullLogger<AuthenticationService>.Instance,
+            _userRepoMock.Object
+        );
+
         await _context.Database.EnsureCreatedAsync();
     }
 
     [TearDown]
     public async Task TearDown()
     {
-        _userManager?.Dispose();
+        _userManagerMock.Object?.Dispose();
         await _context.Database.EnsureDeletedAsync();
         await _context.DisposeAsync();
         await _serviceProvider.DisposeAsync();
@@ -70,25 +115,35 @@ public class AuthenticationServiceTests
     }
 
     [Test]
-    public async Task RegisterUserAsync_WithValidData_CreatesUserInDatabase()
+    public async Task RegisterUserAsync_WithValidData_CallsUserManagerAndSendsNotif()
     {
-        // Arrange - Set up our test data
+        // ARRANGE - Set up our test data ******************
         string email = "newuser@example.com";
         string password = "Test@123!";
+
+        // Set up user manager to return Success with CreateAsync call
+        _userManagerMock.Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>(), password))
+        .ReturnsAsync(IdentityResult.Success);
+
+        // Set up role assignment for user manager mock
+        _userManagerMock.Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), "User"))
+        .ReturnsAsync(IdentityResult.Success);
 
         _notificationServiceMock.Setup(s => s.SendNotificationAsync(
             It.IsAny<Notification>())).Verifiable(Times.Once);
 
-        // Act - Try to register the user
+        // ACT - Try to register the user ********************
         var result = await _authService.RegisterUserAsync(email, password);
 
-        // Assert - Verify user was created
+        // ASSERT - Verify user was created ******************
         Assert.That(result, Is.True, "Registration should succeed");
 
-        var userInDb = await _userManager.FindByEmailAsync(email);
-        Assert.That(userInDb, Is.Not.Null, "User should exist in database");
-        Assert.That(userInDb.Email, Is.EqualTo(email), "Email should match");
-        AssertAllMockVerifySetups();
+        // Verify user manager was called with the correct email (we check users with email)
+        _userManagerMock.Verify(x => x.CreateAsync(
+            It.Is<ApplicationUser>(u => u.Email == email), password), Times.Once);
+
+        // Verify notification was sent
+        _notificationServiceMock.Verify();
     }
 
 
@@ -443,6 +498,4 @@ public class AuthenticationServiceTests
         // Assert
         Assert.That(result, Is.True, "Should be able to login after reactivation");
     }
-
-
 }
