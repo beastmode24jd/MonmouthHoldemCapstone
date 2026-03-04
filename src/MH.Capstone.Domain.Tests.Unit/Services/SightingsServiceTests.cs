@@ -1,6 +1,7 @@
 ﻿using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
+using MH.Capstone.Domain.Services.Abstraction;
 using static MH.Capstone.Tests.SharedInternals.RandomData;
 using MH.Capstone.Tests.SharedInternals;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -10,7 +11,6 @@ using MH.Capstone.Domain.Tools;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http.Internal;
-using NUnit.Framework.Legacy;
 using MH.Capstone.Domain.DataAccess;
 
 #pragma warning disable CA1416
@@ -23,7 +23,11 @@ namespace MH.Capstone.Domain.Tests.Unit.Services;
 public class SightingsServiceTests
 {
     private Sighting _validSighting;
+    private Mock<IScoringService> _scoringServiceMock;
+    private Mock<INotificationService> _notificationServiceMock;
+    private Mock<IBadgeService> _badgeServiceMock;
     private Mock<IRepository<Sighting, ApplicationDbContext>> _sightingsRepoMock;
+    private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock;
     private FakeImageGenerator _imageGenerator;
 
     // Remember: Arrange, Act, Assert
@@ -33,6 +37,10 @@ public class SightingsServiceTests
         _imageGenerator = new FakeImageGenerator(); 
         _validSighting = SightingValidValuesSource.DefaultValidSighting;
         _sightingsRepoMock = new Mock<IRepository<Sighting, ApplicationDbContext>>();
+        _scoringServiceMock = new Mock<IScoringService>();
+        _notificationServiceMock = new Mock<INotificationService>();
+        _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
+        _badgeServiceMock = new Mock<IBadgeService>();
     }
 
     [TearDown]
@@ -42,17 +50,28 @@ public class SightingsServiceTests
     }
 
     private SightingsService CreateSut() =>
-        new (NullLogger<SightingsService>.Instance, _sightingsRepoMock.Object);
+        new (NullLogger<SightingsService>.Instance,
+            _badgeServiceMock.Object,
+            _scoringServiceMock.Object,
+            _notificationServiceMock.Object,
+            _sightingsRepoMock.Object,
+            _userRepoMock.Object);
 
     private void AssertAllMockVerifications()
     {
 
         // Asserts that the methods that were set up in the Moq were called in ways that we set up
         _sightingsRepoMock.VerifyAll();
+        _scoringServiceMock.VerifyAll();
+        _notificationServiceMock.VerifyAll();
+        _userRepoMock.VerifyAll();
 
         // Asserts that the Moq mocks were only called in ways that we set up with the Setup method,
         // failing if any method was called that was not set up
         _sightingsRepoMock.VerifyNoOtherCalls();
+        _scoringServiceMock.VerifyNoOtherCalls();
+        _notificationServiceMock.VerifyNoOtherCalls();
+        _userRepoMock.VerifyNoOtherCalls();
     }
 
     // Will run 2^4 = 16 times, testing all combinations of the valid values for lat, long, timestamp, and description
@@ -66,11 +85,35 @@ public class SightingsServiceTests
         // Arrange
         var sighting = new Sighting(_validSighting.Id, _validSighting.UserId, lat, lon, 
             timestamp, desc, [0x01]);
+        var sightingsCount = GetRandomIntInRange(1, 100);
+        var pointsValue = GetRandomIntInRange(1, 20);
 
         _sightingsRepoMock.Setup(r => 
             r.AddOrUpdateAsync(It.Is(sighting, SightingComparer.Instance)))
             .ReturnsAsync(sighting).Verifiable(Times.Once);
-        
+
+        // It.Is<int>(i => i == 1) placeholder till species is fully developed.
+        _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(
+            It.Is<int>(i => i == 1)))
+            .ReturnsAsync(sightingsCount).Verifiable(Times.Once);
+
+        _scoringServiceMock.Setup(s => s.CalculatePointsAsync(
+            It.Is<int>(i => i == sightingsCount)))
+            .ReturnsAsync(pointsValue).Verifiable(Times.Once);
+
+        _userRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(value: new List<ApplicationUser> { new ApplicationUser { Id = sighting.UserIdentityId } }.AsQueryable())
+            .Verifiable(Times.Once);
+
+        _userRepoMock.Setup(r => r.AddOrUpdateAsync(
+            It.Is<ApplicationUser>(u => u.Id == sighting.UserIdentityId &&
+                u.Points == pointsValue)))
+            .Verifiable(Times.Once);
+
+        _notificationServiceMock.Setup(s => s.SendNotificationAsync(
+            It.Is<Notification>(n => n.RecipientId == sighting.UserId)))
+            .Verifiable(Times.Once);
+
         var sut = CreateSut();
 
         // Act & Assert
@@ -84,10 +127,34 @@ public class SightingsServiceTests
         // Arrange
         var sighting = _validSighting;
         sighting.ImageBuffer = _imageGenerator.GetValidImage().ToByteArray();
+        var sightingsCount = GetRandomIntInRange(1, 100);
+        var pointsValue = GetRandomIntInRange(1, 20);
 
         _sightingsRepoMock.Setup(r =>
                 r.AddOrUpdateAsync(It.Is(sighting, SightingComparer.Instance)))
             .ReturnsAsync(sighting).Verifiable(Times.Once);
+
+        // It.Is<int>(i => i == 1) placeholder till species is fully developed.
+        _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(
+                It.Is<int>(i => i == 1)))
+            .ReturnsAsync(sightingsCount).Verifiable(Times.Once);
+
+        _scoringServiceMock.Setup(s => s.CalculatePointsAsync(
+                It.Is<int>(i => i == sightingsCount)))
+            .ReturnsAsync(pointsValue).Verifiable(Times.Once);
+
+        _userRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(value: new List<ApplicationUser> { new ApplicationUser { Id = sighting.UserIdentityId } }.AsQueryable())
+            .Verifiable(Times.Once);
+
+        _userRepoMock.Setup(r => r.AddOrUpdateAsync(
+                It.Is<ApplicationUser>(u => u.Id == sighting.UserIdentityId &&
+                                            u.Points == pointsValue)))
+            .Verifiable(Times.Once);
+
+        _notificationServiceMock.Setup(s => s.SendNotificationAsync(
+                It.Is<Notification>(n => n.RecipientId == sighting.UserId)))
+            .Verifiable(Times.Once);
 
         var sut = CreateSut();
 

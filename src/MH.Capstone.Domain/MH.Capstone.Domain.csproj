@@ -7,8 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Migrations\ManualSqlFiles\**" />
+    <EmbeddedResource Remove="Migrations\ManualSqlFiles\**" />
+    <None Remove="Migrations\ManualSqlFiles\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="DataAccess\Repositories\" />
-    <Folder Include="Dtos\" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,7 +29,9 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.13" />
     <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="9.0.12" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
 </Project>

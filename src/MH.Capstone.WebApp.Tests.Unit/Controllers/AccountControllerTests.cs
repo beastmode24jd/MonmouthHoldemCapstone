@@ -14,6 +14,7 @@ namespace MH.Capstone.WebApp.Tests.Unit.Controllers;
 public class AccountControllerTests
 {
     private Mock<IAuthenticationService> _mockAuthService;
+    private Mock<IUserService> _mockUserService;
     private Mock<ILogger<AccountController>> _mockLogger;
     private AccountController _controller;
 
@@ -21,9 +22,11 @@ public class AccountControllerTests
     public void Setup()
     {
         _mockAuthService = new Mock<IAuthenticationService>();
+        _mockUserService = new Mock<IUserService>();
         _mockLogger = new Mock<ILogger<AccountController>>();
         
-        _controller = new AccountController(_mockAuthService.Object, null!, _mockLogger.Object);
+        _controller = new AccountController(_mockAuthService.Object, _mockUserService.Object,
+            null!, _mockLogger.Object);
         
         _controller.ControllerContext = new ControllerContext
         {
@@ -125,7 +128,7 @@ public class AccountControllerTests
             ConfirmPassword = "Test@123"
         };
 
-        _mockAuthService.Setup(s => s.UserExistsAsync(registerModel.Email)).ReturnsAsync(true);
+        _mockUserService.Setup(s => s.UserExistsAsync(registerModel.Email)).ReturnsAsync(true);
 
         var result = await _controller.Register(registerModel);
 

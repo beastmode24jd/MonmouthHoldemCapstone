@@ -1,4 +1,4 @@
-﻿using MH.Capstone.Domain.DataModels;
+using MH.Capstone.Domain.DataModels;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,8 +14,11 @@ namespace MH.Capstone.Domain.DataAccess
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
         // Identity tables are automatically included.
-        // Add additional auth-related DbSets here if needed.
+        // Add additional user-related DbSets here if needed.
 
         public DbSet<Sighting> Sightings { get; set; } = null!;
+        public DbSet<Badge> Badges { get; set; } = null!;
+        public DbSet<UserBadge> UserBadges { get; set; } = null!;
+        public DbSet<Notification> Notifications { get; set; } = null!;
     }
 }

@@ -1,0 +1,44 @@
+@model ReactivateAccountViewModel
+@{
+    ViewData["Title"] = "Reactivate Account";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">Reactivate Account</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>Welcome back!</strong> Enter your credentials to reactivate your account.
+                </div>
+
+                <form asp-action="Reactivate" asp-controller="Account" method="post">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label">Email</label>
+                        <input asp-for="Email" class="form-control" type="email" placeholder="Enter your email" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label">Password</label>
+                        <input asp-for="Password" class="form-control" type="password" placeholder="Enter your password" />
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a asp-action="Login" asp-controller="Account" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-success">Reactivate My Account</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

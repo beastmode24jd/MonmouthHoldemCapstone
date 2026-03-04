@@ -1,5 +1,7 @@
 using System.Security.Claims;
 using System.Text;
+using MH.Capstone.Domain.DataAccess;
+using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.WebApp.Controllers;
@@ -16,19 +18,31 @@ public class DashboardControllerTests
 {
     // Mocks and method access
     private Mock<IAuthenticationService> _mockAuthService;
-    private Mock<IProfileImageService> _mockService;
+    private Mock<IUserService> _mockUserService;
+    private Mock<IProfileImageService> _mockProfileImageService;
+    private Mock<INotificationService> _mockNotificationService;
+    private Mock<IRepository<Notification, ApplicationDbContext>> _mockNotificationRepo;
     private Mock<ILogger<DashboardController>> _mockLogger;
     private DashboardController _controller;
+    private Mock<IBadgeService> _mockBadgeService;
     private const string TestEmail = "namesNameington@mail.wou";
 
     [SetUp]
     public void SetUp()
     {
         _mockAuthService = new Mock<IAuthenticationService>();
-        _mockService = new Mock<IProfileImageService>();
+        _mockProfileImageService = new Mock<IProfileImageService>();
         _mockLogger = new Mock<ILogger<DashboardController>>();
-        _controller = new DashboardController(_mockLogger.Object, _mockService.Object, _mockAuthService.Object);
+        _mockUserService = new Mock<IUserService>();
+        _mockNotificationService = new Mock<INotificationService>();
+        _mockNotificationRepo = new Mock<IRepository<Notification, ApplicationDbContext>>();
+        _mockBadgeService = new Mock<IBadgeService>();
 
+        _controller = new DashboardController(_mockLogger.Object,
+            _mockProfileImageService.Object, _mockAuthService.Object,
+            _mockBadgeService.Object, _mockNotificationService.Object,
+            _mockUserService.Object, _mockNotificationRepo.Object);
+        
         // Mock the user, so the display name isn't null while testing
         var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
         {
@@ -39,8 +53,6 @@ public class DashboardControllerTests
         {
             HttpContext = new DefaultHttpContext() { User = user }
         };
-
-
     }
 
     [TearDown]
@@ -58,8 +70,12 @@ public class DashboardControllerTests
         var dummyBytes = new byte[] { 0x20, 0x21, 0x22 }; // Creates dummy data
 
         // Tells service to return dummy bytes
-        _mockService.Setup(s => s.ConvertToBytesAsync(It.IsAny<IFormFile>()))
+        _mockProfileImageService.Setup(s => s.ConvertToBytesAsync(It.IsAny<IFormFile>()))
                     .ReturnsAsync(dummyBytes);
+
+        // Mocking the user lookup, which is required for the new UploadImage Badge
+        _mockUserService.Setup(s => s.GetUserByEmailAsync(TestEmail))
+                .ReturnsAsync(new ApplicationUser { Email = TestEmail });
 
         // Act
         await _controller.UploadProfileImage(fileMock.Object);
@@ -67,7 +83,7 @@ public class DashboardControllerTests
         // Assert
         // Verify that the Auth Service was told to update the user's profile image
         // in localDB
-        _mockAuthService.Verify(s => s.UpdateUserProfileImageAsync(
+        _mockUserService.Verify(s => s.UpdateUserProfileImageAsync(
         TestEmail,
         It.Is<byte[]>(b => b.Length > 0),
         fileMock.Object.ContentType), 

@@ -8,26 +8,64 @@
 }
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Wildlife AID App</title>
     <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" /> 
+    <script type="text/javascript">
+        async function notificationAlertRefresh() {
+            const notifPendingBadge = document.getElementById("pendingNotifBadge");
+            const notifPendingBadgeNum = document.getElementById("pendingNotifBadgeNum");
+            const notifMenuItem = document.getElementById("notificationsMenuItem");
+
+            const res = await fetch('/notifications/pending-count', {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (!res.ok) {
+                console.error('Failed to fetch pending notifications count', res.status);
+                return;
+            }
+
+            // parse server response (int)
+            const pendingCount = await res.json();
+
+            if (pendingCount > 0) {
+                notifPendingBadgeNum.textContent = pendingCount;
+                notifMenuItem.classList.add("text-danger");
+                notifMenuItem.classList.remove("text-light");
+                notifPendingBadge.classList.remove("d-none");
+            } else {
+                notifMenuItem.classList.add("text-light");
+                notifMenuItem.classList.remove("text-danger");
+                notifPendingBadge.classList.add("d-none");
+                notifPendingBadgeNum.textContent = "";
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', notificationAlertRefresh);
+    </script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/MH.Capstone.WebApp.styles.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
 </head>
+
 <body>
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark border-bottom box-shadow mb-0">
             <div class="container-fluid">
                 <a class="navbar-brand" asp-controller="Home" asp-action="Index">
-                    <img class="logo" role="img" alt="Wildlife AID Logo" aria-label="Wildlife AID Logo" src="~/imgs/site-logo.png"/>
+                    <img class="logo" role="img" alt="Wildlife AID Logo" aria-label="Wildlife AID Logo"
+                         src="~/imgs/site-logo.png" />
                     Wildlife AID
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
+                        aria-controls="navbarSupportedContent"                   aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex">
@@ -37,15 +75,33 @@
                                 <i class="bi bi-info-circle"></i> About Us
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-light" asp-controller="Leaderboard" asp-action="Index">
+                                <i class="bi bi-trophy-fill"></i> Leaderboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-light" asp-controller="Species" asp-action="Search">
+                                <i class="bi bi-search"></i> Search for Animals
+                            </a>
+                        </li>
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle text-light" href="#" id="sightingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <a class="nav-link dropdown-toggle text-light" href="#" id="sightingsDropdown" role="button"
+                                       data-bs-toggle="dropdown" aria-expanded="false">
                                     Sightings
                                 </a>
                                 <ul class="dropdown-menu" aria-labelledby="sightingsDropdown">
                                     <li>
-                                        <a class="dropdown-item text-light" asp-action="Upload" asp-controller="Sighting">Upload</a>
+                                        <a class="dropdown-item text-light" asp-action="Index" asp-controller="Map">
+                                            <i class="bi bi-map"></i> View Map
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item text-light" asp-action="Upload" asp-controller="Sighting">
+                                            <i class="bi bi-camera"></i> Upload
+                                        </a>
                                     </li>
                                 </ul>
                             </li>
@@ -53,27 +109,41 @@
                     </ul>
                     <!-- Allows for everything after this empty ul to be right-aligned -->
                     <ul class="navbar-nav flex-grow-1"></ul>
-                    <ul class="navbar-nav">
+                    <ul class="navbar-nav reload-on-notif-change">
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <img src="@user.GetProfileImageUrl()" 
-                                        alt="Profile Image"
-                                        class="navProfile" 
-                                        role="img" /> @User.Identity.Name
+                                    <span>
+                                        <img src="@user.GetProfileImageUrl()"
+                                             alt="Profile Image"
+                                             class="navProfile"
+                                             role="img"/> @User.Identity.Name
+                                        <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-danger d-none"
+                                            id="pendingNotifBadge">
+                                            <span id="pendingNotifBadgeNum"></span>
+                                            <span class="visually-hidden">unread messages</span>
+                                        </span>
+                                    </span>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end pt-1 pb-1" aria-labelledby="userDropdown">
-                                    <li class="menuItem">
-                                        <a class="nav-link text-light" asp-controller="Dashboard" asp-action="Index">
+                                    <li class="menuItem drop">
+                                        <a class="nav-link text-light dropdown-item" asp-controller="Dashboard" asp-action="Index">
                                             <i class="bi bi-speedometer2"></i> Dashboard
                                         </a>
                                     </li>
                                     <li class="menuItem">
+                                        <a class="nav-link dropdown-item text-light" id="notificationsMenuItem" asp-controller="Dashboard" asp-action="Notifications">
+                                            <i class="bi bi-bell"></i> Notifications
+                                        </a>
+                                    </li>
+                                    <li class="menuItem"><hr class="dropdown-divider"></li>
+                                    <li class="menuItem">
                                         <form id="logoutForm" class="d-none" asp-controller="Account" asp-action="Logout" method="post">
                                             @Html.AntiForgeryToken()
                                         </form>
-                                        <a class="dropdown-item" href="javascript:document.getElementById('logoutForm').submit();">
+                                        <a class="dropdown-item"
+                                               href="javascript:document.getElementById('logoutForm').submit();">
                                             <i class="bi bi-box-arrow-right"></i> Log out
                                         </a>
                                     </li>
@@ -106,8 +176,10 @@
 
     <footer class="footer text-light">
         <div class="container-fluid ps-4">
-            <p class="footerText d-inline">Wildlife AID &copy; - @DateTime.Now.Year</p>
-            <p class="footerText text-end d-inline">Version: @GetAppVersion()</p>
+            <p class="footerText d-inline">
+                Wildlife AID &copy; - @DateTime.Now.Year |
+                Version: @GetAppVersion()
+            </p>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
@@ -115,4 +187,5 @@
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
+
 </html>

@@ -1,0 +1,175 @@
+@{
+    ViewData["Title"] = "Sightings Map";
+}
+
+<div class="container-fluid p-0">
+    <div class="row g-0">
+        <div class="col-12">
+            <div id="map-container" style="height: calc(100vh - 120px); width: 100%;">
+                <div id="map" style="height: 100%; width: 100%;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- No Sightings Modal -->
+<div class="modal fade" id="noSightingsModal" tabindex="-1" aria-labelledby="noSightingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="noSightingsModalLabel">
+                    <i class="bi bi-info-circle"></i> No Sightings Found
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>There are no wildlife sightings in this area yet.</p>
+                <p>Be the first to report a sighting!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Continue Exploring</button>
+                <a asp-controller="Sighting" asp-action="Upload" class="btn btn-primary">
+                    <i class="bi bi-camera"></i> Upload Sighting
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+          crossorigin="" />
+    <style>
+        #map-container {
+            position: relative;
+        }
+        .leaflet-container {
+            background-color: #f0f0f0;
+        }
+        .location-error-banner {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 5px;
+            padding: 10px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+    </style>
+}
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    <script>
+        (function() {
+            // Default location (Portland, Oregon as fallback)
+            const defaultLat = 45.5152;
+            const defaultLng = -122.6784;
+            const defaultZoom = 13;
+
+            let map;
+            let userMarker;
+            let sightingsLoaded = false;
+
+            // Initialize the map
+            function initMap(lat, lng, zoom) {
+                map = L.map('map').setView([lat, lng], zoom);
+
+                // Add OpenStreetMap tiles
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+
+                // Add user location marker if we have their location
+                if (lat !== defaultLat || lng !== defaultLng) {
+                    userMarker = L.marker([lat, lng], {
+                        icon: L.divIcon({
+                            className: 'user-location-marker',
+                            html: '<i class="bi bi-geo-alt-fill" style="font-size: 24px; color: #0d6efd;"></i>',
+                            iconSize: [24, 24],
+                            iconAnchor: [12, 24]
+                        })
+                    }).addTo(map);
+                    userMarker.bindPopup('<strong>Your Location</strong>').openPopup();
+                }
+
+                // Load sightings when map moves
+                map.on('moveend', loadSightings);
+                
+                // Initial load
+                loadSightings();
+            }
+
+            // Load sightings for the current map view
+            function loadSightings() {
+                const bounds = map.getBounds();
+                const params = new URLSearchParams({
+                    minLat: bounds.getSouth(),
+                    maxLat: bounds.getNorth(),
+                    minLng: bounds.getWest(),
+                    maxLng: bounds.getEast()
+                });
+
+                fetch(`/Map/Sightings?${params}`)
+                    .then(response => response.json())
+                    .then(sightings => {
+                        // Show modal if no sightings and this is the first load
+                        if (sightings.length === 0 && !sightingsLoaded) {
+                            const modal = new bootstrap.Modal(document.getElementById('noSightingsModal'));
+                            modal.show();
+                        }
+                        sightingsLoaded = true;
+
+                        // Future: Add sighting markers to the map
+                        // This will be implemented in CSP-99
+                    })
+                    .catch(error => {
+                        console.error('Error loading sightings:', error);
+                    });
+            }
+
+            // Show error banner
+            function showLocationError(message) {
+                const banner = document.createElement('div');
+                banner.className = 'location-error-banner';
+                banner.innerHTML = `<i class="bi bi-exclamation-triangle"></i> ${message}`;
+                document.getElementById('map-container').appendChild(banner);
+
+                // Remove after 5 seconds
+                setTimeout(() => banner.remove(), 5000);
+            }
+
+            // Try to get user's location
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        // Success - use user's location
+                        initMap(position.coords.latitude, position.coords.longitude, defaultZoom);
+                    },
+                    function(error) {
+                        // Error - use default location
+                        console.warn('Geolocation error:', error.message);
+                        showLocationError('Could not determine your location. Showing default area.');
+                        initMap(defaultLat, defaultLng, defaultZoom);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 300000 // Cache for 5 minutes
+                    }
+                );
+            } else {
+                // Geolocation not supported
+                showLocationError('Geolocation is not supported by your browser.');
+                initMap(defaultLat, defaultLng, defaultZoom);
+            }
+        })();
+    </script>
+}

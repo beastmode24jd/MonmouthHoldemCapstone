@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MH.Capstone.Domain.DataAccess;
+﻿using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
@@ -12,7 +7,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using static MH.Capstone.Domain.Tools.DataAnnotationsValidator;
 
 namespace MH.Capstone.Domain.Services
 {
@@ -20,14 +14,28 @@ namespace MH.Capstone.Domain.Services
     {
         private readonly ILogger<SightingsService> _logger;
         private readonly IRepository<Sighting, ApplicationDbContext> _sightingsRepo;
+        private readonly IRepository<ApplicationUser, ApplicationDbContext> _userRepo;
+        private readonly IScoringService _scoringService;
+        private readonly INotificationService _notificationService;
 
-        public SightingsService(ILogger<SightingsService> logger, IRepository<Sighting, ApplicationDbContext> sightingsRepo)
+        // To update user account with Badge on first upload
+        private readonly IBadgeService _badgeService;
+
+        public SightingsService(
+            ILogger<SightingsService> logger, IBadgeService badgeService,
+            IScoringService scoringService, INotificationService notificationService,
+            IRepository<Sighting, ApplicationDbContext> sightingsRepo,
+            IRepository<ApplicationUser, ApplicationDbContext> userRepo)
         {
             _logger = logger;
             _sightingsRepo = sightingsRepo;
+            _scoringService = scoringService;
+            _userRepo = userRepo;
+            _notificationService = notificationService;
+            _badgeService = badgeService;
         }
 
-        public async Task CreateSightingAsync(Sighting entity)
+        public async Task<int> CreateSightingAsync(Sighting entity)
         {
             if (!entity.TryValidateEntity(out var fails))
             {
@@ -40,7 +48,32 @@ namespace MH.Capstone.Domain.Services
 
             try
             {
+                // Step 1: Save the sighting to database
                 await _sightingsRepo.AddOrUpdateAsync(entity);
+
+                // Step 2: Calculate points based on rarity (CSP-104)
+                // TODO: Replace hardcoded speciesId with actual species when Species table exists
+                int globalCount = await _scoringService.GetGlobalSightingsCountAsync(1); // Placeholder species ID
+                int pointsEarned = await _scoringService.CalculatePointsAsync(globalCount);
+
+                // Step 3: Award points to the user
+                var users = await _userRepo.GetAllAsync();
+                var user = users.FirstOrDefault(u => u.Id == entity.UserIdentityId);
+                
+                if (user != null)
+                {
+                    user.Points += pointsEarned;
+                    await _userRepo.AddOrUpdateAsync(user);
+                    await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId,
+                        "New Sighting Uploaded & Created!",
+                        $"Congratulations, You uploaded a new sighting at {entity.Timestamp} and " +
+                        $"earned {pointsEarned} points!"
+                        ));
+                    _logger.LogInformation("Awarded {Points} points to user {UserId} for sighting", pointsEarned, entity.UserId);
+                }
+
+                // Step 4: Return points to controller
+                return pointsEarned;
             }
             catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 547 })
             {
@@ -49,11 +82,6 @@ namespace MH.Capstone.Domain.Services
                     $"Sighting entity validation failed. UserId {entity.UserId} does not exist.", nameof(entity.UserId),
                     ex);
             }
-        }
-
-        public async Task<Sighting> GetSightingByIdAsync(Guid id)
-        {
-            throw new NotImplementedException();
         }
 
         public bool ValidateImage(IFormFile? imageBuffer)

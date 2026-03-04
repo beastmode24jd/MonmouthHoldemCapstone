@@ -1,5 +1,6 @@
-using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
+using System.Security.Cryptography;
 
 // Code adapted from file give to students by Dr. Morgan in CS 460,
 // Used with permission, and modified to add features and needs specific to this project.
@@ -40,13 +41,13 @@ namespace MH.Capstone.Domain.DataAccess.Repositories
         }
 
         // Find by ID assuming it's the PK and is an int
-        public virtual async Task<TEntity?> FindByIdAsync(int id)
+        public virtual async Task<TEntity?> FindByIdAsync<TId>(TId id)
         {
             var entity = await _dbSet.FindAsync(id);
             return entity;  // null if not found
         }
 
-        public virtual async Task<bool> ExistsAsync(int id)
+        public virtual async Task<bool> ExistsAsync<TId>(TId id)
         {
             return await FindByIdAsync(id) != null;
         }
@@ -95,7 +96,7 @@ namespace MH.Capstone.Domain.DataAccess.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public virtual async Task DeleteByIdAsync(int id)
+        public virtual async Task DeleteByIdAsync<TId>(TId id)
         {
             // If the entity doesn't exist, FindById will return null
             // and Delete will throw an exception, which is what we want
@@ -112,18 +113,18 @@ namespace MH.Capstone.Domain.DataAccess.Repositories
         where TDbContext : DbContext
     {
         /// <summary>
-        /// Find entity by PK.  This only works for entities with integer PK's. 
+        /// Find entity by PK. 
         /// </summary>
         /// <param name="id">The PK of the entity to find</param>
         /// <returns>The entity or null if not found</returns>
-        Task<TEntity?> FindByIdAsync(int id);
+        Task<TEntity?> FindByIdAsync<TId>(TId id);
 
         /// <summary>
-        /// Check if the entity with this integer PK exists in the table
+        /// Check if the entity with this generic PK exists in the table
         /// </summary>
         /// <param name="id">The PK of the entity to check</param>
         /// <returns>True if the entity exists, False otherwise</returns>
-        Task<bool> ExistsAsync(int id);
+        Task<bool> ExistsAsync<TId>(TId id);
 
         /// <summary>
         /// Get all entities in this table.  Note, when eager loading is used this
@@ -166,8 +167,8 @@ namespace MH.Capstone.Domain.DataAccess.Repositories
         /// <summary>
         /// Remove the entity having this PK from the DB
         /// </summary>
-        /// <param name="id">The integer PK of the entity to remove</param>
+        /// <param name="id">The generic PK of the entity to remove</param>
         /// <exception cref="System.Exception">Thrown if no entity with this PK id exists</exception>
-        Task DeleteByIdAsync(int id);
+        Task DeleteByIdAsync<TId>(TId id);
     }
 }
