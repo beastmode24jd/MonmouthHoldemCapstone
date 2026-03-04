@@ -10,6 +10,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authentication; // Need these last two to mock Identity...
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace MH.Capstone.Domain.Tests.Unit.Services;
 
@@ -21,7 +24,9 @@ public class AuthenticationServiceTests
     private Mock<UserManager<ApplicationUser>> _userManagerMock;
     private Mock<SignInManager<ApplicationUser>> _signInManagerMock;
     private Mock<INotificationService> _notificationServiceMock;
-    private IAuthenticationService _authService; // Do not mock this one
+    // MS already has an AuthenticationService, and the compiler needs to know
+    // which one to use. So we bring out the full legal name here
+    private Domain.Services.Abstraction.IAuthenticationService _authService;
     private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock;
 
     [SetUp]
@@ -33,7 +38,10 @@ public class AuthenticationServiceTests
         // Add logging (required by Identity)
         services.AddLogging();
 
-        services.AddSingleton<IConfiguration>();
+        // Need a concrete Configuration instance,
+        //      for setting up the non-mocked Auth Service
+        IConfiguration configuration = new ConfigurationBuilder().Build();
+                services.AddSingleton<IConfiguration>(configuration);
 
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}")
@@ -53,6 +61,9 @@ public class AuthenticationServiceTests
                 })
             );
 
+        _serviceProvider = services.BuildServiceProvider();
+        _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
+
         // Add Identity services
         services.AddIdentity<ApplicationUser, IdentityRole>()
             .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -60,39 +71,42 @@ public class AuthenticationServiceTests
 
         // Register repositories like we do in the actual application
         services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
-        // Register real AuthenticationService here when we create it
-        services.AddScoped<IAuthenticationService, AuthenticationService>();
-
-        _serviceProvider = services.BuildServiceProvider();
-        _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
-
-        // Why weren't you mocked *********************
-
-        // Mock the store for _userManagerMock
-        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         
+        // Give _userManagerMock all NINE of its dependencies.
+        // The terminal was very unhappy when I didn't mock these arguments manually.
+        // Some are concrete purely so the constructor is happy
         _userManagerMock = new Mock<UserManager<ApplicationUser>>(
-                userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+            new Mock<IUserStore<ApplicationUser>>().Object,
+            Options.Create(new IdentityOptions()),
+            new PasswordHasher<ApplicationUser>(),
+            new IUserValidator<ApplicationUser>[0],
+            new IPasswordValidator<ApplicationUser>[0],
+            new UpperInvariantLookupNormalizer(),
+            new IdentityErrorDescriber(),
+            new Mock<IServiceProvider>().Object,
+            new Mock<ILogger<UserManager<ApplicationUser>>>().Object);
 
-        // 3. Initialize SignInManager Mock (requires UserManager, IHttpContextAccessor, and ClaimsFactory)
+        // Initialize signInManager Mock, with all seven parameters.
+        // NullLogger and IdentityOptions are concrete here due to initialization requirements
         _signInManagerMock = new Mock<SignInManager<ApplicationUser>>(
             _userManagerMock.Object,
-            new Mock<IHttpContextAccessor>().Object,
-            new Mock<IUserClaimsPrincipalFactory<ApplicationUser>>().Object,
-            null!, null!, null!, null!);
+            Mock.Of<IHttpContextAccessor>(),
+            Mock.Of<IUserClaimsPrincipalFactory<ApplicationUser>>(),
+            Mock.Of<IOptions<IdentityOptions>>(),
+            Mock.Of<ILogger<SignInManager<ApplicationUser>>>(),
+            Mock.Of<IAuthenticationSchemeProvider>(),
+            Mock.Of<IUserConfirmation<ApplicationUser>>());
 
+        _notificationServiceMock = new Mock<INotificationService>();
         _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
 
-        // *************************
-        
-        _notificationServiceMock = new Mock<INotificationService>();
-
-        // Do not mock
-        _authService = new AuthenticationService(
+        // Register the real AuthenticationService
+        // We have to specify which one, because MS has an AuthenticationService
+        _authService = new MH.Capstone.Domain.Services.AuthenticationService(
             _userManagerMock.Object,
             _signInManagerMock.Object,
             _notificationServiceMock.Object,
-            NullLogger<AuthenticationService>.Instance,
+            NullLogger<MH.Capstone.Domain.Services.AuthenticationService>.Instance,
             _userRepoMock.Object
         );
 
@@ -102,10 +116,19 @@ public class AuthenticationServiceTests
     [TearDown]
     public async Task TearDown()
     {
-        _userManagerMock.Object?.Dispose();
-        await _context.Database.EnsureDeletedAsync();
-        await _context.DisposeAsync();
-        await _serviceProvider.DisposeAsync();
+        // Mocks get reset, they don't need to be in here
+        // A failed Setup may set context and serviceProvider to null
+
+        if (_context != null)
+        {
+            await _context.Database.EnsureDeletedAsync();
+            await _context.DisposeAsync();
+        }
+
+        if (_serviceProvider != null)
+        {
+            await _serviceProvider.DisposeAsync();
+        }
     }
 
     private void AssertAllMockVerifySetups()
