@@ -22,7 +22,9 @@ public class AuthenticationServiceTests
     private ServiceProvider _serviceProvider;
     private ApplicationDbContext _context;
     private Mock<UserManager<ApplicationUser>> _userManagerMock;
-    private Mock<SignInManager<ApplicationUser>> _signInManagerMock;
+
+    // HAVING ISSUES, COMMENTING OUT FOR NOW
+    //private Mock<SignInManager<ApplicationUser>> _signInManagerMock;
     private Mock<INotificationService> _notificationServiceMock;
     // MS already has an AuthenticationService, and the compiler needs to know
     // which one to use. So we bring out the full legal name here
@@ -72,10 +74,9 @@ public class AuthenticationServiceTests
         // Register repositories like we do in the actual application
         services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
         
-        // Give _userManagerMock all NINE of its dependencies.
-        // The terminal was very unhappy when I didn't mock these arguments manually.
+        // Manually gave _userManagerMock all NINE of its dependencies.
         // Some are concrete purely so the constructor is happy
-        _userManagerMock = new Mock<UserManager<ApplicationUser>>(
+        /*_userManagerMock = new Mock<UserManager<ApplicationUser>>(
             new Mock<IUserStore<ApplicationUser>>().Object,
             Options.Create(new IdentityOptions()),
             new PasswordHasher<ApplicationUser>(),
@@ -84,10 +85,19 @@ public class AuthenticationServiceTests
             new UpperInvariantLookupNormalizer(),
             new IdentityErrorDescriber(),
             new Mock<IServiceProvider>().Object,
-            new Mock<ILogger<UserManager<ApplicationUser>>>().Object);
+            new Mock<ILogger<UserManager<ApplicationUser>>>().Object); */
+
+        // This version of _userManagerMock works, with fewer lines. Above is the deprecated version
+        // Terminal isn't complaining about this version now
+        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
+        _userManagerMock = new Mock<UserManager<ApplicationUser>>(
+            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+
 
         // Initialize signInManager Mock, with all seven parameters.
         // NullLogger and IdentityOptions are concrete here due to initialization requirements
+        // MAJOR PROBLEM BLOCK, COMMENTING OUT FOR NOW.
+        /*
         _signInManagerMock = new Mock<SignInManager<ApplicationUser>>(
             _userManagerMock.Object,
             Mock.Of<IHttpContextAccessor>(),
@@ -95,7 +105,8 @@ public class AuthenticationServiceTests
             Mock.Of<IOptions<IdentityOptions>>(),
             Mock.Of<ILogger<SignInManager<ApplicationUser>>>(),
             Mock.Of<IAuthenticationSchemeProvider>(),
-            Mock.Of<IUserConfirmation<ApplicationUser>>());
+            Mock.Of<IUserConfirmation<ApplicationUser>>()
+        ); */
 
         _notificationServiceMock = new Mock<INotificationService>();
         _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
@@ -104,7 +115,8 @@ public class AuthenticationServiceTests
         // We have to specify which one, because MS has an AuthenticationService
         _authService = new MH.Capstone.Domain.Services.AuthenticationService(
             _userManagerMock.Object,
-            _signInManagerMock.Object,
+            //_signInManagerMock.Object,
+            null!,
             _notificationServiceMock.Object,
             NullLogger<MH.Capstone.Domain.Services.AuthenticationService>.Instance,
             _userRepoMock.Object
