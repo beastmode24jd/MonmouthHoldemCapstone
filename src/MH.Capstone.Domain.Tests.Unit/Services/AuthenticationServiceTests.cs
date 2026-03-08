@@ -238,7 +238,7 @@ public class AuthenticationServiceTests
     public async Task ResetPasswordAsync_WithNonExistentUser_ReturnsFalse()
     {
         // ************** [DONE]
-        
+
         // Arrange - Use an email that doesn't exist
         string invalidEmail = "nonexistent@example.com";
         string newPassword = "NewPass@456!";
@@ -266,17 +266,46 @@ public class AuthenticationServiceTests
     [Test]
     public void ResetPasswordAsync_WithInvalidPassword_ThrowsArgumentException()
     {
+        // ************** [DONE]
+        
         // Arrange - Create a user first
         string email = "resetuser4@example.com";
-        string oldPassword = "OldPass@123!";
         string invalidPassword = "weak"; // Too short, no symbol, no digit
 
-        // Act & Assert - Should throw ArgumentException
-        Assert.ThrowsAsync<ArgumentException>(async () =>
+        var user = new ApplicationUser
         {
-            await _authService!.RegisterUserAsync(email, oldPassword);
+            Email = email,
+            UserName = email,
+            Id = Guid.NewGuid().ToString()
+        };
+
+        // Set up userManagerMock to return the user, if it is called to search
+        _userManagerMock.Setup(um => um.FindByEmailAsync(email))
+            .ReturnsAsync(user);
+
+        // Act: throw the exception.
+            var ex = Assert.ThrowsAsync<ArgumentException>(async () => 
+        {
             await _authService.ResetPasswordAsync(email, invalidPassword);
         });
+
+        // Assert: check that exception was thrown, message is correct, and the
+        //                   password passed in matches the invalidPassword given.
+        Assert.Multiple(() =>
+        {
+            // Verify thrown exception message matches the message in
+            //                              AuthenticationService.cs.
+            Assert.That(ex.Message, Does.Contain("does not meet the policy standards"),
+                "Exception message should match the exception message in AuthenticationService.cs.");
+
+            // Verify that the invalid password argument is the argument throwing the exception.
+            Assert.That(ex.ParamName, Is.EqualTo("newPassword"), 
+            "The exception should identify 'newPassword' (locally defined as invalidPassword) as the invalid parameter.");
+        });
+
+        // Check that the defined user was never returned by the search,
+        //      due to the invalid password being caught.
+        _userManagerMock.Verify(um => um.FindByEmailAsync(It.IsAny<string>()), Times.Never);
     }
 
     // ==================== IsPasswordValid Tests ====================
