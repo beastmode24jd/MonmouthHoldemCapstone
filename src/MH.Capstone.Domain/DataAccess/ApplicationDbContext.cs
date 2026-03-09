@@ -20,5 +20,6 @@ namespace MH.Capstone.Domain.DataAccess
         public DbSet<Badge> Badges { get; set; } = null!;
         public DbSet<UserBadge> UserBadges { get; set; } = null!;
         public DbSet<Notification> Notifications { get; set; } = null!;
+        public DbSet<Report> Reports { get; set; } = null!;
     }
 }
