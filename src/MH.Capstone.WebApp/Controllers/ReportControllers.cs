@@ -30,17 +30,27 @@ namespace MH.Capstone.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Submit([FromForm] ReportSubmitViewModel model)
         {
+<<<<<<< HEAD
             
             if (!ModelState.IsValid)
             {
                 return BadRequest(new { message = "Please fill out all required fields." });
+=======
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+>>>>>>> db1d61e ( implemented integration testing to complete GREEN, creating view model, controller, and testing environment)
             }
 
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
                 _logger.LogError("Authenticated user could not be found in the database.");
+<<<<<<< HEAD
                 return StatusCode((int)HttpStatusCode.InternalServerError, new { message = "Server error. Please try again." });
+=======
+                return StatusCode((int)HttpStatusCode.InternalServerError);
+>>>>>>> db1d61e ( implemented integration testing to complete GREEN, creating view model, controller, and testing environment)
             }
 
             var report = new Report
@@ -58,10 +68,18 @@ namespace MH.Capstone.WebApp.Controllers
             {
                 _logger.LogInformation("Duplicate report rejected for user {UserId} on {Url}",
                     user.Id, model.ReportedPageUrl);
+<<<<<<< HEAD
                 return Conflict(new { message = "You have already reported this page." });
             }
 
             return Ok(new { message = "Your report has been received. Thank you." });
+=======
+                return Conflict("You have already reported this page.");
+            }
+
+            TempData["ReportSuccess"] = "Your report has been received. Thank you.";
+            return Redirect(model.ReportedPageUrl);
+>>>>>>> db1d61e ( implemented integration testing to complete GREEN, creating view model, controller, and testing environment)
         }
     }
 }

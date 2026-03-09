@@ -106,7 +106,7 @@ public class ReportServiceTests
 
         // Assert
         Assert.That(result, Is.False);
-        AssertAllMockVerifications(); // AddOrUpdateAsync and SendNotificationAsync must NOT be called
+        AssertAllMockVerifications(); 
     }
 
     [Test]
