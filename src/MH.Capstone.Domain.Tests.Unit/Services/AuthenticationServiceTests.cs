@@ -23,11 +23,11 @@ public class AuthenticationServiceTests
     private ApplicationDbContext _context;
     private Mock<UserManager<ApplicationUser>> _userManagerMock;
 
-    // HAVING ISSUES, COMMENTING OUT FOR NOW
-    //private Mock<SignInManager<ApplicationUser>> _signInManagerMock;
+    private Mock<SignInManager<ApplicationUser>> _signInManagerMock;
     private Mock<INotificationService> _notificationServiceMock;
+
     // MS already has an AuthenticationService, and the compiler needs to know
-    // which one to use. So we bring out the full legal name here
+    // which one to use. So we bring out the full filepath here
     private Domain.Services.Abstraction.IAuthenticationService _authService;
     private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock;
 
@@ -39,11 +39,6 @@ public class AuthenticationServiceTests
 
         // Add logging (required by Identity)
         services.AddLogging();
-
-        // Need a concrete Configuration instance,
-        //      for setting up the non-mocked Auth Service
-        IConfiguration configuration = new ConfigurationBuilder().Build();
-                services.AddSingleton<IConfiguration>(configuration);
 
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}")
@@ -88,35 +83,28 @@ public class AuthenticationServiceTests
             new Mock<ILogger<UserManager<ApplicationUser>>>().Object); */
 
         // This version of _userManagerMock works, with fewer lines. Above is the deprecated version
-        // Terminal isn't complaining about this version now
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         _userManagerMock = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
-
-        // Initialize signInManager Mock, with all seven parameters.
-        // NullLogger and IdentityOptions are concrete here due to initialization requirements
-        // MAJOR PROBLEM BLOCK, COMMENTING OUT FOR NOW.
-        /*
+        // Use Fake class from bottom of file to initialize _signInManagerMock object.
+        var fakeSignInManager = new FakeSignInManager(_userManagerMock.Object);
         _signInManagerMock = new Mock<SignInManager<ApplicationUser>>(
             _userManagerMock.Object,
             Mock.Of<IHttpContextAccessor>(),
             Mock.Of<IUserClaimsPrincipalFactory<ApplicationUser>>(),
             Mock.Of<IOptions<IdentityOptions>>(),
             Mock.Of<ILogger<SignInManager<ApplicationUser>>>(),
-            Mock.Of<IAuthenticationSchemeProvider>(),
-            Mock.Of<IUserConfirmation<ApplicationUser>>()
-        ); */
+            Mock.Of<IAuthenticationSchemeProvider>()
+        );
 
         _notificationServiceMock = new Mock<INotificationService>();
         _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
 
-        // Register the real AuthenticationService
-        // We have to specify which one, because MS has an AuthenticationService
+        // Register AuthenticationService
         _authService = new MH.Capstone.Domain.Services.AuthenticationService(
             _userManagerMock.Object,
-            //_signInManagerMock.Object,
-            null!,
+            _signInManagerMock.Object,
             _notificationServiceMock.Object,
             NullLogger<MH.Capstone.Domain.Services.AuthenticationService>.Instance,
             _userRepoMock.Object
@@ -267,7 +255,7 @@ public class AuthenticationServiceTests
     public void ResetPasswordAsync_WithInvalidPassword_ThrowsArgumentException()
     {
         // ************** [DONE]
-        
+
         // Arrange - Create a user first
         string email = "resetuser4@example.com";
         string invalidPassword = "weak"; // Too short, no symbol, no digit
@@ -601,4 +589,17 @@ public class AuthenticationServiceTests
         // Assert
         Assert.That(result, Is.True, "Should be able to login after reactivation");
     }
+}
+
+/// Fake subclass, to bypass (and therefore Mock) the _signInManager constructor.
+public class FakeSignInManager : SignInManager<ApplicationUser>
+{
+    public FakeSignInManager(UserManager<ApplicationUser> userManager) 
+        : base(userManager,
+            Mock.Of<IHttpContextAccessor>(),
+            Mock.Of<IUserClaimsPrincipalFactory<ApplicationUser>>(),
+            Mock.Of<IOptions<IdentityOptions>>(),
+            Mock.Of<ILogger<SignInManager<ApplicationUser>>>(),
+            Mock.Of<IAuthenticationSchemeProvider>())
+    { }
 }
