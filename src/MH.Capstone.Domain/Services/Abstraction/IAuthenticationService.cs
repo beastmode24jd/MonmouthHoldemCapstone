@@ -11,6 +11,8 @@ namespace MH.Capstone.Domain.Services.Abstraction
     public interface IAuthenticationService
     {
         Task<bool> ValidateCredentialsAsync(string email, string password);
+	
+	    Task<bool> CheckPasswordAsync(string email, string password); /// Check Password
 
         Task<bool> DeactivateAccountAsync(string email, string password);
 
