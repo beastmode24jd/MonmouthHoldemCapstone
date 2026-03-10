@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Authentication; // Need these last two to mock Identity...
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -49,29 +49,10 @@ public class AuthenticationServiceTests
         _serviceProvider = services.BuildServiceProvider();
         _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
 
-        /*
-        // Add Identity services
-        services.AddIdentity<ApplicationUser, IdentityRole>()
-            .AddEntityFrameworkStores<ApplicationDbContext>()
-            .AddDefaultTokenProviders(); */
-
         // Register repositories like we do in the actual application
         services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
-        
-        // Manually gave _userManagerMock all NINE of its dependencies.
-        // Some are concrete purely so the constructor is happy
-        /*_userManagerMock = new Mock<UserManager<ApplicationUser>>(
-            new Mock<IUserStore<ApplicationUser>>().Object,
-            Options.Create(new IdentityOptions()),
-            new PasswordHasher<ApplicationUser>(),
-            new IUserValidator<ApplicationUser>[0],
-            new IPasswordValidator<ApplicationUser>[0],
-            new UpperInvariantLookupNormalizer(),
-            new IdentityErrorDescriber(),
-            new Mock<IServiceProvider>().Object,
-            new Mock<ILogger<UserManager<ApplicationUser>>>().Object); */
 
-        // This version of _userManagerMock works, with fewer lines. Above is the deprecated version
+        // Register userManagerMock with null placeholders.
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         _userManagerMock = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
@@ -129,8 +110,6 @@ public class AuthenticationServiceTests
     [Test]
     public async Task RegisterUserAsync_WithValidData_CreatesUserAndSendsNotif()
     {
-        // ************** [DONE]
-
         // ARRANGE - Set up our test data ******************
         string email = "newuser@example.com";
         string password = "Test@123!";
@@ -165,8 +144,6 @@ public class AuthenticationServiceTests
     [Test]
     public async Task ValidateCredentialsAsync_WithCorrectPassword_ReturnsTrue()
     {
-        // ************** [DONE]
-
         // Arrange - First create a user
         string email = "testuser@example.com";
         string password = "Test@123!";
@@ -204,11 +181,8 @@ public class AuthenticationServiceTests
     [Test]
     public async Task ValidateCredentialsAsync_WithWrongPassword_ReturnsFalse()
     {
-        // ************** [DONE]
-        
         // Arrange - Create a user
         string email = "testuser2@example.com";
-        string correctPassword = "Test@123!";
         string wrongPassword = "WrongPass@123!";
 
         var user = new ApplicationUser 
@@ -217,8 +191,6 @@ public class AuthenticationServiceTests
             UserName = email,
             IsDeactivated = false // Active account
         };
-
-        await _authService.RegisterUserAsync(email, correctPassword);
 
         // _userManagerMock should return this user when searched by email
         _userManagerMock.Setup(um => um.FindByEmailAsync(email))
@@ -239,14 +211,13 @@ public class AuthenticationServiceTests
             // Make sure authService used its dependencies as expected
             _userManagerMock.Verify(um => um.FindByEmailAsync(email), Times.Once);
             _signInManagerMock.Verify(sm => sm.CheckPasswordSignInAsync(user, wrongPassword, false), Times.Once);
+            
         });
     }
 
     [Test]
     public async Task ValidateCredentialsAsync_WithNonExistentUser_ReturnsFalse()
     {
-        // ************** [DONE]
-
         // Arrange - Use an email that doesn't exist
         string email = "nonexistent@example.com";
         string password = "Test@123!";
@@ -280,8 +251,6 @@ public class AuthenticationServiceTests
     [Test]
     public async Task ResetPasswordAsync_WithNonExistentUser_ReturnsFalse()
     {
-        // ************** [DONE]
-
         // Arrange - Use an email that doesn't exist
         string invalidEmail = "nonexistent@example.com";
         string newPassword = "NewPass@456!";
@@ -309,8 +278,6 @@ public class AuthenticationServiceTests
     [Test]
     public void ResetPasswordAsync_WithInvalidPassword_ThrowsArgumentException()
     {
-        // ************** [DONE]
-
         // Arrange - Create a user first
         string email = "resetuser4@example.com";
         string invalidPassword = "weak"; // Too short, no symbol, no digit
@@ -356,8 +323,6 @@ public class AuthenticationServiceTests
     [Test]
     public void IsPasswordValid_WithValidPassword_ReturnsTrue()
     {
-        // ************** [DONE]
-
         // Arrange
         // Password needs to be >= 8 char, contain a number, uppercase letter,
         //  lowercase letter, and a symbol.
@@ -373,8 +338,6 @@ public class AuthenticationServiceTests
     [Test]
     public void IsPasswordValid_WithNoSymbol_ReturnsFalse()
     {
-        // ************** [DONE]
-        
         // Arrange
         string password = "Test12345";
 
@@ -388,8 +351,6 @@ public class AuthenticationServiceTests
     [Test]
     public void IsPasswordValid_WithNoDigit_ReturnsFalse()
     {
-        // ************** [DONE]
-
         // Arrange
         string password = "Test@abcd";
 
@@ -403,8 +364,6 @@ public class AuthenticationServiceTests
     [Test]
     public void IsPasswordValid_WithNoLetters_ReturnsFalse()
     {
-        // ************** [DONE]
-
         // Arrange
         string password = "1234@567!";
 
@@ -418,8 +377,6 @@ public class AuthenticationServiceTests
     [Test]
     public void IsPasswordValid_PasswordTooShort_ReturnsFalse()
     {
-        // ************** [DONE]
-
         // Arrange
         string password = "Te@1";
 
@@ -433,8 +390,6 @@ public class AuthenticationServiceTests
     [Test]
     public void IsPasswordValid_WithNull_ReturnsFalse()
     {
-        // ************** [DONE]
-
         // Act
         var result = _authService.IsPasswordValid(null!);
 
@@ -445,8 +400,6 @@ public class AuthenticationServiceTests
     [Test]
     public void IsPasswordValid_WithEmpty_ReturnsFalse()
     {
-        // ************** [DONE]
-
         // Act
         var result = _authService.IsPasswordValid("");
 
@@ -457,8 +410,6 @@ public class AuthenticationServiceTests
     [Test]
     public void IsPasswordValid_WithWhitespace_ReturnsFalse()
     {
-        // ************** [DONE]
-
         // Act
         var result = _authService.IsPasswordValid("   ");
 
@@ -471,8 +422,6 @@ public class AuthenticationServiceTests
     [Test]
     public async Task DeactivateAccountAsync_WithValidCredentials_ReturnsTrue()
     {
-        // ************** [DONE]
-
         // Arrange - register a user first
         string email = "test@example.com";
         string password = "ValidPassword123!";
@@ -514,9 +463,8 @@ public class AuthenticationServiceTests
     }
 
     [Test]
-    public async Task DeactivateAccountAsync_WithValidCredentials_SetsIsDeactivatedFlag()
+    public async Task DeactivateAccountAsync_WithValidCredentials_SetsItsDeactivatedFlag()
     {
-
         // Arrange
         string email = "test@example.com";
         string password = "ValidPassword123!";
@@ -524,7 +472,7 @@ public class AuthenticationServiceTests
         var user = new ApplicationUser
         {
             Email = email,
-            UserName = "Test@123",
+            UserName = email,
             IsDeactivated = false
         };
 
@@ -557,150 +505,411 @@ public class AuthenticationServiceTests
     [Test]
     public async Task DeactivateAccountAsync_WithWrongPassword_ReturnsFalse()
     {
-        // [RETURN TO LATER, USES SIGN_IN_SERVICE MOCK]
         // Arrange
-        await _authService.RegisterUserAsync("test@example.com", "Test@123");
+        string email = "test@example.com";
+        string wrongPassword = "Test@123";
+
+        var user = new ApplicationUser
+        {
+            Email = email,
+            UserName = email,
+            IsDeactivated = false
+        };
+
+        // Return user on search
+        _userManagerMock.Setup(um => um.FindByEmailAsync(email))
+            .ReturnsAsync(user);
+
+        // CheckPasswordSignInAsync needs to return a failure for the wrong password
+        _signInManagerMock.Setup(sm => sm.CheckPasswordSignInAsync(user, wrongPassword, false))
+            .ReturnsAsync(SignInResult.Failed);
 
         // Act
-        var result = await _authService.DeactivateAccountAsync("test@example.com", "WrongPassword!");
+        var result = await _authService.DeactivateAccountAsync(email, wrongPassword);
 
         // Assert
-        Assert.That(result, Is.False);
+        Assert.Multiple(() =>
+        {
+            // Assert it returns false.
+            Assert.That(result, Is.False);
+
+            // Make sure that the call properly returned false, and never got to
+            //      calling UpdateAsync.
+            _userManagerMock.Verify(um => um.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+
+            // Check the mocked service calls.
+            _userManagerMock.Verify(um => um.FindByEmailAsync(email), Times.Once);
+            _signInManagerMock.Verify(sm => sm.CheckPasswordSignInAsync(user, wrongPassword, false), Times.Once);
+        });
     }
 
     [Test]
     public async Task DeactivateAccountAsync_WithWrongPassword_DoesNotDeactivate()
     {
         // Arrange
-        await _authService.RegisterUserAsync("test@example.com", "Test@123");
+        string email = "test@example.com";
+        string wrongPassword = "WrongPassword!";
+
+        var user = new ApplicationUser
+        {
+            Email = email,
+            UserName = email,
+            IsDeactivated = false
+        };
+
+        // Return user on search
+        _userManagerMock.Setup(um => um.FindByEmailAsync(email))
+            .ReturnsAsync(user);
+
+        // CheckPasswordSignInAsync should return a failure for the wrong password
+        _signInManagerMock.Setup(sm => sm.CheckPasswordSignInAsync(user, wrongPassword, false))
+            .ReturnsAsync(SignInResult.Failed);
 
         // Act
-        await _authService.DeactivateAccountAsync("test@example.com", "WrongPassword!");
+        await _authService.DeactivateAccountAsync(email, wrongPassword);
 
         // Assert
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == "test@example.com");
-        Assert.That(user!.IsDeactivated, Is.False);
+        Assert.Multiple(() =>
+        {
+            // Assert the main claim.
+            Assert.That(user.IsDeactivated, Is.False, "User was deactivated despite invalid authService call.");
+            
+            // Checking mocked services were called.
+            _userManagerMock.Verify(um => um.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+            _userManagerMock.Verify(um => um.FindByEmailAsync(email), Times.Once);
+            _signInManagerMock.Verify(sm => sm.CheckPasswordSignInAsync(user, wrongPassword, false), Times.Once);
+
+        });
     }
 
     [Test]
     public async Task DeactivateAccountAsync_WithNonexistentUser_ReturnsFalse()
     {
+        // Arrange - Use an email that doesn't exist
+        string invalidEmail = "nonexistent@example.com";
+        string password = "TestPass@135";
+
+        // Set up userManagerMock to return null when called to search
+        _userManagerMock.Setup(um => um.FindByEmailAsync(invalidEmail))
+            .ReturnsAsync((ApplicationUser)null!);
+
         // Act
-        var result = await _authService.DeactivateAccountAsync("nonexistent@example.com", "Test@123");
+        var result = await _authService.DeactivateAccountAsync(invalidEmail, password);
 
         // Assert
-        Assert.That(result, Is.False);
+        Assert.Multiple(() =>
+        {
+            // Check that DeactivateAccountAsync return value was false
+            Assert.That(result, Is.False, "DeactivateAccountAsync deactivated a non-existent user.");
+
+            // Check the service calls for accuracy.
+            _userManagerMock.Verify(um => um.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+            _userManagerMock.Verify(um => um.FindByEmailAsync(invalidEmail), Times.Once);
+        });
     }
 
     [Test]
     public async Task ValidateCredentialsAsync_WithDeactivatedAccount_ReturnsFalse()
     {
         // Arrange
-        await _authService.RegisterUserAsync("test@example.com", "Test@123");
-        await _authService.DeactivateAccountAsync("test@example.com", "Test@123");
+        string email = "test@example.com";
+        string password = "Test@123";
+
+        var user = new ApplicationUser
+        {
+            Email = email,
+            UserName = email,
+            IsDeactivated = true
+        };
+
+        // Return the user on an email search.
+        _userManagerMock.Setup(um => um.FindByEmailAsync(email))
+            .ReturnsAsync(user);
 
         // Act
-        var result = await _authService.ValidateCredentialsAsync("test@example.com", "Test@123");
+        var result = await _authService.ValidateCredentialsAsync(email, password);
 
         // Assert
-        Assert.That(result, Is.False);
+        Assert.Multiple(() =>
+        {
+            // Check that the result returns false.
+            Assert.That(result, Is.False, "ValidateCredentialsAsync validated a deactivated account.");
+
+            // Check the service calls. _signInManagerMock should never be called.
+            _signInManagerMock.Verify(um => um.CheckPasswordSignInAsync(
+                It.IsAny<ApplicationUser>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+
+            _userManagerMock.Verify(um => um.FindByEmailAsync(email), Times.Once);
+        });
     }
 // == ReactivateAccountAsync Tests ==
 
     [Test]
     public async Task ReactivateAccountAsync_WithValidCredentials_ReturnsTrue()
     {
-        // Arrange - register and deactivate a user
-        await _authService.RegisterUserAsync("reactivate@example.com", "Test@123!");
-        await _authService.DeactivateAccountAsync("reactivate@example.com", "Test@123!");
+        // Arrange - initialize a deactivated user.
+        string email = "test@example.com";
+        string password = "Test@123";
+
+        var user = new ApplicationUser
+        {
+            Email = email,
+            UserName = email,
+            IsDeactivated = true
+        };
+
+        // Return user object with email search
+        _userManagerMock.Setup(um => um.FindByEmailAsync(email)).ReturnsAsync(user);
+
+        // Return success for password sign-in
+        _signInManagerMock.Setup(sm => sm.CheckPasswordSignInAsync(user, password, false))
+                .ReturnsAsync(SignInResult.Success);
+
+        // Return success for UpdateAsync call on the user.
+        _userManagerMock.Setup(um => um.UpdateAsync(user))
+                .ReturnsAsync(IdentityResult.Success);
 
         // Act
-        var result = await _authService.ReactivateAccountAsync("reactivate@example.com", "Test@123!");
+        var result = await _authService.ReactivateAccountAsync(email, password);
 
         // Assert
-        Assert.That(result, Is.True);
+        Assert.Multiple(() =>
+        {
+            // Check the end boolean value
+            Assert.That(result, Is.True);
+
+            // Check that the service calls to the mocks were used.
+            _userManagerMock.Verify(um => um.FindByEmailAsync(email), Times.Once);
+            _signInManagerMock.Verify(sm => sm.CheckPasswordSignInAsync(user, password, false), Times.Once);
+
+            // Verify that UpdateAsync was called with a non-deactive user.
+            _userManagerMock.Verify(um => um.UpdateAsync(It.Is<ApplicationUser>(u => u.IsDeactivated == false)), Times.Once);
+        });
     }
 
     [Test]
     public async Task ReactivateAccountAsync_WithValidCredentials_SetsIsDeactivatedToFalse()
     {
-        // Arrange
-        await _authService.RegisterUserAsync("reactivate2@example.com", "Test@123!");
-        await _authService.DeactivateAccountAsync("reactivate2@example.com", "Test@123!");
+        // Arrange. Create a de-activated account:
+        string email = "reactivate2@example.com";
+        string password = "Test@123!";
+
+        var user = new ApplicationUser
+        {
+            Email = email,
+            UserName = email,
+            IsDeactivated = true
+        };
+
+        // Return user object with email search
+        _userManagerMock.Setup(um => um.FindByEmailAsync(email)).ReturnsAsync(user);
+
+        // Return success for password sign-in
+        _signInManagerMock.Setup(sm => sm.CheckPasswordSignInAsync(user, password, false))
+                .ReturnsAsync(SignInResult.Success);
+
+        // Return success for UpdateAsync call on the user.
+        _userManagerMock.Setup(um => um.UpdateAsync(user))
+                .ReturnsAsync(IdentityResult.Success);
+
 
         // Act
-        await _authService.ReactivateAccountAsync("reactivate2@example.com", "Test@123!");
+        await _authService.ReactivateAccountAsync(email, password);
 
         // Assert
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == "reactivate2@example.com");
-        Assert.That(user!.IsDeactivated, Is.False);
+        Assert.Multiple(() =>
+        {
+            // Check deactivated user status.
+            Assert.That(user.IsDeactivated, Is.False, "Could not reactivate a valid deactivated user account.");
+
+            // Check that the service calls were made properly.
+            // UpdateAsync should be called with non-deactivated user.
+            _userManagerMock.Verify(um => um.FindByEmailAsync(email), Times.Once);
+            _signInManagerMock.Verify(sm => sm.CheckPasswordSignInAsync(user, password, false), Times.Once);
+            _userManagerMock.Verify(um => um.UpdateAsync(It.Is<ApplicationUser>(u => u.IsDeactivated == false)), Times.Once);
+        });
     }
 
     [Test]
     public async Task ReactivateAccountAsync_WithWrongPassword_ReturnsFalse()
     {
         // Arrange
-        await _authService.RegisterUserAsync("reactivate3@example.com", "Test@123!");
-        await _authService.DeactivateAccountAsync("reactivate3@example.com", "Test@123!");
+        string wrongPassword = "WrongPassword!";
+        string email = "reactivate3@example.com";
+
+        var user = new ApplicationUser
+        {
+            Email = email,
+            UserName = email,
+            IsDeactivated = true
+        };
+
+        // Return user object with email search
+        _userManagerMock.Setup(um => um.FindByEmailAsync(email)).ReturnsAsync(user);
+
+        // Return failure for wrongPassword sign-in attempt.
+        _signInManagerMock.Setup(sm => sm.CheckPasswordSignInAsync(
+            It.IsAny<ApplicationUser>(),
+            It.IsAny<string>(),
+            It.IsAny<bool>()
+            )).ReturnsAsync(SignInResult.Failed);
+
+        // UpdateAsync should never be called,
+        //  should return false due to the guard statement.
 
         // Act
-        var result = await _authService.ReactivateAccountAsync("reactivate3@example.com", "WrongPassword!");
+        var result = await _authService.ReactivateAccountAsync(email, wrongPassword);
 
         // Assert
-        Assert.That(result, Is.False);
+        Assert.Multiple(() =>
+        {
+            // Assert false return, and that user is still deactivated.
+            Assert.That(result, Is.False);
+            Assert.That(user.IsDeactivated, Is.True, "User was Reactivated with incorrect password.");
+
+            // Check that the services were called properly
+            _userManagerMock.Verify(um => um.FindByEmailAsync(email), Times.Once);
+            _signInManagerMock.Verify(sm => sm.CheckPasswordSignInAsync(user, wrongPassword, false), Times.Once);
+        });
     }
 
     [Test]
     public async Task ReactivateAccountAsync_WithWrongPassword_AccountRemainsDeactivated()
     {
         // Arrange
-        await _authService.RegisterUserAsync("reactivate4@example.com", "Test@123!");
-        await _authService.DeactivateAccountAsync("reactivate4@example.com", "Test@123!");
+        string wrongPassword = "WrongPassword!";
+        string email = "reactivate4@example.com";
+
+        var user = new ApplicationUser
+        {
+            Email = email,
+            UserName = email,
+            IsDeactivated = true
+        };
+
+        // Return user object with email search
+        _userManagerMock.Setup(um => um.FindByEmailAsync(email)).ReturnsAsync(user);
+
+        // Return failure for wrongPassword sign-in attempt.
+        _signInManagerMock.Setup(sm => sm.CheckPasswordSignInAsync(user, wrongPassword, false))
+                .ReturnsAsync(SignInResult.Failed);
 
         // Act
-        await _authService.ReactivateAccountAsync("reactivate4@example.com", "WrongPassword!");
+        await _authService.ReactivateAccountAsync(email, wrongPassword);
 
         // Assert
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == "reactivate4@example.com");
-        Assert.That(user!.IsDeactivated, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(user.IsDeactivated, Is.True, "Attempt to reactivate user with invalid password was successful.");
+
+            // Check the service calls for accuracy.
+            _userManagerMock.Verify(um => um.FindByEmailAsync(email), Times.Once);
+            _signInManagerMock.Verify(sm => sm.CheckPasswordSignInAsync(user, wrongPassword, false), Times.Once);
+            _userManagerMock.Verify(um => um.UpdateAsync(It.Is<ApplicationUser>(u => u.IsDeactivated == false)), Times.Never);
+        });
     }
 
     [Test]
     public async Task ReactivateAccountAsync_WithNonexistentUser_ReturnsFalse()
     {
+        // Assert
+        string invalidEmail = "nonexistent@example.com";
+        string password = "TestPass@135";
+
+        // Set up userManagerMock to return null when called to search
+        _userManagerMock.Setup(um => um.FindByEmailAsync(invalidEmail))
+            .ReturnsAsync((ApplicationUser)null!);
+
         // Act
-        var result = await _authService.ReactivateAccountAsync("nonexistent@example.com", "Test@123!");
+        var result = await _authService.ReactivateAccountAsync(invalidEmail, password);
 
         // Assert
-        Assert.That(result, Is.False);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.False, "Nonexistent user returned true with Reactivation.");
+
+            // Check the service calls.
+            _userManagerMock.Verify(um => um.FindByEmailAsync(invalidEmail), Times.Once);
+            _userManagerMock.Verify(um => um.UpdateAsync(It.Is<ApplicationUser>(u => u.IsDeactivated == false)), Times.Never);
+        });
     }
 
     [Test]
     public async Task ReactivateAccountAsync_WithActiveAccount_ReturnsFalse()
     {
         // Arrange - register but don't deactivate
-        await _authService.RegisterUserAsync("active@example.com", "Test@123!");
+        string email = "reactivate???@example.com";
+        string password = "Test@123!";
+
+        var user = new ApplicationUser
+        {
+            Email = email,
+            UserName = email,
+            IsDeactivated = false // Should be active user
+        };
+
+        _userManagerMock.Setup(um => um.FindByEmailAsync(email))
+            .ReturnsAsync(user);
 
         // Act
-        var result = await _authService.ReactivateAccountAsync("active@example.com", "Test@123!");
+        var result = await _authService.ReactivateAccountAsync(email, password);
 
         // Assert
-        Assert.That(result, Is.False, "Should not be able to reactivate an already active account");
+        Assert.Multiple(() =>
+        {
+            // Assert end condition
+            Assert.That(result, Is.False, "Should not be able to reactivate an already active account");
+
+            // Check the service calls.
+            _userManagerMock.Verify(um => um.FindByEmailAsync(email), Times.Once);
+            _userManagerMock.Verify(um => um.UpdateAsync(It.Is<ApplicationUser>(u => u.IsDeactivated == false)), Times.Never);
+        });
     }
 
     [Test]
     public async Task ValidateCredentialsAsync_AfterReactivation_ReturnsTrue()
     {
-        // Arrange - register, deactivate, then reactivate
-        await _authService.RegisterUserAsync("reactivate5@example.com", "Test@123!");
-        await _authService.DeactivateAccountAsync("reactivate5@example.com", "Test@123!");
-        await _authService.ReactivateAccountAsync("reactivate5@example.com", "Test@123!");
+        // Arrange - register deactive account
+        string email = "reactivate5@example.com";
+        string password = "Test@123!";
+
+        var user = new ApplicationUser
+        {
+            Email = email,
+            UserName = email,
+            IsDeactivated = true
+        };
+
+        // Return user object with email search
+        _userManagerMock.Setup(um => um.FindByEmailAsync(email)).ReturnsAsync(user);
+
+        // Return success for password sign-in
+        _signInManagerMock.Setup(sm => sm.CheckPasswordSignInAsync(
+            It.IsAny<ApplicationUser>(), It.IsAny<string>(), false))
+                .ReturnsAsync(SignInResult.Success);
+
+        // Return success for UpdateAsync call on the user.
+        _userManagerMock.Setup(um => um.UpdateAsync(user))
+                .ReturnsAsync(IdentityResult.Success);
+
+        await _authService.ReactivateAccountAsync(email, password);  // Reactivate.
 
         // Act
-        var result = await _authService.ValidateCredentialsAsync("reactivate5@example.com", "Test@123!");
+        var result = await _authService.ValidateCredentialsAsync(email, password);
 
         // Assert
-        Assert.That(result, Is.True, "Should be able to login after reactivation");
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.True, "Should be able to login after reactivation");
+            Assert.That(user.IsDeactivated, Is.False, "User reactivation was not successful.");
+
+            // Verify UpdateAsync was called once during reactivation
+            _userManagerMock.Verify(um => um.UpdateAsync(user), Times.Once);
+            
+            // Verify CheckPasswordSignInAsync was called twice
+            //              Once for reactivation, once for validation
+            _signInManagerMock.Verify(sm => sm.CheckPasswordSignInAsync(user, password, false), Times.Exactly(2));
+        });
     }
 }
 
