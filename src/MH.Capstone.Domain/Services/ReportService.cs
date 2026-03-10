@@ -2,6 +2,7 @@ using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.Domain.Tools;
 
 namespace MH.Capstone.Domain.Services
 {
@@ -20,6 +21,13 @@ namespace MH.Capstone.Domain.Services
 
         public async Task<bool> SubmitReportAsync(Report report)
         {
+            if (!report.TryValidateEntity(out var fails))
+            {
+                var firstFail = fails.First();
+                throw new ArgumentException($"Report entity validation failed. Property {firstFail} invalid.",
+                    firstFail);
+            }
+
             // Check for duplicate report by the same user for the same page URL
             var existing = await _reportRepo.GetAllAsync();
             bool isDuplicate = existing.Any(r =>

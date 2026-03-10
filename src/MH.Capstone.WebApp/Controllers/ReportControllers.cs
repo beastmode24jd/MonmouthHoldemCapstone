@@ -30,16 +30,17 @@ namespace MH.Capstone.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Submit([FromForm] ReportSubmitViewModel model)
         {
+            
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return BadRequest(new { message = "Please fill out all required fields." });
             }
 
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
                 _logger.LogError("Authenticated user could not be found in the database.");
-                return StatusCode((int)HttpStatusCode.InternalServerError);
+                return StatusCode((int)HttpStatusCode.InternalServerError, new { message = "Server error. Please try again." });
             }
 
             var report = new Report
@@ -57,11 +58,10 @@ namespace MH.Capstone.WebApp.Controllers
             {
                 _logger.LogInformation("Duplicate report rejected for user {UserId} on {Url}",
                     user.Id, model.ReportedPageUrl);
-                return Conflict("You have already reported this page.");
+                return Conflict(new { message = "You have already reported this page." });
             }
 
-            TempData["ReportSuccess"] = "Your report has been received. Thank you.";
-            return Redirect(model.ReportedPageUrl);
+            return Ok(new { message = "Your report has been received. Thank you." });
         }
     }
 }
