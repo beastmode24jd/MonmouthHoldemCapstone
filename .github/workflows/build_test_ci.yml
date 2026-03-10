@@ -54,20 +54,19 @@ jobs:
       - name: Restore with dotnet
         run: dotnet restore ./src --verbosity normal
 
-      - name: Build with dotnet
-        run: dotnet build ./src --no-restore --configuration Release --verbosity normal -p:Version=${{ steps.release_version.outputs.version }}
-
       - name: Ensure no missing EF Migrations
         run: |
           MIGRATION_NAME="__AutoCheck"
           MIGRATION_STARTUP="./src/MH.Capstone.WebApp"
           MIGRATION_PROJ="./src/MH.Capstone.Domain"
           MIGRATION_CONTEXT="ApplicationDbContext"
+          MIGRATIONS_FOLDER="./src/MH.Capstone.Domain/Migrations"
           # Run the add migration command. Specify the startup project and context if needed.
-          dotnet ef migrations add $MIGRATION_NAME --no-build --configuration Release -p $MIGRATION_PROJ -s $MIGRATION_STARTUP -c $MIGRATION_CONTEXT
+          dotnet ef migrations add $MIGRATION_NAME --configuration Release -p $MIGRATION_PROJ -s $MIGRATION_STARTUP -c $MIGRATION_CONTEXT
+          echo "Running migration file check on path: '${MIGRATIONS_FOLDER}/*_${MIGRATION_NAME}.cs' (excluding '*.Designer.cs')"
 
           # Check if the generated file contains any operations (e.g., migrationBuilder.)
-          if grep -q "migrationBuilder\." "./YourProject/Migrations/${MIGRATION_NAME}.cs"; then
+          if grep -q "migrationBuilder\." ${MIGRATIONS_FOLDER}/*_${MIGRATION_NAME}.cs --exclude=*.Designer.cs; then
               echo "⚠️ Uncommitted model changes detected. A migration file is missing."
               # Clean up the temporary file
               dotnet ef migrations remove --no-build --configuration Release -p $MIGRATION_PROJ -s $MIGRATION_STARTUP -c $MIGRATION_CONTEXT
@@ -76,9 +75,14 @@ jobs:
               echo "✅ Your model matches the last migration snapshot. No missing migrations."
               # Clean up the temporary file
               dotnet ef migrations remove --no-build --configuration Release -p $MIGRATION_PROJ -s $MIGRATION_STARTUP -c $MIGRATION_CONTEXT
-              exit 0 # Continue the pipeline
           fi
 
+          # Restore all modified files from EF Core check, including new, untracked files (clean)
+          git restore . && git clean -fd
+
+      - name: Build with dotnet
+        run: dotnet build ./src --no-restore --configuration Release --verbosity normal -p:Version=${{ steps.release_version.outputs.version }}
+      
       - name: Test with dotnet
         run: dotnet test ./src --no-restore --no-build --configuration Release --verbosity normal
 
