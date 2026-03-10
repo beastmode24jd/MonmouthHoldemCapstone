@@ -2,7 +2,7 @@ name: Build and Test (CI)
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, edited]
+    types: [opened, synchronize, reopened, edited, ready_for_review]
   workflow_dispatch:
     inputs:
       deploy:
@@ -56,6 +56,28 @@ jobs:
 
       - name: Build with dotnet
         run: dotnet build ./src --no-restore --configuration Release --verbosity normal -p:Version=${{ steps.release_version.outputs.version }}
+
+      - name: Ensure no missing EF Migrations
+        run: |
+          MIGRATION_NAME="__AutoCheck"
+          MIGRATION_STARTUP="./src/MH.Capstone.WebApp"
+          MIGRATION_PROJ="./src/MH.Capstone.Domain"
+          MIGRATION_CONTEXT="ApplicationDbContext"
+          # Run the add migration command. Specify the startup project and context if needed.
+          dotnet ef migrations add $MIGRATION_NAME --no-build --configuration Release -p $MIGRATION_PROJ -s $MIGRATION_STARTUP -c $MIGRATION_CONTEXT
+
+          # Check if the generated file contains any operations (e.g., migrationBuilder.)
+          if grep -q "migrationBuilder\." "./YourProject/Migrations/${MIGRATION_NAME}.cs"; then
+              echo "⚠️ Uncommitted model changes detected. A migration file is missing."
+              # Clean up the temporary file
+              dotnet ef migrations remove --no-build --configuration Release -p $MIGRATION_PROJ -s $MIGRATION_STARTUP -c $MIGRATION_CONTEXT
+              exit 1 # Fail the pipeline
+          else
+              echo "✅ Your model matches the last migration snapshot. No missing migrations."
+              # Clean up the temporary file
+              dotnet ef migrations remove --no-build --configuration Release -p $MIGRATION_PROJ -s $MIGRATION_STARTUP -c $MIGRATION_CONTEXT
+              exit 0 # Continue the pipeline
+          fi
 
       - name: Test with dotnet
         run: dotnet test ./src --no-restore --no-build --configuration Release --verbosity normal
