@@ -85,6 +85,8 @@ function togglePasswordVisibility(inputId, iconId) {
     const passwordInput = document.getElementById(inputId);
     const toggleIcon = document.getElementById(iconId);
 
+    if (!passwordInput || !toggleIcon) return; // Exit, neither argument is present
+
     if (passwordInput && toggleIcon) {
         if (passwordInput.type === 'password') {
                 passwordInput.type = 'text';
@@ -96,12 +98,25 @@ function togglePasswordVisibility(inputId, iconId) {
     }
 }
 
-// Event Listener using togglePasswordVisibility for Admin page
-document.getElementById('togglePassword').addEventListener('click', function() {
-    togglePasswordVisibility('adminPassword', 'toggleIcon');
-});
+function registerPasswordToggles() {
+    // Returns an empty list if none are found
+    const toggleButtons = document.querySelectorAll('[data-password-toggle]');
 
-document.addEventListener("DOMContentLoaded", registerAllNumericInputs);
+    toggleButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Pull the IDs directly from the HTML attributes
+            const inputId = this.getAttribute('data-target-input');
+            const iconId = this.getAttribute('data-target-icon');
+            togglePasswordVisibility(inputId, iconId);
+        });
+    });
+}
+
+
+document.addEventListener("DOMContentLoaded", function() {
+    registerAllNumericInputs();  // Reworked from original global registration
+    registerPasswordToggles();  // New global registration
+});
 
 // Thanks, ChatGPT, for the help with this function!
 function registerAllNumericInputs() {

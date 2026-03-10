@@ -57,7 +57,10 @@
                         <label for="adminPassword" class="form-label">Administrator Password</label>
                         <div class="input-group">
                             <input type="password" name="adminPassword" id="adminPassword" class="form-control" required />
-                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                            <button class="btn btn-outline-secondary" type="button"
+                                data-password-toggle 
+                                data-target-input="adminPassword" 
+                                data-target-icon="toggleIcon">
                                 <i class="bi bi-eye" id="toggleIcon"></i>
                             </button>
                         </div>

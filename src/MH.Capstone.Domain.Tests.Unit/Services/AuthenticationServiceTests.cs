@@ -19,8 +19,6 @@ namespace MH.Capstone.Domain.Tests.Unit.Services;
 [TestFixture]
 public class AuthenticationServiceTests
 {
-    private ServiceProvider _serviceProvider;
-    private ApplicationDbContext _context;
     private Mock<UserManager<ApplicationUser>> _userManagerMock;
 
     private Mock<SignInManager<ApplicationUser>> _signInManagerMock;
@@ -39,15 +37,9 @@ public class AuthenticationServiceTests
 
         services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
 
-        // Add logging (required by Identity)
-        services.AddLogging();
-
         // Simplify the DbContext, since we aren't testing the database.
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}"));
-
-        _serviceProvider = services.BuildServiceProvider();
-        _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
 
         // Register repositories like we do in the actual application
         services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
@@ -64,7 +56,7 @@ public class AuthenticationServiceTests
             Mock.Of<IHttpContextAccessor>(),
             Mock.Of<IUserClaimsPrincipalFactory<ApplicationUser>>(),
             Mock.Of<IOptions<IdentityOptions>>(),
-            Mock.Of<ILogger<SignInManager<ApplicationUser>>>(),
+            NullLogger<SignInManager<ApplicationUser>>.Instance,
             Mock.Of<IAuthenticationSchemeProvider>()
         );
 
@@ -79,26 +71,6 @@ public class AuthenticationServiceTests
             NullLogger<MH.Capstone.Domain.Services.AuthenticationService>.Instance,
             _userRepoMock.Object
         );
-
-        await _context.Database.EnsureCreatedAsync();
-    }
-
-    [TearDown]
-    public async Task TearDown()
-    {
-        // Mocks get reset, they don't need to be in here
-        // A failed Setup may set context and serviceProvider to null
-
-        if (_context != null)
-        {
-            await _context.Database.EnsureDeletedAsync();
-            await _context.DisposeAsync();
-        }
-
-        if (_serviceProvider != null)
-        {
-            await _serviceProvider.DisposeAsync();
-        }
     }
 
     private void AssertAllMockVerifySetups()
@@ -921,7 +893,7 @@ public class FakeSignInManager : SignInManager<ApplicationUser>
             Mock.Of<IHttpContextAccessor>(),
             Mock.Of<IUserClaimsPrincipalFactory<ApplicationUser>>(),
             Mock.Of<IOptions<IdentityOptions>>(),
-            Mock.Of<ILogger<SignInManager<ApplicationUser>>>(),
+            NullLogger<SignInManager<ApplicationUser>>.Instance,
             Mock.Of<IAuthenticationSchemeProvider>())
     { }
 }

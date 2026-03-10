@@ -50,8 +50,6 @@ namespace MH.Capstone.WebApp
                     .UseSeeding((context, _) => {
                         if (context is ApplicationDbContext appSyncContext)
                         {
-                            // Manually get IServiceProvider from the context
-                            var sp = context.GetService<IServiceProvider>();
 
                             ApplicationDbContextSeeding.SeedDataAsync(appSyncContext, _, CancellationToken.None).GetAwaiter().GetResult();
                         }
