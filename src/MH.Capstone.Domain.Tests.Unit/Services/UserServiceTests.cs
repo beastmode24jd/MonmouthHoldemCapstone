@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System.Diagnostics.CodeAnalysis;
 using MH.Capstone.Domain.DataAccess.Repositories;
+using System.Threading.Tasks;
 
 namespace MH.Capstone.Domain.Tests.Unit.Services
 {
@@ -320,22 +321,37 @@ namespace MH.Capstone.Domain.Tests.Unit.Services
         [TestCase("")]
         [TestCase(null)]
         [TestCase("             ")]
-        public void UpdateUserBioAsync_InvalidInput_ThrowsArgumentOutOfRangeException(string? invalidInput)
+        public async Task UpdateUserBioAsync_EmptyOrWhitespaceInput_ResetsToNullValue(string? input)
         {
             // Arrange
             var userToAssert = new ApplicationUser
             {
                 Email = "user@test.com",
                 GuidId = Guid.NewGuid(),
-                Bio = null
+                Bio = "This is a refactored test."
             };
 
             var sut = CreateSut();
 
-            // Act & Assert
-            Assert.ThrowsAsync<ArgumentOutOfRangeException>(
-                () => sut.UpdateUserBioAsync(userToAssert, invalidInput));
-            AssertAllMockVerifications();
+            // Mock the behavior of user.SaveModelAsync calling repo.AddOrUpdateAsync,
+            //      to return the user's Bio value.
+            _userRepoMock.Setup(r => 
+                r.AddOrUpdateAsync(It.Is<ApplicationUser>(u => 
+                    u.Bio == userToAssert.Bio)))
+                .Verifiable(Times.Once);
+
+            // Act
+            await sut.UpdateUserBioAsync(userToAssert, input);
+
+            // Assert
+            Assert.Multiple(() =>
+            {
+                Assert.That(userToAssert.Bio, Is.EqualTo(null), "User bio did not revert to null value as it was supposed to.");
+
+                // Ensure that the repo was called with our dummy user object
+                _userRepoMock.Verify(repo => repo.AddOrUpdateAsync(userToAssert), Times.Once);
+                AssertAllMockVerifications();
+            });
         }
 
         #endregion
