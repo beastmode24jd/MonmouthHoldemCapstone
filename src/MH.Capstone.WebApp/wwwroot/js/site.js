@@ -29,10 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const bioValue = bioInput.value.trim();
             let errorMsg = "";
 
-            if (bioValue.length === 0) {
-                errorMsg = "Cannot submit empty text field."
-            }
-            else if (bioValue.length > 250) {
+            if (bioValue.length > 250) {
                 // This case would only be available if someone modified the front-end HTML attributes.
                 // Leaving it here in case anyone does that.
                 errorMsg = "Bio is too long: cannot be over 250 characters."

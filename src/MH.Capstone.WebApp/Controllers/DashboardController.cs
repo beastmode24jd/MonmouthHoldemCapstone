@@ -179,9 +179,14 @@ namespace MH.Capstone.WebApp.Controllers
                 await _userService.UpdateUserBioAsync(user, newBio);
                 _logger.LogInformation("Bio field updated for {Email}", userEmail);
 
-                // Add the custom Bio Badge to the UserBadges list.
-                // Does not add the badge if the user already has a custom bio.
-                await _badgeService.AddBadge(user, BadgeId.CustomBioBadgeGUID);
+                // If they are resetting their Bio back to the default,
+                //                                 skip the badge update.
+                if (!string.IsNullOrWhiteSpace(newBio))
+                {
+                    // Add the custom Bio Badge to the UserBadges list.
+                    // Does not add the badge if the user already has a custom bio.
+                    await _badgeService.AddBadge(user, BadgeId.CustomBioBadgeGUID);
+                }
             }
 
             return RedirectToAction("Index");
