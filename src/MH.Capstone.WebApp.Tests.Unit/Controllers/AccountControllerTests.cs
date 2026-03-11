@@ -24,10 +24,10 @@ public class AccountControllerTests
         _mockAuthService = new Mock<IAuthenticationService>();
         _mockUserService = new Mock<IUserService>();
         _mockLogger = new Mock<ILogger<AccountController>>();
-        
+
         _controller = new AccountController(_mockAuthService.Object, _mockUserService.Object,
             null!, _mockLogger.Object);
-        
+
         _controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()
@@ -57,14 +57,19 @@ public class AccountControllerTests
             RememberMe = false
         };
 
-        _mockAuthService.Setup(s => s.ValidateCredentialsAsync(loginModel.Email, loginModel.Password)).ReturnsAsync(true);
+        // Mock user exists and is not deactivated
+        var user = new ApplicationUser { Email = loginModel.Email, IsDeactivated = false };
+        _mockUserService.Setup(s => s.GetUserByEmailAsync(loginModel.Email)).ReturnsAsync(user);
+
+        // Mock password check passes
+        _mockAuthService.Setup(s => s.CheckPasswordAsync(loginModel.Email, loginModel.Password)).ReturnsAsync(true);
         _mockAuthService.Setup(s => s.SignInUserAsync(It.IsAny<HttpContext>(), loginModel.Email, loginModel.RememberMe)).Returns(Task.CompletedTask);
 
         var result = await _controller.Login(loginModel);
 
         var redirectResult = result as RedirectToActionResult;
         Assert.That(redirectResult, Is.Not.Null);
-        Assert.That(redirectResult.ActionName, Is.EqualTo("Index"));
+        Assert.That(redirectResult!.ActionName, Is.EqualTo("Index"));
         Assert.That(redirectResult.ControllerName, Is.EqualTo("Dashboard"));
         _mockAuthService.Verify(s => s.SignInUserAsync(It.IsAny<HttpContext>(), loginModel.Email, loginModel.RememberMe), Times.Once);
     }
@@ -78,7 +83,12 @@ public class AccountControllerTests
             Password = "WrongPassword"
         };
 
-        _mockAuthService.Setup(s => s.ValidateCredentialsAsync(loginModel.Email, loginModel.Password)).ReturnsAsync(false);
+        // Mock user exists
+        var user = new ApplicationUser { Email = loginModel.Email, IsDeactivated = false };
+        _mockUserService.Setup(s => s.GetUserByEmailAsync(loginModel.Email)).ReturnsAsync(user);
+
+        // Mock password check fails
+        _mockAuthService.Setup(s => s.CheckPasswordAsync(loginModel.Email, loginModel.Password)).ReturnsAsync(false);
 
         var result = await _controller.Login(loginModel);
 
