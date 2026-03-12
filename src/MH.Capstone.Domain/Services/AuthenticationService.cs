@@ -87,6 +87,22 @@ namespace MH.Capstone.Domain.Services
             return result.Succeeded;
         }
 
+        /// <summary>
+        /// Checks if the password is correct for the given email.
+        /// Does NOT check if account is deactivated - use for security-sensitive flows
+        /// where we need to verify password before revealing account status.
+        /// </summary>
+        public async Task<bool> CheckPasswordAsync(string email, string password)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                return false;
+            }
+
+            var result = await _signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: false);
+            return result.Succeeded;
+        }
         public async Task<bool> ResetPasswordAsync(string identifier, string newPassword)
         {
             // First validate the new password against the policy
@@ -189,7 +205,7 @@ namespace MH.Capstone.Domain.Services
             // Send a notification about successful login
             var now = DateTimeOffset.UtcNow;
             await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId, "Successful Login",
-                $"Your account recorded a successful login at {now.ToLocalTime()}. Wasn't you? Reset your password now!", 
+                $"Your account recorded a successful login at {now.ToLocalTime()}. Wasn't you? Reset your password now!",
                 now));
         }
 

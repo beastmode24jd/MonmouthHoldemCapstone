@@ -614,7 +614,7 @@ public class AuthenticationServiceTests
             _userManagerMock.Verify(um => um.FindByEmailAsync(email), Times.Once);
         });
     }
-// == ReactivateAccountAsync Tests ==
+    // == ReactivateAccountAsync Tests ==
 
     [Test]
     public async Task ReactivateAccountAsync_WithValidCredentials_ReturnsTrue()
@@ -883,6 +883,66 @@ public class AuthenticationServiceTests
             _signInManagerMock.Verify(sm => sm.CheckPasswordSignInAsync(user, password, false), Times.Exactly(2));
         });
     }
+
+        #region CheckPasswordAsync Tests
+
+    [Test]
+    public async Task CheckPasswordAsync_WithValidCredentials_ReturnsTrue()
+    {
+        // Arrange
+        var email = "checkpass@test.com";
+        var password = "Test123!@#";
+        await _authService.RegisterUserAsync(email, password);
+
+        // Act
+        var result = await _authService.CheckPasswordAsync(email, password);
+
+        // Assert
+        Assert.That(result, Is.True);
+    }
+
+    [Test]
+    public async Task CheckPasswordAsync_WithInvalidPassword_ReturnsFalse()
+    {
+        // Arrange
+        var email = "checkpass2@test.com";
+        var password = "Test123!@#";
+        await _authService.RegisterUserAsync(email, password);
+
+        // Act
+        var result = await _authService.CheckPasswordAsync(email, "WrongPassword123!");
+
+        // Assert
+        Assert.That(result, Is.False);
+    }
+
+    [Test]
+    public async Task CheckPasswordAsync_WithNonExistentUser_ReturnsFalse()
+    {
+        // Act
+        var result = await _authService.CheckPasswordAsync("nonexistent@test.com", "Test123!@#");
+
+        // Assert
+        Assert.That(result, Is.False);
+    }
+
+    [Test]
+    public async Task CheckPasswordAsync_WithDeactivatedAccount_StillReturnsTrue()
+    {
+        // Arrange - This is the key test: CheckPasswordAsync should NOT check deactivation status
+        var email = "deactivated@test.com";
+        var password = "Test123!@#";
+        await _authService.RegisterUserAsync(email, password);
+        await _authService.DeactivateAccountAsync(email, password);
+
+        // Act
+        var result = await _authService.CheckPasswordAsync(email, password);
+
+        // Assert - Should return true because we're only checking password, not account status
+        Assert.That(result, Is.True);
+    }
+
+    #endregion
 }
 
 /// Fake subclass, to bypass (and therefore Mock) the _signInManager constructor.

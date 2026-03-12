@@ -51,12 +51,16 @@ jobs:
         run: dotnet build ./src --no-restore --configuration Release --verbosity normal
 
       - name: Ensure no missing EF Migrations
+        #env:
+          #ConnectionStrings__DataDb: ${{ secrets.EFCORE_FAKE_DBCONNSTR }}
+          #ConnectionStrings__DefaultConnection: ${{ secrets.EFCORE_FAKE_DBCONNSTR }}
         run: |
           MIGRATION_NAME="__AutoCheck"
           MIGRATION_STARTUP="./src/MH.Capstone.WebApp"
           MIGRATION_PROJ="./src/MH.Capstone.Domain"
           MIGRATION_CONTEXT="ApplicationDbContext"
           MIGRATIONS_FOLDER="./src/MH.Capstone.Domain/Migrations"
+          EXIT_CODE=0
           # Run the add migration command. Specify the startup project and context if needed.
           dotnet ef migrations add $MIGRATION_NAME --no-build --configuration Release -p $MIGRATION_PROJ -s $MIGRATION_STARTUP -c $MIGRATION_CONTEXT
           echo "Running migration file check on path: '${MIGRATIONS_FOLDER}/*_${MIGRATION_NAME}.cs' (excluding '*.Designer.cs')"
@@ -64,17 +68,16 @@ jobs:
           # Check if the generated file contains any operations (e.g., migrationBuilder.)
           if grep -q "migrationBuilder\." ${MIGRATIONS_FOLDER}/*_${MIGRATION_NAME}.cs --exclude=*.Designer.cs; then
               echo "⚠️ Uncommitted model changes detected. A migration file is missing."
-              # Clean up the temporary file
-              dotnet ef migrations remove --no-build --configuration Release -p $MIGRATION_PROJ -s $MIGRATION_STARTUP -c $MIGRATION_CONTEXT
-              exit 1 # Fail the pipeline
+              EXIT_CODE=1
           else
               echo "✅ Your model matches the last migration snapshot. No missing migrations."
-              # Clean up the temporary file
-              dotnet ef migrations remove --no-build --configuration Release -p $MIGRATION_PROJ -s $MIGRATION_STARTUP -c $MIGRATION_CONTEXT
           fi
 
+          # Clean up the temporary file
+          dotnet ef migrations remove --force --no-build --configuration Release -p $MIGRATION_PROJ -s $MIGRATION_STARTUP -c $MIGRATION_CONTEXT
           # Restore all modified files from EF Core check, including new, untracked files (clean)
           git restore . && git clean -fd
+          exit $EXIT_CODE
   
   buildtest:
     runs-on: ubuntu-latest
