@@ -6,13 +6,14 @@ using Microsoft.Extensions.DependencyInjection;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.Services.Abstraction;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using AuthenticationService = MH.Capstone.Domain.Services.AuthenticationService;
+using IAuthenticationService = MH.Capstone.Domain.Services.Abstraction.IAuthenticationService;
 
 namespace MH.Capstone.Domain.Tests.Unit.Services;
 
@@ -26,31 +27,19 @@ public class AuthenticationServiceTests
 
     // MS already has an AuthenticationService, and the compiler needs to know
     // which one to use. So we bring out the full filepath here
-    private Domain.Services.Abstraction.IAuthenticationService _authService;
+    private IAuthenticationService _authService;
     private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock;
 
     [SetUp]
-    public async Task Setup()
+    public void Setup()
     {
-        // Create in-memory database for testing
-        var services = new ServiceCollection();
-
-        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
-
-        // Simplify the DbContext, since we aren't testing the database.
-        services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}"));
-
-        // Register repositories like we do in the actual application
-        services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
-
         // Register userManagerMock with null placeholders.
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         _userManagerMock = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
         // Use Fake class from bottom of file to initialize _signInManagerMock object.
-        var fakeSignInManager = new FakeSignInManager(_userManagerMock.Object);
+        //var fakeSignInManager = new FakeSignInManager(_userManagerMock.Object);
         _signInManagerMock = new Mock<SignInManager<ApplicationUser>>(
             _userManagerMock.Object,
             Mock.Of<IHttpContextAccessor>(),
@@ -64,17 +53,23 @@ public class AuthenticationServiceTests
         _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
 
         // Register AuthenticationService
-        _authService = new MH.Capstone.Domain.Services.AuthenticationService(
+        _authService = new AuthenticationService(
             _userManagerMock.Object,
             _signInManagerMock.Object,
             _notificationServiceMock.Object,
-            NullLogger<MH.Capstone.Domain.Services.AuthenticationService>.Instance,
+            NullLogger<AuthenticationService>.Instance,
             _userRepoMock.Object
         );
     }
 
     private void AssertAllMockVerifySetups()
     {
+        _userManagerMock.VerifyAll();
+        //_userManagerMock.VerifyNoOtherCalls();
+
+        _signInManagerMock.VerifyAll();
+        //_signInManagerMock.VerifyNoOtherCalls();
+
         _notificationServiceMock.VerifyAll();
         _notificationServiceMock.VerifyNoOtherCalls();
     }
@@ -880,80 +875,113 @@ public class AuthenticationServiceTests
             
             // Verify CheckPasswordSignInAsync was called twice
             //              Once for reactivation, once for validation
-            _signInManagerMock.Verify(sm => sm.CheckPasswordSignInAsync(user, password, false), Times.Exactly(2));
+            _signInManagerMock.Verify(sm => 
+                sm.CheckPasswordSignInAsync(user, password, false), Times.Exactly(2));
         });
     }
 
-        #region CheckPasswordAsync Tests
+    #region CheckPasswordAsync Tests
 
     [Test]
     public async Task CheckPasswordAsync_WithValidCredentials_ReturnsTrue()
     {
         // Arrange
-        var email = "checkpass@test.com";
-        var password = "Test123!@#";
-        await _authService.RegisterUserAsync(email, password);
+        const string password = "Test123!@#";
+        var user = new ApplicationUser
+        {
+            Email = "checkpass@test.com",
+            UserName = "checkpass@test.com",
+            IsDeactivated = false
+        };
+
+        _userManagerMock.Setup(um => um.FindByEmailAsync(user.Email))
+            .ReturnsAsync(user).Verifiable(Times.Once);
+
+        _signInManagerMock.Setup(sm => sm.CheckPasswordSignInAsync(user, password, 
+            It.IsAny<bool>())).ReturnsAsync(SignInResult.Success).Verifiable(Times.Once);
 
         // Act
-        var result = await _authService.CheckPasswordAsync(email, password);
+        var result = await _authService.CheckPasswordAsync(user.Email, password);
 
         // Assert
         Assert.That(result, Is.True);
+        AssertAllMockVerifySetups();
     }
 
     [Test]
     public async Task CheckPasswordAsync_WithInvalidPassword_ReturnsFalse()
     {
         // Arrange
-        var email = "checkpass2@test.com";
-        var password = "Test123!@#";
-        await _authService.RegisterUserAsync(email, password);
+        const string password = "TheWrongPwd!";
+        var user = new ApplicationUser
+        {
+            Email = "checkpass@test.com",
+            UserName = "checkpass@test.com",
+            IsDeactivated = false
+        };
+
+        _userManagerMock.Setup(um => um.FindByEmailAsync(user.Email))
+            .ReturnsAsync(user).Verifiable(Times.Once);
+
+        _signInManagerMock.Setup(sm => sm.CheckPasswordSignInAsync(user, password,
+            It.IsAny<bool>())).ReturnsAsync(SignInResult.Failed).Verifiable(Times.Once);
 
         // Act
-        var result = await _authService.CheckPasswordAsync(email, "WrongPassword123!");
+        var result = await _authService.CheckPasswordAsync(user.Email, password);
 
         // Assert
         Assert.That(result, Is.False);
+        AssertAllMockVerifySetups();
     }
 
     [Test]
     public async Task CheckPasswordAsync_WithNonExistentUser_ReturnsFalse()
     {
+        // Arrange
+        const string email = "nouser@test.com";
+        var password = "IDoNotExist!";
+
+        _userManagerMock.Setup(um => um.FindByEmailAsync(email))
+            .ReturnsAsync(value: null!).Verifiable(Times.Once);
+
         // Act
-        var result = await _authService.CheckPasswordAsync("nonexistent@test.com", "Test123!@#");
+        var result = await _authService.CheckPasswordAsync(email, password);
 
         // Assert
         Assert.That(result, Is.False);
+        // Special verification to ensure that the sign-in manager was never called, as the user doesn't exist.
+        _signInManagerMock.Verify(sm => sm.CheckPasswordSignInAsync(
+            It.IsAny<ApplicationUser>(),
+            It.IsAny<string>(),
+            It.IsAny<bool>()), Times.Never);
+        AssertAllMockVerifySetups();
     }
 
     [Test]
     public async Task CheckPasswordAsync_WithDeactivatedAccount_StillReturnsTrue()
     {
-        // Arrange - This is the key test: CheckPasswordAsync should NOT check deactivation status
-        var email = "deactivated@test.com";
-        var password = "Test123!@#";
-        await _authService.RegisterUserAsync(email, password);
-        await _authService.DeactivateAccountAsync(email, password);
+        // Arrange
+        const string password = "Test123!@#";
+        var user = new ApplicationUser
+        {
+            Email = "checkpass@test.com",
+            UserName = "checkpass@test.com",
+            IsDeactivated = true
+        };
+
+        _userManagerMock.Setup(um => um.FindByEmailAsync(user.Email))
+            .ReturnsAsync(user).Verifiable(Times.Once);
+
+        _signInManagerMock.Setup(sm => sm.CheckPasswordSignInAsync(user, password,
+            It.IsAny<bool>())).ReturnsAsync(SignInResult.Success).Verifiable(Times.Once);
 
         // Act
-        var result = await _authService.CheckPasswordAsync(email, password);
+        var result = await _authService.CheckPasswordAsync(user.Email, password);
 
-        // Assert - Should return true because we're only checking password, not account status
+        // Assert
         Assert.That(result, Is.True);
+        AssertAllMockVerifySetups();
     }
 
     #endregion
-}
-
-/// Fake subclass, to bypass (and therefore Mock) the _signInManager constructor.
-public class FakeSignInManager : SignInManager<ApplicationUser>
-{
-    public FakeSignInManager(UserManager<ApplicationUser> userManager) 
-        : base(userManager,
-            Mock.Of<IHttpContextAccessor>(),
-            Mock.Of<IUserClaimsPrincipalFactory<ApplicationUser>>(),
-            Mock.Of<IOptions<IdentityOptions>>(),
-            NullLogger<SignInManager<ApplicationUser>>.Instance,
-            Mock.Of<IAuthenticationSchemeProvider>())
-    { }
 }
