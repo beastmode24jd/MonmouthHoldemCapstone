@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Protocols.Configuration;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace MH.Capstone.WebApp
 {

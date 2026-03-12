@@ -74,14 +74,49 @@ document.addEventListener("DOMContentLoaded", function ()
     }
 
     // Initialize counter on page load
-    // (User text doesn't auto-clear yet, will fix later)
     updateCounter();
 
     // Listen for user input
     bioArea.addEventListener('input', updateCounter);
 });
 
-document.addEventListener("DOMContentLoaded", registerAllNumericInputs);
+// For my sanity, we are adding a visibility toggle function for passwords
+function togglePasswordVisibility(inputId, iconId) {
+    const passwordInput = document.getElementById(inputId);
+    const toggleIcon = document.getElementById(iconId);
+
+    if (!passwordInput || !toggleIcon) return; // Exit, neither argument is present
+
+    if (passwordInput && toggleIcon) {
+        if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.replace('bi-eye', 'bi-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            toggleIcon.classList.replace('bi-eye-slash', 'bi-eye');
+        }
+    }
+}
+
+function registerPasswordToggles() {
+    // Returns an empty list if none are found
+    const toggleButtons = document.querySelectorAll('[data-password-toggle]');
+
+    toggleButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Pull the IDs directly from the HTML attributes
+            const inputId = this.getAttribute('data-target-input');
+            const iconId = this.getAttribute('data-target-icon');
+            togglePasswordVisibility(inputId, iconId);
+        });
+    });
+}
+
+
+document.addEventListener("DOMContentLoaded", function() {
+    registerAllNumericInputs();  // Reworked from original global registration
+    registerPasswordToggles();  // New global registration
+});
 
 // Thanks, ChatGPT, for the help with this function!
 function registerAllNumericInputs() {

@@ -1,14 +1,20 @@
 using MH.Capstone.Domain.DataModels;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration; // Required for IConfiguration
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace MH.Capstone.Domain.DataAccess 
 {
     public static class ApplicationDbContextSeeding
     {
-
         public static async Task SeedDataAsync(ApplicationDbContext context, bool _, CancellationToken token) 
         {
+
             var badgeSeedList = new List<Badge>
             {
                 new Badge
@@ -52,14 +58,91 @@ namespace MH.Capstone.Domain.DataAccess
                     context.Update(badge);
                 }
             }
+        
+            // Seed more data here
+            await SeedIdentityAsync(context);
+
 
             // Now save it to the DB!
             await context.SaveChangesAsync(token);
-        
+        }
 
-            // [FUTURE FEATURE: Seed the data for UserRoles] ****************
-        
-            // Seed more data here later, if needed
+        private static async Task SeedIdentityAsync(ApplicationDbContext context)
+        {
+            // Seed the data for UserRoles ****************
+
+            var configuration = context.GetService<IConfiguration>();
+            var logger = context.GetService<ILogger<ApplicationDbContext>>();
+
+            string[] roles = {"User", "Admin"};
+
+            // Initialize roles.
+
+            foreach (var role in roles)
+            {
+                var normalizedName = role.ToUpper();
+                if (!await context.Roles.AnyAsync(r => r.NormalizedName == normalizedName))
+                {
+                    context.Roles.Add(new IdentityRole
+                    {
+                        // Id is an assigned GUID
+                        Name = role,
+                        NormalizedName = normalizedName
+                    });
+
+                    logger.LogInformation("Role created: {Role}", role);
+                }
+                else
+                {
+                    logger.LogInformation($"Role with {role} already exists in database. Skipping creation.");
+                }
+            }
+
+            await context.SaveChangesAsync();
+
+            // Initialize an Admin-level account for testing.
+            var adminEmail = configuration.GetSection("AdminAccount:Hidden")["Email"];
+            var adminPassword = configuration.GetSection("AdminAccount:Hidden")["Password"];
+
+            if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword))
+            {
+                var normalizedEmail = adminEmail.ToUpper();
+                var adminUser = await context.Users.FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail);
+                if (adminUser == null)
+                {
+                    adminUser = new ApplicationUser
+                    {
+                        UserName = adminEmail,
+                        NormalizedUserName = normalizedEmail,
+                        Email = adminEmail,
+                        EmailConfirmed = true
+                    };
+
+                    // Manually hash the password
+                    var hasher = new PasswordHasher<ApplicationUser>();
+                    adminUser.PasswordHash = hasher.HashPassword(adminUser, adminPassword);
+
+                    context.Users.Add(adminUser);
+                    await context.SaveChangesAsync();
+
+                    // Assign the admin role
+                    var adminRole = await context.Roles.FirstAsync(r => r.NormalizedName == "ADMIN");
+                    context.UserRoles.Add(new IdentityUserRole<string> 
+                    { 
+                        UserId = adminUser.Id, 
+                        RoleId = adminRole.Id 
+                    });
+            
+                    await context.SaveChangesAsync();
+                    logger.LogInformation("Admin account and role assignment saved to database.");
+
+                }
+                else
+                {
+                    logger.LogInformation("Test Admin already exists. Skipping initialization.");
+                }
+            }
+
         }
     }
 }

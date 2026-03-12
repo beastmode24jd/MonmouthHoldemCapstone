@@ -1,0 +1,75 @@
+@{
+    ViewData["Title"] = "Manage Roles";
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-body">
+            <h2 class="card-title">User Role Management</h2>
+            <hr />
+
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger">@TempData["Error"]</div>
+            }
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success">@TempData["Success"]</div>
+            }
+
+            <p class="text-muted">Enter a user's email to promote them to the Admin role.</p>
+
+            <form asp-action="PromoteToAdmin" method="post" class="mt-3">
+                <div class="mb-3 col-md-6">
+                    <label for="email" class="form-label">User Email</label>
+                    <input type="email" name="email" id="email" class="form-control" required />
+                </div>
+                <button type="submit" class="btn btn-primary">Elevate to Admin</button>
+            </form>
+            
+            <hr class="my-4" />
+
+            <h4 class="text-danger"><i class="bi bi-person-dash"></i> Revoke Admin Rights</h4>
+            <p class="text-muted">Enter a user's email to remove them from the Admin role.</p>
+
+            <form asp-action="DemoteFromAdmin" method="post" class="mt-3">
+                <div class="mb-3 col-md-6">
+                    <label for="demoteEmail" class="form-label">User Email</label>
+                    <input type="email" name="email" id="demoteEmail" class="form-control" required />
+                </div>
+                <button type="submit" class="btn btn-outline-danger">Revoke Admin Status</button>
+            </form>
+
+            <hr class="my-4" />
+
+            <h2><i class="bi bi-person-x-fill"></i> Deactivate User Account</h2>
+            <p class="text-muted">Enter the user's email and <strong>your admin password</strong> to confirm deactivation.</p>
+
+            <form asp-action="DeactivateUser" method="post" class="mt-3">
+                <div class="row">
+                    <div class="mb-3 col-md-6">
+                        <label for="targetEmail" class="form-label">User to Deactivate</label>
+                        <input type="email" name="targetEmail" id="targetEmail" class="form-control" required />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="mb-3 col-md-6">
+                        <label for="adminPassword" class="form-label">Administrator Password</label>
+                        <div class="input-group">
+                            <input type="password" name="adminPassword" id="adminPassword" class="form-control" required />
+                            <button class="btn btn-outline-secondary" type="button"
+                                data-password-toggle 
+                                data-target-input="adminPassword" 
+                                data-target-icon="toggleIcon">
+                                <i class="bi bi-eye" id="toggleIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-muted fs-6 mt-0">For security, Admins cannot deactivate themselves from this page.</p>
+                <button type="submit" class="btn btn-warning">Confirm Deactivation</button>
+            </form>
+
+        </div>
+    </div>
+</div>
