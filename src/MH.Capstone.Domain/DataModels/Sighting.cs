@@ -43,7 +43,7 @@ namespace MH.Capstone.Domain.DataModels
 
         [Required]
         [PastDateTime]
-        public DateTime Timestamp { get; set; }
+        public DateTimeOffset Timestamp { get; set; }
 
         [MaxLength(500)]
         public string? Description { get; set; } = null;
