@@ -50,7 +50,7 @@ namespace MH.Capstone.Domain.Services
                     User = user,
                     UserId = user.Id,
                     BadgeId = badgeTemplate.BadgeID,
-                    BadgeEarned = DateTime.UtcNow
+                    BadgeEarned = DateTimeOffset.Now
                 };
 
                 // Save it
