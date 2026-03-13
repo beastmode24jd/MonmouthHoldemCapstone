@@ -49,7 +49,7 @@ public class ReportServiceTests
         };
 
         // No existing reports for this user + URL
-        _reportRepoMock.Setup(r => r.GetAllAsync())
+        _reportRepoMock.Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Report, bool>>>()))
             .ReturnsAsync(new List<Report>().AsQueryable())
             .Verifiable(Times.Once);
 
@@ -95,7 +95,7 @@ public class ReportServiceTests
         };
 
         // A report already exists for this user + URL
-        _reportRepoMock.Setup(r => r.GetAllAsync())
+        _reportRepoMock.Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Report, bool>>>()))
             .ReturnsAsync(new List<Report> { existingReport }.AsQueryable())
             .Verifiable(Times.Once);
 
@@ -122,7 +122,7 @@ public class ReportServiceTests
             SubmittedAt = DateTime.UtcNow
         };
 
-        _reportRepoMock.Setup(r => r.GetAllAsync())
+        _reportRepoMock.Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Report, bool>>>()))
             .ReturnsAsync(new List<Report>().AsQueryable())
             .Verifiable(Times.Once);
 

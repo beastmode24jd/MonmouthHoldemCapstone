@@ -28,11 +28,12 @@ namespace MH.Capstone.Domain.Services
                     firstFail);
             }
 
-            // Check for duplicate report by the same user for the same page URL
-            var existing = await _reportRepo.GetAllAsync();
-            bool isDuplicate = existing.Any(r =>
+            // NEW - O(log n) single indexed DB lookup instead of O(n) in memory scan
+            var existing = await _reportRepo.GetAllAsync(r =>
                 r.ReportingUserIdentityId == report.ReportingUserIdentityId &&
-                r.ReportedPageUrl == report.ReportedPageUrl);
+                r.ReportedPageUrl == report.ReportedPageUrl &&
+                !r.IsResolved);
+            bool isDuplicate = existing.Any();
 
             if (isDuplicate)
             {
