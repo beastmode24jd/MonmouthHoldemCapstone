@@ -391,7 +391,7 @@ public struct SightingValidValuesSource
     public const int _EnumerableCounts = 2;
 
     // Prevents DateTimeOffset drift during testing
-    private static readonly DateTimeOffset _fixedBaseTime = new DateTimeOffset(2024, 1, 1, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset _fixedBaseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
 
     public static Sighting DefaultValidSighting =>
         new Sighting(Guid.NewGuid(), Guid.NewGuid(), 0m, 0m, _fixedBaseTime, 

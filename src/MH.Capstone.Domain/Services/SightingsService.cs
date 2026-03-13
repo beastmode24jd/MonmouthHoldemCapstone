@@ -66,10 +66,12 @@ namespace MH.Capstone.Domain.Services
                     await _userRepo.AddOrUpdateAsync(user);
                     await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId,
                         "New Sighting Uploaded & Created!",
-                        $"Congratulations, You uploaded a new sighting at {entity.Timestamp.DateTime} and " +
+                        $"Congratulations! You uploaded a new sighting at {entity.Timestamp.ToLocalTime().ToString("g")} and " +
                         $"earned {pointsEarned} points!"
                         ));
                     _logger.LogInformation("Awarded {Points} points to user {UserId} for sighting", pointsEarned, entity.UserId);
+                    // AM and PM display mismatch?
+                    _logger.LogInformation("Raw Timestamp: {Raw}, Localized: {Local}", entity.Timestamp, entity.Timestamp.ToLocalTime());
                 }
 
                 // Step 4: Return points to controller

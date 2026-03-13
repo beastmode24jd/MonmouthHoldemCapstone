@@ -53,6 +53,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
 });
 
+// Should format the string for the Sightings Upload notifications, to fix AM/PM issues.
+// Gets clientside timezone info for display.
+// This converts the UTC string from the server to the user's local device time
+const deviceTime = new Date(notificationTimestampFromServer).toLocaleString([], {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: 'numeric', minute: '2-digit', hour12: true
+});
+
 // Updates the user bio character counter.
 document.addEventListener("DOMContentLoaded", function ()
 {
