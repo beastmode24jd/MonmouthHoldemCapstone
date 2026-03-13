@@ -9,12 +9,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MH.Capstone.Domain.DataModels
 {
+
+    // [Index(nameof(IndexProp1), nameof(IndexProp2), IsUnique = true)]
+    public class SomeEntity
+    {
+        // ...
+    }
+    
     [Table("Report")]
     public class Report
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public Guid Id { get; set; }
+        public Guid Id { get; set; } // PK
 
         [NotMapped]
         public Guid ReportingUserId
@@ -27,8 +34,9 @@ namespace MH.Capstone.Domain.DataModels
         [Column("ReportingUserId")]
         [MaxLength(450)]
         [ForeignKey(nameof(Reporter))]
-        public string ReportingUserIdentityId { get; set; } = null!;
-
+        public string ReportingUserIdentityId { get; set; } = null!; // FK
+         
+        // fields for the report
         [Required]
         [MaxLength(2048)]
         public string ReportedPageUrl { get; set; } = null!;

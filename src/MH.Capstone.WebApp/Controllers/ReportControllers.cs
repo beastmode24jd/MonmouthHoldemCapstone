@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MH.Capstone.WebApp.Controllers
 {
+    // blocks unauthenticated users from submitting reports
     [Authorize]
     [Route("Report")]
     public class ReportController : Controller
@@ -25,6 +26,7 @@ namespace MH.Capstone.WebApp.Controllers
             _userManager = userManager;
         }
 
+        // security to validate that request came from a form on our site, and not else where
         [HttpPost]
         [Route("Submit")]
         [ValidateAntiForgeryToken]
