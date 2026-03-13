@@ -66,7 +66,7 @@ namespace MH.Capstone.Domain.Services
                     await _userRepo.AddOrUpdateAsync(user);
                     await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId,
                         "New Sighting Uploaded & Created!",
-                        $"Congratulations, You uploaded a new sighting at {entity.Timestamp} and " +
+                        $"Congratulations, You uploaded a new sighting at {entity.Timestamp.DateTime} and " +
                         $"earned {pointsEarned} points!"
                         ));
                     _logger.LogInformation("Awarded {Points} points to user {UserId} for sighting", pointsEarned, entity.UserId);

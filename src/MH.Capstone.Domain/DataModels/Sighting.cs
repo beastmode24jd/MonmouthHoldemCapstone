@@ -55,7 +55,7 @@ namespace MH.Capstone.Domain.DataModels
 
         public Sighting() {}
 
-        public Sighting(Guid id, Guid userId, decimal latitude, decimal longitude, DateTime timestamp, 
+        public Sighting(Guid id, Guid userId, decimal latitude, decimal longitude, DateTimeOffset timestamp, 
             string? description, byte[] imageBuffer)
         {
             Id = id;
