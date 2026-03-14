@@ -2,38 +2,31 @@ using MH.Capstone.Domain.DataModels;
 
 namespace MH.Capstone.WebApp.Models
 {
-    /// <summary>
-    /// CSP-145: Page-level ViewModel for the Sighting Gallery page.
-    /// Contains a collection of sighting cards to display in a responsive grid.
-    /// </summary>
+
+    // CSP-145: Page-level ViewModel for the Sighting Gallery page.
+    // Contains a collection of sighting cards to display in a responsive grid.
     public class SightingGalleryViewModel
     {
-        /// <summary>
-        /// Collection of sighting cards to display in the gallery.
-        /// Each card represents one sighting uploaded by the user.
-        /// </summary>
+        
+        // Collection of sighting cards to display in the gallery.
+        // Each card represents one sighting uploaded by the user.
         public List<SightingCardViewModel> Sightings { get; set; } = new();
 
-        /// <summary>
-        /// Computed property to check if the user has any sightings.
-        /// Used to determine whether to show the gallery grid or the empty state message.
-        /// </summary>
+      
+        // Check if the user has any sightings.
+        // if false then display "You have no sightings yet. Start uploading to earn points and badges!" instead of the gallery grid.
         public bool HasSightings => Sightings.Any();
 
-        /// <summary>
-        /// Total count of sightings for display (e.g., "You have 12 sightings")
-        /// </summary>
+        
+        // Display total count of sightings on card  ("You have 12 sightings")
         public int SightingCount => Sightings.Count;
 
-        /// <summary>
-        /// Parameterless constructor for ASP.NET Core model binding
-        /// </summary>
+       
         public SightingGalleryViewModel() { }
 
-        /// <summary>
-        /// Creates a SightingGalleryViewModel from a collection of Sighting entities.
-        /// Converts each Sighting into a SightingCardViewModel for display.
-        /// </summary>
+      
+        // Creates a SightingGalleryViewModel from a collection of Sighting entities.
+        // Converts each Sighting into a SightingCardViewModel for display.
         /// <param name="sightings">Collection of sighting entities from the database</param>
         public SightingGalleryViewModel(IEnumerable<Sighting> sightings)
         {
