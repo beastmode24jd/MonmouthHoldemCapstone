@@ -206,6 +206,9 @@ namespace MH.Capstone.Domain.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ReportingUserIdentityId", "ReportedPageUrl", "IsResolved")
+                        .IsUnique();
+
                     b.HasIndex("ReportingUserIdentityId");
 
                     b.ToTable("Report");
