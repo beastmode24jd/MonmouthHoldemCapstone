@@ -32,10 +32,10 @@ namespace MH.Capstone.Domain.Services
 
             try
             {
-                // Attempt to save the report - the database index will enforce uniqueness
+                // try to save the report, and let the database handle the duplicate report check
                 await _reportRepo.AddOrUpdateAsync(report);
 
-                // Send confirmation notification to the reporting user
+                // notification to the reporting user
                 await _notificationService.SendNotificationAsync(Notification.Create(
                     report.ReportingUserId,
                     "Report Received",
@@ -50,11 +50,10 @@ namespace MH.Capstone.Domain.Services
                 if ((ex is SqlException sqlEx && sqlEx.IsOfErrorType(SqlErrorNumber.UniqueConstraintViolation)) ||
                     (ex is DbUpdateException dbEx && dbEx.IsOfErrorType(SqlErrorNumber.UniqueConstraintViolation)))
                 {
-                    // Duplicate report detected by database index
+                    // if dupe report dectected
                     return false;
                 }
 
-                // Re-throw any other exceptions
                 throw;
             }
         }
