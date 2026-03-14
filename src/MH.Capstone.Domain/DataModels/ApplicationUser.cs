@@ -48,5 +48,16 @@ namespace MH.Capstone.Domain.DataModels
 
         public DateTimeOffset? LastLogin { get; set; }
         public int LoginStreak { get; set; } = 0;
+
+        [NotMapped]
+        public bool IsStreakActive
+        {
+            get
+            {
+                if (!LastLogin.HasValue) return false;
+                // Get difference between now (UTC) and last login day (also UTC)
+                return (DateTimeOffset.UtcNow - LastLogin.Value).TotalDays <= 30;
+            }
+        }
     }
 }

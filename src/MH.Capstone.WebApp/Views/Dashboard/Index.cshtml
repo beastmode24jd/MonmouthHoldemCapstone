@@ -116,6 +116,29 @@
                     </h5>
                     <p class="card-text mb-0 mt-1">Current points: </p> @(user?.Points ?? 0)
                     <br>
+                    <hr />
+
+                    <h5 class="card-title"><i class="bi bg-warning"></i> Login Streak</h5>
+                    @if (user != null)
+                    {
+                        <p class="mb-1">
+                            Current Streak: <strong>@user.LoginStreak Days</strong>
+                        </p>
+
+                        @* Use DateTimeOffset.UtcNow here to match the property type *@
+                        @if (user.LastLogin.HasValue)
+                        {
+                            var isStreakActive = (DateTimeOffset.UtcNow - user.LastLogin.Value).TotalDays <= 30;
+                            
+                            <span class="badge @(isStreakActive ? "bg-success" : "bg-danger")">
+                                @(isStreakActive ? "Active" : "Expired")
+                            </span>
+                            
+                            <p class="text-muted small mt-2">
+                                Last login: @user.LastLogin.Value.ToString("MMM dd, yyyy")
+                            </p>
+                        }
+                    }
                     <p class="card-text mb-1 mt-2">Recent Badges:</p>
                     <div class="mb-2 mt-0">
                         @if(badges != null && badges.Any())
