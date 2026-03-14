@@ -25,7 +25,6 @@ public class SightingsServiceTests
     private Sighting _validSighting;
     private Mock<IScoringService> _scoringServiceMock;
     private Mock<INotificationService> _notificationServiceMock;
-    private Mock<IBadgeService> _badgeServiceMock;
     private Mock<IRepository<Sighting, ApplicationDbContext>> _sightingsRepoMock;
     private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock;
     private FakeImageGenerator _imageGenerator;
@@ -40,7 +39,6 @@ public class SightingsServiceTests
         _scoringServiceMock = new Mock<IScoringService>();
         _notificationServiceMock = new Mock<INotificationService>();
         _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
-        _badgeServiceMock = new Mock<IBadgeService>();
     }
 
     [TearDown]
@@ -51,7 +49,6 @@ public class SightingsServiceTests
 
     private SightingsService CreateSut() =>
         new (NullLogger<SightingsService>.Instance,
-            _badgeServiceMock.Object,
             _scoringServiceMock.Object,
             _notificationServiceMock.Object,
             _sightingsRepoMock.Object,
@@ -357,22 +354,12 @@ public class SightingComparer : IEqualityComparer<Sighting>
                x.Timestamp.Equals(y.Timestamp) && 
                (x.ImageBuffer == null && y.ImageBuffer == null || 
                 x.ImageBuffer != null && y.ImageBuffer != null && x.ImageBuffer.SequenceEqual(y.ImageBuffer));
-
-        // We can rely on GetHashCode to determine equality since we combine all properties of
-        // Sighting in the hash code generation. We use this to simplify the equality check,
-        // as two Sightings with the same values will have the same hash code, but sightings could
-        // have different references in memory.
-        //return GetHashCode(x) == GetHashCode(y);
     }
 
     // We combine all properties of Sighting to generate a hash code,
     // ensuring that two Sightings with the same values will have the same hash code
     public int GetHashCode(Sighting obj)
     {
-        // Original code
-        //return HashCode.Combine(obj.UserId, obj.Description, obj.Id, obj.Latitude, obj.Longitude, obj.Timestamp, obj.ImageBuffer);
-
-        // New attempt
         var hash = new HashCode();
         hash.Add(obj.Id);
         hash.Add(obj.UserId);
@@ -420,11 +407,5 @@ public struct SightingValidValuesSource
         {
             yield return _fixedBaseTime.AddDays(-i);
         }
-        /*
-        for (int i = 0; i < _EnumerableCounts; i++)
-        {
-            // Generate a random DateTimeOffset in the past year
-            yield return DateTimeOffset.Now.AddDays(-Random.Shared.Next(1, 365));
-        } */
     }
 }

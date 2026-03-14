@@ -18,12 +18,9 @@ namespace MH.Capstone.Domain.Services
         private readonly IScoringService _scoringService;
         private readonly INotificationService _notificationService;
 
-        // To update user account with Badge on first upload
-        private readonly IBadgeService _badgeService;
-
         public SightingsService(
-            ILogger<SightingsService> logger, IBadgeService badgeService,
-            IScoringService scoringService, INotificationService notificationService,
+            ILogger<SightingsService> logger, IScoringService scoringService,
+            INotificationService notificationService,
             IRepository<Sighting, ApplicationDbContext> sightingsRepo,
             IRepository<ApplicationUser, ApplicationDbContext> userRepo)
         {
@@ -32,7 +29,6 @@ namespace MH.Capstone.Domain.Services
             _scoringService = scoringService;
             _userRepo = userRepo;
             _notificationService = notificationService;
-            _badgeService = badgeService;
         }
 
         public async Task<int> CreateSightingAsync(Sighting entity, string ianaTimeZoneId = "America/Los_Angeles")
