@@ -203,7 +203,8 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ReportingUserIdentityId");
+                    b.HasIndex("ReportingUserIdentityId", "ReportedPageUrl", "IsResolved")
+                        .IsUnique();
 
                     b.ToTable("Report");
                 });
