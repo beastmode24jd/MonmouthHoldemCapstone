@@ -11,7 +11,7 @@ namespace MH.Capstone.Domain.Services.Abstraction
     public interface ISightingsService
     {
         // Returns the points earned for the sighting
-        Task<int> CreateSightingAsync(Sighting entity);
+        Task<int> CreateSightingAsync(Sighting entity, string ianaTimeZoneId = "America/Los_Angeles");
 
         bool ValidateImage(IFormFile? imageBuffer);
     }

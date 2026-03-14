@@ -35,7 +35,7 @@ namespace MH.Capstone.Domain.Services
             _badgeService = badgeService;
         }
 
-        public async Task<int> CreateSightingAsync(Sighting entity)
+        public async Task<int> CreateSightingAsync(Sighting entity, string ianaTimeZoneId = "America/Los_Angeles")
         {
             if (!entity.TryValidateEntity(out var fails))
             {
@@ -64,14 +64,37 @@ namespace MH.Capstone.Domain.Services
                 {
                     user.Points += pointsEarned;
                     await _userRepo.AddOrUpdateAsync(user);
+
+                    // Convert timezone IANA ID to a TimeZoneInfo object
+                    // If you aren't using a library, use a simple mapping or TimeZoneInfo.TryConvertIanaIdToWindowsId
+                    TimeZoneInfo deviceZone;
+
+                    try
+                    {
+                        // Converts the IANA ID successfully
+                        deviceZone = TimeZoneInfo.FindSystemTimeZoneById(ianaTimeZoneId);
+                    }
+                    catch
+                    {
+                        // Fallback to Windows-style Pacific ID if IANA fails on Windows Server
+                        deviceZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+                    }
+
+                    // Convert the timestamp to the device's actual zone
+                    DateTimeOffset deviceTime = TimeZoneInfo.ConvertTime(entity.Timestamp, deviceZone);
+
+                    // Generate the notification with the correct AM/PM and 12-hour format
+                    string timeDisplay = deviceTime.ToString("MM/dd/yyyy h:mm tt");
+
                     await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId,
                         "New Sighting Uploaded & Created!",
-                        $"Congratulations! You uploaded a new sighting at {entity.Timestamp.ToLocalTime().ToString("g")} and " +
+                        $"Congratulations! You uploaded a new sighting at {timeDisplay} and " +
                         $"earned {pointsEarned} points!"
                         ));
                     _logger.LogInformation("Awarded {Points} points to user {UserId} for sighting", pointsEarned, entity.UserId);
                     // AM and PM display mismatch?
-                    _logger.LogInformation("Raw Timestamp: {Raw}, Localized: {Local}", entity.Timestamp, entity.Timestamp.ToLocalTime());
+                    _logger.LogInformation("Raw DB Timestamp: {Raw}", entity.Timestamp);
+                    _logger.LogInformation("Sighting notification sent for localized time: {Local}", timeDisplay);
                 }
 
                 // Step 4: Return points to controller
