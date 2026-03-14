@@ -21,5 +21,17 @@ namespace MH.Capstone.Domain.DataAccess
         public DbSet<UserBadge> UserBadges { get; set; } = null!;
         public DbSet<Notification> Notifications { get; set; } = null!;
         public DbSet<Report> Reports { get; set; } = null!;
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            // Filtered unique index: Enforces uniqueness on (User, URL) ONLY for unresolved reports
+            // should prevent spam but allows users to report the same URL again after resolved 
+            modelBuilder.Entity<Report>()
+                .HasIndex(r => new { r.ReportingUserIdentityId, r.ReportedPageUrl })
+                .IsUnique()
+                .HasFilter("[IsResolved] = 0");
+        }
     }
 }

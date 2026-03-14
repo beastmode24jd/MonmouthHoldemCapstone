@@ -9,8 +9,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MH.Capstone.Domain.DataModels
 {
-    // NEW - Added Index attribute to force unique constraint on (ReportingUserIdentityId, ReportedPageUrl, IsResolved)
-    [Index(nameof(ReportingUserIdentityId), nameof(ReportedPageUrl), nameof(IsResolved), IsUnique = true)]
     [Table("Report")]
     public class Report
     {

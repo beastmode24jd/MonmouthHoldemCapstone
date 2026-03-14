@@ -11,17 +11,18 @@ namespace MH.Capstone.Domain.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateIndex(
-                name: "IX_Report_ReportingUserIdentityId_ReportedPageUrl_IsResolved",
+                name: "IX_Report_ReportingUserIdentityId_ReportedPageUrl",
                 table: "Report",
-                columns: new[] { "ReportingUserId", "ReportedPageUrl", "IsResolved" },
-                unique: true);
+                columns: new[] { "ReportingUserId", "ReportedPageUrl" },
+                unique: true,
+                filter: "[IsResolved] = 0");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropIndex(
-                name: "IX_Report_ReportingUserIdentityId_ReportedPageUrl_IsResolved",
+                name: "IX_Report_ReportingUserIdentityId_ReportedPageUrl",
                 table: "Report");
         }
     }
