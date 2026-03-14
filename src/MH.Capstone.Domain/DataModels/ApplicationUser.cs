@@ -45,5 +45,8 @@ namespace MH.Capstone.Domain.DataModels
         public string? Bio { get; set; } = null; // Default to null for placeholder value
         
         public virtual List<Notification> Notifications { get; set; } = new List<Notification>();
+
+        public DateTimeOffset? LastLogin { get; set; }
+        public int LoginStreak { get; set; } = 0;
     }
 }
