@@ -66,7 +66,6 @@ namespace MH.Capstone.Domain.Services
                     await _userRepo.AddOrUpdateAsync(user);
 
                     // Convert timezone IANA ID to a TimeZoneInfo object
-                    // If you aren't using a library, use a simple mapping or TimeZoneInfo.TryConvertIanaIdToWindowsId
                     TimeZoneInfo deviceZone;
 
                     try
@@ -94,7 +93,7 @@ namespace MH.Capstone.Domain.Services
                     _logger.LogInformation("Awarded {Points} points to user {UserId} for sighting", pointsEarned, entity.UserId);
                     // AM and PM display mismatch?
                     _logger.LogInformation("Raw DB Timestamp: {Raw}", entity.Timestamp);
-                    _logger.LogInformation("Sighting notification sent for localized time: {Local}", timeDisplay);
+                    _logger.LogInformation("Localized display: {Local}", timeDisplay);
                 }
 
                 // Step 4: Return points to controller

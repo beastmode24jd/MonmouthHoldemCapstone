@@ -8,7 +8,7 @@ namespace MH.Capstone.WebApp.Models
     {
         [Required] 
         [PastDateTime]
-        [DisplayFormat(DataFormatString = "{0:yyyy-MM-ddThh:mm}", ApplyFormatInEditMode = true)]
+        [DisplayFormat(DataFormatString = "{0:yyyy-MM-ddTHH:mm}", ApplyFormatInEditMode = true)]
         public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.Now;
 
         // Holds the IANA string (e.g., "America/Los_Angeles")

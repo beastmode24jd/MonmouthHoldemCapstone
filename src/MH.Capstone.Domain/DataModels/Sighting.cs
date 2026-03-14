@@ -62,7 +62,7 @@ namespace MH.Capstone.Domain.DataModels
             UserId = userId;
             Latitude = latitude;
             Longitude = longitude;
-            Timestamp = this.Timestamp;
+            Timestamp = timestamp;
             Description = description;
             ImageBuffer = imageBuffer;
         }
