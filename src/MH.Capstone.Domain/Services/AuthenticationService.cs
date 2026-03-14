@@ -205,7 +205,7 @@ namespace MH.Capstone.Domain.Services
             // Send a notification about successful login
             var now = DateTimeOffset.UtcNow;
             await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId, "Successful Login",
-                $"Your account recorded a successful login at {now.ToLocalTime()}. Wasn't you? Reset your password now!",
+                $"Your account recorded a successful login at {now.ToLocalTime().ToString("g")}. Wasn't you? Reset your password now!",
                 now));
         }
 

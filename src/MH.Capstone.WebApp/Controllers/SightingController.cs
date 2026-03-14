@@ -64,7 +64,7 @@ namespace MH.Capstone.WebApp.Controllers
             // CreateSightingAsync returns the points awarded for the sighting, but we don't
             // need to capture that here since the user will be able to see it reflected in
             // their profile and badges immediately after upload.
-            _ = await _sightingsService.CreateSightingAsync(dataModel);
+            _ = await _sightingsService.CreateSightingAsync(dataModel, sightingUpload.DeviceTimezone);
 
             // Since invalid Sightings were already checked and the sighting has already been uploaded,
             // give the user the First Sighting Badge

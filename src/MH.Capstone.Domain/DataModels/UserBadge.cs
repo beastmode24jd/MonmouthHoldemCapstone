@@ -32,7 +32,7 @@ namespace MH.Capstone.Domain.DataModels
         public virtual Badge Badge { get; set; } = null!;
 
         // Timestamp for when the user earned the badge
-        public DateTime? BadgeEarned { get; set; } = null;
+        public DateTimeOffset? BadgeEarned { get; set; } = null;
 
     }
 

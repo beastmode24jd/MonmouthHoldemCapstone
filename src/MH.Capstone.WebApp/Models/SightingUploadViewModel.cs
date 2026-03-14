@@ -8,8 +8,12 @@ namespace MH.Capstone.WebApp.Models
     {
         [Required] 
         [PastDateTime]
-        [DisplayFormat(DataFormatString = "{0:yyyy-MM-ddThh:mm}", ApplyFormatInEditMode = true)]
-        public DateTime Timestamp { get; set; } = DateTime.Now;
+        [DisplayFormat(DataFormatString = "{0:yyyy-MM-ddTHH:mm}", ApplyFormatInEditMode = true)]
+        public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.Now;
+
+        // Holds the IANA string (e.g., "America/Los_Angeles")
+        // Defaults to Pacific Time instead of UTC for the display. IS NOT SAVED TO DB.
+        public string DeviceTimezone { get; set; } = "America/Los_Angeles";
 
         [Required]
         [Range(-9.00000, 90.00000, ErrorMessage = "Latitude must be within -90 and 90 inclusive")]
@@ -32,12 +36,13 @@ namespace MH.Capstone.WebApp.Models
 
         public SightingUploadViewModel() {}
 
-        public SightingUploadViewModel(DateTime timestamp, decimal latitude, decimal longitude, string? description)
+        public SightingUploadViewModel(DateTimeOffset timestamp, decimal latitude, decimal longitude, string? description, string deviceTimezone = "America/Los_Angeles")
         {
             Timestamp = timestamp;
             Latitude = latitude;
             Longitude = longitude;
             Description = description;
+            DeviceTimezone = deviceTimezone;
         }
     }
 
