@@ -117,15 +117,19 @@ namespace MH.Capstone.Domain.Services
 
         public async Task<IEnumerable<Sighting>> GetSightingsInBoundsAsync(decimal minLat, decimal maxLat, decimal minLng, decimal maxLng)
         {
-            var sightings = await _sightingsRepo.GetAllAsync(s =>
-                s.Latitude >= minLat &&
-                s.Latitude <= maxLat &&
-                s.Longitude >= minLng &&
-                s.Longitude <= maxLng);
-
-            // Filter to last 7 days per user story requirements
             var sevenDaysAgo = DateTimeOffset.UtcNow.AddDays(-7);
-            return sightings.Where(s => s.Timestamp >= sevenDaysAgo).ToList();
+
+            var allSightings = await _sightingsRepo.GetAllAsync();
+
+            var sightings = allSightings
+                .Where(s => s.Latitude >= minLat &&
+                            s.Latitude <= maxLat &&
+                            s.Longitude >= minLng &&
+                            s.Longitude <= maxLng &&
+                            s.Timestamp >= sevenDaysAgo)
+                .ToList();
+
+            return sightings;
         }
 
         public bool ValidateImage(IFormFile? imageBuffer)
