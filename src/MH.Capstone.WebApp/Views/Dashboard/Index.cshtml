@@ -128,10 +128,9 @@
                         @* Use DateTimeOffset.UtcNow here to match the property type *@
                         @if (user.LastLogin.HasValue)
                         {
-                            var isStreakActive = (DateTimeOffset.UtcNow - user.LastLogin.Value).TotalDays <= 30;
-                            
-                            <span class="badge @(isStreakActive ? "bg-success" : "bg-danger")">
-                                @(isStreakActive ? "Active" : "Expired")
+                            <p>Streak: @user.LoginStreak</p>
+                            <span class="badge @(user.IsStreakActive ? "bg-success" : "bg-danger")">
+                                @(user.IsStreakActive ? "Active" : "Inactive")
                             </span>
                             
                             <p class="text-muted small mt-2">
