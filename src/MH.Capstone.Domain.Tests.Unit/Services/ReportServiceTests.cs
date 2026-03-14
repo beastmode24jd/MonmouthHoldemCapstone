@@ -3,6 +3,9 @@ using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.Domain.Tools;
+using MH.Capstone.Tests.SharedInternals;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using System.Diagnostics.CodeAnalysis;
 
@@ -48,11 +51,6 @@ public class ReportServiceTests
             SubmittedAt = DateTime.UtcNow
         };
 
-        // No existing reports for this user + URL
-        _reportRepoMock.Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Report, bool>>>()))
-            .ReturnsAsync(new List<Report>().AsQueryable())
-            .Verifiable(Times.Once);
-
         _reportRepoMock.Setup(r => r.AddOrUpdateAsync(
                 It.Is<Report>(rep => rep.ReportingUserId == userId && rep.ReportedPageUrl == report.ReportedPageUrl)))
             .ReturnsAsync(report)
@@ -79,14 +77,6 @@ public class ReportServiceTests
         var userId = Guid.NewGuid();
         var pageUrl = "/Sighting/123";
 
-        var existingReport = new Report
-        {
-            ReportingUserId = userId,
-            ReportedPageUrl = pageUrl,
-            Reason = "Spam",
-            SubmittedAt = DateTime.UtcNow
-        };
-
         var duplicateReport = new Report
         {
             ReportingUserId = userId,
@@ -94,9 +84,14 @@ public class ReportServiceTests
             Reason = "Inappropriate content"
         };
 
-        // A report already exists for this user + URL
-        _reportRepoMock.Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Report, bool>>>()))
-            .ReturnsAsync(new List<Report> { existingReport }.AsQueryable())
+        // Database will throw unique constraint violation on duplicate
+        var uniqueConstraintException = new SqlExceptionBuilder()
+            .WithNumber((int)SqlErrorNumber.UniqueConstraintViolation)
+            .Build();
+        var dbUpdateException = new DbUpdateException("Duplicate key", uniqueConstraintException);
+
+        _reportRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<Report>()))
+            .ThrowsAsync(dbUpdateException)
             .Verifiable(Times.Once);
 
         var sut = CreateSut();
@@ -121,10 +116,6 @@ public class ReportServiceTests
             Reason = "Inaccurate information",
             SubmittedAt = DateTime.UtcNow
         };
-
-        _reportRepoMock.Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Report, bool>>>()))
-            .ReturnsAsync(new List<Report>().AsQueryable())
-            .Verifiable(Times.Once);
 
         _reportRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<Report>()))
             .ReturnsAsync(report)
