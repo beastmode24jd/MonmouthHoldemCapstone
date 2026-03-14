@@ -55,7 +55,7 @@ namespace MH.Capstone.Domain.Services
                 // Step 3: Award points to the user
                 var users = await _userRepo.GetAllAsync();
                 var user = users.FirstOrDefault(u => u.Id == entity.UserIdentityId);
-                
+
                 if (user != null)
                 {
                     // Check if the user has an active loginStreak.
@@ -113,6 +113,19 @@ namespace MH.Capstone.Domain.Services
                     $"Sighting entity validation failed. UserId {entity.UserId} does not exist.", nameof(entity.UserId),
                     ex);
             }
+        }
+
+        public async Task<IEnumerable<Sighting>> GetSightingsInBoundsAsync(decimal minLat, decimal maxLat, decimal minLng, decimal maxLng)
+        {
+            var sightings = await _sightingsRepo.GetAllAsync(s =>
+                s.Latitude >= minLat &&
+                s.Latitude <= maxLat &&
+                s.Longitude >= minLng &&
+                s.Longitude <= maxLng);
+
+            // Filter to last 7 days per user story requirements
+            var sevenDaysAgo = DateTimeOffset.UtcNow.AddDays(-7);
+            return sightings.Where(s => s.Timestamp >= sevenDaysAgo).ToList();
         }
 
         public bool ValidateImage(IFormFile? imageBuffer)
