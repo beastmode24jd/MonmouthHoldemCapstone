@@ -321,6 +321,83 @@ public class SightingsServiceTests
         AssertAllMockVerifications();
     }
 
+    #region CSP-145: GetUserSightingsAsync Tests
+
+    [Test]
+    public async Task GetUserSightingsAsync_ValidUserId_ReturnsSightingsForThatUser()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var userSightings = new List<Sighting>
+        {
+            new() { Id = Guid.NewGuid(), UserId = userId, Timestamp = DateTime.UtcNow.AddDays(-1), ImageBuffer = [0x01] },
+            new() { Id = Guid.NewGuid(), UserId = userId, Timestamp = DateTime.UtcNow.AddDays(-2), ImageBuffer = [0x01] }
+        }.AsQueryable();
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(userSightings);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetUserSightingsAsync(userId);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Count(), Is.EqualTo(2));
+        _sightingsRepoMock.Verify(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Sighting, bool>>>()), Times.Once);
+    }
+
+    [Test]
+    public async Task GetUserSightingsAsync_UserWithNoSightings_ReturnsEmptyEnumerable()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var emptySightings = Enumerable.Empty<Sighting>().AsQueryable();
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(emptySightings);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetUserSightingsAsync(userId);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result, Is.Empty);
+    }
+
+    [Test]
+    public async Task GetUserSightingsAsync_MultipleSightings_ReturnsOrderedByTimestampDescending()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var userSightings = new List<Sighting>
+        {
+            new() { Id = Guid.NewGuid(), UserId = userId, Timestamp = DateTime.UtcNow.AddDays(-5), ImageBuffer = [0x01] },
+            new() { Id = Guid.NewGuid(), UserId = userId, Timestamp = DateTime.UtcNow.AddDays(-1), ImageBuffer = [0x01] },
+            new() { Id = Guid.NewGuid(), UserId = userId, Timestamp = DateTime.UtcNow.AddDays(-3), ImageBuffer = [0x01] }
+        }.AsQueryable();
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(userSightings);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = (await sut.GetUserSightingsAsync(userId)).ToList();
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Count, Is.EqualTo(3));
+        // Verify descending order: newest first
+        Assert.That(result[0].Timestamp, Is.GreaterThan(result[1].Timestamp));
+        Assert.That(result[1].Timestamp, Is.GreaterThan(result[2].Timestamp));
+    }
+
+    #endregion
+
     private static IFormFile GenerateBadFormFile(Stream stream, int offset, int len, string filename)
     {
         return new FormFile(stream, offset, len, "file", filename);
