@@ -3,6 +3,8 @@ using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.Domain.Tools;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 
 namespace MH.Capstone.Domain.Services
 {
@@ -28,29 +30,33 @@ namespace MH.Capstone.Domain.Services
                     firstFail);
             }
 
-            // NEW - O(log n) single indexed DB lookup instead of O(n) in memory scan
-            var existing = await _reportRepo.GetAllAsync(r =>
-                r.ReportingUserIdentityId == report.ReportingUserIdentityId &&
-                r.ReportedPageUrl == report.ReportedPageUrl &&
-                !r.IsResolved);
-            bool isDuplicate = existing.Any();
-
-            if (isDuplicate)
+            try
             {
-                return false;
+                // Attempt to save the report - the database index will enforce uniqueness
+                await _reportRepo.AddOrUpdateAsync(report);
+
+                // Send confirmation notification to the reporting user
+                await _notificationService.SendNotificationAsync(Notification.Create(
+                    report.ReportingUserId,
+                    "Report Received",
+                    $"Thank you. Your report for '{report.ReportedPageUrl}' has been received and is under review."
+                ));
+
+                return true;
             }
+            catch (Exception ex)
+            {
+                // Check if this is a unique constraint violation (duplicate unresolved report)
+                if ((ex is SqlException sqlEx && sqlEx.IsOfErrorType(SqlErrorNumber.UniqueConstraintViolation)) ||
+                    (ex is DbUpdateException dbEx && dbEx.IsOfErrorType(SqlErrorNumber.UniqueConstraintViolation)))
+                {
+                    // Duplicate report detected by database index
+                    return false;
+                }
 
-            // Save the report
-            await _reportRepo.AddOrUpdateAsync(report);
-
-            // Send confirmation notification to the reporting user
-            await _notificationService.SendNotificationAsync(Notification.Create(
-                report.ReportingUserId,
-                "Report Received",
-                $"Thank you. Your report for '{report.ReportedPageUrl}' has been received and is under review."
-            ));
-
-            return true;
+                // Re-throw any other exceptions
+                throw;
+            }
         }
     }
 }

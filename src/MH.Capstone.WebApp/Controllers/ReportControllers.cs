@@ -41,7 +41,7 @@ namespace MH.Capstone.WebApp.Controllers
             if (user == null)
             {
                 _logger.LogError("Authenticated user could not be found in the database.");
-                return StatusCode((int)HttpStatusCode.InternalServerError, new { message = "Server error. Please try again." });
+                return Unauthorized();
             }
 
             var report = new Report
