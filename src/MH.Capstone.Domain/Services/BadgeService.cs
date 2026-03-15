@@ -57,7 +57,20 @@ namespace MH.Capstone.Domain.Services
                 await _userBadgeRepo.AddOrUpdateAsync(earnedBadge);
 
                 // Increment points after adding the badge to the UserBadges list.
-                user.Points += badgeTemplate.PointValue;
+
+                // Check if the user has a valid Login Streak, and apply the 1.5 points
+                // multipler if they do.
+                if (user.IsStreakActive)
+                {
+                    var badgePointTotal = badgeTemplate.PointValue * 1.5;
+                    user.Points += (int)badgePointTotal;
+                }
+                else
+                {
+                    // IsStreakActive is a bool value. This catches all other cases.
+                    user.Points += badgeTemplate.PointValue;
+                }
+
                 await _userRepo.AddOrUpdateAsync(user);
                 
             }
