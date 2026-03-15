@@ -97,7 +97,8 @@ namespace MH.Capstone.Domain.Services
                         ));
 
                     _logger.LogInformation("Awarded {Points} points to user {UserId} for sighting", pointsEarned, entity.UserId);
-                    // AM and PM display mismatch?
+                    
+                    // AM and PM display mismatch catch logs
                     _logger.LogInformation("Raw DB Timestamp: {Raw}", entity.Timestamp);
                     _logger.LogInformation("Localized display: {Local}", timeDisplay);
                 }

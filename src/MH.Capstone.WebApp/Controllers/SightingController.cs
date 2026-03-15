@@ -68,7 +68,12 @@ namespace MH.Capstone.WebApp.Controllers
 
             // Since invalid Sightings were already checked and the sighting has already been uploaded,
             // give the user the First Sighting Badge
-            await _badgeService.AddBadge(user, BadgeId.FirstSightingBadgeGUID);
+
+            // Need to fetch the global timezone cookie for notification display purposes
+            // Default timezone is PST
+                     string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
+
+            await _badgeService.AddBadge(user, BadgeId.FirstSightingBadgeGUID, userTimeZoneId);
             return RedirectToAction("Index", "Dashboard");
         }
 
