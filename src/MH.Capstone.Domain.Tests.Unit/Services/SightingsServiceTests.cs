@@ -155,8 +155,11 @@ public class SightingsServiceTests
 
         var sut = CreateSut();
 
-        // Act & Assert
-        Assert.DoesNotThrowAsync(() => sut.CreateSightingAsync(sighting));
+        // Fix 1: Ensure the ImageBuffer isn't empty (use a mock PNG header)
+        sighting.ImageBuffer = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+
+        // Fix 2: Pass the required TimeZone parameter
+        Assert.DoesNotThrowAsync(() => sut.CreateSightingAsync(sighting, "America/Los_Angeles"));
         AssertAllMockVerifications();
     }
 
