@@ -127,8 +127,8 @@ public class BadgeServiceTests
     {
         // Arrange
         // Add DateTime values to a UserBadge List.
-        var oldTime = new DateTime(2001, 1, 1);
-        var newTime = DateTime.UtcNow;
+        var oldTime = new DateTimeOffset(new DateTime(2001, 1, 1), TimeSpan.Zero);
+        var newTime = DateTimeOffset.UtcNow;
 
         var badgeList = new List<UserBadge>
         {
@@ -145,8 +145,8 @@ public class BadgeServiceTests
             Assert.That(result.Count, Is.EqualTo(2));
 
             // First item should be newest date.
-            Assert.That(result[0].BadgeEarned, Is.EqualTo(newTime));
-            Assert.That(result[1].BadgeEarned, Is.EqualTo(oldTime));
+            Assert.That(result[0].BadgeEarned, Is.EqualTo(newTime)); // newTime should be DateTimeOffset
+            Assert.That(result[1].BadgeEarned, Is.EqualTo(oldTime)); // oldTime should be DateTimeOffset
         });
     }
 }

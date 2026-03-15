@@ -18,16 +18,7 @@ namespace MH.Capstone.WebApp.Models
         /// Optional description of the sighting provided by the user
         public string? Description { get; set; }
 
-        
-        /// The timestamp when the sighting was made
-        public DateTime Timestamp { get; set; }
-
        
-        /// Human-readable formatted timestamp for display.
-        /// Format: "March 14, 2026 at 2:30 PM"
-        public string FormattedTimestamp => Timestamp.ToString("MMMM dd, yyyy 'at' h:mm tt");
-
-             
         public SightingCardViewModel() { }
 
         // Converts a Sighting entity into a SightingCardViewModel for display.
@@ -37,7 +28,6 @@ namespace MH.Capstone.WebApp.Models
         {
             Id = sighting.Id;
             Description = sighting.Description;
-            Timestamp = sighting.Timestamp;
 
             // Convert the byte array to a base64 string and wrap it in a data URL
             // This allows the image to be displayed directly in an <img> tag without a separate endpoint

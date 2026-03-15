@@ -115,7 +115,7 @@ namespace MH.Capstone.Domain.Services
         {
             _logger.LogInformation("Fetching sightings for user {UserId}", userId);
             // Use repository's predicate overload to filter, then order and fetch efficiently
-            var queryable = await _sightingsRepo.GetAllAsync(s => s.UserId == userId);
+            var queryable = await _sightingsRepo.GetAllAsync(s => s.UserIdentityId == userId.ToString());
             var sightings = queryable.OrderByDescending(s => s.Timestamp).ToList();
             _logger.LogInformation("Retrieved {Count} sightings for user {UserId}", sightings.Count, userId);
             return sightings;

@@ -6,11 +6,6 @@ namespace MH.Capstone.WebApp.Models
 {
     public class SightingUploadViewModel
     {
-        [Required] 
-        [PastDateTime]
-        [DisplayFormat(DataFormatString = "{0:yyyy-MM-ddThh:mm}", ApplyFormatInEditMode = true)]
-        public DateTime Timestamp { get; set; } = DateTime.Now;
-
         [Required]
         [Range(-9.00000, 90.00000, ErrorMessage = "Latitude must be within -90 and 90 inclusive")]
         // Explicitly defines the display format to 5 decimal places
@@ -30,9 +25,14 @@ namespace MH.Capstone.WebApp.Models
         //[Range(1, 2 * (1024 * 1024))]
         public IFormFile? UploadedImage { get; set; }
 
+        [Required]
+        [PastDateTime]
+        [DisplayFormat(DataFormatString = "{0:yyyy-MM-ddThh:mm}", ApplyFormatInEditMode = true)]
+        public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.Now;
+
         public SightingUploadViewModel() {}
 
-        public SightingUploadViewModel(DateTime timestamp, decimal latitude, decimal longitude, string? description)
+        public SightingUploadViewModel(DateTimeOffset timestamp, decimal latitude, decimal longitude, string? description)
         {
             Timestamp = timestamp;
             Latitude = latitude;
@@ -49,7 +49,7 @@ namespace MH.Capstone.WebApp.Models
             {
                 Id = Guid.Empty, // So EF will generate a new ID when saving (Add)
                 UserId = userId,
-                Timestamp = vm.Timestamp.ToUniversalTime(),
+                Timestamp = vm.Timestamp,
                 Latitude = vm.Latitude,
                 Longitude = vm.Longitude,
                 Description = vm.Description,

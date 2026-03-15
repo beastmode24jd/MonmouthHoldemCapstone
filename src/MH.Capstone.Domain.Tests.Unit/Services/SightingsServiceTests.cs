@@ -84,7 +84,7 @@ public class SightingsServiceTests
     {
         // Arrange
         var sighting = new Sighting(_validSighting.Id, _validSighting.UserId, lat, lon, 
-            timestamp, desc, [0x01]);
+            new DateTimeOffset(timestamp), desc, [0x01]);
         var sightingsCount = GetRandomIntInRange(1, 100);
         var pointsValue = GetRandomIntInRange(1, 20);
 
@@ -436,7 +436,7 @@ public struct SightingValidValuesSource
     public const int _EnumerableCounts = 2;
 
     public static Sighting DefaultValidSighting =>
-        new Sighting(Guid.NewGuid(), Guid.NewGuid(), 0m, 0m, DateTime.UtcNow, 
+        new Sighting(Guid.NewGuid(), Guid.NewGuid(), 0m, 0m, DateTimeOffset.UtcNow, 
             string.Empty, [0x01]);
 
     public static IEnumerable<decimal> GetValidLats() =>
