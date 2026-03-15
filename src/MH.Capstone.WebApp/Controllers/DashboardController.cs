@@ -101,6 +101,10 @@ namespace MH.Capstone.WebApp.Controllers
                 sortedBadges = await _badgeService.SortBadgesByTime(user.UserBadges);
             }
 
+            // Get the user device's local timezone cookie, default timezone is PST
+            string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
+
+            ViewData["UserTimeZone"] = userTimeZoneId;
             ViewData["SortedBadges"] = sortedBadges;
             ViewData["statusMsgHtml"] = statusMsgHtml;
             return View();
