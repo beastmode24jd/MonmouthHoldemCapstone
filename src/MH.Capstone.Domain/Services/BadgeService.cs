@@ -100,8 +100,8 @@ namespace MH.Capstone.Domain.Services
                 string timeDisplay = deviceTime.ToString("MM/dd/yyyy h:mm tt");
 
                 await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId,
-                    $"Earned the {earnedBadge.Badge.Title}",
-                    $"Congratulations! You earned the {earnedBadge.Badge.Title} at {timeDisplay} and " +
+                    $"Earned the {badgeTemplate.Title}",
+                    $"Congratulations! You earned the {badgeTemplate.Title} at {timeDisplay} and " +
                     $"won {badgePointTotal} points!"
                     ));
             }
