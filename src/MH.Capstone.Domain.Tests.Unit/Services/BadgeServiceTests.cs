@@ -127,8 +127,16 @@ public class BadgeServiceTests
     {
         // Arrange
         // Add DateTime values to a UserBadge List.
+<<<<<<< HEAD
         var oldTime = new DateTimeOffset(new DateTime(2001, 1, 1), TimeSpan.Zero);
         var newTime = DateTimeOffset.UtcNow;
+=======
+        var oldTime = new DateTimeOffset(
+            new DateTime(2001, 1, 1, 7, 0, 0),
+            new TimeSpan(-7, 0, 0)
+        );
+        var newTime = DateTimeOffset.Now;
+>>>>>>> origin/dev
 
         var badgeList = new List<UserBadge>
         {

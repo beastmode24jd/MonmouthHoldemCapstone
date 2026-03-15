@@ -25,7 +25,6 @@ public class SightingsServiceTests
     private Sighting _validSighting;
     private Mock<IScoringService> _scoringServiceMock;
     private Mock<INotificationService> _notificationServiceMock;
-    private Mock<IBadgeService> _badgeServiceMock;
     private Mock<IRepository<Sighting, ApplicationDbContext>> _sightingsRepoMock;
     private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock;
     private FakeImageGenerator _imageGenerator;
@@ -40,7 +39,6 @@ public class SightingsServiceTests
         _scoringServiceMock = new Mock<IScoringService>();
         _notificationServiceMock = new Mock<INotificationService>();
         _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
-        _badgeServiceMock = new Mock<IBadgeService>();
     }
 
     [TearDown]
@@ -51,7 +49,6 @@ public class SightingsServiceTests
 
     private SightingsService CreateSut() =>
         new (NullLogger<SightingsService>.Instance,
-            _badgeServiceMock.Object,
             _scoringServiceMock.Object,
             _notificationServiceMock.Object,
             _sightingsRepoMock.Object,
@@ -79,7 +76,7 @@ public class SightingsServiceTests
     public void CreateSightingAsync_ValidSighting_ReturnsSuccessfulTaskWithoutException(
         [ValueSource(typeof(SightingValidValuesSource), nameof(SightingValidValuesSource.GetValidLats))] decimal lat,
         [ValueSource(typeof(SightingValidValuesSource), nameof(SightingValidValuesSource.GetValidLongs))] decimal lon,
-        [ValueSource(typeof(SightingValidValuesSource), nameof(SightingValidValuesSource.GetValidTimestamps))] DateTime timestamp,
+        [ValueSource(typeof(SightingValidValuesSource), nameof(SightingValidValuesSource.GetValidTimestamps))] DateTimeOffset timestamp,
         [ValueSource(typeof(SightingValidValuesSource), nameof(SightingValidValuesSource.GetValidDescriptions))] string desc)
     {
         // Arrange
@@ -200,7 +197,7 @@ public class SightingsServiceTests
     {
         // Arrange
         var sighting = _validSighting;
-        sighting.Timestamp = DateTime.UtcNow.AddHours(2);
+        sighting.Timestamp = DateTimeOffset.Now.AddHours(2);
 
         var sut = CreateSut();
 
@@ -411,22 +408,44 @@ public class SightingComparer : IEqualityComparer<Sighting>
 
     public bool Equals(Sighting? x, Sighting? y)
     {
-        // First check for nulls to avoid NullReferenceException when calling GetHashCode
-        if (x == null || y == null)
-            return false;
+        //
+        if(ReferenceEquals(x, y)) return true;
 
-        // We can rely on GetHashCode to determine equality since we combine all properties of
-        // Sighting in the hash code generation. We use this to simplify the equality check,
-        // as two Sightings with the same values will have the same hash code, but sightings could
-        // have different references in memory.
-        return GetHashCode(x) == GetHashCode(y);
+        // First check for nulls to avoid NullReferenceException when calling GetHashCode
+        if (x == null || y == null) return false;
+
+        // DateTimeOffset breaks the original GetHashCode comparison setup, because
+        //  1) SQL Servers truncate DateTimeOffset values, so it doesn't replicate
+        //      the comparison of DateTimeOffset like it did with DateTime
+        //  2) DateTimeOffset is precise enough to measure nanoseconds. Running
+        //      new DateTimeOffset value initializations could give *nearly* the same
+        //      DateTimeOffset, and it would still fail due to this.
+
+        // So, we manually return a very long logical "and" statement.
+        return x.Id == y.Id &&
+               x.UserId == y.UserId &&
+               x.Latitude == y.Latitude &&
+               x.Longitude == y.Longitude &&
+               x.Description == y.Description &&
+               // Compares exact point in time, regardless of timezone offset
+               x.Timestamp.Equals(y.Timestamp) && 
+               (x.ImageBuffer == null && y.ImageBuffer == null || 
+                x.ImageBuffer != null && y.ImageBuffer != null && x.ImageBuffer.SequenceEqual(y.ImageBuffer));
     }
 
     // We combine all properties of Sighting to generate a hash code,
     // ensuring that two Sightings with the same values will have the same hash code
     public int GetHashCode(Sighting obj)
     {
-        return HashCode.Combine(obj.UserId, obj.Description, obj.Id, obj.Latitude, obj.Longitude, obj.Timestamp, obj.ImageBuffer);
+        var hash = new HashCode();
+        hash.Add(obj.Id);
+        hash.Add(obj.UserId);
+        hash.Add(obj.Description);
+        hash.Add(obj.Latitude);
+        hash.Add(obj.Longitude);
+        hash.Add(obj.Timestamp.UtcTicks); // Ensures the DateTimeOffset ticks are equal (nanoseconds)
+        hash.Add(obj.ImageBuffer);
+        return hash.ToHashCode();
     }
 }
 
@@ -435,8 +454,15 @@ public struct SightingValidValuesSource
 {
     public const int _EnumerableCounts = 2;
 
+    // Prevents DateTimeOffset drift during testing
+    private static readonly DateTimeOffset _fixedBaseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
+
     public static Sighting DefaultValidSighting =>
+<<<<<<< HEAD
         new Sighting(Guid.NewGuid(), Guid.NewGuid(), 0m, 0m, DateTimeOffset.UtcNow, 
+=======
+        new Sighting(Guid.NewGuid(), Guid.NewGuid(), 0m, 0m, _fixedBaseTime, 
+>>>>>>> origin/dev
             string.Empty, [0x01]);
 
     public static IEnumerable<decimal> GetValidLats() =>
@@ -454,12 +480,13 @@ public struct SightingValidValuesSource
         }
     }
 
-    public static IEnumerable<DateTime> GetValidTimestamps()
+    public static IEnumerable<DateTimeOffset> GetValidTimestamps()
     {
+        // Uses a fixed point, due to the nanosecond sensitivity of DateTimeOffset
+
         for (int i = 0; i < _EnumerableCounts; i++)
         {
-            // Generate a random DateTime in the past year
-            yield return DateTime.UtcNow.AddDays(-Random.Shared.Next(1, 365));
+            yield return _fixedBaseTime.AddDays(-i);
         }
     }
 }

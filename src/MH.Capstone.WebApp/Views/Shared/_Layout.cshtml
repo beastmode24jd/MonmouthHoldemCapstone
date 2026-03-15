@@ -201,6 +201,102 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
+
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <!-- Report this page button (bottom-right corner, all pages) -->
+        <div style="position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 1040;">
+            <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#reportModal">
+                <i class="bi bi-flag"></i> Report this page
+            </button>
+        </div>
+
+        <!-- Report Modal -->
+        <div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="reportModalLabel"><i class="bi bi-flag"></i> Report this page</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="reportForm" asp-controller="Report" asp-action="Submit" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="ReportedPageUrl" value="@Context.Request.Path" />
+                        <div class="modal-body">
+                            <div id="reportMessage" class="d-none" role="alert"></div>
+                            <div class="mb-3">
+                                <label for="reportReason" class="form-label">Reason <span class="text-danger">*</span></label>
+                                <select name="Reason" id="reportReason" class="form-select" required>
+                                    <option value="" disabled selected>Select a reason...</option>
+                                    <option value="Inappropriate content">Inappropriate content</option>
+                                    <option value="Inaccurate information">Inaccurate information</option>
+                                    <option value="Spam">Spam</option>
+                                    <option value="Harassment">Harassment</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="reportDescription" class="form-label">Additional details (optional)</label>
+                                <textarea name="Description" id="reportDescription" class="form-control" rows="3" maxlength="1000" placeholder="Describe the issue..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button id="reportSubmitBtn" type="submit" class="btn btn-danger">Submit Report</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            document.getElementById('reportForm').addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                const form = e.target;
+                const submitBtn = document.getElementById('reportSubmitBtn');
+                const msgDiv = document.getElementById('reportMessage');
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitting...';
+                msgDiv.className = 'd-none';
+                msgDiv.textContent = '';
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        body: new FormData(form)
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        msgDiv.className = 'alert alert-success';
+                        msgDiv.textContent = data.message;
+                        form.reset();
+                        setTimeout(() => {
+                            bootstrap.Modal.getInstance(document.getElementById('reportModal')).hide();
+                        }, 2000);
+                    } else {
+                        msgDiv.className = 'alert alert-danger';
+                        msgDiv.textContent = data.message || 'An error occurred. Please try again.';
+                    }
+                } catch {
+                    msgDiv.className = 'alert alert-danger';
+                    msgDiv.textContent = 'Network error. Please try again.';
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Report';
+                }
+            });
+
+            document.getElementById('reportModal').addEventListener('hidden.bs.modal', function () {
+                const msgDiv = document.getElementById('reportMessage');
+                msgDiv.className = 'd-none';
+                msgDiv.textContent = '';
+            });
+        </script>
+    }
 </body>
 
 </html>

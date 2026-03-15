@@ -21,24 +21,28 @@ namespace MH.Capstone.Domain.Tools
         {
             string[] memberNames = [validationContext.MemberName ?? string.Empty];
 
-            DateTime dateTimeValue;
-            if (value is DateTimeOffset dto)
+            // Check both the DateTime and DateTimeOffset values.
+            DateTimeOffset dtoValue;
+
+            if (value is DateTime dateTime)
             {
-                dateTimeValue = dto.UtcDateTime;
+                dtoValue = new DateTimeOffset(dateTime);
             }
-            else if (value is DateTime dt)
+            else if (value is DateTimeOffset offsetValue)
             {
-                dateTimeValue = _useUtc ? dt.ToUniversalTime() : dt;
+                dtoValue = offsetValue;
             }
             else
             {
                 return new ValidationResult($"The {validationContext.DisplayName} field must be a valid date and time.", memberNames);
             }
 
-            var now = _useUtc ? DateTime.UtcNow : DateTime.Now;
-            return dateTimeValue > now ?
-                new ValidationResult($"The {validationContext.DisplayName} field must be a past date and time.", memberNames)
-                : ValidationResult.Success;
+            var now = _useUtc ? DateTimeOffset.UtcNow : DateTimeOffset.Now;
+            if (dtoValue > now)
+            {
+                return new ValidationResult($"The {validationContext.DisplayName} field must be a past date and time.", memberNames);
+            }
+            return ValidationResult.Success;
         }
     }
 }

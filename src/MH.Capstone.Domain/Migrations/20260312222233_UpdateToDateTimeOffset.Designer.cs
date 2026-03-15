@@ -4,16 +4,19 @@ using MH.Capstone.Domain.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace MH.Capstone.Domain.DataAccess.Migrations
+namespace MH.Capstone.Domain.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260312222233_UpdateToDateTimeOffset")]
+    partial class UpdateToDateTimeOffset
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -167,47 +170,6 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.HasIndex("LinkedUserIdentityId");
 
                     b.ToTable("Notification");
-                });
-
-            modelBuilder.Entity("MH.Capstone.Domain.DataModels.Report", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<bool>("IsResolved")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("ReportedPageUrl")
-                        .IsRequired()
-                        .HasMaxLength(2048)
-                        .HasColumnType("nvarchar(2048)");
-
-                    b.Property<string>("ReportingUserIdentityId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)")
-                        .HasColumnName("ReportingUserId");
-
-                    b.Property<DateTime>("SubmittedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ReportingUserIdentityId", "ReportedPageUrl")
-                        .IsUnique()
-                        .HasFilter("[IsResolved] = 0");
-
-                    b.ToTable("Report");
                 });
 
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Sighting", b =>
@@ -420,17 +382,6 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .IsRequired();
 
                     b.Navigation("Recipient");
-                });
-
-            modelBuilder.Entity("MH.Capstone.Domain.DataModels.Report", b =>
-                {
-                    b.HasOne("MH.Capstone.Domain.DataModels.ApplicationUser", "Reporter")
-                        .WithMany()
-                        .HasForeignKey("ReportingUserIdentityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Reporter");
                 });
 
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Sighting", b =>

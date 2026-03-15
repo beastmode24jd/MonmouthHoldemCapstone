@@ -3,6 +3,13 @@
     ViewData["Title"] = "Upload Sighting";
 }
 
+@section Scripts {
+    <script>
+        // Grab the IANA timezone name from the browser
+        document.getElementById('deviceTimezone').value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    </script>
+}
+
 <h1 class="mt-2">Upload Sighting</h1>
 
 <form asp-action="Upload" asp-controller="Sighting" method="post" enctype="multipart/form-data">
@@ -39,5 +46,7 @@
     </div>
 
     @Html.AntiForgeryToken()
+    @* Get the device's timezone for the notif display. *@
+    <input type="hidden" id="deviceTimezone" name="DeviceTimezone" />
     <button type="submit" class="btn btn-primary">Submit</button>
 </form>
