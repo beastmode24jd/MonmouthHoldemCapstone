@@ -125,7 +125,6 @@
                             Current Streak: <strong>@user.LoginStreak Days</strong>
                         </p>
 
-                        @* Use DateTimeOffset.UtcNow here to match the property type *@
                         @if (user.LastLogin.HasValue)
                         {
                             <p>Streak: @user.LoginStreak</p>
