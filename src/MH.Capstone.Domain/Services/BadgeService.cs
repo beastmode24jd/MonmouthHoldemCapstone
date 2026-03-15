@@ -72,7 +72,8 @@ namespace MH.Capstone.Domain.Services
                 else
                 {
                     // IsStreakActive is a bool value. This catches all other cases.
-                    user.Points += badgeTemplate.PointValue;
+                    badgePointTotal = badgeTemplate.PointValue;
+                    user.Points += badgePointTotal;
                 }
 
                 await _userRepo.AddOrUpdateAsync(user);
@@ -99,8 +100,8 @@ namespace MH.Capstone.Domain.Services
                 string timeDisplay = deviceTime.ToString("MM/dd/yyyy h:mm tt");
 
                 await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId,
-                    $"Earned the {earnedBadge.Badge.Title} Badge",
-                    $"Congratulations! You earned the {earnedBadge.Badge.Title} Badge on {timeDisplay} and " +
+                    $"Earned the {earnedBadge.Badge.Title}",
+                    $"Congratulations! You earned the {earnedBadge.Badge.Title} at {timeDisplay} and " +
                     $"won {badgePointTotal} points!"
                     ));
             }

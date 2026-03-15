@@ -20,6 +20,7 @@ public class BadgeServiceTests
     private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock;
     private Mock<IRepository<Badge, ApplicationDbContext>> _badgeRepoMock;
     private Mock<IRepository<UserBadge, ApplicationDbContext>> _userBadgeRepoMock;
+    private Mock<INotificationService> _notificationServiceMock;
     private IBadgeService _badgeService;
     private Guid _testBadgeId;
     
@@ -32,11 +33,13 @@ public class BadgeServiceTests
         _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
         _badgeRepoMock = new Mock<IRepository<Badge, ApplicationDbContext>>();
         _userBadgeRepoMock = new Mock<IRepository<UserBadge, ApplicationDbContext>>();
+        _notificationServiceMock = new Mock<INotificationService>();
 
         _badgeService = new BadgeService(
             _badgeRepoMock.Object,
             _userBadgeRepoMock.Object,
-            _userRepoMock.Object
+            _userRepoMock.Object,
+            _notificationServiceMock.Object
         );
     }
 
