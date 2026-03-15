@@ -81,7 +81,7 @@ public class SightingsServiceTests
     {
         // Arrange
         var sighting = new Sighting(_validSighting.Id, _validSighting.UserId, lat, lon, 
-            new DateTimeOffset(timestamp), desc, [0x01]);
+            timestamp, desc, [0x01]);
         var sightingsCount = GetRandomIntInRange(1, 100);
         var pointsValue = GetRandomIntInRange(1, 20);
 
@@ -458,11 +458,7 @@ public struct SightingValidValuesSource
     private static readonly DateTimeOffset _fixedBaseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
 
     public static Sighting DefaultValidSighting =>
-<<<<<<< HEAD
         new Sighting(Guid.NewGuid(), Guid.NewGuid(), 0m, 0m, DateTimeOffset.UtcNow, 
-=======
-        new Sighting(Guid.NewGuid(), Guid.NewGuid(), 0m, 0m, _fixedBaseTime, 
->>>>>>> origin/dev
             string.Empty, [0x01]);
 
     public static IEnumerable<decimal> GetValidLats() =>
