@@ -58,6 +58,15 @@ namespace MH.Capstone.Domain.Services
                 
                 if (user != null)
                 {
+                    // Check if the user has an active loginStreak.
+                    // If so, apply a 1.5 points multiplier to their original Sighting.
+                    if (user.IsStreakActive)
+                    {
+                        var userStreakApplied = pointsEarned * 1.5;
+                        pointsEarned = (int)userStreakApplied;
+                    }
+
+                    // Adds and saves the points to the user
                     user.Points += pointsEarned;
                     await _userRepo.AddOrUpdateAsync(user);
 
@@ -86,6 +95,7 @@ namespace MH.Capstone.Domain.Services
                         $"Congratulations! You uploaded a new sighting at {timeDisplay} and " +
                         $"earned {pointsEarned} points!"
                         ));
+
                     _logger.LogInformation("Awarded {Points} points to user {UserId} for sighting", pointsEarned, entity.UserId);
                     // AM and PM display mismatch?
                     _logger.LogInformation("Raw DB Timestamp: {Raw}", entity.Timestamp);
