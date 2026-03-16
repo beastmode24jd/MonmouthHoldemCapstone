@@ -133,7 +133,39 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
         return View(model);
     }
 
-    // Credentials valid and account active - sign in
+    // Get the login timestamp, since credentials are valid and the account is active
+    var now = DateTimeOffset.UtcNow;
+
+    if (user.LastLogin.HasValue)
+    {
+        // Get the difference between current time and LastLogin for
+        //  the Application User
+        var daysSinceLastLogin = (now - user.LastLogin.Value).TotalDays;
+
+        if (daysSinceLastLogin <= 30)
+        {
+            // Increment if 1 day has passed, to prevent page refreshes from potentially
+            // artificially inflating the streak
+            if (daysSinceLastLogin >= 1) 
+            {
+                user.LoginStreak++;
+            }
+        }
+        else
+        {
+            user.LoginStreak = 1;
+        }
+    }
+    else
+    {
+        user.LoginStreak = 1;
+    }
+
+    // Save the new LastLogin status to the ApplicationUser.
+    user.LastLogin = now;
+    await _userManager.UpdateAsync(user);
+
+    // Now sign in!
     await _authService.SignInUserAsync(
         HttpContext,
         model.Email,

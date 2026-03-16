@@ -306,7 +306,7 @@ public class SightingsServiceTests
     }
 
     [Test]
-    public void ValidateImageAsync_TooLargeImageFIle_ReturnsFalse()
+    public void ValidateImageAsync_TooLargeImageFile_ReturnsFalse()
     {
         // Arrange
         // The max allowed image size is 2 MB, so we test just above that limit. We use Stream.Null
@@ -397,6 +397,60 @@ public class SightingsServiceTests
     }
 
     #endregion
+
+        [Test]
+    public async Task CreateSightingAsync_UserHasActiveStreak_Applies1Point5Multiplier()
+    {
+        // Arrange
+        var userId = Guid.NewGuid().ToString();
+        var basePoints = 100;
+        var expectedPoints = 150; // 100 * 1.5
+
+        // Create Sighting tied to the user
+        var sighting = SightingValidValuesSource.DefaultValidSighting;
+        sighting.UserIdentityId = userId; 
+
+        // Create user with an active streak
+        // In ApplicationUser.cs, IsStreakActive is true if LastLogin is within 30 days
+        var user = new ApplicationUser
+        {
+            Id = userId,
+            Points = 0,
+            LastLogin = DateTimeOffset.UtcNow 
+        };
+
+        // Mock a Sighting
+        _sightingsRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<Sighting>()))
+            .ReturnsAsync(sighting);
+
+        // Mock Sighting scoring
+        _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(It.IsAny<int>()))
+            .ReturnsAsync(10);
+        _scoringServiceMock.Setup(s => s.CalculatePointsAsync(It.IsAny<int>()))
+            .ReturnsAsync(basePoints);
+
+        // Mock user querying, so IsStreakActive can be accessed.
+        _userRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(new List<ApplicationUser> { user }.AsQueryable());
+        _userRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(user);
+
+        var sut = CreateSut();
+        var result = await sut.CreateSightingAsync(sighting);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            // Verify the multiplied points
+            Assert.That(result, Is.EqualTo(expectedPoints), "The service should return 1.5x points when streak is active.");
+
+            // Verify user points were updated correctly
+            Assert.That(user.Points, Is.EqualTo(expectedPoints), "The user's Points property should be updated with the multiplier.");
+
+            // Verify user repository was called to save the new point total
+            _userRepoMock.Verify(r => r.AddOrUpdateAsync(It.Is<ApplicationUser>(u => u.Id == userId && u.Points == expectedPoints)), Times.Once);
+        });
+    }
 
     private static IFormFile GenerateBadFormFile(Stream stream, int offset, int len, string filename)
     {

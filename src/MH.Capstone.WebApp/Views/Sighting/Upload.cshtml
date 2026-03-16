@@ -3,13 +3,6 @@
     ViewData["Title"] = "Upload Sighting";
 }
 
-@section Scripts {
-    <script>
-        // Grab the IANA timezone name from the browser
-        document.getElementById('deviceTimezone').value = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    </script>
-}
-
 <h1 class="mt-2">Upload Sighting</h1>
 
 <form asp-action="Upload" asp-controller="Sighting" method="post" enctype="multipart/form-data">
