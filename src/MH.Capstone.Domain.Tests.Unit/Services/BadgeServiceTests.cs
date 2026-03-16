@@ -148,8 +148,8 @@ public class BadgeServiceTests
             Assert.That(result.Count, Is.EqualTo(2));
 
             // First item should be newest date.
-            Assert.That(result[0].BadgeEarned, Is.EqualTo(newTime));
-            Assert.That(result[1].BadgeEarned, Is.EqualTo(oldTime));
+            Assert.That(result[0].BadgeEarned, Is.EqualTo(newTime)); // newTime should be DateTimeOffset
+            Assert.That(result[1].BadgeEarned, Is.EqualTo(oldTime)); // oldTime should be DateTimeOffset
         });
     }
 }

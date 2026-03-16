@@ -128,5 +128,19 @@ namespace MH.Capstone.Domain.Services
             // If we made it here, the image is valid
             return true;
         }
+
+        #region CSP-145: Sighting Gallery Feature
+
+        public async Task<IEnumerable<Sighting>> GetUserSightingsAsync(Guid userId)
+        {
+            _logger.LogInformation("Fetching sightings for user {UserId}", userId);
+            // Use repository's predicate overload to filter, then order and fetch efficiently
+            var queryable = await _sightingsRepo.GetAllAsync(s => s.UserIdentityId == userId.ToString());
+            var sightings = queryable.OrderByDescending(s => s.Timestamp).ToList();
+            _logger.LogInformation("Retrieved {Count} sightings for user {UserId}", sightings.Count, userId);
+            return sightings;
+        }
+
+        #endregion
     }
 }

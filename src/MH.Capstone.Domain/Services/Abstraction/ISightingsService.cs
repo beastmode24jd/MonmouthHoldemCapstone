@@ -14,5 +14,12 @@ namespace MH.Capstone.Domain.Services.Abstraction
         Task<int> CreateSightingAsync(Sighting entity, string ianaTimeZoneId = "America/Los_Angeles");
 
         bool ValidateImage(IFormFile? imageBuffer);
+
+        #region CSP-145: Sighting Gallery Feature
+
+        // Returns all sightings for the specified user
+        Task<IEnumerable<Sighting>> GetUserSightingsAsync(Guid userId);
+
+        #endregion
     }
 }

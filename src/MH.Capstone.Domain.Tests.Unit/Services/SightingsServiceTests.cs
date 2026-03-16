@@ -155,8 +155,11 @@ public class SightingsServiceTests
 
         var sut = CreateSut();
 
-        // Act & Assert
-        Assert.DoesNotThrowAsync(() => sut.CreateSightingAsync(sighting));
+        // Fix 1: Ensure the ImageBuffer isn't empty (use a mock PNG header)
+        sighting.ImageBuffer = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+
+        // Fix 2: Pass the required TimeZone parameter
+        Assert.DoesNotThrowAsync(() => sut.CreateSightingAsync(sighting, "America/Los_Angeles"));
         AssertAllMockVerifications();
     }
 
@@ -318,6 +321,83 @@ public class SightingsServiceTests
         AssertAllMockVerifications();
     }
 
+    #region CSP-145: GetUserSightingsAsync Tests
+
+    [Test]
+    public async Task GetUserSightingsAsync_ValidUserId_ReturnsSightingsForThatUser()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var userSightings = new List<Sighting>
+        {
+            new() { Id = Guid.NewGuid(), UserId = userId, Timestamp = DateTime.UtcNow.AddDays(-1), ImageBuffer = [0x01] },
+            new() { Id = Guid.NewGuid(), UserId = userId, Timestamp = DateTime.UtcNow.AddDays(-2), ImageBuffer = [0x01] }
+        }.AsQueryable();
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(userSightings);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetUserSightingsAsync(userId);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Count(), Is.EqualTo(2));
+        _sightingsRepoMock.Verify(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Sighting, bool>>>()), Times.Once);
+    }
+
+    [Test]
+    public async Task GetUserSightingsAsync_UserWithNoSightings_ReturnsEmptyEnumerable()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var emptySightings = Enumerable.Empty<Sighting>().AsQueryable();
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(emptySightings);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetUserSightingsAsync(userId);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result, Is.Empty);
+    }
+
+    [Test]
+    public async Task GetUserSightingsAsync_MultipleSightings_ReturnsOrderedByTimestampDescending()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var userSightings = new List<Sighting>
+        {
+            new() { Id = Guid.NewGuid(), UserId = userId, Timestamp = DateTime.UtcNow.AddDays(-5), ImageBuffer = [0x01] },
+            new() { Id = Guid.NewGuid(), UserId = userId, Timestamp = DateTime.UtcNow.AddDays(-1), ImageBuffer = [0x01] },
+            new() { Id = Guid.NewGuid(), UserId = userId, Timestamp = DateTime.UtcNow.AddDays(-3), ImageBuffer = [0x01] }
+        }.AsQueryable();
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(userSightings);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = (await sut.GetUserSightingsAsync(userId)).ToList();
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Count, Is.EqualTo(3));
+        // Verify descending order: newest first
+        Assert.That(result[0].Timestamp, Is.GreaterThan(result[1].Timestamp));
+        Assert.That(result[1].Timestamp, Is.GreaterThan(result[2].Timestamp));
+    }
+
+    #endregion
+
     private static IFormFile GenerateBadFormFile(Stream stream, int offset, int len, string filename)
     {
         return new FormFile(stream, offset, len, "file", filename);
@@ -381,7 +461,7 @@ public struct SightingValidValuesSource
     private static readonly DateTimeOffset _fixedBaseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
 
     public static Sighting DefaultValidSighting =>
-        new Sighting(Guid.NewGuid(), Guid.NewGuid(), 0m, 0m, _fixedBaseTime, 
+        new Sighting(Guid.NewGuid(), Guid.NewGuid(), 0m, 0m, DateTimeOffset.UtcNow, 
             string.Empty, [0x01]);
 
     public static IEnumerable<decimal> GetValidLats() =>
