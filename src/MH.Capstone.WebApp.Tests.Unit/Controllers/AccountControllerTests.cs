@@ -64,7 +64,6 @@ public class AccountControllerTests
     [Test]
     public async Task Login_Post_WithValidCredentials_RedirectsToDashboard()
     {
-        // NEED TO REFACTOR TO PASS
         var loginModel = new LoginViewModel
         {
             Email = "test@example.com",
