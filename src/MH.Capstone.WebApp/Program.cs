@@ -83,9 +83,10 @@ namespace MH.Capstone.WebApp
             {
                 options.LoginPath = "/Account/Login";
                 options.AccessDeniedPath = "/Account/AccessDenied";
-                options.ExpireTimeSpan = TimeSpan.FromDays(30); // 30-day expiration from user story
-                options.SlidingExpiration = true;
                 options.Cookie.HttpOnly = true;
+                options.SlidingExpiration = true;
+                // Remove global ExpireTimeSpan to allow session cookies when 'Remember Me' is not checked
+                // ExpireTimeSpan will be set by SignInAsync's isPersistent parameter
             });
 
             // Get the base URL and API key from configuration (appsettings.json or environment variables)
