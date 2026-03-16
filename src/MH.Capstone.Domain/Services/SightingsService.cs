@@ -119,17 +119,15 @@ namespace MH.Capstone.Domain.Services
         {
             var sevenDaysAgo = DateTimeOffset.UtcNow.AddDays(-7);
 
-            var allSightings = await _sightingsRepo.GetAllAsync();
-
-            var sightings = allSightings
-                .Where(s => s.Latitude >= minLat &&
+            var sightings = await _sightingsRepo.GetAllAsync(s => 
+                            s.Latitude >= minLat &&
                             s.Latitude <= maxLat &&
                             s.Longitude >= minLng &&
                             s.Longitude <= maxLng &&
-                            s.Timestamp >= sevenDaysAgo)
-                .ToList();
+                            s.Timestamp >= sevenDaysAgo);
+                
 
-            return sightings;
+            return sightings.ToList();
         }
 
         public bool ValidateImage(IFormFile? imageBuffer)

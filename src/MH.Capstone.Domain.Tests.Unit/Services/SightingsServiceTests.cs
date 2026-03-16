@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http.Internal;
 using MH.Capstone.Domain.DataAccess;
+using System.Linq.Expressions;
 
 #pragma warning disable CA1416
 
@@ -294,7 +295,7 @@ public class SightingsServiceTests
             ImageBuffer = new byte[] { 0x01 }
         };
 
-        _sightingsRepoMock.Setup(r => r.GetAllAsync())
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting,bool>>>()))
             .ReturnsAsync(new List<Sighting> { sightingInBounds }.AsQueryable());
 
         var sut = CreateSut();

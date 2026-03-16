@@ -1,9 +1,11 @@
+using System.Runtime.CompilerServices;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Linq.Expressions;
 using Moq;
 using Reqnroll;
 
@@ -31,7 +33,8 @@ public class SightingsMapSteps
         _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
         _scoringServiceMock = new Mock<IScoringService>();
         _notificationServiceMock = new Mock<INotificationService>();
-        
+
+        // Initialize Service (SUT)
         _sightingsService = new SightingsService(
             NullLogger<SightingsService>.Instance,
             _scoringServiceMock.Object,
@@ -57,8 +60,10 @@ public class SightingsMapSteps
             _sightings.Add(sighting);
         }
 
-        _sightingsRepoMock.Setup(r => r.GetAllAsync())
-            .ReturnsAsync(_sightings.AsQueryable());
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(
+            It.IsAny<Expression<Func<Sighting,bool>>>()))
+            .ReturnsAsync((Expression<Func<Sighting,bool>> e) => 
+                _sightings.Where(e.Compile()).AsQueryable());
     }
 
     [When(@"I navigate to the sightings map page")]
