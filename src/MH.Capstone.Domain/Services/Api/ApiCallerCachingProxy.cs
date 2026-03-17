@@ -1,17 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-using MH.Capstone.Domain.ApiContracts;
+﻿using MH.Capstone.Domain.ApiContracts;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.Domain.Tools;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 
 namespace MH.Capstone.Domain.Services.Api
 {
@@ -26,8 +19,6 @@ namespace MH.Capstone.Domain.Services.Api
         private readonly IApiCaller<TConfig> _realApiCaller;
 
         public TConfig ConfigValues { get; }
-
-
 
         public ApiCallerCachingProxy(ILogger<IApiCaller<TConfig>> logger,
             IRepository<TCacheEntity, ApplicationDbContext> cacheRepo, IApiCaller<TConfig> realCaller,
@@ -104,13 +95,6 @@ namespace MH.Capstone.Domain.Services.Api
                     queryParamsStr);
                 throw;
             }
-        }
-
-        public static ApiCallerCachingProxy<TApiDto, TCacheEntity, TConfig> Create(ILogger<IApiCaller<TConfig>> logger,
-            IRepository<TCacheEntity, ApplicationDbContext> cacheRepo, IApiCaller<TConfig> realCaller,
-            TConfig configValues)
-        {
-            throw new NotImplementedException();
         }
     }
 

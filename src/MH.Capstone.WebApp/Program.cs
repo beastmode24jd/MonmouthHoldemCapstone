@@ -1,9 +1,11 @@
+using MH.Capstone.Domain.ApiContracts;
 using MH.Capstone.Domain.ApiContracts.Ninja;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.Domain.Services.Api;
 using MH.Capstone.Domain.Services.Notifications;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
@@ -98,7 +100,7 @@ namespace MH.Capstone.WebApp
             const string ninjasApiConfigSectionPath = "Api:External:Ninjas";
             builder.Services.AddExternalApiCaller<NinjaApiConfigValues>(builder.Configuration,
                 builder.Environment, entryLogger, ninjasApiConfigSectionPath, 
-                ApiCallerOptions.Default/*.UseCacheProxy()*/);
+                opts => opts.UseCacheProxy<>());
 
             // Add controllers with views and configure Newtonsoft.Json for JSON serialization
             builder.Services.AddControllersWithViews()

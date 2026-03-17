@@ -5,6 +5,7 @@ using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.Domain.Services.Api;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 
 namespace MH.Capstone.WebApp
@@ -30,8 +31,8 @@ namespace MH.Capstone.WebApp
         public static IServiceCollection AddExternalApiCaller<TConfigVals>(
             this IServiceCollection services, IConfiguration config,
             IWebHostEnvironment env, ILogger logger,
-            string configSectionPath, ApiCallerOptions callerOpts)
-            where TConfigVals : ApiConfigurationValues<TConfigVals>
+            string configSectionPath, Action<ApiCallerOptions<TConfigVals>> callerOpts)
+                where TConfigVals : ApiConfigurationValues<TConfigVals>
         {
             var configSection = config.GetSection(configSectionPath);
             
@@ -48,7 +49,8 @@ namespace MH.Capstone.WebApp
 
         private static IServiceCollection AddExternalApiCaller<TConfigVals>(
             this IServiceCollection services, ILogger logger, TConfigVals configVals,
-            string apiKey, ApiCallerOptions callerOpts) where TConfigVals : ApiConfigurationValues<TConfigVals>
+            string apiKey, Action<ApiCallerOptions<TConfigVals>> callerOpts) 
+                where TConfigVals : ApiConfigurationValues<TConfigVals>
         {
             // Configure HttpClient for external API calls (e.g., AnimalApi, Emailer, etc.)
             services.AddHttpClient(configVals.HttpClientKey, client =>
@@ -66,25 +68,30 @@ namespace MH.Capstone.WebApp
 
         private static IHttpClientBuilder AsExternalApiCaller<TConfigVals>(
             this IHttpClientBuilder builder, ILogger logger,
-            TConfigVals config, ApiCallerOptions options)
+            TConfigVals config, Action<ApiCallerOptions<TConfigVals>> callerOpts)
             where TConfigVals : ApiConfigurationValues<TConfigVals>
         {
             //builder.Services.AddSingleton(config);
+
+            var options = ApiCallerOptions<TConfigVals>.Default;
+            callerOpts.Invoke(options);
+
             Func<IServiceProvider, ExternalApiCaller<TConfigVals>> realCallerFac = services =>
                 new ExternalApiCaller<TConfigVals>(
                     services.GetRequiredService<ILogger<IApiCaller<TConfigVals>>>(),
                     services.GetRequiredService<IHttpClientFactory>(), config);
 
-            if (options.IsCacheProxyConfigured)
+            if (options.CacheProxyType != null)
             {
-                logger.LogInformation($"{nameof(ApiCallerOptions)} with call to {nameof(AsExternalApiCaller)} " +
-                                      $"configured to use proxy type {options.CacheProxyType}.");
-                
-
+                logger.LogInformation($"{nameof(ApiCallerOptions<TConfigVals>)} with call to {nameof(AsExternalApiCaller)} " +
+                                      $"configured to use proxy of type {options.CacheProxyType}.");
+                throw new NotImplementedException();
+                builder.Services.AddScoped(typeof(IApiCaller<TConfigVals>), services => 
+                    null);
             }
             else
             {
-                logger.LogInformation($"{nameof(ApiCallerOptions)} with call to {nameof(AsExternalApiCaller)} " +
+                logger.LogInformation($"{nameof(ApiCallerOptions<TConfigVals>)} with call to {nameof(AsExternalApiCaller)} " +
                                       $"configured to use real {nameof(ExternalApiCaller<TConfigVals>)}.");
                 builder.Services.AddScoped<IApiCaller<TConfigVals>, ExternalApiCaller<TConfigVals>>(realCallerFac);
             }
@@ -94,26 +101,24 @@ namespace MH.Capstone.WebApp
     }
 
     [ExcludeFromCodeCoverage]
-    internal class ApiCallerOptions
+    internal class ApiCallerOptions<TConfig>
+        where TConfig : ApiConfigurationValues<TConfig>
     {
-        private readonly ApiCallerOptions _options;
-
-        public bool IsCacheProxyConfigured => CacheProxyType != null;
+        private readonly ApiCallerOptions<TConfig> _options;
 
         public Type? CacheProxyType { get; private set; } = null;
 
-        public static ApiCallerOptions Default => new ApiCallerOptions();
+        public static ApiCallerOptions<TConfig> Default => new ApiCallerOptions<TConfig>();
 
         public ApiCallerOptions()
         {
             _options = this;
         }
 
-        public ApiCallerOptions UseCacheProxy<TConfig, TProxy>()
-            where TConfig : ApiConfigurationValues<TConfig>
-            where TProxy : class, IApiCallerCachingProxy<TConfig, TProxy>
+        public ApiCallerOptions<TConfig> UseCacheProxy<TCacheEntity>()
+            where TCacheEntity : class, IApiCallerCacheEntity<,>, new()
         {
-            CacheProxyType = typeof(TProxy);
+            CacheProxyType = typeof(TCacheEntity);
             return this;
         }
     }
