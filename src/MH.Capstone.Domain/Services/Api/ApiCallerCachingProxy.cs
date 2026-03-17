@@ -57,13 +57,28 @@ namespace MH.Capstone.Domain.Services.Api
                     _logger.LogInformation(
                         "Cache miss for URL: {Url} with query params: {QueryParams}. Calling real API.", url,
                         queryParams);
+                    // Call the real API expecting the API DTO type
                     var apiResult = await _realApiCaller.GetAsync<TApiDto>(url, queryList);
+                    // Cache the result (as a collection with a single item)
                     cachedResult = await CacheResults(url, apiResult, queryParamsStr);
                 }
 
-                return cachedResult.CachedResponse as TReturn ??
-                       throw new InvalidOperationException($"Cached entity for URL: {url} with query params: " +
-                                                           $"{queryParamsStr} could not be cast to the expected return type.");
+                // Determine how to return cached data based on requested return type
+                // If caller expects the single DTO type TApiDto, return the first cached response
+                if (typeof(TReturn) == typeof(TApiDto))
+                {
+                    var first = cachedResult.CachedResponses.FirstOrDefault();
+                    return first as TReturn ?? throw new InvalidOperationException($"Cached entity for URL: {url} with query params: {queryParamsStr} has no cached responses.");
+                }
+
+                // If caller expects a collection of TApiDto (e.g., List<TApiDto> or IEnumerable<TApiDto>), return the collection
+                if (typeof(TReturn).IsAssignableFrom(typeof(List<TApiDto>)) || typeof(IEnumerable<TApiDto>).IsAssignableFrom(typeof(TReturn)))
+                {
+                    return (object)cachedResult.CachedResponses as TReturn ?? throw new InvalidOperationException($"Cached entity for URL: {url} with query params: {queryParamsStr} could not be cast to the expected return type.");
+                }
+
+                // Fallback: try direct cast if types match otherwise fail
+                return cachedResult as TReturn ?? throw new InvalidOperationException($"Cached entity for URL: {url} with query params: {queryParamsStr} could not be cast to the expected return type.");
             }
             catch (InvalidOperationException e)
             {
@@ -89,7 +104,16 @@ namespace MH.Capstone.Domain.Services.Api
         {
             try
             {
-                var cachedEntity = IApiCallerCacheEntity<TApiDto, TCacheEntity>.Create(url, apiResult, queryParamsStr);
+                // Create and populate cache entity manually to avoid static abstract/interface resolution issues at compile time.
+                var cachedEntity = new TCacheEntity();
+                // The constraint ensures TCacheEntity implements IApiCallerCacheEntity<TApiDto, TCacheEntity>
+                var cacheAsInterface = (IApiCallerCacheEntity<TApiDto, TCacheEntity>)cachedEntity;
+                cacheAsInterface.Url = url;
+                cacheAsInterface.QueryParams = queryParamsStr ?? string.Empty;
+                cacheAsInterface.CachedAt = DateTimeOffset.UtcNow;
+                // Add the single API result as the initial cached response in the collection
+                cacheAsInterface.CachedResponses = new List<TApiDto> { apiResult };
+
                 return await _cacheRepo.AddOrUpdateAsync(cachedEntity);
             }
             catch (Exception e)

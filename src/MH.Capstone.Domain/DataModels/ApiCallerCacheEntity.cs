@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MH.Capstone.Domain.Tools;
 using Newtonsoft.Json;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using System.Linq;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace MH.Capstone.Domain.DataModels
 {
@@ -18,13 +20,21 @@ namespace MH.Capstone.Domain.DataModels
 
         public DateTimeOffset CachedAt { get; set; }
 
-        public AnimalApiDto CachedResponse { get; set; } = null!;
+        // Changed to a collection to support multiple cached DTOs per cache key
+        public List<AnimalApiDto> CachedResponses { get; set; } = new();
 
         public static NinjaAnimalCacheEntity Create(string url, AnimalApiDto apiResponse, 
             params IEnumerable<KeyValuePair<string, string>>? queryParams)
         {
             var queryParamsStr = HttpHelperMethods.CreateQueryParamsFragment(queryParams);
-            return IApiCallerCacheEntity<AnimalApiDto, NinjaAnimalCacheEntity>.Create(url, apiResponse, queryParamsStr);
+            var entity = IApiCallerCacheEntity<AnimalApiDto, NinjaAnimalCacheEntity>.Create(url, apiResponse, queryParamsStr);
+            return entity;
+        }
+
+        // Implement IEntityTypeConfiguration<T> by delegating to the extracted configuration class
+        public void Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<NinjaAnimalCacheEntity> builder)
+        {
+            new NinjaAnimalCacheEntityConfiguration().Configure(builder);
         }
     }
 
@@ -33,16 +43,27 @@ namespace MH.Capstone.Domain.DataModels
     {
         public void Configure(EntityTypeBuilder<NinjaAnimalCacheEntity> builder)
         {
-            // Map the CachedResponse object to a single JSON column using a value converter.
-            var converter = new ValueConverter<AnimalApiDto, string>(
-                v => JsonConvert.SerializeObject(v, NinjaApiConfigValues.GetJsonSerializerSettings),
-                v => JsonConvert.DeserializeObject<AnimalApiDto>(v, NinjaApiConfigValues.GetJsonSerializerSettings)!
+            // Map the CachedResponses collection to a single JSON column using a value converter.
+            var converter = new ValueConverter<List<AnimalApiDto>, string>(
+                v => JsonConvert.SerializeObject(v),
+                v => JsonConvert.DeserializeObject<List<AnimalApiDto>>(v) ?? new List<AnimalApiDto>()
             );
 
-            builder.Property(p => p.CachedResponse)
+            // ValueComparer to ensure EF Core can compare the lists for change tracking
+            var comparer = new ValueComparer<List<AnimalApiDto>>(
+                (l1, l2) => ReferenceEquals(l1, l2) || (l1 != null && l2 != null && l1.SequenceEqual(l2)),
+                l => l == null ? 0 : l.Count,
+                l => l == null ? new List<AnimalApiDto>() : new List<AnimalApiDto>(l)
+            );
+
+            var prop = builder.Property(p => p.CachedResponses)
                 .HasConversion(converter)
+                .HasColumnName("CachedResponse")
                 .HasColumnType("nvarchar(max)")
                 .IsRequired();
+
+            // Attach the comparer to the property metadata so EF can detect changes correctly
+            prop.Metadata.SetValueComparer(comparer);
 
             // Configure scalar properties constraints based on interface attributes
             builder.Property(p => p.Url).IsRequired().HasMaxLength(250);
@@ -59,7 +80,7 @@ namespace MH.Capstone.Domain.DataModels
     {
     }
 
-    public interface IApiCallerCacheEntity<TApiDto, out TCacheEntity> : IApiCallerCacheEntity
+    public interface IApiCallerCacheEntity<TApiDto, TCacheEntity> : IApiCallerCacheEntity, IEntityTypeConfiguration<TCacheEntity>
         where TApiDto : class
         where TCacheEntity : class, IApiCallerCacheEntity<TApiDto, TCacheEntity>, new()
     {
@@ -69,7 +90,8 @@ namespace MH.Capstone.Domain.DataModels
 
         public DateTimeOffset CachedAt { get; set; }
 
-        public TApiDto CachedResponse { get; set; }
+        // Changed to a collection to represent 1-to-many of cached DTOs
+        public List<TApiDto> CachedResponses { get; set; }
 
         public static abstract TCacheEntity Create(string url, TApiDto apiResponse,
             params IEnumerable<KeyValuePair<string, string>>? queryParams);
@@ -80,7 +102,7 @@ namespace MH.Capstone.Domain.DataModels
                 Url = url,
                 QueryParams = queryParamsStr ?? string.Empty,
                 CachedAt = DateTimeOffset.UtcNow,
-                CachedResponse = apiResponse
+                CachedResponses = new List<TApiDto> { apiResponse }
             };
     }
 }
