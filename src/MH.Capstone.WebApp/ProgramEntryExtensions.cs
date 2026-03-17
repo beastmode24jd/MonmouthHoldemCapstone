@@ -85,9 +85,42 @@ namespace MH.Capstone.WebApp
             {
                 logger.LogInformation($"{nameof(ApiCallerOptions<TConfigVals>)} with call to {nameof(AsExternalApiCaller)} " +
                                       $"configured to use proxy of type {options.CacheProxyType}.");
-                throw new NotImplementedException();
-                builder.Services.AddScoped(typeof(IApiCaller<TConfigVals>), services => 
-                    null);
+
+                // Determine the cache entity type and the associated API DTO type from the implemented IApiCallerCacheEntity<,>
+                var cacheEntityType = options.CacheProxyType;
+
+                var cacheEntityInterface = cacheEntityType.GetInterfaces()
+                    .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IApiCallerCacheEntity<,>));
+
+                if (cacheEntityInterface == null)
+                {
+                    throw new InvalidOperationException($"Configured cache proxy type {cacheEntityType} does not implement IApiCallerCacheEntity<TApiDto, TCacheEntity>.");
+                }
+
+                var genericArgs = cacheEntityInterface.GetGenericArguments();
+                var apiDtoType = genericArgs[0];
+
+                // Build the concrete ApiCallerCachingProxy<apiDtoType, cacheEntityType, TConfigVals>
+                var proxyType = typeof(ApiCallerCachingProxy<,,>).MakeGenericType(apiDtoType, cacheEntityType, typeof(TConfigVals));
+
+                // Register as IApiCaller<TConfigVals>
+                var iApiCallerServiceType = typeof(IApiCaller<>).MakeGenericType(typeof(TConfigVals));
+
+                // Repository type: IRepository<TCacheEntity, ApplicationDbContext>
+                var repoType = typeof(IRepository<,>).MakeGenericType(cacheEntityType, typeof(ApplicationDbContext));
+
+                builder.Services.AddScoped(iApiCallerServiceType, services =>
+                {
+                    var loggerInstance = services.GetRequiredService(typeof(ILogger<>).MakeGenericType(iApiCallerServiceType));
+                    var cacheRepoInstance = services.GetRequiredService(repoType);
+
+                    // Use the already defined factory to create the real API caller that the proxy will delegate to
+                    var realCallerInstance = realCallerFac(services);
+
+                    // Construct the proxy: (ILogger<IApiCaller<TConfig>>, IRepository<TCacheEntity, ApplicationDbContext>, IApiCaller<TConfig>, TConfig)
+                    var proxyInstance = Activator.CreateInstance(proxyType, loggerInstance, cacheRepoInstance, realCallerInstance, config);
+                    return proxyInstance!;
+                });
             }
             else
             {
