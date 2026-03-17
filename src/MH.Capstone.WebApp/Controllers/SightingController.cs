@@ -32,7 +32,32 @@ namespace MH.Capstone.WebApp.Controllers
         [Route("Create")]
         public IActionResult Upload()
         {
-            return View(new SightingUploadViewModel());
+            // Get timezone cookie from site.js (defaults to PST if not found)
+            string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
+            
+            TimeZoneInfo userZone;
+
+            try
+            {
+                userZone = TimeZoneInfo.FindSystemTimeZoneById(userTimeZoneId);
+            }
+            catch
+            {
+                // Windows server fallback for if IANA string fails
+                userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+            }
+
+            // Convert UTC to user's local timezone
+            DateTimeOffset localNow = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, userZone);
+
+            // Initialize SightingUploadViewModel w/ local time and timezone ID
+            var viewModel = new SightingUploadViewModel
+            {
+                Timestamp = localNow,
+                DeviceTimezone = userTimeZoneId
+            };
+
+            return View(viewModel);
         }
 
         [HttpPost]
