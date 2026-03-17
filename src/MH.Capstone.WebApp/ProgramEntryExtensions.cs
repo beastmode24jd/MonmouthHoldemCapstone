@@ -106,8 +106,8 @@ namespace MH.Capstone.WebApp
                 // Register as IApiCaller<TConfigVals>
                 var iApiCallerServiceType = typeof(IApiCaller<>).MakeGenericType(typeof(TConfigVals));
 
-                // Repository type: IRepository<TCacheEntity, ApplicationDbContext>
-                var repoType = typeof(IRepository<,>).MakeGenericType(cacheEntityType, typeof(ApplicationDbContext));
+                // Repository type: IRepository<TCacheEntity, CacheDbContext>
+                var repoType = typeof(IRepository<,>).MakeGenericType(cacheEntityType, typeof(CacheDbContext));
 
                 builder.Services.AddScoped(iApiCallerServiceType, services =>
                 {
@@ -117,7 +117,7 @@ namespace MH.Capstone.WebApp
                     // Use the already defined factory to create the real API caller that the proxy will delegate to
                     var realCallerInstance = realCallerFac(services);
 
-                    // Construct the proxy: (ILogger<IApiCaller<TConfig>>, IRepository<TCacheEntity, ApplicationDbContext>, IApiCaller<TConfig>, TConfig)
+                    // Construct the proxy: (ILogger<IApiCaller<TConfig>>, IRepository<TCacheEntity, CacheDbContext>, IApiCaller<TConfig>, TConfig)
                     var proxyInstance = Activator.CreateInstance(proxyType, loggerInstance, cacheRepoInstance, realCallerInstance, config);
                     return proxyInstance!;
                 });

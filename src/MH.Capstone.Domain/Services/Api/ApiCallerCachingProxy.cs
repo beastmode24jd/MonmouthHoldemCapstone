@@ -15,13 +15,13 @@ namespace MH.Capstone.Domain.Services.Api
         where TConfig : ApiConfigurationValues<TConfig>
     {
         private readonly ILogger<IApiCaller<TConfig>> _logger;
-        private readonly IRepository<TCacheEntity, ApplicationDbContext> _cacheRepo;
+        private readonly IRepository<TCacheEntity, CacheDbContext> _cacheRepo;
         private readonly IApiCaller<TConfig> _realApiCaller;
 
         public TConfig ConfigValues { get; }
 
         public ApiCallerCachingProxy(ILogger<IApiCaller<TConfig>> logger,
-            IRepository<TCacheEntity, ApplicationDbContext> cacheRepo, IApiCaller<TConfig> realCaller,
+            IRepository<TCacheEntity, CacheDbContext> cacheRepo, IApiCaller<TConfig> realCaller,
             TConfig configValues)
         {
             _logger = logger;

@@ -52,6 +52,18 @@ namespace MH.Capstone.WebApp
                     })
             );
 
+            // Register second DbContext for caching (uses same connection string/options as ApplicationDbContext, no seeding)
+            builder.Services.AddDbContext<CacheDbContext>(opt => opt
+                .UseLazyLoadingProxies()
+                .UseSqlServer(
+                    builder.Configuration.GetConnectionString(appConnStrName)
+                    ?? throw new InvalidOperationException($"Connection string {appConnStrName} not found in app settings file.\n\t" +
+                        $"ENV is {builder.Environment.EnvironmentName}."),
+                    sqlOptions => 
+                        // Handle transient Azure SQL failures
+                        sqlOptions.EnableRetryOnFailure())
+            );
+
             // Configure Identity for authentication
             builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
                 {

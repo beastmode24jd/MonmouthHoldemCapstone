@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using MH.Capstone.Domain.ApiContracts.Ninja;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using MH.Capstone.Domain.Tools;
 
 namespace MH.Capstone.Domain.DataModels
 {
@@ -17,14 +18,30 @@ namespace MH.Capstone.Domain.DataModels
 
         public AnimalApiDto CachedResponse { get; set; } = null!;
 
-        public static NinjaAnimalCacheEntity Create(string url, AnimalApiDto apiResponse, params IEnumerable<KeyValuePair<string, string>>? queryParams)
+        public static NinjaAnimalCacheEntity Create(string url, AnimalApiDto apiResponse, 
+            params IEnumerable<KeyValuePair<string, string>>? queryParams)
         {
-            throw new NotImplementedException();
+            var queryParamsStr = HttpHelperMethods.CreateQueryParamsFragment(queryParams);
+            return IApiCallerCacheEntity<AnimalApiDto, NinjaAnimalCacheEntity>.Create(url, apiResponse, queryParamsStr);
         }
+    }
 
+    // Separate configuration class for NinjaAnimalCacheEntity. Kept in this file per request.
+    public class NinjaAnimalCacheEntityConfiguration : IEntityTypeConfiguration<NinjaAnimalCacheEntity>
+    {
         public void Configure(EntityTypeBuilder<NinjaAnimalCacheEntity> builder)
         {
-            builder.ComplexProperty(p => p.CachedResponse);
+            // Previously mapped the complex/owned CachedResponse property.
+            // Ignoring it for now to avoid EF constructor binding issues during design-time model creation.
+            builder.Ignore(p => p.CachedResponse);
+
+            // Configure scalar properties constraints based on interface attributes
+            builder.Property(p => p.Url).IsRequired().HasMaxLength(250);
+            builder.Property(p => p.QueryParams).IsRequired().HasMaxLength(500);
+            builder.Property(p => p.CachedAt).IsRequired();
+
+            // Define a composite primary key so EF can create migrations for this entity.
+            builder.HasKey(p => new { p.Url, p.QueryParams });
         }
     }
 
@@ -33,22 +50,16 @@ namespace MH.Capstone.Domain.DataModels
     {
     }
 
-    public interface IApiCallerCacheEntity<TApiDto, TCacheEntity> : IApiCallerCacheEntity, IEntityTypeConfiguration<TCacheEntity>
+    public interface IApiCallerCacheEntity<TApiDto, out TCacheEntity> : IApiCallerCacheEntity
         where TApiDto : class
         where TCacheEntity : class, IApiCallerCacheEntity<TApiDto, TCacheEntity>, new()
     {
-        [Required]
-        [MaxLength(250)]
         public string Url { get; set; }
 
-        [Required]
-        [MaxLength(500)]
         public string QueryParams { get; set; }
 
-        [Required]
         public DateTimeOffset CachedAt { get; set; }
 
-        [Required]
         public TApiDto CachedResponse { get; set; }
 
         public static abstract TCacheEntity Create(string url, TApiDto apiResponse,
