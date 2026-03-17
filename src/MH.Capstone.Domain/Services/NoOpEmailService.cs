@@ -8,15 +8,16 @@ namespace MH.Capstone.Domain.Services
 {
     public class NoOpEmailService : IEmailService, IDisposable
     {
-        private readonly string _senderAddress;
         private readonly ILogger<NoOpEmailService> _logger;
         private bool _disposed;
 
+        public string SenderAddress { get; }
+
         public NoOpEmailService(string senderAddress, ILogger<NoOpEmailService> logger)
         {
-            _senderAddress = string.IsNullOrWhiteSpace(senderAddress) ? "no-reply@localhost" : senderAddress;
+            SenderAddress = string.IsNullOrWhiteSpace(senderAddress) ? "no-reply@localhost" : senderAddress;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _logger.LogDebug("NoOpEmailService initialized with sender {Sender}", _senderAddress);
+            _logger.LogDebug("NoOpEmailService initialized with sender {Sender}", SenderAddress);
         }
 
         public Task SendAsync(string to, string subject, string htmlBody, string? plainText = null, CancellationToken cancellationToken = default)
@@ -26,7 +27,7 @@ namespace MH.Capstone.Domain.Services
 
             // Do not send anything. Just log what we would have done.
             _logger.LogInformation("[NoOpEmailService] Pretend send from {Sender} to {Recipient} with Subject '{Subject}'. HtmlLength={HtmlLen} PlainTextLength={PlainLen}",
-                _senderAddress, to, subject, htmlBody?.Length ?? 0, plainText?.Length ?? 0);
+                SenderAddress, to, subject, htmlBody?.Length ?? 0, plainText?.Length ?? 0);
 
             return Task.CompletedTask;
         }

@@ -11,9 +11,10 @@ namespace MH.Capstone.Domain.Services
     public class AzureCommunicationEmailService : IEmailService, IDisposable
     {
         private readonly EmailClient _client;
-        private readonly string _senderAddress;
         private readonly ILogger<AzureCommunicationEmailService> _logger;
         private bool _disposed;
+
+        public string SenderAddress { get; }
 
         public AzureCommunicationEmailService(string connectionString, string senderAddress, ILogger<AzureCommunicationEmailService> logger)
         {
@@ -28,7 +29,7 @@ namespace MH.Capstone.Domain.Services
             }
 
             _client = new EmailClient(connectionString);
-            _senderAddress = senderAddress;
+            SenderAddress = senderAddress;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -46,7 +47,7 @@ namespace MH.Capstone.Domain.Services
             var recipient = new EmailAddress(to);
             var recipients = new EmailRecipients([recipient]);
 
-            var message = new EmailMessage(_senderAddress, recipients, content);
+            var message = new EmailMessage(SenderAddress, recipients, content);
 
             try
             {
@@ -55,7 +56,7 @@ namespace MH.Capstone.Domain.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to send email to {Recipient}", message);
+                _logger.LogError(ex, "Failed to send email to {Recipient}", to);
                 throw;
             }
         }
