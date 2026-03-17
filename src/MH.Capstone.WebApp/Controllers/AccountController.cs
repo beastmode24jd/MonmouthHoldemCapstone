@@ -340,29 +340,30 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
                 return View(model);
             }
 
-            var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
-            if (string.IsNullOrEmpty(email))
+            // Get the user from the claims principal directly
+            var user = await _userManager.GetUserAsync(User);
+
+            if (user == null || user.Email == null)
             {
                 return RedirectToAction("Login");
             }
 
             // model.Password holds the user's
-            //              password input from the DeactivateAccountViewModel.
+            //   password input from the DeactivateAccountViewModel.
 
-            // Need to check that the password matches the user's account before calling
-            //      Deactivation
+            // Check that the input password is correct
+            var isPasswordCorrect = await _userManager.CheckPasswordAsync(user, model.Password);
 
-            // Find the selected User account
-            var targetUser = await _userManager.FindByEmailAsync(email);
-            
-            if (targetUser != null || targetUser!.PasswordHash == null 
-                || targetUser!.PasswordHash == model.Password)
+            if (!isPasswordCorrect)
             {
-                TempData["Error"] = "Please enter a valid email address.";
-                return RedirectToAction(nameof(Manage));
+                // Add error specifically to the Password field for UI feedback
+                ModelState.AddModelError("Password", "The password provided is incorrect.");
+                return View(model);
             }
 
-            var result = await _authService.DeactivateAccountAsync(email);
+            // Input password matches, deactivate the account.
+            var result = await _authService.DeactivateAccountAsync(user.Email);
+
             if (!result)
             {
                 ModelState.AddModelError("Password", "Incorrect password");
