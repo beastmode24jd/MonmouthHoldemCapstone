@@ -27,7 +27,7 @@ namespace MH.Capstone.WebApp.Models
         [Required]
         [PastDateTime]
         [DisplayFormat(DataFormatString = "{0:yyyy-MM-ddTHH:mm}", ApplyFormatInEditMode = true)]
-        public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.Now;
+        public DateTimeOffset Timestamp { get; set; } // Relies on Sighting Controller's input
 
         public SightingUploadViewModel() {}
 
@@ -45,12 +45,17 @@ namespace MH.Capstone.WebApp.Models
     {
         internal static Sighting ToDataModel(this SightingUploadViewModel vm, Guid userId)
         {
+            // Need to resolve the user timezone offset when we save this to the DB
+            var userZone = TimeZoneInfo.FindSystemTimeZoneById(vm.DeviceTimezone);
+
+            // Convert the user's local time back to UTC
+            DateTimeOffset utcTimestamp = TimeZoneInfo.ConvertTimeToUtc(vm.Timestamp.DateTime, userZone);
+
             return new Sighting
             {
                 Id = Guid.Empty, // So EF will generate a new ID when saving (Add)
                 UserId = userId,
-                // If Sighting expects DateTime, convert:
-                Timestamp = (vm.Timestamp is DateTimeOffset dto) ? dto.UtcDateTime : vm.Timestamp.DateTime,
+                Timestamp = utcTimestamp.UtcDateTime,
                 Latitude = vm.Latitude,
                 Longitude = vm.Longitude,
                 Description = vm.Description,

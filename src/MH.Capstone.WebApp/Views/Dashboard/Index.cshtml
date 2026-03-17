@@ -155,7 +155,7 @@
                             <p class="card-text mb-0 mt-1"><strong>Current Streak:</strong>
                                 @if (user?.LoginStreak > 1 && user?.LoginStreak != null)
                                 {
-                                    @user.LastLogin!.Value.ToString("MMM dd, yyyy") <p> Days</p>
+                                    @user.LoginStreak <p> Days</p>
                                 }
                                 else if (user?.LoginStreak == 1 && user?.LoginStreak != null)
                                 { <p>1 day</p> }
@@ -177,7 +177,7 @@
                                                 <img src="~/imgs/badge/BadgeIcon1.jpg" class="dashboardProfile" role="img"/>
                                                 <br><strong>@ub.Badge.Title</strong> 
                                                 <br>@ub.Badge.PointValue points
-                                                <br><small class="text-muted">@ub.BadgeEarned?.ToString("g")</small>
+                                                <br><small class="text-muted">@ub.BadgeEarned?.ToString("MMM dd, yyyy h:mm tt")</small>
                                             </div>
                                         </div>
                                     </div>

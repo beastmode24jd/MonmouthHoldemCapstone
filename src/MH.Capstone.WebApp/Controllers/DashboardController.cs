@@ -102,6 +102,26 @@ namespace MH.Capstone.WebApp.Controllers
             if (user != null)
             {
                 sortedBadges = await _badgeService.SortBadgesByTime(user.UserBadges);
+
+                TimeZoneInfo userZone;
+                try
+                {
+                    userZone = TimeZoneInfo.FindSystemTimeZoneById(userTimeZoneId);
+                }
+                catch
+                {
+                    // Fallback for Windows environment or invalid IANA IDs
+                    userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+                }
+
+                // Convert the UTC DB BadgeEarned DateTimeOffsets to local time
+                foreach (UserBadge ub in sortedBadges)
+                {
+                    if (ub.BadgeEarned.HasValue)
+                    {
+                        ub.BadgeEarned = TimeZoneInfo.ConvertTime(ub.BadgeEarned.Value, userZone);
+                    }
+                }
             }
 
             ViewData["UserTimeZone"] = userTimeZoneId;
