@@ -39,9 +39,13 @@ namespace MH.Capstone.Domain.Services.Api
             TCacheEntity? cachedResult = null;
             try
             {
+                // Precompute lowercase versions of the comparison strings to ensure EF Core can translate the comparisons to SQL
+                var urlLower = (url ?? string.Empty).ToLowerInvariant();
+                var queryParamsLower = (queryParamsStr ?? string.Empty).ToLowerInvariant();
+
                 cachedResult = (await _cacheRepo.GetAllAsync(e =>
-                        string.Equals(e.Url, url, StringComparison.InvariantCultureIgnoreCase)
-                        && string.Equals(e.QueryParams, queryParamsStr, StringComparison.InvariantCultureIgnoreCase)))
+                        e.Url.ToLower() == urlLower
+                        && e.QueryParams.ToLower() == queryParamsLower))
                     .FirstOrDefault();
                 if (cachedResult != null)
                 {
