@@ -1,18 +1,13 @@
-using MH.Capstone.Domain.ApiContracts;
-using MH.Capstone.Domain.ApiContracts.Ninjas;
+using MH.Capstone.Domain.ApiContracts.Ninja;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
-using MH.Capstone.Domain.Services.Api;
 using MH.Capstone.Domain.Services.Notifications;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.IdentityModel.Protocols.Configuration;
-using Microsoft.EntityFrameworkCore.Infrastructure;
+using MH.Capstone.Domain.Tools;
 
 namespace MH.Capstone.WebApp
 {
@@ -22,7 +17,16 @@ namespace MH.Capstone.WebApp
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            string appConnStrName = "DataDb"; // For application data
+            // Configure logging based on environment first so that it is available during app startup and for all services.
+            builder.Logging.ConfigureLogging(builder.Environment);
+            var entryLogger = CreateProgramEntryLogger();
+
+            // Register FeatureFlags from configuration so features can be checked through DI
+            var featureFlags = new FeatureFlags(builder.Configuration);
+            builder.Services.AddSingleton(featureFlags);
+            entryLogger.LogInformation("FeatureFlags registered from configuration.");
+
+            const string appConnStrName = "DataDb"; // For application data
             
             // Add EF Core DbContexts
             builder.Services.AddDbContext<ApplicationDbContext>(opt => opt
@@ -41,7 +45,7 @@ namespace MH.Capstone.WebApp
                             ApplicationDbContextSeeding.SeedDataAsync(appSyncContext, _, CancellationToken.None).GetAwaiter().GetResult();
                         }
                     })
-                    // This is will be the perfered call by any part of EF Core that can support Async calls.
+                    // This is the preferred call by any part of EF Core that can support Async calls.
                     .UseAsyncSeeding(async (context, _, token) =>
                     {
                         if (context is ApplicationDbContext appAsyncContext)
@@ -49,6 +53,18 @@ namespace MH.Capstone.WebApp
                             await ApplicationDbContextSeeding.SeedDataAsync(appAsyncContext, _, token);
                         }
                     })
+            );
+
+            // Register second DbContext for caching (uses same connection string/options as ApplicationDbContext, no seeding)
+            builder.Services.AddDbContext<CacheDbContext>(opt => opt
+                .UseLazyLoadingProxies()
+                .UseSqlServer(
+                    builder.Configuration.GetConnectionString(appConnStrName)
+                    ?? throw new InvalidOperationException($"Connection string {appConnStrName} not found in app settings file.\n\t" +
+                        $"ENV is {builder.Environment.EnvironmentName}."),
+                    sqlOptions => 
+                        // Handle transient Azure SQL failures
+                        sqlOptions.EnableRetryOnFailure())
             );
 
             // Configure Identity for authentication
@@ -78,46 +94,6 @@ namespace MH.Capstone.WebApp
                 // ExpireTimeSpan will be set by SignInAsync's isPersistent parameter
             });
 
-            // Get the base URL and API key from configuration (appsettings.json or environment variables)
-            // Done outside the HttpClient configuration to validate presence and provide clear and fast (at app startup)
-            // error feedback if missing.
-            const string ninjasApiConfigSection = "Api:External:Ninjas";
-            var ninjasApiConfigValues = builder.Configuration.GetSection(ninjasApiConfigSection)
-                .GetApiConfig<NinjaApiConfigValues>(out var apiKey);
-
-            // "is not" pattern matching syntax checks if the config values class isn't null plus that
-            // the required values are present and valid
-            if (string.IsNullOrWhiteSpace(apiKey) || ninjasApiConfigValues is not { IsValid: true })
-            {
-                if (!builder.Environment.IsDevelopment())
-                {
-                    // In a non-development environment, we want to hide the API key value,
-                    // so we will obscure it in the error message.
-                    apiKey = string.IsNullOrWhiteSpace(apiKey)
-                        ? "MISSING"
-                        : $"{new string('X', apiKey.Length)}";
-                }
-
-                throw new InvalidConfigurationException(
-                    $"Required API Configuration values {nameof(ninjasApiConfigValues.HttpClientKey)}," +
-                    $"{nameof(ninjasApiConfigValues.BaseUrl)} and/or " +
-                    $"{nameof(apiKey)} were missing or unset. This is a fatal error!\n" +
-                    $"\t{nameof(ninjasApiConfigValues.HttpClientKey)} = {ninjasApiConfigValues?.HttpClientKey}\n" +
-                    $"\t{nameof(ninjasApiConfigValues.BaseUrl)} = {ninjasApiConfigValues?.BaseUrl}\n" +
-                    $"\t{nameof(apiKey)} = {apiKey}");
-            }
-
-            // Configure HttpClient for external API calls (e.g., AnimalApi, Emailer, etc.)
-            builder.Services.AddSingleton(ninjasApiConfigValues);
-            builder.Services.AddHttpClient(ninjasApiConfigValues.HttpClientKey, client =>
-            {
-                // BaseAddress and other settings can be configured when injecting the client
-                client.DefaultRequestHeaders.Add("Accept", "application/json");
-                client.DefaultRequestHeaders.Add("X-Api-Key", apiKey);
-                client.BaseAddress = new Uri(ninjasApiConfigValues.BaseUrl);
-                client.Timeout = TimeSpan.FromSeconds(15); // Set a reasonable timeout
-            });
-
             // Configure Dependency Injection for Repositories and Services
             // Register Generic Repository
             builder.Services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
@@ -134,21 +110,16 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<ISightingsService, SightingsService>();
             builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
             builder.Services.AddScoped<IReportService, ReportService>();
-            builder.Services.AddScoped(typeof(IApiCallerFactory<>), typeof(ApiCallerFactory<>));
+
+            // Configure Ninja API Caller
+            const string ninjasApiConfigSectionPath = "Api:External:Ninjas";
+            builder.Services.AddExternalApiCaller<NinjaApiConfigValues>(builder.Configuration,
+                builder.Environment, entryLogger, ninjasApiConfigSectionPath,
+                opts => opts.UseCacheProxy<NinjaAnimalCacheEntity>());
 
             // Add controllers with views and configure Newtonsoft.Json for JSON serialization
             builder.Services.AddControllersWithViews()
                 .AddNewtonsoftJson();
-
-            // Configure Logging, with some based on environment
-            // Note: DO NOT REMOVE THE CONSOLE LOGGER OR AZURE.
-            // Azure App Service relies on it for log collection.
-            builder.Logging.AddConsole();
-            if (!builder.Environment.IsDevelopment())
-            {
-                // Staging or Production - add Azure App Service diagnostics logging
-                builder.Logging.AddAzureWebAppDiagnostics();
-            }
 
             var app = builder.Build();
 
@@ -175,6 +146,12 @@ namespace MH.Capstone.WebApp
                 .WithStaticAssets();
 
             app.Run();
+        }
+
+        public static ILogger CreateProgramEntryLogger()
+        {
+            var loggerFactory = LoggerFactory.Create(config => config.AddConsole());
+            return loggerFactory.CreateLogger("ProgramEntry");
         }
     }
 }

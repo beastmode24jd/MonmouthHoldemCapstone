@@ -1,34 +1,40 @@
-﻿@model List<MH.Capstone.Domain.ApiContracts.Ninjas.AnimalApiDto>
+﻿@model List<MH.Capstone.Domain.ApiContracts.Ninja.AnimalApiDto>
+@using MH.Capstone.Domain.ApiContracts.Ninja
 @using Newtonsoft.Json
+@inject MH.Capstone.Domain.Tools.FeatureFlags FeatureFlags
 @{
     ViewData["Title"] = "Species Search";
-    var initialJson = JsonConvert.SerializeObject(Model ?? new List<MH.Capstone.Domain.ApiContracts.Ninjas.AnimalApiDto>());
+    var initialJson = JsonConvert.SerializeObject(Model ?? new List<AnimalApiDto>());
 }
-<div class="species-search-root">
+<div class="species-search-root container">
     <section class="search-panel" aria-labelledby="searchHeading">
         <h2 id="searchHeading">Species Search</h2>
 
         <form id="searchForm" method="get" asp-action="SearchByName" asp-controller="Species" role="search" autocomplete="off">
             @Html.AntiForgeryToken()
             <label for="nameInput" class="visually-hidden">Animal name</label>
-            <input id="nameInput" name="name" type="search" class="text-input" placeholder="Search by name…" />
-            <div class="form-actions">
+            <input id="nameInput" name="name" type="search" class="form-control text-input" placeholder="Search by name…" />
+            <div class="form-actions mt-2 d-flex gap-2">
                 <button type="submit" class="btn btn-primary">Search</button>
                 <button type="button" id="clearBtn" class="btn btn-secondary">Clear</button>
+                @* Feature-flagged button: only render when flag enabled. Visibility toggled client-side based on whether a search returned results *@
+                @if (FeatureFlags.IsEnabled("ExposeDetailedApiCacheOnUi"))
+                {
+                    <button type="button" id="seeCacheBtn" class="btn btn-secondary d-none">See Result Cache</button>
+                }
             </div>
         </form>
 
-        <div id="searchStatus" class="status" aria-live="polite"></div>
+        <div id="searchStatus" class="status mt-2" aria-live="polite"></div>
     </section>
 
-    <section class="results-panel" aria-labelledby="resultsHeading">
+    <section class="results-panel mt-3" aria-labelledby="resultsHeading">
         <h2 id="resultsHeading" class="sr-only">Search results</h2>
 
         <div id="resultsContainer" class="results-container">
             <div id="resultCard" class="result-card" aria-live="polite">
                 @if (Model != null && Model.Any())
                 {
-                    //@Html.Partial("_AnimalResult", Model.First())
                     <partial name="_AnimalResult" model="Model.First()"/>
                 }
                 else
@@ -37,13 +43,29 @@
                 }
             </div>
 
-            <div class="pagination" aria-label="Result navigation">
-                <button id="prevBtn" class="btn" disabled aria-label="Previous result">Previous</button>
-                <span id="resultCounter" class="counter" aria-atomic="true">0 / 0</span>
-                <button id="nextBtn" class="btn" disabled aria-label="Next result">Next</button>
+            <div class="pagination mt-3 d-flex align-items-center" aria-label="Result navigation">
+                <button id="prevBtn" class="btn btn-light me-2" disabled aria-label="Previous result">Previous</button>
+                <span id="resultCounter" class="counter me-2" aria-atomic="true">0 / 0</span>
+                <button id="nextBtn" class="btn btn-light" disabled aria-label="Next result">Next</button>
             </div>
         </div>
     </section>
+</div>
+
+@* Bootstrap modal markup for showing cache details *@
+<div class="modal fade" id="cacheModal" tabindex="-1" aria-labelledby="cacheModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="cacheModalLabel">Cache details</h5>
+        <button type="button" class="btn-close" id="cacheCloseBtn" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="cacheContent">Loading…</div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cacheCloseBtnFooter">Close</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 @section Styles
@@ -51,120 +73,48 @@
     <style>
         :root{
             --gap: 1rem;
-            --panel-bg: #fff;
             --muted: #6c757d;
-            --card-shadow: 0 2px 8px rgba(0,0,0,.06);
             font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
         }
-        .species-search-root{
+
+        /* Restore original responsive two-column layout: search on left, results on right */
+        .species-search-root{ 
             display:flex;
             flex-direction:column;
             gap:var(--gap);
             padding:1rem;
         }
 
-        /* Panels */
         .search-panel, .results-panel{
-            background:var(--panel-bg);
+            background:#fff;
             padding:1rem;
             border-radius:8px;
-            box-shadow:var(--card-shadow);
+            box-shadow:0 2px 8px rgba(0,0,0,.06);
         }
 
-        /* Form */
-        .text-input{
-            width:100%;
-            padding:.6rem .75rem;
-            font-size:1rem;
-            border:1px solid #ddd;
-            border-radius:6px;
-            margin-bottom:.5rem;
-        }
-        .form-actions{
-            display:flex;
-            gap:.5rem;
-        }
-        .btn{
-            padding:.5rem .75rem;
-            border:1px solid transparent;
-            background:#eee;
-            border-radius:6px;
-            cursor:pointer;
-        }
-        .btn-primary{
-            background:#0d6efd;
-            color:white;
-        }
-        .btn-secondary{
-            background:#6c757d;
-            color:white;
-        }
+        /* Keep Bootstrap form control appearance but ensure full width input */
+        .text-input{ width:100%; }
 
-        /* Result card */
-        .results-container{
-            display:flex;
-            flex-direction:column;
-            gap:var(--gap);
-        }
-        .result-card{
-            min-height:160px;
-            padding:1rem;
-            border-radius:8px;
-            background:linear-gradient(180deg,#fff,#fafbff);
-            display:flex;
-            gap:1rem;
-            align-items:flex-start;
-            box-shadow:var(--card-shadow);
-        }
-        .result-image{
-            width:160px;
-            height:120px;
-            object-fit:cover;
-            border-radius:8px;
-            background:#f2f2f2;
-            flex-shrink:0;
-        }
-        .result-body{
-            flex:1;
-        }
-        .result-title{
-            margin:0 0 .25rem 0;
-            font-weight:600;
-            font-size:1.1rem;
-        }
-        .result-sub{
-            color:var(--muted);
-            font-size:.95rem;
-            margin:0 0 .5rem 0;
-        }
-        .result-meta{
-            font-size:.9rem;
-            color:#333;
-        }
+        .result-card{ min-height:160px; padding:1rem; border-radius:8px; background:linear-gradient(180deg,#fff,#fafbff); box-shadow:0 2px 8px rgba(0,0,0,.06); }
+        .result-body{ flex:1; }
+        .result-title{ margin:0 0 .25rem 0; font-weight:600; font-size:1.1rem; }
+        .result-sub{ color:var(--muted); font-size:.95rem; margin:0 0 .5rem 0; }
+        .counter{ color:var(--muted); font-weight:600; }
 
-        .pagination{
-            display:flex;
-            align-items:center;
-            gap:.5rem;
-        }
-        .counter{
-            color:var(--muted);
-            font-weight:600;
-        }
-
-        /* Responsive layout: on wider screens show two columns */
+        /* At wider screens, show two columns with left search panel and right results */
         @@media (min-width:900px){
-            .species-search-root{
-                flex-direction:row;
-            }
-            .search-panel{
-                width:36%;
-                max-width:420px;
-            }
-            .results-panel{
-                width:64%;
-            }
+            .species-search-root{ flex-direction:row; }
+            .search-panel{ width:36%; max-width:420px; }
+            .results-panel{ width:64%; }
         }
+
+        /* JSON syntax highlight styles */
+        pre.json { white-space: pre-wrap; word-break: break-word; }
+        .json-key { color:#922; font-weight:600; }
+        .json-string { color:#0b8a0b; }
+        .json-number { color:#1c00cf; }
+        .json-boolean { color:#aa0b7e; }
+        .json-null { color:#777; font-style:italic; }
 
         /* Utility */
         .visually-hidden{ position:absolute!important; height:1px; width:1px; overflow:hidden; clip:rect(1px,1px,1px,1px); white-space:nowrap;}
@@ -187,10 +137,50 @@
         const nameInput = document.getElementById('nameInput');
         const searchStatus = document.getElementById('searchStatus');
         const clearBtn = document.getElementById('clearBtn');
+        const seeCacheBtn = document.getElementById('seeCacheBtn');
+        const cacheModalEl = document.getElementById('cacheModal');
+        const cacheContent = document.getElementById('cacheContent');
+        const cacheCloseBtn = document.getElementById('cacheCloseBtn');
+        const cacheCloseBtnFooter = document.getElementById('cacheCloseBtnFooter');
+
+        // If Bootstrap JS is available, use its Modal helper
+        let bootstrapModal = null;
+        try {
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrapModal = new bootstrap.Modal(cacheModalEl);
+            }
+        } catch (e) { /* ignore */ }
 
         function setStatus(text, isErr = false) {
             searchStatus.textContent = text || '';
             searchStatus.style.color = isErr ? 'red' : 'inherit';
+        }
+
+        function syntaxHighlightJson(json) {
+            if (!json) return '';
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                var cls = 'json-number';
+                if (/^\"/.test(match)) {
+                    if (/:$/.test(match)) cls = 'json-key'; else cls = 'json-string';
+                } else if (/true|false/.test(match)) cls = 'json-boolean';
+                else if (/null/.test(match)) cls = 'json-null';
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        function highlightJsonElements(root) {
+            root = root || document;
+            const pres = (root.querySelectorAll) ? root.querySelectorAll('pre.json') : [];
+            pres.forEach(function (p) {
+                // Use textContent to get raw JSON, then replace innerHTML with highlighted content
+                try {
+                    const raw = p.textContent;
+                    p.innerHTML = syntaxHighlightJson(raw);
+                } catch (e) {
+                    // ignore if something goes wrong
+                }
+            });
         }
 
         function updateControls() {
@@ -198,10 +188,13 @@
             resultCounter.textContent = `${count ? currentIndex + 1 : 0} / ${count}`;
             prevBtn.disabled = currentIndex <= 0 || count === 0;
             nextBtn.disabled = currentIndex >= count - 1 || count === 0;
+
+            // If seeCacheBtn exists (feature enabled server-side), toggle visibility based on whether we have results
+            if (seeCacheBtn) {
+                if (count > 0) seeCacheBtn.classList.remove('d-none'); else seeCacheBtn.classList.add('d-none');
+            }
         }
 
-        // POST the single item JSON to the server to render as a partial.
-        // This does NOT trigger the external API again.
         async function renderServerPartialForIndex(index) {
             if (!results || !results.length || index < 0 || index >= results.length) {
                 resultCard.innerHTML = '<div class="result-body"><p class="result-sub">No results.</p></div>';
@@ -235,7 +228,6 @@
             }
         }
 
-        // Keeps the single API call per search: this fetch gets the full results list.
         async function doSearch(name) {
             setStatus('');
             if (!name || name.trim().length === 0) {
@@ -274,7 +266,7 @@
                 updateControls();
 
                 if (results.length > 0) {
-                    await renderServerPartialForIndex(0); // server renders selected item without calling API
+                    await renderServerPartialForIndex(0);
                     setStatus('');
                 } else {
                     resultCard.innerHTML = '<div class="result-body"><p class="result-sub">No results.</p></div>';
@@ -289,7 +281,45 @@
             }
         }
 
-        // Events
+        async function showCacheForCurrentQuery() {
+            const q = nameInput.value;
+            if (!q || q.trim().length === 0) return;
+
+            try {
+                const url = new URL('@Url.Action("CacheByName", "Species")', window.location.origin);
+                url.searchParams.set('name', q);
+
+                const resp = await fetch(url.toString(), {
+                    method: 'GET',
+                    headers: { 'Accept': 'text/html' }
+                });
+
+                if (resp.ok) {
+                    const html = await resp.text();
+                    cacheContent.innerHTML = html;
+                    highlightJsonElements(cacheContent);
+                    // If the server did not receive a UserTimeZone cookie, the partial will mark that.
+                    try {
+                        const cacheRoot = cacheContent.querySelector('.cache-detail-list');
+                        const tz = cacheRoot?.dataset?.userTimezone || '';
+                        if (!tz) console.log('Info: UserTimeZone cookie not present; CachedAt shown in UTC.');
+                    } catch (e) { /* ignore */ }
+                    if (bootstrapModal) bootstrapModal.show(); else { cacheModalEl.classList.add('show'); cacheModalEl.style.display = 'block'; }
+                } else if (resp.status === 404) {
+                    cacheContent.innerHTML = '<div class="text-muted">No cached results found for this query.</div>';
+                    if (bootstrapModal) bootstrapModal.show(); else { cacheModalEl.classList.add('show'); cacheModalEl.style.display = 'block'; }
+                } else {
+                    const txt = await resp.text();
+                    cacheContent.innerHTML = '<div class="text-danger">Failed to load cache: ' + (txt || resp.statusText) + '</div>';
+                    if (bootstrapModal) bootstrapModal.show(); else { cacheModalEl.classList.add('show'); cacheModalEl.style.display = 'block'; }
+                }
+            } catch (err) {
+                console.error(err);
+                cacheContent.innerHTML = '<div class="text-danger">Failed to load cache.</div>';
+                if (bootstrapModal) bootstrapModal.show(); else { cacheModalEl.classList.add('show'); cacheModalEl.style.display = 'block'; }
+            }
+        }
+
         searchForm.addEventListener('submit', function (e) {
             e.preventDefault();
             const q = nameInput.value;
@@ -315,7 +345,28 @@
             resultCard.innerHTML = '<div class="result-body"><p class="result-sub">No results.</p></div>';
             updateControls();
             setStatus('');
+
+            // Hide cache modal and content when clearing
+            if (bootstrapModal) bootstrapModal.hide(); else { cacheModalEl.classList.remove('show'); cacheModalEl.style.display = 'none'; }
+            cacheContent.innerHTML = '';
         });
+
+        if (seeCacheBtn) {
+            seeCacheBtn.addEventListener('click', function () {
+                showCacheForCurrentQuery();
+            });
+        }
+
+        if (cacheCloseBtn) {
+            cacheCloseBtn.addEventListener('click', function () {
+                if (bootstrapModal) bootstrapModal.hide(); else { cacheModalEl.classList.remove('show'); cacheModalEl.style.display = 'none'; }
+            });
+        }
+        if (cacheCloseBtnFooter) {
+            cacheCloseBtnFooter.addEventListener('click', function () {
+                if (bootstrapModal) bootstrapModal.hide(); else { cacheModalEl.classList.remove('show'); cacheModalEl.style.display = 'none'; }
+            });
+        }
 
         document.addEventListener('DOMContentLoaded', function () {
             if (results && results.length) {
@@ -325,6 +376,15 @@
                 resultCard.innerHTML = '<div class="result-body"><p class="result-sub">No results.</p></div>';
                 updateControls();
             }
+
+            // Highlight any JSON already on the page (if partial rendered server-side)
+            highlightJsonElements(document);
+            // If server-rendered cache partial exists and no timezone cookie was present, log for debugging
+            try {
+                const cacheRootDoc = document.querySelector('.cache-detail-list');
+                const tzDoc = cacheRootDoc?.dataset?.userTimezone || '';
+                if (cacheRootDoc && !tzDoc) console.log('Info: UserTimeZone cookie not present; CachedAt shown in UTC.');
+            } catch (e) { /* ignore */ }
         });
     </script>
 }
