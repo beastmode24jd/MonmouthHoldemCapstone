@@ -141,17 +141,12 @@ namespace MH.Capstone.Domain.Services
             return hasLowercase && hasUppercase && hasDigit && hasSymbol;
         }
 
-        public async Task<bool> DeactivateAccountAsync(string email, string password)
+        public async Task<bool> DeactivateAccountAsync(string email)
         {
+            // IMPLEMENT PASSWORD GUARD STATEMENTS BEFORE CALLING THIS!!!
+            
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null) return false;
-
-            var result = await _signInManager
-                .CheckPasswordSignInAsync(user, password, false);
-            if (!result.Succeeded)
-            {
-                return false;
-            }
 
             user.IsDeactivated = true;
             // Don't change UserName - it must remain unique in the database
