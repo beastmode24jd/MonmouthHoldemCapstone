@@ -15,17 +15,21 @@ using Newtonsoft.Json;
 
 namespace MH.Capstone.Domain.Services.Api
 {
-    public sealed class ApiCallerCachingProxy<TCacheEntity, TConfig> : IApiCaller<TConfig>
-        where TCacheEntity : ApiCallerCacheEntity, new()
+    public sealed class ApiCallerCachingProxy<TApiDto, TCacheEntity, TConfig> 
+        : IApiCallerCachingProxy<TConfig, ApiCallerCachingProxy<TApiDto, TCacheEntity, TConfig>>
+        where TApiDto : class
+        where TCacheEntity : class, IApiCallerCacheEntity<TApiDto, TCacheEntity>, new()
         where TConfig : ApiConfigurationValues<TConfig>
     {
-        private readonly ILogger<ApiCallerCachingProxy<TCacheEntity, TConfig>> _logger;
+        private readonly ILogger<IApiCaller<TConfig>> _logger;
         private readonly IRepository<TCacheEntity, ApplicationDbContext> _cacheRepo;
         private readonly IApiCaller<TConfig> _realApiCaller;
 
         public TConfig ConfigValues { get; }
 
-        public ApiCallerCachingProxy(ILogger<ApiCallerCachingProxy<TCacheEntity, TConfig>> logger,
+
+
+        public ApiCallerCachingProxy(ILogger<IApiCaller<TConfig>> logger,
             IRepository<TCacheEntity, ApplicationDbContext> cacheRepo, IApiCaller<TConfig> realCaller,
             TConfig configValues)
         {
@@ -35,49 +39,63 @@ namespace MH.Capstone.Domain.Services.Api
             ConfigValues = configValues;
         }
 
-        public async Task<TApiReturn> GetAsync<TApiReturn>(string url, params IEnumerable<KeyValuePair<string, string>>? queryParams)
+        public async Task<TReturn> GetAsync<TReturn>(string url,
+            params IEnumerable<KeyValuePair<string, string>>? queryParams)
+            where TReturn : class
         {
             var queryList = queryParams?.ToList();
             var queryParamsStr = HttpHelperMethods.CreateQueryParamsFragment(queryList);
-            var cachedResults = await TryGetCachedResults(url, queryParamsStr);
-            if (cachedResults != null)
+            TCacheEntity? cachedResult = null;
+            try
             {
-                try
+                cachedResult = (await _cacheRepo.GetAllAsync(e =>
+                        string.Equals(e.Url, url, StringComparison.InvariantCultureIgnoreCase)
+                        && string.Equals(e.QueryParams, queryParamsStr, StringComparison.InvariantCultureIgnoreCase)))
+                    .FirstOrDefault();
+                if (cachedResult != null)
                 {
-                    _logger.LogInformation("Cache hit for URL: {Url} with query params: {QueryParams}", url, queryParams);
-                    var result = JsonConvert.DeserializeObject<TApiReturn>(cachedResults.ApiJson, ConfigValues.JsonSerializerSettings)
-                                 ?? throw new JsonException("A conversion error has occurred with a cached api result causing a failure to convert the " +
-                                                            "cached JSON value. The record will be deleted", new Exception($"Json Value: {cachedResults}"));
+                    _logger.LogInformation("Cache hit for URL: {Url} with query params: {QueryParams}", url,
+                        queryParams);
                 }
-                catch (Exception e)
+                else
                 {
-                    _logger.LogError(e, "An error occurred while mapping/converting JSON from a cached entity.");
-                    await _cacheRepo.DeleteAsync(cachedResults);
+                    _logger.LogInformation(
+                        "Cache miss for URL: {Url} with query params: {QueryParams}. Calling real API.", url,
+                        queryParams);
+                    var apiResult = await _realApiCaller.GetAsync<TApiDto>(url, queryList);
+                    cachedResult = await CacheResults(url, apiResult, queryParamsStr);
                 }
-            }
 
-            _logger.LogInformation("Cache miss for URL: {Url} with query params: {QueryParams}. Calling real API.", url, queryParams);
-            var apiResult = await _realApiCaller.GetAsync<TApiReturn>(url, queryList);
-            await CacheResults(url, apiResult, queryParamsStr);
-            return apiResult;
+                return cachedResult.CachedResponse as TReturn ??
+                       throw new InvalidOperationException($"Cached entity for URL: {url} with query params: " +
+                                                           $"{queryParamsStr} could not be cast to the expected return type.");
+            }
+            catch (InvalidOperationException e)
+            {
+                _logger.LogError(e, "An error occurred while mapping/converting JSON from a cached entity.");
+
+                // If we had a cache hit but the cached data is invalid (e.g., due to a mapping error),
+                // we should remove that cache entry to try and prevent future errors.
+                if (cachedResult != null)
+                {
+                    await _cacheRepo.DeleteAsync(cachedResult);
+                }
+
+                throw;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, $"An unknow error occured during within {nameof(GetAsync)} of {GetType()}");
+                throw;
+            }
         }
 
-        private async Task<TCacheEntity?> TryGetCachedResults(string url, string? queryParamsStr) =>
-            (await _cacheRepo.GetAllAsync()).FirstOrDefault();
-
-        private async Task CacheResults<TApiReturn>(string url, TApiReturn apiResult, string? queryParamsStr)
+        private async Task<TCacheEntity> CacheResults(string url, TApiDto apiResult, string? queryParamsStr)
         {
             try
             {
-                var apiJson = JsonConvert.SerializeObject(apiResult, ConfigValues.JsonSerializerSettings);
-                var cacheEntity = new TCacheEntity
-                {
-                    Url = url,
-                    QueryParams = queryParamsStr ?? string.Empty,
-                    ApiJson = apiJson,
-                    CachedAt = DateTime.UtcNow
-                };
-                await _cacheRepo.AddOrUpdateAsync(cacheEntity);
+                var cachedEntity = IApiCallerCacheEntity<TApiDto, TCacheEntity>.Create(url, apiResult, queryParamsStr);
+                return await _cacheRepo.AddOrUpdateAsync(cachedEntity);
             }
             catch (Exception e)
             {
@@ -87,5 +105,17 @@ namespace MH.Capstone.Domain.Services.Api
                 throw;
             }
         }
+
+        public static ApiCallerCachingProxy<TApiDto, TCacheEntity, TConfig> Create(ILogger<IApiCaller<TConfig>> logger,
+            IRepository<TCacheEntity, ApplicationDbContext> cacheRepo, IApiCaller<TConfig> realCaller,
+            TConfig configValues)
+        {
+            throw new NotImplementedException();
+        }
     }
+
+    public interface IApiCallerCachingProxy<out TConfig, out TProxy> : IApiCaller<TConfig>
+        where TConfig : ApiConfigurationValues<TConfig>
+        where TProxy : class, IApiCallerCachingProxy<TConfig, TProxy>
+    { }
 }

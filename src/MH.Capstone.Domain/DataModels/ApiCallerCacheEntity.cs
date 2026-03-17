@@ -1,34 +1,62 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+using MH.Capstone.Domain.ApiContracts.Ninja;
+using MH.Capstone.Domain.Tools;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace MH.Capstone.Domain.DataModels
 {
     [Table("AnimalApiCache")]
-    public class ApiCallerCacheEntity
+    public class NinjaAnimalCacheEntity : IApiCallerCacheEntity<AnimalApiDto, NinjaAnimalCacheEntity>
     {
-        [Required] public string ApiJson { get; set; } = null!;
+        public string Url { get; set; } = null!;
 
-        [Required] [MaxLength(250)] public string Url { get; set; } = null!;
+        public string QueryParams { get; set; } = null!;
 
-        [Required] [MaxLength(500)] public string QueryParams { get; set; } = null!;
+        public DateTimeOffset CachedAt { get; set; }
 
-        [Required] public DateTimeOffset CachedAt { get; set; } = DateTimeOffset.UtcNow;
+        public AnimalApiDto CachedResponse { get; set; } = null!;
 
-        public static ApiCallerCacheEntity Create(string url, string queryParams, string apiJson,
-            DateTimeOffset? cachedAt = null) =>
-            new ApiCallerCacheEntity
+        public static NinjaAnimalCacheEntity Create(string url, AnimalApiDto apiResponse, params IEnumerable<KeyValuePair<string, string>>? queryParams)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Configure(EntityTypeBuilder<NinjaAnimalCacheEntity> builder)
+        {
+            builder.ComplexProperty(p => p.CachedResponse);
+        }
+    }
+
+    public interface IApiCallerCacheEntity<TApiDto, TCacheEntity> : IEntityTypeConfiguration<TCacheEntity>
+        where TApiDto : class
+        where TCacheEntity : class, IApiCallerCacheEntity<TApiDto, TCacheEntity>, new()
+    {
+        [Required]
+        [MaxLength(250)]
+        public string Url { get; set; }
+
+        [Required]
+        [MaxLength(500)]
+        public string QueryParams { get; set; }
+
+        [Required]
+        public DateTimeOffset CachedAt { get; set; }
+
+        [Required]
+        public TApiDto CachedResponse { get; set; }
+
+        public static abstract TCacheEntity Create(string url, TApiDto apiResponse,
+            params IEnumerable<KeyValuePair<string, string>>? queryParams);
+
+        public static TCacheEntity Create(string url, TApiDto apiResponse, string? queryParamsStr)
+            => new TCacheEntity
             {
                 Url = url,
-                QueryParams = queryParams,
-                ApiJson = apiJson,
-                CachedAt = cachedAt ?? DateTimeOffset.UtcNow
+                QueryParams = queryParamsStr ?? string.Empty,
+                CachedAt = DateTimeOffset.UtcNow,
+                CachedResponse = apiResponse
             };
     }
 }

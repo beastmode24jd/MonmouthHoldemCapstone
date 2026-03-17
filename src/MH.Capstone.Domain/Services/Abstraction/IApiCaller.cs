@@ -1,9 +1,4 @@
 ﻿using MH.Capstone.Domain.ApiContracts;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MH.Capstone.Domain.Services.Abstraction
 {
@@ -11,7 +6,7 @@ namespace MH.Capstone.Domain.Services.Abstraction
     {
         TConfig ConfigValues { get; }
 
-        Task<T> GetAsync<T>(string url, params 
-            IEnumerable<KeyValuePair<string, string>>? queryParams);
+        Task<TDto> GetAsync<TDto>(string url, params IEnumerable<KeyValuePair<string, string>>? queryParams)
+            where TDto : class;
     }
 }

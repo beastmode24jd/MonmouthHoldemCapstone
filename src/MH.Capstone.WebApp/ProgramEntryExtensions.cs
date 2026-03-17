@@ -75,17 +75,11 @@ namespace MH.Capstone.WebApp
                     services.GetRequiredService<ILogger<IApiCaller<TConfigVals>>>(),
                     services.GetRequiredService<IHttpClientFactory>(), config);
 
-            if (options.CacheProxyConfigured)
+            if (options.IsCacheProxyConfigured)
             {
                 logger.LogInformation($"{nameof(ApiCallerOptions)} with call to {nameof(AsExternalApiCaller)} " +
-                                      $"configured to use proxy {nameof(ApiCallerCachingProxy<ApiCallerCacheEntity,TConfigVals>)}.");
-                builder.Services.AddScoped<IApiCaller<TConfigVals>,
-                    ApiCallerCachingProxy<ApiCallerCacheEntity, TConfigVals>>(services =>
-                    new ApiCallerCachingProxy<ApiCallerCacheEntity, TConfigVals>(
-                        services
-                            .GetRequiredService<ILogger<ApiCallerCachingProxy<ApiCallerCacheEntity, TConfigVals>>>(),
-                        services.GetRequiredService<IRepository<ApiCallerCacheEntity, ApplicationDbContext>>(),
-                        realCallerFac.Invoke(services), config));
+                                      $"configured to use proxy type {options.CacheProxyType}.");
+                
 
             }
             else
@@ -104,7 +98,9 @@ namespace MH.Capstone.WebApp
     {
         private readonly ApiCallerOptions _options;
 
-        public bool CacheProxyConfigured { get; set; } = false;
+        public bool IsCacheProxyConfigured => CacheProxyType != null;
+
+        public Type? CacheProxyType { get; private set; } = null;
 
         public static ApiCallerOptions Default => new ApiCallerOptions();
 
@@ -113,10 +109,12 @@ namespace MH.Capstone.WebApp
             _options = this;
         }
 
-        public ApiCallerOptions UseCacheProxy()
+        public ApiCallerOptions UseCacheProxy<TConfig, TProxy>()
+            where TConfig : ApiConfigurationValues<TConfig>
+            where TProxy : class, IApiCallerCachingProxy<TConfig, TProxy>
         {
-            _options.CacheProxyConfigured = true;
-            return _options;
+            CacheProxyType = typeof(TProxy);
+            return this;
         }
     }
 }

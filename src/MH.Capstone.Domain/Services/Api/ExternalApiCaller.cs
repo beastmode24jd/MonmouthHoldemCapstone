@@ -32,12 +32,13 @@ namespace MH.Capstone.Domain.Services.Api
         /// <typeparam name="TReturn">The type to deserialize the API return value to</typeparam>
         /// <param name="url">The url - excluding the base path - to send the request to.</param>
         /// <param name="queryParams">An optional <see cref="IEnumerable{T}"/> of </param>
-        /// <returns>The deserialized <see cref="T"/> returned from the API</returns>
+        /// <returns>The deserialized <see cref="TReturn"/> returned from the API</returns>
         /// <exception cref="HttpRequestException">The request failed.</exception>
         /// <exception cref="InvalidOperationException">Thrown by the <see cref="HttpClient"/> instance whe nan error occured before a call
         /// could be made. Most likely is caused by an invalid <see cref="ClientName"/> value</exception>
         /// <exception cref="JsonException">The <see cref="TReturn"/> type could not be deserialized from the API's response.</exception>
-        public async Task<TReturn> GetAsync<TReturn>(string url, params IEnumerable<KeyValuePair<string, string>>? queryParams)
+        public async Task<TReturn> GetAsync<TReturn>(string url, params IEnumerable<KeyValuePair<string, string>>? queryParams) 
+            where TReturn : class
         {
             try
             {
