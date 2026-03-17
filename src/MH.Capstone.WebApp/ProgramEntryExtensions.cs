@@ -116,7 +116,7 @@ namespace MH.Capstone.WebApp
         }
 
         public ApiCallerOptions<TConfig> UseCacheProxy<TCacheEntity>()
-            where TCacheEntity : class, IApiCallerCacheEntity<,>, new()
+            where TCacheEntity : class, IApiCallerCacheEntity, new()
         {
             CacheProxyType = typeof(TCacheEntity);
             return this;

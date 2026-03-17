@@ -1,7 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using MH.Capstone.Domain.ApiContracts.Ninja;
-using MH.Capstone.Domain.Tools;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -29,7 +28,12 @@ namespace MH.Capstone.Domain.DataModels
         }
     }
 
-    public interface IApiCallerCacheEntity<TApiDto, TCacheEntity> : IEntityTypeConfiguration<TCacheEntity>
+    // Marker interface to allow compile-time constraints without specifying generic type arguments
+    public interface IApiCallerCacheEntity
+    {
+    }
+
+    public interface IApiCallerCacheEntity<TApiDto, TCacheEntity> : IApiCallerCacheEntity, IEntityTypeConfiguration<TCacheEntity>
         where TApiDto : class
         where TCacheEntity : class, IApiCallerCacheEntity<TApiDto, TCacheEntity>, new()
     {

@@ -100,7 +100,7 @@ namespace MH.Capstone.WebApp
             const string ninjasApiConfigSectionPath = "Api:External:Ninjas";
             builder.Services.AddExternalApiCaller<NinjaApiConfigValues>(builder.Configuration,
                 builder.Environment, entryLogger, ninjasApiConfigSectionPath, 
-                opts => opts.UseCacheProxy<>());
+                opts => opts.UseCacheProxy<NinjaAnimalCacheEntity>());
 
             // Add controllers with views and configure Newtonsoft.Json for JSON serialization
             builder.Services.AddControllersWithViews()
