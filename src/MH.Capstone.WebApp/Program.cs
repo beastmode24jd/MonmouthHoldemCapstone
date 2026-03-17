@@ -41,7 +41,7 @@ namespace MH.Capstone.WebApp
                             ApplicationDbContextSeeding.SeedDataAsync(appSyncContext, _, CancellationToken.None).GetAwaiter().GetResult();
                         }
                     })
-                    // This is will be the perfered call by any part of EF Core that can support Async calls.
+                    // This is the preferred call by any part of EF Core that can support Async calls.
                     .UseAsyncSeeding(async (context, _, token) =>
                     {
                         if (context is ApplicationDbContext appAsyncContext)
@@ -78,45 +78,10 @@ namespace MH.Capstone.WebApp
                 // ExpireTimeSpan will be set by SignInAsync's isPersistent parameter
             });
 
-            // Get the base URL and API key from configuration (appsettings.json or environment variables)
-            // Done outside the HttpClient configuration to validate presence and provide clear and fast (at app startup)
-            // error feedback if missing.
-            const string ninjasApiConfigSection = "Api:External:Ninjas";
-            var ninjasApiConfigValues = builder.Configuration.GetSection(ninjasApiConfigSection)
-                .GetApiConfig<NinjaApiConfigValues>(out var apiKey);
-
-            // "is not" pattern matching syntax checks if the config values class isn't null plus that
-            // the required values are present and valid
-            if (string.IsNullOrWhiteSpace(apiKey) || ninjasApiConfigValues is not { IsValid: true })
-            {
-                if (!builder.Environment.IsDevelopment())
-                {
-                    // In a non-development environment, we want to hide the API key value,
-                    // so we will obscure it in the error message.
-                    apiKey = string.IsNullOrWhiteSpace(apiKey)
-                        ? "MISSING"
-                        : $"{new string('X', apiKey.Length)}";
-                }
-
-                throw new InvalidConfigurationException(
-                    $"Required API Configuration values {nameof(ninjasApiConfigValues.HttpClientKey)}," +
-                    $"{nameof(ninjasApiConfigValues.BaseUrl)} and/or " +
-                    $"{nameof(apiKey)} were missing or unset. This is a fatal error!\n" +
-                    $"\t{nameof(ninjasApiConfigValues.HttpClientKey)} = {ninjasApiConfigValues?.HttpClientKey}\n" +
-                    $"\t{nameof(ninjasApiConfigValues.BaseUrl)} = {ninjasApiConfigValues?.BaseUrl}\n" +
-                    $"\t{nameof(apiKey)} = {apiKey}");
-            }
-
-            // Configure HttpClient for external API calls (e.g., AnimalApi, Emailer, etc.)
-            builder.Services.AddSingleton(ninjasApiConfigValues);
-            builder.Services.AddHttpClient(ninjasApiConfigValues.HttpClientKey, client =>
-            {
-                // BaseAddress and other settings can be configured when injecting the client
-                client.DefaultRequestHeaders.Add("Accept", "application/json");
-                client.DefaultRequestHeaders.Add("X-Api-Key", apiKey);
-                client.BaseAddress = new Uri(ninjasApiConfigValues.BaseUrl);
-                client.Timeout = TimeSpan.FromSeconds(15); // Set a reasonable timeout
-            });
+            // Configure Ninja API Caller
+            const string ninjasApiConfigSectionPath = "Api:External:Ninjas";
+            builder.Services.AddExternalApiCaller<NinjaApiConfigValues>(builder.Environment, builder.Configuration,
+                ninjasApiConfigSectionPath, ApiCallerOptions.Default.UseCacheProxy());
 
             // Configure Dependency Injection for Repositories and Services
             // Register Generic Repository
@@ -134,7 +99,6 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<ISightingsService, SightingsService>();
             builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
             builder.Services.AddScoped<IReportService, ReportService>();
-            builder.Services.AddScoped(typeof(IApiCallerFactory<>), typeof(ApiCallerFactory<>));
 
             // Add controllers with views and configure Newtonsoft.Json for JSON serialization
             builder.Services.AddControllersWithViews()

@@ -12,13 +12,13 @@ namespace MH.Capstone.WebApp.Controllers
     public class SpeciesController : Controller
     {
         private readonly ILogger<SpeciesController> _logger;
-        private readonly IApiCallerFactory<NinjaApiConfigValues> _ninjaApiCallerFactory;
+        private readonly IApiCaller<NinjaApiConfigValues> _ninjaApiCaller;
 
         public SpeciesController(ILogger<SpeciesController> logger,
-            IApiCallerFactory<NinjaApiConfigValues> ninjaApiCallerFactory)
+            IApiCaller<NinjaApiConfigValues> ninjaApiCaller)
         {
             _logger = logger;
-            _ninjaApiCallerFactory = ninjaApiCallerFactory;
+            _ninjaApiCaller = ninjaApiCaller;
         }
 
         [HttpGet]
@@ -42,20 +42,18 @@ namespace MH.Capstone.WebApp.Controllers
 
             _logger.LogDebug($"Call made to our search action for an animal/species with the name '{name}'.");
 
-            var apiCaller = _ninjaApiCallerFactory.CreateApiCaller();
-
             try
             {
-                _logger.LogInformation($"Config Endpoints Length: {apiCaller.ConfigValues.Endpoints.Count}");
-                _logger.LogInformation($"Config ClientKey: {apiCaller.ConfigValues.HttpClientKey}");
-                _logger.LogInformation($"Config BaseUrl: {apiCaller.ConfigValues.BaseUrl}");
-                var url = apiCaller.ConfigValues.Endpoints
+                _logger.LogInformation($"Config Endpoints Length: {_ninjaApiCaller.ConfigValues.Endpoints.Count}");
+                _logger.LogInformation($"Config ClientKey: {_ninjaApiCaller.ConfigValues.HttpClientKey}");
+                _logger.LogInformation($"Config BaseUrl: {_ninjaApiCaller.ConfigValues.BaseUrl}");
+                var url = _ninjaApiCaller.ConfigValues.Endpoints
                     .FirstOrDefault(kvp => string.Equals(kvp.Key, "animal", StringComparison.InvariantCultureIgnoreCase))
                     .Value ?? throw new InvalidConfigurationException("The needed Animal endpoint could " +
                                                                       "not be found in the api caller's config values!");
 
                 _logger.LogWarning($"This would be a call to the api! name = {name}");
-                var result = (await apiCaller.GetAsync<IEnumerable<AnimalApiDto>>(url,
+                var result = (await _ninjaApiCaller.GetAsync<IEnumerable<AnimalApiDto>>(url,
                     new KeyValuePair<string, string>("name", name))).ToList();
 
                 if (result.Count > 0)
