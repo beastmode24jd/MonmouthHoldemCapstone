@@ -1,15 +1,13 @@
-using MH.Capstone.Domain.ApiContracts;
 using MH.Capstone.Domain.ApiContracts.Ninja;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
-using MH.Capstone.Domain.Services.Api;
 using MH.Capstone.Domain.Services.Notifications;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using MH.Capstone.Domain.Tools;
 
 namespace MH.Capstone.WebApp
 {
@@ -22,6 +20,11 @@ namespace MH.Capstone.WebApp
             // Configure logging based on environment first so that it is available during app startup and for all services.
             builder.Logging.ConfigureLogging(builder.Environment);
             var entryLogger = CreateProgramEntryLogger();
+
+            // Register FeatureFlags from configuration so features can be checked through DI
+            var featureFlags = new FeatureFlags(builder.Configuration);
+            builder.Services.AddSingleton(featureFlags);
+            entryLogger.LogInformation("FeatureFlags registered from configuration.");
 
             const string appConnStrName = "DataDb"; // For application data
             
