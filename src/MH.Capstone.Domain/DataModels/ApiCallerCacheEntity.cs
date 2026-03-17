@@ -4,6 +4,8 @@ using MH.Capstone.Domain.ApiContracts.Ninja;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MH.Capstone.Domain.Tools;
+using Newtonsoft.Json;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace MH.Capstone.Domain.DataModels
 {
@@ -31,9 +33,16 @@ namespace MH.Capstone.Domain.DataModels
     {
         public void Configure(EntityTypeBuilder<NinjaAnimalCacheEntity> builder)
         {
-            // Previously mapped the complex/owned CachedResponse property.
-            // Ignoring it for now to avoid EF constructor binding issues during design-time model creation.
-            builder.Ignore(p => p.CachedResponse);
+            // Map the CachedResponse object to a single JSON column using a value converter.
+            var converter = new ValueConverter<AnimalApiDto, string>(
+                v => JsonConvert.SerializeObject(v),
+                v => JsonConvert.DeserializeObject<AnimalApiDto>(v)!
+            );
+
+            builder.Property(p => p.CachedResponse)
+                .HasConversion(converter)
+                .HasColumnType("nvarchar(max)")
+                .IsRequired();
 
             // Configure scalar properties constraints based on interface attributes
             builder.Property(p => p.Url).IsRequired().HasMaxLength(250);
