@@ -1,18 +1,13 @@
-using MH.Capstone.Domain.ApiContracts;
-using MH.Capstone.Domain.ApiContracts.Ninjas;
+using MH.Capstone.Domain.ApiContracts.Ninja;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
-using MH.Capstone.Domain.Services.Api;
 using MH.Capstone.Domain.Services.Notifications;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.IdentityModel.Protocols.Configuration;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace MH.Capstone.WebApp
 {
@@ -22,7 +17,11 @@ namespace MH.Capstone.WebApp
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            string appConnStrName = "DataDb"; // For application data
+            // Configure logging based on environment first so that it is available during app startup and for all services.
+            builder.Logging.ConfigureLogging(builder.Environment);
+            var entryLogger = CreateProgramEntryLogger();
+
+            const string appConnStrName = "DataDb"; // For application data
             
             // Add EF Core DbContexts
             builder.Services.AddDbContext<ApplicationDbContext>(opt => opt
@@ -78,11 +77,6 @@ namespace MH.Capstone.WebApp
                 // ExpireTimeSpan will be set by SignInAsync's isPersistent parameter
             });
 
-            // Configure Ninja API Caller
-            const string ninjasApiConfigSectionPath = "Api:External:Ninjas";
-            builder.Services.AddExternalApiCaller<NinjaApiConfigValues>(builder.Environment, builder.Configuration,
-                ninjasApiConfigSectionPath, ApiCallerOptions.Default.UseCacheProxy());
-
             // Configure Dependency Injection for Repositories and Services
             // Register Generic Repository
             builder.Services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
@@ -100,19 +94,15 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
             builder.Services.AddScoped<IReportService, ReportService>();
 
+            // Configure Ninja API Caller
+            const string ninjasApiConfigSectionPath = "Api:External:Ninjas";
+            builder.Services.AddExternalApiCaller<NinjaApiConfigValues>(builder.Configuration,
+                builder.Environment, entryLogger, ninjasApiConfigSectionPath, 
+                ApiCallerOptions.Default/*.UseCacheProxy()*/);
+
             // Add controllers with views and configure Newtonsoft.Json for JSON serialization
             builder.Services.AddControllersWithViews()
                 .AddNewtonsoftJson();
-
-            // Configure Logging, with some based on environment
-            // Note: DO NOT REMOVE THE CONSOLE LOGGER OR AZURE.
-            // Azure App Service relies on it for log collection.
-            builder.Logging.AddConsole();
-            if (!builder.Environment.IsDevelopment())
-            {
-                // Staging or Production - add Azure App Service diagnostics logging
-                builder.Logging.AddAzureWebAppDiagnostics();
-            }
 
             var app = builder.Build();
 
@@ -139,6 +129,12 @@ namespace MH.Capstone.WebApp
                 .WithStaticAssets();
 
             app.Run();
+        }
+
+        public static ILogger CreateProgramEntryLogger()
+        {
+            var loggerFactory = LoggerFactory.Create(config => config.AddConsole());
+            return loggerFactory.CreateLogger("ProgramEntry");
         }
     }
 }

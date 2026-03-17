@@ -1,4 +1,4 @@
-﻿namespace MH.Capstone.Domain.ApiContracts.Ninjas
+﻿namespace MH.Capstone.Domain.ApiContracts.Ninja
 {
     public record AnimalApiDto(string name, AnimalApiTaxonomyDto taxonomy,
         IEnumerable<string> locations, AnimalApiCharacteristics characteristics)

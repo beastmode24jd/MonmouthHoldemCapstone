@@ -1,8 +1,9 @@
-﻿@model List<MH.Capstone.Domain.ApiContracts.Ninjas.AnimalApiDto>
+﻿@model List<MH.Capstone.Domain.ApiContracts.Ninja.AnimalApiDto>
+@using MH.Capstone.Domain.ApiContracts.Ninja
 @using Newtonsoft.Json
 @{
     ViewData["Title"] = "Species Search";
-    var initialJson = JsonConvert.SerializeObject(Model ?? new List<MH.Capstone.Domain.ApiContracts.Ninjas.AnimalApiDto>());
+    var initialJson = JsonConvert.SerializeObject(Model ?? new List<AnimalApiDto>());
 }
 <div class="species-search-root">
     <section class="search-panel" aria-labelledby="searchHeading">

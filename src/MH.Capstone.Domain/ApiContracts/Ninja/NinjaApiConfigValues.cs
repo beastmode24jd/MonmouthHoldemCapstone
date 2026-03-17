@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MH.Capstone.Domain.ApiContracts.Ninjas
+﻿namespace MH.Capstone.Domain.ApiContracts.Ninja
 {
     public class NinjaApiConfigValues : ApiConfigurationValues<NinjaApiConfigValues>
     {

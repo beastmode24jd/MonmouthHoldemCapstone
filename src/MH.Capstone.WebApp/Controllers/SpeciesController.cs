@@ -1,6 +1,6 @@
 ﻿    using System.Net;
 using MH.Capstone.Domain.ApiContracts;
-using MH.Capstone.Domain.ApiContracts.Ninjas;
+using MH.Capstone.Domain.ApiContracts.Ninja;
 using MH.Capstone.Domain.Services.Abstraction;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Protocols.Configuration;
