@@ -147,7 +147,7 @@ namespace MH.Capstone.WebApp.Controllers
 
             // Find the selected User account
             var targetUser = await _userManager.FindByEmailAsync(targetEmail);
-            if (targetUser == null || targetUser.Email == null || targetUser.PasswordHash == null)
+            if (targetUser == null || targetUser.Email == null)
             {
                 TempData["Error"] = "Please enter a valid email address.";
                 return RedirectToAction(nameof(Manage));
@@ -162,7 +162,7 @@ namespace MH.Capstone.WebApp.Controllers
 
             // Use AuthenticationService to perform the deactivation
             // targetUser has already been verified to not be null.
-            var success = await _authService.DeactivateAccountAsync(targetUser.Email!, targetUser.PasswordHash!);
+            var success = await _authService.DeactivateAccountAsync(targetUser.Email!);
 
             if (success)
             {

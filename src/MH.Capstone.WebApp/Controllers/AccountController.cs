@@ -346,7 +346,23 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
                 return RedirectToAction("Login");
             }
 
-            var result = await _authService.DeactivateAccountAsync(email, model.Password);
+            // model.Password holds the user's
+            //              password input from the DeactivateAccountViewModel.
+
+            // Need to check that the password matches the user's account before calling
+            //      Deactivation
+
+            // Find the selected User account
+            var targetUser = await _userManager.FindByEmailAsync(email);
+            
+            if (targetUser != null || targetUser!.PasswordHash == null 
+                || targetUser!.PasswordHash == model.Password)
+            {
+                TempData["Error"] = "Please enter a valid email address.";
+                return RedirectToAction(nameof(Manage));
+            }
+
+            var result = await _authService.DeactivateAccountAsync(email);
             if (!result)
             {
                 ModelState.AddModelError("Password", "Incorrect password");
