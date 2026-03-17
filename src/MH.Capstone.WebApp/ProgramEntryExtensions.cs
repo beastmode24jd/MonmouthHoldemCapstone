@@ -31,7 +31,7 @@ namespace MH.Capstone.WebApp
         public static IServiceCollection AddExternalApiCaller<TConfigVals>(
             this IServiceCollection services, IConfiguration config,
             IWebHostEnvironment env, ILogger logger,
-            string configSectionPath, Action<ApiCallerOptions<TConfigVals>> callerOpts)
+            string configSectionPath, Action<ApiCallerOptions<TConfigVals>>? callerOpts = null)
                 where TConfigVals : ApiConfigurationValues<TConfigVals>
         {
             var configSection = config.GetSection(configSectionPath);
@@ -49,7 +49,7 @@ namespace MH.Capstone.WebApp
 
         private static IServiceCollection AddExternalApiCaller<TConfigVals>(
             this IServiceCollection services, ILogger logger, TConfigVals configVals,
-            string apiKey, Action<ApiCallerOptions<TConfigVals>> callerOpts) 
+            string apiKey, Action<ApiCallerOptions<TConfigVals>>? callerOpts) 
                 where TConfigVals : ApiConfigurationValues<TConfigVals>
         {
             // Configure HttpClient for external API calls (e.g., AnimalApi, Emailer, etc.)
@@ -68,13 +68,13 @@ namespace MH.Capstone.WebApp
 
         private static IHttpClientBuilder AsExternalApiCaller<TConfigVals>(
             this IHttpClientBuilder builder, ILogger logger,
-            TConfigVals config, Action<ApiCallerOptions<TConfigVals>> callerOpts)
+            TConfigVals config, Action<ApiCallerOptions<TConfigVals>>? callerOpts)
             where TConfigVals : ApiConfigurationValues<TConfigVals>
         {
             //builder.Services.AddSingleton(config);
 
             var options = ApiCallerOptions<TConfigVals>.Default;
-            callerOpts.Invoke(options);
+            callerOpts?.Invoke(options);
 
             Func<IServiceProvider, ExternalApiCaller<TConfigVals>> realCallerFac = services =>
                 new ExternalApiCaller<TConfigVals>(
