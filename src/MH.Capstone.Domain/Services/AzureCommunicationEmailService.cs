@@ -51,8 +51,10 @@ namespace MH.Capstone.Domain.Services
 
             try
             {
-                var response = await _client.SendAsync(WaitUntil.Started, message, cancellationToken);
-                _logger.LogInformation("Email queued. Status: {MessageId}", response.Value);
+                // Wait until the service has finished processing the send request so response.Id is available
+                var operation = await _client.SendAsync(WaitUntil.Completed, message, cancellationToken: cancellationToken).ConfigureAwait(false);
+                // Log operation identifier
+                _logger.LogInformation("Email queued. OperationId: {OperationId}", operation.Id);
             }
             catch (Exception ex)
             {

@@ -9,6 +9,7 @@ using MH.Capstone.Domain.Tools;
 
 namespace MH.Capstone.WebApp.Controllers
 {
+    [Route("")]
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
@@ -35,6 +36,8 @@ namespace MH.Capstone.WebApp.Controllers
         }
 
         [AllowAnonymous]
+        [Route("privacy")]
+        [HttpGet]
         public IActionResult Privacy()
         {
             return View();
@@ -42,6 +45,7 @@ namespace MH.Capstone.WebApp.Controllers
 
         [AllowAnonymous]
         [HttpGet]
+        [Route("about")]
         public IActionResult About()
         {
             return View();
@@ -49,6 +53,7 @@ namespace MH.Capstone.WebApp.Controllers
 
         [AllowAnonymous]
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        [Route("error")]
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
@@ -60,8 +65,9 @@ namespace MH.Capstone.WebApp.Controllers
         /// Only active when FeatureFlag "EnableEmailTestEndpoint" is enabled.
         /// </summary>
         [Authorize]
-        [HttpPost("/uat/emailer")]
-        [HttpPost("/uat/email")]
+        [HttpGet]
+        [Route("uat/emailer")]
+        [Route("uat/email")]
         public async Task<IActionResult> SendTestEmail()
         {
             // Check feature flag first
@@ -86,7 +92,7 @@ namespace MH.Capstone.WebApp.Controllers
             }
 
             const string subject = "WildlifeAID - Test Email";
-            const string body = "This is a test email from the WildlifeAID Team!";
+            var body = $"This is a test email from the WildlifeAID Team at {DateTimeOffset.UtcNow}!";
 
             try
             {
