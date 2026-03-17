@@ -84,9 +84,45 @@ namespace MH.Capstone.Domain.DataAccess.Repositories
             {
                 throw new ArgumentNullException(nameof(entity), "Entity must not be null to add or update");
             }
-            _context.Update(entity);
-            await _context.SaveChangesAsync();
-            return entity;
+
+            // Try to determine primary key values so we can decide whether to Add or Update
+            var entityType = _context.Model.FindEntityType(typeof(TEntity));
+            var primaryKey = entityType?.FindPrimaryKey();
+            if (primaryKey == null || primaryKey.Properties.Count == 0)
+            {
+                // Fallback to Update if we cannot determine the key
+                _context.Update(entity);
+                await _context.SaveChangesAsync();
+                return entity;
+            }
+
+            var keyProperties = primaryKey.Properties.Select(p => p.PropertyInfo).ToArray();
+            if (keyProperties.Any(pi => pi == null))
+            {
+                // If any key property info is missing, fallback
+                _context.Update(entity);
+                await _context.SaveChangesAsync();
+                return entity;
+            }
+
+            var keyValues = keyProperties.Select(pi => pi!.GetValue(entity)).ToArray();
+
+            // Attempt to find the existing entity by key values
+            var found = await _dbSet.FindAsync(keyValues);
+            if (found == null)
+            {
+                // Not found - add new
+                _dbSet.Add(entity);
+                await _context.SaveChangesAsync();
+                return entity;
+            }
+            else
+            {
+                // Found - update existing values
+                _context.Entry(found).CurrentValues.SetValues(entity);
+                await _context.SaveChangesAsync();
+                return found;
+            }
         }
 
         public virtual async Task DeleteAsync(TEntity entity)

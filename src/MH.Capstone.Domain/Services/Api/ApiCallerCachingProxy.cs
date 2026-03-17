@@ -1,4 +1,5 @@
-﻿using MH.Capstone.Domain.ApiContracts;
+﻿using System.Linq;
+using MH.Capstone.Domain.ApiContracts;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
@@ -57,9 +58,9 @@ namespace MH.Capstone.Domain.Services.Api
                     _logger.LogInformation(
                         "Cache miss for URL: {Url} with query params: {QueryParams}. Calling real API.", url,
                         queryParams);
-                    // Call the real API expecting the API DTO type
-                    var apiResult = await _realApiCaller.GetAsync<TApiDto>(url, queryList);
-                    // Cache the result (as a collection with a single item)
+                    // Call the real API expecting the API DTO collection type
+                    var apiResult = await _realApiCaller.GetAsync<IEnumerable<TApiDto>>(url, queryList);
+                    // Cache the result (as a collection)
                     cachedResult = await CacheResults(url, apiResult, queryParamsStr);
                 }
 
@@ -100,7 +101,7 @@ namespace MH.Capstone.Domain.Services.Api
             }
         }
 
-        private async Task<TCacheEntity> CacheResults(string url, TApiDto apiResult, string? queryParamsStr)
+        private async Task<TCacheEntity> CacheResults(string url, IEnumerable<TApiDto> apiResult, string? queryParamsStr)
         {
             try
             {
@@ -111,8 +112,8 @@ namespace MH.Capstone.Domain.Services.Api
                 cacheAsInterface.Url = url;
                 cacheAsInterface.QueryParams = queryParamsStr ?? string.Empty;
                 cacheAsInterface.CachedAt = DateTimeOffset.UtcNow;
-                // Add the single API result as the initial cached response in the collection
-                cacheAsInterface.CachedResponses = new List<TApiDto> { apiResult };
+                // Add the API results as the initial cached responses in the collection
+                cacheAsInterface.CachedResponses = apiResult.ToList();
 
                 return await _cacheRepo.AddOrUpdateAsync(cachedEntity);
             }
