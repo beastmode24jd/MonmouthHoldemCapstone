@@ -6,33 +6,28 @@ namespace MH.Capstone.WebApp.Models
 {
     public class SightingUploadViewModel
     {
-        [Required] 
-        [PastDateTime]
-        [DisplayFormat(DataFormatString = "{0:yyyy-MM-ddTHH:mm}", ApplyFormatInEditMode = true)]
-        public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.Now;
-
-        // Holds the IANA string (e.g., "America/Los_Angeles")
-        // Defaults to Pacific Time instead of UTC for the display. IS NOT SAVED TO DB.
         public string DeviceTimezone { get; set; } = "America/Los_Angeles";
-
         [Required]
-        [Range(-9.00000, 90.00000, ErrorMessage = "Latitude must be within -90 and 90 inclusive")]
-        // Explicitly defines the display format to 5 decimal places
-        [DisplayFormat(DataFormatString = "{0:00.00000}", ApplyFormatInEditMode = true)]
+        [Range(-90.00000, 90.00000, ErrorMessage = "Latitude must be within -90 and 90 inclusive")]
+        [DisplayFormat(DataFormatString = "{0:F5}", ApplyFormatInEditMode = true)]
         public decimal Latitude { get; set; } = 0.0m;
 
         [Required]
         [Range(-180.00000, 180.00000, ErrorMessage = "Longitude must be within -180 and 180 inclusive")]
-        // Explicitly defines the display format to 5 decimal places
-        [DisplayFormat(DataFormatString = "{0:000.00000}", ApplyFormatInEditMode = true)]
+        [DisplayFormat(DataFormatString = "{0:F5}", ApplyFormatInEditMode = true)]
         public decimal Longitude { get; set; } = 0.0m;
 
-        [MaxLength(500)] 
+        [MaxLength(500)]
         public string? Description { get; set; } = string.Empty;
 
         [Required]
         //[Range(1, 2 * (1024 * 1024))]
         public IFormFile? UploadedImage { get; set; }
+
+        [Required]
+        [PastDateTime]
+        [DisplayFormat(DataFormatString = "{0:yyyy-MM-ddTHH:mm}", ApplyFormatInEditMode = true)]
+        public DateTimeOffset Timestamp { get; set; } // Relies on Sighting Controller's input
 
         public SightingUploadViewModel() {}
 
@@ -50,11 +45,17 @@ namespace MH.Capstone.WebApp.Models
     {
         internal static Sighting ToDataModel(this SightingUploadViewModel vm, Guid userId)
         {
+            // Need to resolve the user timezone offset when we save this to the DB
+            var userZone = TimeZoneInfo.FindSystemTimeZoneById(vm.DeviceTimezone);
+
+            // Convert the user's local time back to UTC
+            DateTimeOffset utcTimestamp = TimeZoneInfo.ConvertTimeToUtc(vm.Timestamp.DateTime, userZone);
+
             return new Sighting
             {
                 Id = Guid.Empty, // So EF will generate a new ID when saving (Add)
                 UserId = userId,
-                Timestamp = vm.Timestamp.ToUniversalTime(),
+                Timestamp = utcTimestamp.UtcDateTime,
                 Latitude = vm.Latitude,
                 Longitude = vm.Longitude,
                 Description = vm.Description,

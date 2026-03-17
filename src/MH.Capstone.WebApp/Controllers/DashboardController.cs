@@ -75,22 +75,25 @@ namespace MH.Capstone.WebApp.Controllers
                 }
             }
 
+            // Get the user device's local timezone cookie, default timezone is PST
+            string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
+
             // Need to check if user has badges on initial page load
             if (user is { UserBadges.Count: 0 })
             {
                 if (user.Bio != null)
                 {
-                    await _badgeService.AddBadge(user, BadgeId.CustomBioBadgeGUID);
+                    await _badgeService.AddBadge(user, BadgeId.CustomBioBadgeGUID, userTimeZoneId);
                 }
 
                 if (user.Sightings.Count >= 1)
                 {
-                    await _badgeService.AddBadge(user, BadgeId.FirstSightingBadgeGUID);
+                    await _badgeService.AddBadge(user, BadgeId.FirstSightingBadgeGUID, userTimeZoneId);
                 }
 
                 if (user.ProfileImage != null)
                 {
-                    await _badgeService.AddBadge(user, BadgeId.ProfileBadgeGUID);
+                    await _badgeService.AddBadge(user, BadgeId.ProfileBadgeGUID, userTimeZoneId);
                 }
             }
 
@@ -99,8 +102,29 @@ namespace MH.Capstone.WebApp.Controllers
             if (user != null)
             {
                 sortedBadges = await _badgeService.SortBadgesByTime(user.UserBadges);
+
+                TimeZoneInfo userZone;
+                try
+                {
+                    userZone = TimeZoneInfo.FindSystemTimeZoneById(userTimeZoneId);
+                }
+                catch
+                {
+                    // Fallback for Windows environment or invalid IANA IDs
+                    userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+                }
+
+                // Convert the UTC DB BadgeEarned DateTimeOffsets to local time
+                foreach (UserBadge ub in sortedBadges)
+                {
+                    if (ub.BadgeEarned.HasValue)
+                    {
+                        ub.BadgeEarned = TimeZoneInfo.ConvertTime(ub.BadgeEarned.Value, userZone);
+                    }
+                }
             }
 
+            ViewData["UserTimeZone"] = userTimeZoneId;
             ViewData["SortedBadges"] = sortedBadges;
             ViewData["statusMsgHtml"] = statusMsgHtml;
             return View();
@@ -152,8 +176,11 @@ namespace MH.Capstone.WebApp.Controllers
                     await _userService.UpdateUserProfileImageAsync(userEmail, imageData, profilePicture.ContentType);
                     _logger.LogInformation("Profile image updated for user {Email}", userEmail);
 
+                    // Get the user device's local timezone cookie, default timezone is PST
+                     string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
+
                     // Add the Custom Profile Badge to the User object
-                    await _badgeService.AddBadge(user, BadgeId.ProfileBadgeGUID);
+                    await _badgeService.AddBadge(user, BadgeId.ProfileBadgeGUID, userTimeZoneId);
                 }
             }
             else
@@ -183,9 +210,12 @@ namespace MH.Capstone.WebApp.Controllers
                 //                                 skip the badge update.
                 if (!string.IsNullOrWhiteSpace(newBio))
                 {
+                    // Get the user device's local timezone cookie, default timezone is PST
+                    string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
+
                     // Add the custom Bio Badge to the UserBadges list.
                     // Does not add the badge if the user already has a custom bio.
-                    await _badgeService.AddBadge(user, BadgeId.CustomBioBadgeGUID);
+                    await _badgeService.AddBadge(user, BadgeId.CustomBioBadgeGUID, userTimeZoneId);
                 }
             }
 

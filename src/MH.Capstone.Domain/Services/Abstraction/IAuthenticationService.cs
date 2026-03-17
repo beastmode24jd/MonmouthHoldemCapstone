@@ -14,7 +14,7 @@ namespace MH.Capstone.Domain.Services.Abstraction
 	
 	    Task<bool> CheckPasswordAsync(string email, string password); /// Check Password
 
-        Task<bool> DeactivateAccountAsync(string email, string password);
+        Task<bool> DeactivateAccountAsync(string email);
 
 	    Task<bool> ReactivateAccountAsync(string email, string password);
 

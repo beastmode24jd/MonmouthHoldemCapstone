@@ -395,7 +395,6 @@ public class AuthenticationServiceTests
     {
         // Arrange
         const string email = "test@example.com";
-        const string password = "ValidPassword123!";
 
         var user = new ApplicationUser
         {
@@ -408,17 +407,12 @@ public class AuthenticationServiceTests
         _userManagerMock.Setup(um => um.FindByEmailAsync(email))
             .ReturnsAsync(user).Verifiable(Times.Once);
 
-        // CheckPasswordSignInAsync needs to return a success
-        _signInManagerMock.Setup(sm => 
-                sm.CheckPasswordSignInAsync(user, password, It.IsAny<bool>()))
-            .ReturnsAsync(SignInResult.Success).Verifiable(Times.Once);
-
         // UpdateUserAsync needs to return a success
         _userManagerMock.Setup(um => um.UpdateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success).Verifiable(Times.Once);
 
         // Act
-        var result = await _authService.DeactivateAccountAsync(email, password);
+        var result = await _authService.DeactivateAccountAsync(email);
 
         // Assert
         Assert.That(user.IsDeactivated, Is.True, "User was not set to deactivated after valid authService call.");
@@ -427,86 +421,18 @@ public class AuthenticationServiceTests
     }
 
     [Test]
-    public async Task DeactivateAccountAsync_WithWrongPassword_ReturnsFalse()
-    {
-        // Arrange
-        const string email = "test@example.com";
-        const string wrongPassword = "Test@123";
-        var user = new ApplicationUser
-        {
-            Email = email,
-            UserName = email,
-            IsDeactivated = false
-        };
-
-        // Return user on search
-        _userManagerMock.Setup(um => um.FindByEmailAsync(email))
-            .ReturnsAsync(user).Verifiable(Times.Once);
-
-        // CheckPasswordSignInAsync needs to return a failure for the wrong password
-        _signInManagerMock.Setup(sm => 
-                sm.CheckPasswordSignInAsync(user, wrongPassword, It.IsAny<bool>()))
-            .ReturnsAsync(SignInResult.Failed).Verifiable(Times.Once);
-
-        // Act
-        var result = await _authService.DeactivateAccountAsync(email, wrongPassword);
-
-        // Assert
-        Assert.That(result, Is.False);
-        AssertAllMockVerifySetups();
-
-        // Special verification to ensure that the user manager Update method was never called as
-        // the password was wrong and the guard statement should have prevented it.
-        _userManagerMock.Verify(um => um.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
-    }
-
-    [Test]
-    public async Task DeactivateAccountAsync_WithWrongPassword_DoesNotDeactivate()
-    {
-        // Arrange
-        const string email = "test@example.com";
-        const string wrongPassword = "WrongPassword!";
-        var user = new ApplicationUser
-        {
-            Email = email,
-            UserName = email,
-            IsDeactivated = false
-        };
-
-        // Return user on search
-        _userManagerMock.Setup(um => um.FindByEmailAsync(email))
-            .ReturnsAsync(user).Verifiable(Times.Once);
-
-        // CheckPasswordSignInAsync should return a failure for the wrong password
-        _signInManagerMock.Setup(sm => 
-                sm.CheckPasswordSignInAsync(user, wrongPassword, It.IsAny<bool>()))
-            .ReturnsAsync(SignInResult.Failed).Verifiable(Times.Once);
-
-        // Act
-        await _authService.DeactivateAccountAsync(email, wrongPassword);
-
-        // Assert
-        Assert.That(user.IsDeactivated, Is.False, "User was deactivated despite invalid authService call.");
-        AssertAllMockVerifySetups();
-
-        // Special verification to ensure that the user manager Update method was never called,
-        // as the password was wrong and the guard statement should have prevented it.
-        _userManagerMock.Verify(um => um.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
-    }
-
-    [Test]
     public async Task DeactivateAccountAsync_WithNonexistentUser_ReturnsFalse()
     {
         // Arrange - Use an email that doesn't exist
         const string invalidEmail = "nonexistent@example.com";
-        const string password = "TestPass@135";
+        //const string password = "TestPass@135";
 
         // Set up userManagerMock to return null when called to search
         _userManagerMock.Setup(um => um.FindByEmailAsync(invalidEmail))
             .ReturnsAsync(value: null!).Verifiable(Times.Once);
 
         // Act
-        var result = await _authService.DeactivateAccountAsync(invalidEmail, password);
+        var result = await _authService.DeactivateAccountAsync(invalidEmail);
 
         // Assert
         Assert.That(result, Is.False, "DeactivateAccountAsync deactivated a non-existent user.");

@@ -26,7 +26,7 @@ namespace MH.Capstone.Domain.Tools
 
             if (value is DateTime dateTime)
             {
-                dtoValue = dateTime;
+                dtoValue = new DateTimeOffset(dateTime);
             }
             else if (value is DateTimeOffset offsetValue)
             {
@@ -34,16 +34,15 @@ namespace MH.Capstone.Domain.Tools
             }
             else
             {
-                // Check if the value is null or not valid and return a validation error if so
-                // Originally checked: if (value is not DateTime dateTimeValue)
                 return new ValidationResult($"The {validationContext.DisplayName} field must be a valid date and time.", memberNames);
             }
 
-            var now = _useUtc ? DateTime.UtcNow : DateTime.Now;
-            // Check if the date and time is in the past and return a validation error if it's not
-            return dtoValue > now ? 
-                new ValidationResult($"The {validationContext.DisplayName} field must be a past date and time.", memberNames) 
-                : ValidationResult.Success;
+            var now = _useUtc ? DateTimeOffset.UtcNow : DateTimeOffset.Now;
+            if (dtoValue > now)
+            {
+                return new ValidationResult($"The {validationContext.DisplayName} field must be a past date and time.", memberNames);
+            }
+            return ValidationResult.Success;
         }
     }
 }

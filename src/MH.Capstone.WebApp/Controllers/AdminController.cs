@@ -27,8 +27,15 @@ namespace MH.Capstone.WebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> PromoteToAdmin(string email)
+        public async Task<IActionResult> PromoteToAdmin(string email, string adminPassword)
         {
+            // Check that the admin password is correct.
+            if (!await VerifyAdminPasswordAsync(adminPassword))
+            {
+                TempData["Error"] = "Invalid administrator credentials.";
+                return RedirectToAction(nameof(Manage));
+            }
+
             if (string.IsNullOrWhiteSpace(email))
             {
                 TempData["Error"] = "Please provide a valid email address.";
@@ -75,8 +82,15 @@ namespace MH.Capstone.WebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DemoteFromAdmin(string email)
+        public async Task<IActionResult> DemoteFromAdmin(string email, string adminPassword)
         {
+            // Check that the admin password is correct
+            if (!await VerifyAdminPasswordAsync(adminPassword))
+            {
+                TempData["Error"] = "Invalid administrator credentials.";
+                return RedirectToAction(nameof(Manage));
+            }
+
             if (string.IsNullOrWhiteSpace(email))
             {
                 TempData["Error"] = "Please enter a valid email address.";
@@ -131,23 +145,24 @@ namespace MH.Capstone.WebApp.Controllers
             }
 
             // Verify the Admin's identity and password
-            var adminUser = await _userManager.GetUserAsync(User);
-            if (adminUser == null || !await _userManager.CheckPasswordAsync(adminUser, adminPassword))
+            if (!await VerifyAdminPasswordAsync(adminPassword))
             {
-                TempData["Error"] = "Please enter valid credentials.";
+                TempData["Error"] = "Invalid administrator credentials.";
                 return RedirectToAction(nameof(Manage));
             }
 
-            // Prevent the Admin from deactivating themselves
-            if (targetEmail.Equals(adminUser.Email, StringComparison.OrdinalIgnoreCase))
+            // VerifyAdminPasswordAsync checks if the adminUser is null, hence the bang operator
+            var adminUser = await _userManager.GetUserAsync(User);
+            if (targetEmail.Equals(adminUser!.Email, StringComparison.OrdinalIgnoreCase))
             {
+                // Prevent the Admin from deactivating themselves
                 TempData["Error"] = "You cannot deactivate your account from the Admin Management page.";
                 return RedirectToAction(nameof(Manage));
             }
 
             // Find the selected User account
             var targetUser = await _userManager.FindByEmailAsync(targetEmail);
-            if (targetUser == null || targetUser.Email == null || targetUser.PasswordHash == null)
+            if (targetUser == null || targetUser.Email == null)
             {
                 TempData["Error"] = "Please enter a valid email address.";
                 return RedirectToAction(nameof(Manage));
@@ -162,7 +177,7 @@ namespace MH.Capstone.WebApp.Controllers
 
             // Use AuthenticationService to perform the deactivation
             // targetUser has already been verified to not be null.
-            var success = await _authService.DeactivateAccountAsync(targetUser.Email!, targetUser.PasswordHash!);
+            var success = await _authService.DeactivateAccountAsync(targetUser.Email!);
 
             if (success)
             {
@@ -174,6 +189,13 @@ namespace MH.Capstone.WebApp.Controllers
             }
 
             return RedirectToAction(nameof(Manage));
+        }
+        private async Task<bool> VerifyAdminPasswordAsync(string password)
+        {
+            if (string.IsNullOrWhiteSpace(password)) return false;
+            
+            var adminUser = await _userManager.GetUserAsync(User);
+            return adminUser != null && await _userManager.CheckPasswordAsync(adminUser, password);
         }
     }
 }

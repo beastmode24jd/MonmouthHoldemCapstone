@@ -50,13 +50,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
 });
 
-// Should format the string for the Sightings Upload notifications, to fix AM/PM issues.
-// Gets clientside timezone info for display.
-// This converts the UTC string from the server to the user's local device time
-const deviceTime = new Date(notificationTimestampFromServer).toLocaleString([], {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: 'numeric', minute: '2-digit', hour12: true
-});
+/* Adding global script for detecting the user's IANA timezone.
+        Saves it to a cookie for the server to use, populates 'deviceTimezone'
+        input field if it exists on the page.
+*/
+
+function initUserTimezone() {
+    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    // Save to cookie (Expires in 1 year, accessible site-wide)
+    document.cookie = "UserTimeZone=" + userTimezone + ";path=/;max-age=31536000;SameSite=Lax";
+
+    // Auto-fill hidden input for the Sighting Upload form
+    const tzInput = document.getElementById('deviceTimezone');
+    if (tzInput) {
+        tzInput.value = userTimezone;
+    }
+}
 
 // Updates the user bio character counter.
 document.addEventListener("DOMContentLoaded", function ()
@@ -121,6 +131,7 @@ function registerPasswordToggles() {
 document.addEventListener("DOMContentLoaded", function() {
     registerAllNumericInputs();  // Reworked from original global registration
     registerPasswordToggles();  // New global registration
+    initUserTimezone();         // Gets timezone cookie from the user, for page display
 });
 
 // Thanks, ChatGPT, for the help with this function!

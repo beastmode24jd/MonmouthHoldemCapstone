@@ -93,14 +93,19 @@ public class MapControllerTests
     [Test]
     public async Task GetSightings_ReturnsEmptyList_WhenNoSightingsExist()
     {
+        // Arrange
+        _mockSightingsService.Setup(s => s.GetSightingsInBoundsAsync(
+            It.IsAny<decimal>(), It.IsAny<decimal>(), It.IsAny<decimal>(), It.IsAny<decimal>()))
+            .ReturnsAsync(new List<Sighting>());
+
         // Act
         var result = await _controller.GetSightings(45.0, 46.0, -123.0, -122.0) as JsonResult;
 
         // Assert
         Assert.That(result, Is.Not.Null);
-        Assert.That(result.Value, Is.InstanceOf<List<object>>());
-        var sightings = result.Value as List<object>;
-        Assert.That(sightings, Is.Empty);
+        var sightings = result.Value as IEnumerable<object>;
+        Assert.That(sightings, Is.Not.Null);
+        Assert.That(sightings.Count(), Is.EqualTo(0));
     }
 
     [Test]
@@ -120,7 +125,7 @@ public class MapControllerTests
             x => x.Log(
                 LogLevel.Information,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Fetched") && v.ToString()!.Contains("sightings")),                
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Fetched") && v.ToString()!.Contains("sightings")),
                 null,
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);

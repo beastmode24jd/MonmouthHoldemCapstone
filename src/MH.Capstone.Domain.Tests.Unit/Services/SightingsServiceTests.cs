@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http.Internal;
 using MH.Capstone.Domain.DataAccess;
+using System.Linq.Expressions;
 
 #pragma warning disable CA1416
 
@@ -33,7 +34,7 @@ public class SightingsServiceTests
     [SetUp]
     public void Setup()
     {
-        _imageGenerator = new FakeImageGenerator(); 
+        _imageGenerator = new FakeImageGenerator();
         _validSighting = SightingValidValuesSource.DefaultValidSighting;
         _sightingsRepoMock = new Mock<IRepository<Sighting, ApplicationDbContext>>();
         _scoringServiceMock = new Mock<IScoringService>();
@@ -48,7 +49,7 @@ public class SightingsServiceTests
     }
 
     private SightingsService CreateSut() =>
-        new (NullLogger<SightingsService>.Instance,
+        new(NullLogger<SightingsService>.Instance,
             _scoringServiceMock.Object,
             _notificationServiceMock.Object,
             _sightingsRepoMock.Object,
@@ -80,12 +81,12 @@ public class SightingsServiceTests
         [ValueSource(typeof(SightingValidValuesSource), nameof(SightingValidValuesSource.GetValidDescriptions))] string desc)
     {
         // Arrange
-        var sighting = new Sighting(_validSighting.Id, _validSighting.UserId, lat, lon, 
+        var sighting = new Sighting(_validSighting.Id, _validSighting.UserId, lat, lon,
             timestamp, desc, [0x01]);
         var sightingsCount = GetRandomIntInRange(1, 100);
         var pointsValue = GetRandomIntInRange(1, 20);
 
-        _sightingsRepoMock.Setup(r => 
+        _sightingsRepoMock.Setup(r =>
             r.AddOrUpdateAsync(It.Is(sighting, SightingComparer.Instance)))
             .ReturnsAsync(sighting).Verifiable(Times.Once);
 
@@ -155,8 +156,11 @@ public class SightingsServiceTests
 
         var sut = CreateSut();
 
-        // Act & Assert
-        Assert.DoesNotThrowAsync(() => sut.CreateSightingAsync(sighting));
+        // Fix 1: Ensure the ImageBuffer isn't empty (use a mock PNG header)
+        sighting.ImageBuffer = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+
+        // Fix 2: Pass the required TimeZone parameter
+        Assert.DoesNotThrowAsync(() => sut.CreateSightingAsync(sighting, "America/Los_Angeles"));
         AssertAllMockVerifications();
     }
 
@@ -227,7 +231,7 @@ public class SightingsServiceTests
         var sighting = _validSighting;
         _validSighting.UserId = Guid.AllBitsSet;
 
-        _sightingsRepoMock.Setup(r => 
+        _sightingsRepoMock.Setup(r =>
             r.AddOrUpdateAsync(It.Is(sighting, SightingComparer.Instance)))
             .ThrowsAsync(new DbUpdateException("Foreign key violation", new SqlExceptionBuilder().WithNumber(547).Build()))
             .Verifiable(Times.Once);
@@ -277,6 +281,86 @@ public class SightingsServiceTests
         AssertAllMockVerifications();
     }
 
+    [Test]
+    public async Task GetSightingsInBoundsAsync_ReturnsSightingsWithinBounds()
+    {
+        // Arrange
+        var sightingInBounds = new Sighting
+        {
+            Id = Guid.NewGuid(),
+            Latitude = 45.0m,
+            Longitude = -123.0m,
+            Timestamp = DateTimeOffset.UtcNow.AddHours(-1),
+            Description = "Test sighting",
+            ImageBuffer = new byte[] { 0x01 }
+        };
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting,bool>>>()))
+            .ReturnsAsync(new List<Sighting> { sightingInBounds }.AsQueryable());
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetSightingsInBoundsAsync(44.0m, 46.0m, -124.0m, -122.0m);
+
+        // Assert
+        Assert.That(result.Count(), Is.EqualTo(1));
+        Assert.That(result.First().Id, Is.EqualTo(sightingInBounds.Id));
+    }
+
+    [Test]
+    public async Task GetSightingsInBoundsAsync_ExcludesSightingsOutsideBounds()
+    {
+        // Arrange
+        var sightingOutOfBounds = new Sighting
+        {
+            Id = Guid.NewGuid(),
+            Latitude = 34.0m,  // Los Angeles area - outside Oregon bounds
+            Longitude = -118.0m,
+            Timestamp = DateTimeOffset.UtcNow.AddHours(-1),
+            Description = "Out of bounds sighting",
+            ImageBuffer = new byte[] { 0x01 }
+        };
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(new List<Sighting> { sightingOutOfBounds }.AsQueryable());
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetSightingsInBoundsAsync(44.0m, 46.0m, -124.0m, -122.0m);
+
+        // Assert
+        Assert.That(result.Count(), Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task GetSightingsInBoundsAsync_ExcludesSightingsOlderThanSevenDays()
+    {
+        // Arrange
+        var oldSighting = new Sighting
+        {
+            Id = Guid.NewGuid(),
+            Latitude = 45.0m,
+            Longitude = -123.0m,
+            Timestamp = DateTimeOffset.UtcNow.AddDays(-10),  // 10 days old
+            Description = "Old sighting",
+            ImageBuffer = new byte[] { 0x01 }
+        };
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(new List<Sighting> { oldSighting }.AsQueryable());
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetSightingsInBoundsAsync(44.0m, 46.0m, -124.0m, -122.0m);
+
+        // Assert
+        Assert.That(result.Count(), Is.EqualTo(0));
+    }
+
+
     [TestCase("txt")]
     [TestCase("pdf")]
     [TestCase("cs")]
@@ -303,7 +387,7 @@ public class SightingsServiceTests
     }
 
     [Test]
-    public void ValidateImageAsync_TooLargeImageFIle_ReturnsFalse()
+    public void ValidateImageAsync_TooLargeImageFile_ReturnsFalse()
     {
         // Arrange
         // The max allowed image size is 2 MB, so we test just above that limit. We use Stream.Null
@@ -316,6 +400,137 @@ public class SightingsServiceTests
         // Act & Assert
         Assert.That(sut.ValidateImage(imgFile), Is.False);
         AssertAllMockVerifications();
+    }
+
+    #region CSP-145: GetUserSightingsAsync Tests
+
+    [Test]
+    public async Task GetUserSightingsAsync_ValidUserId_ReturnsSightingsForThatUser()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var userSightings = new List<Sighting>
+        {
+            new() { Id = Guid.NewGuid(), UserId = userId, Timestamp = DateTime.UtcNow.AddDays(-1), ImageBuffer = [0x01] },
+            new() { Id = Guid.NewGuid(), UserId = userId, Timestamp = DateTime.UtcNow.AddDays(-2), ImageBuffer = [0x01] }
+        }.AsQueryable();
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(userSightings);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetUserSightingsAsync(userId);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Count(), Is.EqualTo(2));
+        _sightingsRepoMock.Verify(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Sighting, bool>>>()), Times.Once);
+    }
+
+    [Test]
+    public async Task GetUserSightingsAsync_UserWithNoSightings_ReturnsEmptyEnumerable()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var emptySightings = Enumerable.Empty<Sighting>().AsQueryable();
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(emptySightings);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetUserSightingsAsync(userId);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result, Is.Empty);
+    }
+
+    [Test]
+    public async Task GetUserSightingsAsync_MultipleSightings_ReturnsOrderedByTimestampDescending()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var userSightings = new List<Sighting>
+        {
+            new() { Id = Guid.NewGuid(), UserId = userId, Timestamp = DateTime.UtcNow.AddDays(-5), ImageBuffer = [0x01] },
+            new() { Id = Guid.NewGuid(), UserId = userId, Timestamp = DateTime.UtcNow.AddDays(-1), ImageBuffer = [0x01] },
+            new() { Id = Guid.NewGuid(), UserId = userId, Timestamp = DateTime.UtcNow.AddDays(-3), ImageBuffer = [0x01] }
+        }.AsQueryable();
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(userSightings);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = (await sut.GetUserSightingsAsync(userId)).ToList();
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Count, Is.EqualTo(3));
+        // Verify descending order: newest first
+        Assert.That(result[0].Timestamp, Is.GreaterThan(result[1].Timestamp));
+        Assert.That(result[1].Timestamp, Is.GreaterThan(result[2].Timestamp));
+    }
+
+    #endregion
+
+        [Test]
+    public async Task CreateSightingAsync_UserHasActiveStreak_Applies1Point5Multiplier()
+    {
+        // Arrange
+        var userId = Guid.NewGuid().ToString();
+        var basePoints = 100;
+        var expectedPoints = 150; // 100 * 1.5
+
+        // Create Sighting tied to the user
+        var sighting = SightingValidValuesSource.DefaultValidSighting;
+        sighting.UserIdentityId = userId; 
+
+        // Create user with an active streak
+        // In ApplicationUser.cs, IsStreakActive is true if LastLogin is within 30 days
+        var user = new ApplicationUser
+        {
+            Id = userId,
+            Points = 0,
+            LastLogin = DateTimeOffset.UtcNow 
+        };
+
+        // Mock a Sighting
+        _sightingsRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<Sighting>()))
+            .ReturnsAsync(sighting);
+
+        // Mock Sighting scoring
+        _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(It.IsAny<int>()))
+            .ReturnsAsync(10);
+        _scoringServiceMock.Setup(s => s.CalculatePointsAsync(It.IsAny<int>()))
+            .ReturnsAsync(basePoints);
+
+        // Mock user querying, so IsStreakActive can be accessed.
+        _userRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(new List<ApplicationUser> { user }.AsQueryable());
+        _userRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(user);
+
+        var sut = CreateSut();
+        var result = await sut.CreateSightingAsync(sighting);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            // Verify the multiplied points
+            Assert.That(result, Is.EqualTo(expectedPoints), "The service should return 1.5x points when streak is active.");
+
+            // Verify user points were updated correctly
+            Assert.That(user.Points, Is.EqualTo(expectedPoints), "The user's Points property should be updated with the multiplier.");
+
+            // Verify user repository was called to save the new point total
+            _userRepoMock.Verify(r => r.AddOrUpdateAsync(It.Is<ApplicationUser>(u => u.Id == userId && u.Points == expectedPoints)), Times.Once);
+        });
     }
 
     private static IFormFile GenerateBadFormFile(Stream stream, int offset, int len, string filename)
@@ -331,33 +546,19 @@ public class SightingComparer : IEqualityComparer<Sighting>
 
     public bool Equals(Sighting? x, Sighting? y)
     {
-        //
-        if(ReferenceEquals(x, y)) return true;
-
-        // First check for nulls to avoid NullReferenceException when calling GetHashCode
+        if (ReferenceEquals(x, y)) return true;
         if (x == null || y == null) return false;
 
-        // DateTimeOffset breaks the original GetHashCode comparison setup, because
-        //  1) SQL Servers truncate DateTimeOffset values, so it doesn't replicate
-        //      the comparison of DateTimeOffset like it did with DateTime
-        //  2) DateTimeOffset is precise enough to measure nanoseconds. Running
-        //      new DateTimeOffset value initializations could give *nearly* the same
-        //      DateTimeOffset, and it would still fail due to this.
-
-        // So, we manually return a very long logical "and" statement.
         return x.Id == y.Id &&
                x.UserId == y.UserId &&
                x.Latitude == y.Latitude &&
                x.Longitude == y.Longitude &&
                x.Description == y.Description &&
-               // Compares exact point in time, regardless of timezone offset
-               x.Timestamp.Equals(y.Timestamp) && 
-               (x.ImageBuffer == null && y.ImageBuffer == null || 
+               x.Timestamp.Equals(y.Timestamp) &&
+               (x.ImageBuffer == null && y.ImageBuffer == null ||
                 x.ImageBuffer != null && y.ImageBuffer != null && x.ImageBuffer.SequenceEqual(y.ImageBuffer));
     }
 
-    // We combine all properties of Sighting to generate a hash code,
-    // ensuring that two Sightings with the same values will have the same hash code
     public int GetHashCode(Sighting obj)
     {
         var hash = new HashCode();
@@ -366,7 +567,7 @@ public class SightingComparer : IEqualityComparer<Sighting>
         hash.Add(obj.Description);
         hash.Add(obj.Latitude);
         hash.Add(obj.Longitude);
-        hash.Add(obj.Timestamp.UtcTicks); // Ensures the DateTimeOffset ticks are equal (nanoseconds)
+        hash.Add(obj.Timestamp.UtcTicks);
         hash.Add(obj.ImageBuffer);
         return hash.ToHashCode();
     }
@@ -377,11 +578,10 @@ public struct SightingValidValuesSource
 {
     public const int _EnumerableCounts = 2;
 
-    // Prevents DateTimeOffset drift during testing
     private static readonly DateTimeOffset _fixedBaseTime = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
 
     public static Sighting DefaultValidSighting =>
-        new Sighting(Guid.NewGuid(), Guid.NewGuid(), 0m, 0m, _fixedBaseTime, 
+        new Sighting(Guid.NewGuid(), Guid.NewGuid(), 0m, 0m, _fixedBaseTime,
             string.Empty, [0x01]);
 
     public static IEnumerable<decimal> GetValidLats() =>
@@ -392,7 +592,7 @@ public struct SightingValidValuesSource
 
     public static IEnumerable<string> GetValidDescriptions()
     {
-        int maxLength = 500; // Max length for description
+        int maxLength = 500;
         for (int i = 0; i < _EnumerableCounts; i++)
         {
             yield return GetRandomStringOfLength(GetRandomIntInRange(1, maxLength));
@@ -401,8 +601,6 @@ public struct SightingValidValuesSource
 
     public static IEnumerable<DateTimeOffset> GetValidTimestamps()
     {
-        // Uses a fixed point, due to the nanosecond sensitivity of DateTimeOffset
-
         for (int i = 0; i < _EnumerableCounts; i++)
         {
             yield return _fixedBaseTime.AddDays(-i);

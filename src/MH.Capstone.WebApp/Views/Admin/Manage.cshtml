@@ -8,6 +8,7 @@
             <h2 class="card-title">User Role Management</h2>
             <hr />
 
+            @* Alert/Notification message area *@
             @if (TempData["Error"] != null)
             {
                 <div class="alert alert-danger">@TempData["Error"]</div>
@@ -19,25 +20,30 @@
 
             <p class="text-muted">Enter a user's email to promote them to the Admin role.</p>
 
-            <form asp-action="PromoteToAdmin" method="post" class="mt-3">
+            <form id="promoteForm" asp-action="PromoteToAdmin" method="post" class="mt-3">
+                <input type="hidden" name="adminPassword" class="modal-password-target" />
                 <div class="mb-3 col-md-6">
                     <label for="email" class="form-label">User Email</label>
                     <input type="email" name="email" id="email" class="form-control" required />
                 </div>
-                <button type="submit" class="btn btn-primary">Elevate to Admin</button>
+                <button type="button" class="btn btn-primary" onclick="showPasswordModal('promoteForm')">
+                    Elevate to Admin
+                </button>
             </form>
             
             <hr class="my-4" />
 
             <h4 class="text-danger"><i class="bi bi-person-dash"></i> Revoke Admin Rights</h4>
             <p class="text-muted">Enter a user's email to remove them from the Admin role.</p>
-
-            <form asp-action="DemoteFromAdmin" method="post" class="mt-3">
+            <form id="demoteForm" asp-action="DemoteFromAdmin" method="post" class="mt-3">
+                <input type="hidden" name="adminPassword" class="modal-password-target" />
                 <div class="mb-3 col-md-6">
                     <label for="demoteEmail" class="form-label">User Email</label>
                     <input type="email" name="email" id="demoteEmail" class="form-control" required />
                 </div>
-                <button type="submit" class="btn btn-outline-danger">Revoke Admin Status</button>
+                <button type="button" class="btn btn-outline-danger" onclick="showPasswordModal('demoteForm')">
+                    Revoke Admin Status
+                </button>
             </form>
 
             <hr class="my-4" />
@@ -45,31 +51,48 @@
             <h2><i class="bi bi-person-x-fill"></i> Deactivate User Account</h2>
             <p class="text-muted">Enter the user's email and <strong>your admin password</strong> to confirm deactivation.</p>
 
-            <form asp-action="DeactivateUser" method="post" class="mt-3">
+            <form id="deactivateForm" asp-action="DeactivateUser" method="post" class="mt-3">
+                <input type="hidden" name="adminPassword" class="modal-password-target" />
                 <div class="row">
                     <div class="mb-3 col-md-6">
                         <label for="targetEmail" class="form-label">User to Deactivate</label>
                         <input type="email" name="targetEmail" id="targetEmail" class="form-control" required />
                     </div>
                 </div>
-                <div class="row">
-                    <div class="mb-3 col-md-6">
-                        <label for="adminPassword" class="form-label">Administrator Password</label>
-                        <div class="input-group">
-                            <input type="password" name="adminPassword" id="adminPassword" class="form-control" required />
-                            <button class="btn btn-outline-secondary" type="button"
-                                data-password-toggle 
-                                data-target-input="adminPassword" 
-                                data-target-icon="toggleIcon">
-                                <i class="bi bi-eye" id="toggleIcon"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
                 <p class="text-muted fs-6 mt-0">For security, Admins cannot deactivate themselves from this page.</p>
-                <button type="submit" class="btn btn-warning">Confirm Deactivation</button>
+                <button type="button" class="btn btn-warning" onclick="showPasswordModal('deactivateForm')">
+                    Confirm Deactivation
+                </button>
             </form>
 
         </div>
     </div>
 </div>
+
+@* Admin password check modal (hidden initially) *@
+<div class="modal fade" id="adminPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title">Administrator Verification</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Please enter your administrator password to authorize this action.</p>
+                <div class="mb-3">
+                    <label for="modalAdminPassword" class="form-label">Password</label>
+                    <input type="password" id="modalAdminPassword" class="form-control" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmAuthBtn">Confirm Action</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @* Include the external JS file *@
+    <script src="~/js/adminModal.js"></script>
+}

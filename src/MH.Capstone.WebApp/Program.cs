@@ -24,8 +24,6 @@ namespace MH.Capstone.WebApp
 
             string appConnStrName = "DataDb"; // For application data
             
-            // ...existing code...
-
             // Add EF Core DbContexts
             builder.Services.AddDbContext<ApplicationDbContext>(opt => opt
                 .UseLazyLoadingProxies()

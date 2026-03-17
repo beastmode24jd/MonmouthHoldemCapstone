@@ -141,17 +141,12 @@ namespace MH.Capstone.Domain.Services
             return hasLowercase && hasUppercase && hasDigit && hasSymbol;
         }
 
-        public async Task<bool> DeactivateAccountAsync(string email, string password)
+        public async Task<bool> DeactivateAccountAsync(string email)
         {
+            // IMPLEMENT PASSWORD GUARD STATEMENTS BEFORE CALLING THIS!!!
+            
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null) return false;
-
-            var result = await _signInManager
-                .CheckPasswordSignInAsync(user, password, false);
-            if (!result.Succeeded)
-            {
-                return false;
-            }
 
             user.IsDeactivated = true;
             // Don't change UserName - it must remain unique in the database
@@ -204,9 +199,25 @@ namespace MH.Capstone.Domain.Services
 
             // Send a notification about successful login
             var now = DateTimeOffset.UtcNow;
-            await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId, "Successful Login",
-                $"Your account recorded a successful login at {now.ToLocalTime().ToString("g")}. Wasn't you? Reset your password now!",
-                now));
+
+            // Check if the user has a login streak first, and mention the point
+            //      multipler applied to their account if so.
+            if (user.IsStreakActive)
+            {
+                await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId, "Successful Login",
+                    $"Your account recorded a successful login at {now.ToLocalTime().ToString("g")}. Wasn't you? Reset your password now!",
+                    now));
+
+                await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId, "Active Streak Multiplier",
+                    $"You've logged in enough times to start a streak! A points multiplier of x1.5 has been applied to your account.",
+                    now));
+            }
+            else
+            {
+                await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId, "Successful Login",
+                    $"Your account recorded a successful login at {now.ToLocalTime().ToString("g")}. Wasn't you? Reset your password now!",
+                    now));
+            }
         }
 
         public async Task SignOutUserAsync(HttpContext httpContext)

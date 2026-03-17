@@ -133,7 +133,39 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
         return View(model);
     }
 
-    // Credentials valid and account active - sign in
+    // Get the login timestamp, since credentials are valid and the account is active
+    var now = DateTimeOffset.UtcNow;
+
+    if (user.LastLogin.HasValue)
+    {
+        // Get the difference between current time and LastLogin for
+        //  the Application User
+        var daysSinceLastLogin = (now - user.LastLogin.Value).TotalDays;
+
+        if (daysSinceLastLogin <= 30)
+        {
+            // Increment if 1 day has passed, to prevent page refreshes from potentially
+            // artificially inflating the streak
+            if (daysSinceLastLogin >= 1) 
+            {
+                user.LoginStreak++;
+            }
+        }
+        else
+        {
+            user.LoginStreak = 1;
+        }
+    }
+    else
+    {
+        user.LoginStreak = 1;
+    }
+
+    // Save the new LastLogin status to the ApplicationUser.
+    user.LastLogin = now;
+    await _userManager.UpdateAsync(user);
+
+    // Now sign in!
     await _authService.SignInUserAsync(
         HttpContext,
         model.Email,
@@ -308,13 +340,30 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
                 return View(model);
             }
 
-            var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
-            if (string.IsNullOrEmpty(email))
+            // Get the user from the claims principal directly
+            var user = await _userManager.GetUserAsync(User);
+
+            if (user == null || user.Email == null)
             {
                 return RedirectToAction("Login");
             }
 
-            var result = await _authService.DeactivateAccountAsync(email, model.Password);
+            // model.Password holds the user's
+            //   password input from the DeactivateAccountViewModel.
+
+            // Check that the input password is correct
+            var isPasswordCorrect = await _userManager.CheckPasswordAsync(user, model.Password);
+
+            if (!isPasswordCorrect)
+            {
+                // Highlight the error in the Password field for UI feedback
+                ModelState.AddModelError("Password", "The password provided is incorrect.");
+                return View(model);
+            }
+
+            // Input password matches, deactivate the account.
+            var result = await _authService.DeactivateAccountAsync(user.Email);
+
             if (!result)
             {
                 ModelState.AddModelError("Password", "Incorrect password");
