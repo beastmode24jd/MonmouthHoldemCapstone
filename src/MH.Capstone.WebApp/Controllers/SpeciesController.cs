@@ -1,9 +1,14 @@
-﻿    using System.Net;
+﻿using System.Net;
 using MH.Capstone.Domain.ApiContracts;
 using MH.Capstone.Domain.ApiContracts.Ninja;
 using MH.Capstone.Domain.Services.Abstraction;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Protocols.Configuration;
+using MH.Capstone.Domain.DataModels;
+using MH.Capstone.Domain.DataAccess;
+using MH.Capstone.Domain.DataAccess.Repositories;
+using MH.Capstone.Domain.Tools;
+using Microsoft.EntityFrameworkCore;
 
 namespace MH.Capstone.WebApp.Controllers
 {
@@ -13,12 +18,18 @@ namespace MH.Capstone.WebApp.Controllers
     {
         private readonly ILogger<SpeciesController> _logger;
         private readonly IApiCaller<NinjaApiConfigValues> _ninjaApiCaller;
+        private readonly IRepository<NinjaAnimalCacheEntity, CacheDbContext> _cacheRepo;
+        private readonly FeatureFlags _featureFlags;
 
         public SpeciesController(ILogger<SpeciesController> logger,
-            IApiCaller<NinjaApiConfigValues> ninjaApiCaller)
+            IApiCaller<NinjaApiConfigValues> ninjaApiCaller,
+            IRepository<NinjaAnimalCacheEntity, CacheDbContext> cacheRepo,
+            FeatureFlags featureFlags)
         {
             _logger = logger;
             _ninjaApiCaller = ninjaApiCaller;
+            _cacheRepo = cacheRepo;
+            _featureFlags = featureFlags;
         }
 
         [HttpGet]
@@ -78,6 +89,40 @@ namespace MH.Capstone.WebApp.Controllers
                 // Log and gracefully handle any exceptions that may occur during the API call
                 _logger.LogError(ex,
                     $"An error occurred while trying to search for an animal/species with the name '{name}'.");
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
+
+        [HttpGet]
+        [Route("search/cache")]
+        [Produces("text/html")]
+        public async Task<IActionResult> CacheByName([FromQuery] string? name)
+        {
+            // Feature gated: if feature flag disabled, hide endpoint
+            if (!_featureFlags.IsEnabled("ExposeDetailedApiCacheOnUi"))
+            {
+                return NotFound();
+            }
+
+            if (string.IsNullOrWhiteSpace(name)) return BadRequest();
+
+            try
+            {
+                // Query cache entries matching the query params containing the name
+                var queryable = await _cacheRepo.GetAllAsync(e => e.QueryParams.Contains(name));
+                var entries = await queryable.ToListAsync();
+
+                if (entries == null || entries.Count == 0)
+                {
+                    return NotFound();
+                }
+
+                // Return HTML partial that will be rendered into a modal on the client
+                return PartialView("_CacheDetail", entries);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while retrieving cache entries");
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }

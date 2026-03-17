@@ -1,0 +1,51 @@
+@model IEnumerable<MH.Capstone.Domain.DataModels.NinjaAnimalCacheEntity>
+@using Newtonsoft.Json
+@{
+    // Read user's timezone from request cookie if present
+    string? userTimeZoneId = null;
+    var cookies = (Context?.Request?.Cookies) ?? (ViewContext?.HttpContext?.Request?.Cookies);
+    if (cookies != null)
+    {
+        if (cookies.TryGetValue("UserTimeZone", out var tz))
+        {
+            userTimeZoneId = tz;
+        }
+    }
+}
+<div class="cache-detail-list" data-user-timezone="@userTimeZoneId">
+    @foreach (var entry in Model ?? Enumerable.Empty<MH.Capstone.Domain.DataModels.NinjaAnimalCacheEntity>())
+    {
+        string displayCachedAtStr;
+        if (!string.IsNullOrEmpty(userTimeZoneId))
+        {
+            try
+            {
+                var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(userTimeZoneId);
+                displayCachedAtStr = TimeZoneInfo.ConvertTime(entry.CachedAt, tzInfo)
+                    .ToString("MMM dd, yyyy h:mm tt");
+            }
+            catch (Exception)
+            {
+                // Fallback to UTC formatting
+                displayCachedAtStr = entry.CachedAt.ToString("yyyy-MM-dd HH:mm 'UTC'");
+            }
+        }
+        else
+        {
+            // No user timezone available; show UTC
+            displayCachedAtStr = entry.CachedAt.ToString("yyyy-MM-dd HH:mm 'UTC'");
+        }
+
+        <div class="cache-entry list-group mb-3">
+            <div class="list-group-item">
+                <h5 class="mb-1">Cached Entry</h5>
+                <div class="small text-muted">CachedAt: @displayCachedAtStr</div>
+                <div class="mt-2"><strong>Url:</strong> <div class="text-break">@entry.Url</div></div>
+                <div class="mt-1"><strong>QueryParams:</strong> <div class="text-break">@entry.QueryParams</div></div>
+                <div class="mt-2"><strong>CachedResponses:</strong>
+                    <pre class="bg-light p-2 rounded json" style="overflow:auto; max-height:300px;">@Html.Raw(JsonConvert.SerializeObject(entry.CachedResponses, Formatting.Indented))</pre>
+                </div>
+            </div>
+        </div>
+    }
+</div>

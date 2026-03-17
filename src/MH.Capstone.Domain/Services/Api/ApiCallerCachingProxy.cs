@@ -35,13 +35,16 @@ namespace MH.Capstone.Domain.Services.Api
             params IEnumerable<KeyValuePair<string, string>>? queryParams)
             where TReturn : class
         {
+            // Ensure url is not null to satisfy nullable analysis and provide clearer error
+            if (url is null) throw new ArgumentNullException(nameof(url));
+
             var queryList = queryParams?.ToList();
             var queryParamsStr = HttpHelperMethods.CreateQueryParamsFragment(queryList);
             TCacheEntity? cachedResult = null;
             try
             {
                 // Precompute lowercase versions of the comparison strings to ensure EF Core can translate the comparisons to SQL
-                var urlLower = (url ?? string.Empty).ToLowerInvariant();
+                var urlLower = url.ToLowerInvariant();
                 var queryParamsLower = (queryParamsStr ?? string.Empty).ToLowerInvariant();
 
                 cachedResult = (await _cacheRepo.GetAllAsync(e =>
