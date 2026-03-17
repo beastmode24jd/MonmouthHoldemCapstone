@@ -356,7 +356,7 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
 
             if (!isPasswordCorrect)
             {
-                // Add error specifically to the Password field for UI feedback
+                // Highlight the error in the Password field for UI feedback
                 ModelState.AddModelError("Password", "The password provided is incorrect.");
                 return View(model);
             }
