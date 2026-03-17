@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Identity;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.Domain.Tools;
+using MH.Capstone.Domain.DataAccess;
+using MH.Capstone.Domain.DataAccess.Repositories;
 
 namespace MH.Capstone.WebApp.Controllers
 {
@@ -17,16 +19,19 @@ namespace MH.Capstone.WebApp.Controllers
         private readonly INotificationService _notificationService;
         private readonly FeatureFlags _featureFlags;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IRepository<EmailQueue, ApplicationDbContext> _emailQueueRepo;
 
         public HomeController(ILogger<HomeController> logger, IEmailService emailService, 
             FeatureFlags featureFlags, UserManager<ApplicationUser> userManager, 
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IRepository<EmailQueue, ApplicationDbContext> emailQueueRepo)
         {
             _logger = logger;
             _emailService = emailService;
             _featureFlags = featureFlags;
             _userManager = userManager;
             _notificationService = notificationService;
+            _emailQueueRepo = emailQueueRepo;
         }
 
         [AllowAnonymous]
@@ -60,7 +65,7 @@ namespace MH.Capstone.WebApp.Controllers
         }
 
         /// <summary>
-        /// Test endpoint to send a simple email to the currently authenticated user's email address.
+        /// Test endpoint to enqueue a simple email to the currently authenticated user's email address.
         /// Route: /uat/emailer
         /// Only active when FeatureFlag "EnableEmailTestEndpoint" is enabled.
         /// </summary>
@@ -96,18 +101,31 @@ namespace MH.Capstone.WebApp.Controllers
 
             try
             {
-                await _emailService.SendAsync(recipientEmail, subject, body);
-                _logger.LogInformation("Test email sent to {Email}", recipientEmail);
+                var queued = new EmailQueue
+                {
+                    Recipient = recipientEmail,
+                    Subject = subject,
+                    HtmlBody = body,
+                    PlainTextBody = null,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    ScheduledAt = null
+                };
+
+                await queued.EnqueueAsync(_emailQueueRepo).ConfigureAwait(false);
+
+                _logger.LogInformation("Test email enqueued for {Email} (EmailQueueId={Id})", recipientEmail, queued.Id);
+
                 await _notificationService.SendNotificationAsync(Notification
-                    .Create(user.GuidId, "Test Email Sent!",
-                        $"A test email was sent to your email {user.Email} " +
+                    .Create(user.GuidId, "Test Email Enqueued!",
+                        $"A test email has been queued to your email {user.Email} " +
                         $"from our email {_emailService.SenderAddress}"));
+
                 return RedirectToAction("Notifications", "Dashboard");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to send test email to {Email}", recipientEmail);
-                return StatusCode(500, "Failed to send test email.");
+                _logger.LogError(ex, "Failed to enqueue test email to {Email}", recipientEmail);
+                return StatusCode(500, "Failed to enqueue test email.");
             }
         }
     }

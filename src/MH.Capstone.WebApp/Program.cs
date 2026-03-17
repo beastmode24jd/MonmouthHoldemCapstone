@@ -4,10 +4,12 @@ using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.Domain.Services.Background;
 using MH.Capstone.Domain.Services.Notifications;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MH.Capstone.Domain.Tools;
+using MH.Capstone.Domain.Constants.Configurables;
 
 namespace MH.Capstone.WebApp
 {
@@ -174,6 +176,10 @@ namespace MH.Capstone.WebApp
             // Add controllers with views and configure Newtonsoft.Json for JSON serialization
             builder.Services.AddControllersWithViews()
                 .AddNewtonsoftJson();
+
+            // Configure Email dispatcher options and background service
+            builder.Services.Configure<EmailDispatcherOptions>(builder.Configuration.GetSection("EmailDispatcher"));
+            builder.Services.AddHostedService<EmailDispatcherService>();
 
             var app = builder.Build();
 
