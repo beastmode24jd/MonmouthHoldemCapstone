@@ -24,17 +24,6 @@ namespace MH.Capstone.WebApp
 
             string appConnStrName = "DataDb"; // For application data
             
-            // Configure cookie authentication
-            //builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-                //.AddCookie(options =>
-                //{
-                    //options.LoginPath = "/Account/Login";
-                    //options.AccessDeniedPath = "/Account/AccessDenied";
-                    //options.ExpireTimeSpan = TimeSpan.FromDays(30);
-                    //options.SlidingExpiration = true;
-                    //options.Cookie.HttpOnly = true;
-                //});
-
             // Add EF Core DbContexts
             builder.Services.AddDbContext<ApplicationDbContext>(opt => opt
                 .UseLazyLoadingProxies()
