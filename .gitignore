@@ -432,4 +432,4 @@ newpr
 /MH.Capstone.WebApp/watch.log
 /MH.Capstone.WebApp/watch.err
 **/watch.log
-**/watch.err
+**/watch.err.watchlogs/*

@@ -35,8 +35,8 @@ namespace MH.Capstone.Domain.DataModels
         {
             // Map the CachedResponse object to a single JSON column using a value converter.
             var converter = new ValueConverter<AnimalApiDto, string>(
-                v => JsonConvert.SerializeObject(v),
-                v => JsonConvert.DeserializeObject<AnimalApiDto>(v)!
+                v => JsonConvert.SerializeObject(v, NinjaApiConfigValues.GetJsonSerializerSettings),
+                v => JsonConvert.DeserializeObject<AnimalApiDto>(v, NinjaApiConfigValues.GetJsonSerializerSettings)!
             );
 
             builder.Property(p => p.CachedResponse)
