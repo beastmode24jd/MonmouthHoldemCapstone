@@ -21,6 +21,7 @@ namespace MH.Capstone.Domain.DataAccess
         public DbSet<UserBadge> UserBadges { get; set; } = null!;
         public DbSet<Notification> Notifications { get; set; } = null!;
         public DbSet<Report> Reports { get; set; } = null!;
+        public DbSet<EmailQueue> EmailQueue { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -32,6 +33,10 @@ namespace MH.Capstone.Domain.DataAccess
                 .HasIndex(r => new { r.ReportingUserIdentityId, r.ReportedPageUrl })
                 .IsUnique()
                 .HasFilter("[IsResolved] = 0");
+            
+            // Configure EmailQueue table defaults and indexes
+            modelBuilder.Entity<EmailQueue>()
+                .HasIndex(e => new { e.IsSent, e.ScheduledAt });
         }
     }
 }

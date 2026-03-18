@@ -4,10 +4,12 @@ using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.Domain.Services.Background;
 using MH.Capstone.Domain.Services.Notifications;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MH.Capstone.Domain.Tools;
+using MH.Capstone.Domain.Constants.Configurables;
 
 namespace MH.Capstone.WebApp
 {
@@ -111,6 +113,60 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
             builder.Services.AddScoped<IReportService, ReportService>();
 
+            // Configure Azure Communication Services Email client depending on environment and feature flag
+            var emailConnectionString = builder.Configuration.GetConnectionString("AzureCommunicationServices");
+            var emailSender = builder.Configuration.GetValue<string>("Email:SenderAddress");
+            var useRealEmailer = featureFlags.IsEnabled("UseRealEmailerService");
+
+            if (builder.Environment.IsDevelopment())
+            {
+                if (useRealEmailer)
+                {
+                    if (string.IsNullOrWhiteSpace(emailConnectionString) || string.IsNullOrWhiteSpace(emailSender))
+                    {
+                        throw new InvalidOperationException("UseRealEmailerService is enabled in Development but Azure Communication Email is not configured. Please set ConnectionStrings:AzureCommunicationServices and Email:SenderAddress in appsettings.Development.json.");
+                    }
+
+                    builder.Services.AddSingleton<IEmailService>(sp =>
+                    {
+                        var logger = sp.GetRequiredService<ILogger<AzureCommunicationEmailService>>();
+                        return new AzureCommunicationEmailService(emailConnectionString, emailSender, logger);
+                    });
+
+                    entryLogger.LogInformation("AzureCommunicationEmailService registered (Development, feature flag enabled).");
+                }
+                else
+                {
+                    builder.Services.AddSingleton<IEmailService>(sp =>
+                    {
+                        var logger = sp.GetRequiredService<ILogger<NoOpEmailService>>();
+                        return new NoOpEmailService(emailSender ?? "no-reply@localhost", logger);
+                    });
+
+                    entryLogger.LogInformation("NoOpEmailService registered (Development, feature flag disabled).");
+                }
+            }
+            else // Staging / Production
+            {
+                if (!useRealEmailer)
+                {
+                    throw new InvalidOperationException($"Feature flag 'UseRealEmailerService' must be enabled in {builder.Environment.EnvironmentName} environment.");
+                }
+
+                if (string.IsNullOrWhiteSpace(emailConnectionString) || string.IsNullOrWhiteSpace(emailSender))
+                {
+                    throw new InvalidOperationException("Azure Communication Email is not configured. Please set ConnectionStrings:AzureCommunicationServices and Email:SenderAddress in configuration.");
+                }
+
+                builder.Services.AddSingleton<IEmailService>(sp =>
+                {
+                    var logger = sp.GetRequiredService<ILogger<AzureCommunicationEmailService>>();
+                    return new AzureCommunicationEmailService(emailConnectionString, emailSender, logger);
+                });
+
+                entryLogger.LogInformation("AzureCommunicationEmailService registered (Staging/Production).");
+            }
+
             // Configure Ninja API Caller
             const string ninjasApiConfigSectionPath = "Api:External:Ninjas";
             builder.Services.AddExternalApiCaller<NinjaApiConfigValues>(builder.Configuration,
@@ -120,6 +176,10 @@ namespace MH.Capstone.WebApp
             // Add controllers with views and configure Newtonsoft.Json for JSON serialization
             builder.Services.AddControllersWithViews()
                 .AddNewtonsoftJson();
+
+            // Configure Email dispatcher options and background service
+            builder.Services.Configure<EmailDispatcherOptions>(builder.Configuration.GetSection("EmailDispatcher"));
+            builder.Services.AddHostedService<EmailDispatcherService>();
 
             var app = builder.Build();
 
