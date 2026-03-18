@@ -51,11 +51,17 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.Property<bool>("IsDeactivated")
                         .HasColumnType("bit");
 
+                    b.Property<DateTimeOffset?>("LastLogin")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("LoginStreak")
+                        .HasColumnType("int");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
@@ -134,6 +140,60 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.ToTable("Badge");
                 });
 
+            modelBuilder.Entity("MH.Capstone.Domain.DataModels.EmailQueue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("HtmlBody")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsSent")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTimeOffset?>("LastAttemptAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PlainTextBody")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("Processing")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Recipient")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTimeOffset?>("ScheduledAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("SentAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsSent", "ScheduledAt");
+
+                    b.ToTable("EmailQueue");
+                });
+
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Notification", b =>
                 {
                     b.Property<Guid>("Id")
@@ -169,6 +229,47 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.ToTable("Notification");
                 });
 
+            modelBuilder.Entity("MH.Capstone.Domain.DataModels.Report", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsResolved")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ReportedPageUrl")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<string>("ReportingUserIdentityId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("ReportingUserId");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReportingUserIdentityId", "ReportedPageUrl")
+                        .IsUnique()
+                        .HasFilter("[IsResolved] = 0");
+
+                    b.ToTable("Report");
+                });
+
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Sighting", b =>
                 {
                     b.Property<Guid>("Id")
@@ -193,8 +294,8 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .HasColumnType("decimal(9,6)")
                         .HasColumnName("Long");
 
-                    b.Property<DateTime>("Timestamp")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("Timestamp")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("UserIdentityId")
                         .IsRequired()
@@ -215,8 +316,8 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("BadgeEarned")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("BadgeEarned")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("BadgeId")
                         .HasColumnType("uniqueidentifier")
@@ -379,6 +480,17 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .IsRequired();
 
                     b.Navigation("Recipient");
+                });
+
+            modelBuilder.Entity("MH.Capstone.Domain.DataModels.Report", b =>
+                {
+                    b.HasOne("MH.Capstone.Domain.DataModels.ApplicationUser", "Reporter")
+                        .WithMany()
+                        .HasForeignKey("ReportingUserIdentityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Reporter");
                 });
 
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Sighting", b =>

@@ -20,6 +20,7 @@ public class BadgeServiceTests
     private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock;
     private Mock<IRepository<Badge, ApplicationDbContext>> _badgeRepoMock;
     private Mock<IRepository<UserBadge, ApplicationDbContext>> _userBadgeRepoMock;
+    private Mock<INotificationService> _notificationServiceMock;
     private IBadgeService _badgeService;
     private Guid _testBadgeId;
     
@@ -32,30 +33,47 @@ public class BadgeServiceTests
         _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
         _badgeRepoMock = new Mock<IRepository<Badge, ApplicationDbContext>>();
         _userBadgeRepoMock = new Mock<IRepository<UserBadge, ApplicationDbContext>>();
+        _notificationServiceMock = new Mock<INotificationService>();
 
         _badgeService = new BadgeService(
             _badgeRepoMock.Object,
             _userBadgeRepoMock.Object,
-            _userRepoMock.Object
+            _userRepoMock.Object,
+            _notificationServiceMock.Object
         );
     }
 
     [Test]
     public async Task AddBadge_ToValidUser_CallsReposAndUpdatesBadgesAndPoints()
     {
-        // Arrange
-        // User's point count defaults to zero on initialization.
-        var user = new ApplicationUser{ Id = "testId", Points = 0 };
+        // Arrange **********
+        var userId = Guid.NewGuid();
+
+        // LastLogin being 30 days or newer activates a Streak. Set it to 40.
+        var user = new ApplicationUser{
+            GuidId = userId,
+            Points = 0,
+            LastLogin = DateTimeOffset.UtcNow.AddDays(-40)};
 
         var badgeTemplate = new Badge{BadgeID = _testBadgeId, PointValue = 15, Title = "Test Badge"};
+
+        var userBadge = new UserBadge{UserId = user.Id, User = user, Badge = badgeTemplate};
+
+        _userBadgeRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(new List<UserBadge>().AsQueryable());
 
         _badgeRepoMock.Setup(r => r.FindByIdAsync(_testBadgeId))
                   .ReturnsAsync(badgeTemplate);
 
-        // Act
+        _notificationServiceMock.Setup(s => s.SendNotificationAsync(
+            It.IsAny<Notification>()))
+            .Returns(Task.CompletedTask)
+            .Verifiable(Times.Once);
+
+        // Act ******************
         await _badgeService.AddBadge(user, _testBadgeId);
 
-        // Assert
+        // Assert ***************
         // Check that the Repos were called
         _badgeRepoMock.Verify(r => r.FindByIdAsync(_testBadgeId), Times.Once);
 
@@ -70,6 +88,10 @@ public class BadgeServiceTests
 
         // Test badge is worth 15 points, check to see if point increment is the same
         _userRepoMock.Verify(r => r.AddOrUpdateAsync(It.Is<ApplicationUser>(u => u.Points == 15)), Times.Once);
+
+        // Verify notification was sent to the correct GuidId
+        _notificationServiceMock.Verify(s => s.SendNotificationAsync(
+            It.Is<Notification>(n => n.RecipientId == user.GuidId)), Times.Once);
 
     }
 
@@ -127,8 +149,11 @@ public class BadgeServiceTests
     {
         // Arrange
         // Add DateTime values to a UserBadge List.
-        var oldTime = new DateTime(2001, 1, 1);
-        var newTime = DateTime.UtcNow;
+        var oldTime = new DateTimeOffset(
+            new DateTime(2001, 1, 1, 7, 0, 0),
+            new TimeSpan(-7, 0, 0)
+        );
+        var newTime = DateTimeOffset.Now;
 
         var badgeList = new List<UserBadge>
         {
@@ -145,8 +170,8 @@ public class BadgeServiceTests
             Assert.That(result.Count, Is.EqualTo(2));
 
             // First item should be newest date.
-            Assert.That(result[0].BadgeEarned, Is.EqualTo(newTime));
-            Assert.That(result[1].BadgeEarned, Is.EqualTo(oldTime));
+            Assert.That(result[0].BadgeEarned, Is.EqualTo(newTime)); // newTime should be DateTimeOffset
+            Assert.That(result[1].BadgeEarned, Is.EqualTo(oldTime)); // oldTime should be DateTimeOffset
         });
     }
 }

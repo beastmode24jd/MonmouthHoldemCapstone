@@ -32,7 +32,32 @@ namespace MH.Capstone.WebApp.Controllers
         [Route("Create")]
         public IActionResult Upload()
         {
-            return View(new SightingUploadViewModel());
+            // Get timezone cookie from site.js (defaults to PST if not found)
+            string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
+            
+            TimeZoneInfo userZone;
+
+            try
+            {
+                userZone = TimeZoneInfo.FindSystemTimeZoneById(userTimeZoneId);
+            }
+            catch
+            {
+                // Windows server fallback for if IANA string fails
+                userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+            }
+
+            // Convert UTC to user's local timezone
+            DateTimeOffset localNow = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, userZone);
+
+            // Initialize SightingUploadViewModel w/ local time and timezone ID
+            var viewModel = new SightingUploadViewModel
+            {
+                Timestamp = localNow,
+                DeviceTimezone = userTimeZoneId
+            };
+
+            return View(viewModel);
         }
 
         [HttpPost]
@@ -64,12 +89,53 @@ namespace MH.Capstone.WebApp.Controllers
             // CreateSightingAsync returns the points awarded for the sighting, but we don't
             // need to capture that here since the user will be able to see it reflected in
             // their profile and badges immediately after upload.
-            _ = await _sightingsService.CreateSightingAsync(dataModel);
+            _ = await _sightingsService.CreateSightingAsync(dataModel, sightingUpload.DeviceTimezone);
 
             // Since invalid Sightings were already checked and the sighting has already been uploaded,
             // give the user the First Sighting Badge
-            await _badgeService.AddBadge(user, BadgeId.FirstSightingBadgeGUID);
+
+            // Need to fetch the global timezone cookie for notification display purposes
+            // Default timezone is PST
+                     string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
+
+            await _badgeService.AddBadge(user, BadgeId.FirstSightingBadgeGUID, userTimeZoneId);
             return RedirectToAction("Index", "Dashboard");
         }
+
+        #region CSP-145: Sighting Gallery Feature
+
+        
+        // Displays a gallery view of all sightings uploaded by the authenticated user.
+        // Shows an empty state if the user has no sightings.
+       
+        [HttpGet]
+        [Route("Gallery")]
+        public async Task<IActionResult> Gallery()
+        {
+            // Get the currently authenticated user
+            var user = await _userManager.GetUserAsync(User);
+
+            // If user is not authenticated or not found, return Unauthorized
+            if (user == null)
+            {
+                _logger.LogError("Authenticated user could not be found in the database during Gallery access.");
+                return StatusCode((int)HttpStatusCode.InternalServerError);
+            }
+
+            // Fetch all sightings for this user from the service layer
+            // The service handles filtering by userId and ordering by timestamp
+            var sightings = await _sightingsService.GetUserSightingsAsync(user.GuidId);
+
+            // Convert the sightings to a ViewModel for display
+            // This handles byte[] to base64 conversion for images
+            var viewModel = new SightingGalleryViewModel(sightings);
+
+            _logger.LogInformation("User {UserId} accessed gallery with {Count} sightings", 
+                user.Id, viewModel.SightingCount);
+
+            return View(viewModel);
+        }
+
+        #endregion
     }
 }

@@ -30,4 +30,16 @@ namespace MH.Capstone.Domain.Tools
         internal static bool IsOfErrorType(this SqlError err, SqlErrorNumber errNum)
             => err.Number == (int)errNum;
     }
+
+    public static class HttpHelperMethods
+    {
+        public static string CreateQueryParamsFragment(params IEnumerable<KeyValuePair<string, string>>? queryParams)
+        {
+            var queryList = queryParams?.ToList() ?? new List<KeyValuePair<string, string>>();
+            return queryList.Any() ? 
+                string.Join("&", queryList.Select(kvp =>
+                    $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value)}"))
+                : string.Empty;
+        }
+    }
 }

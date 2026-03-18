@@ -37,14 +37,46 @@ namespace MH.Capstone.WebApp.Controllers
         [Route("Sightings")]
         public async Task<IActionResult> GetSightings(double? minLat, double? maxLat, double? minLng, double? maxLng)
         {
-            // For now, return empty array since sightings on map is a future feature (CSP-99)
-            // This endpoint will be used to fetch sightings within the map's visible bounds
-            var sightings = new List<object>();
-            
-            _logger.LogInformation("Fetched {Count} sightings for map view", sightings.Count);
+            // If bounds not provided, return empty
+            if (!minLat.HasValue || !maxLat.HasValue || !minLng.HasValue || !maxLng.HasValue)
+            {
+                return Json(new List<object>());
+            }
 
-            // Using Task.FromResult to simulate async behavior since we are not fetching real data yet
-            return await Task.FromResult(Json(sightings));
+            var sightings = await _sightingsService.GetSightingsInBoundsAsync(
+                (decimal)minLat.Value,
+                (decimal)maxLat.Value,
+                (decimal)minLng.Value,
+                (decimal)maxLng.Value);
+
+            // Map to anonymous objects for JSON response (don't send entire entity with image bytes)
+            var result = sightings.Select(s => new
+            {
+                id = s.Id,
+                lat = s.Latitude,
+                lng = s.Longitude,
+                description = s.Description,
+                timestamp = s.Timestamp.ToString("MMM dd, yyyy h:mm tt"),
+                imageUrl = $"/Map/SightingImage/{s.Id}"
+            });
+
+            _logger.LogInformation("Fetched {Count} sightings for map view", result.Count());
+            return Json(result);
+        }
+
+        [HttpGet]
+        [Route("SightingImage/{id}")]
+        public async Task<IActionResult> GetSightingImage(Guid id)
+        {
+            var sightings = await _sightingsService.GetSightingsInBoundsAsync(-90, 90, -180, 180);
+            var sighting = sightings.FirstOrDefault(s => s.Id == id);
+
+            if (sighting == null || sighting.ImageBuffer == null)
+            {
+                return NotFound();
+            }
+
+            return File(sighting.ImageBuffer, "image/jpeg");
         }
     }
 }

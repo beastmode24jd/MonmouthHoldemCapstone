@@ -17,18 +17,21 @@ namespace MH.Capstone.Domain.Services
         private readonly IRepository<Badge, ApplicationDbContext> _badgeRepo;
         private readonly IRepository<UserBadge, ApplicationDbContext> _userBadgeRepo;
         private readonly IRepository<ApplicationUser, ApplicationDbContext> _userRepo;
+        private readonly INotificationService _notificationService;
 
         public BadgeService(IRepository<Badge, ApplicationDbContext> badgeRepo,
         IRepository<UserBadge, ApplicationDbContext> userBadgeRepo,
-        IRepository<ApplicationUser, ApplicationDbContext> userRepo)
+        IRepository<ApplicationUser, ApplicationDbContext> userRepo,
+        INotificationService notificationService)
         {
             // Switch Dependency Injection of DB context fully over to Repository structure
             _badgeRepo = badgeRepo;
             _userBadgeRepo = userBadgeRepo;
             _userRepo = userRepo;
+            _notificationService = notificationService;
         }
 
-        public async Task AddBadge(ApplicationUser user, Guid newBadgeID)
+        public async Task AddBadge(ApplicationUser user, Guid newBadgeID, string ianaTimeZoneId = "America/Los_Angeles")
         {
             // Get the list of user badges.
             var existingBadges = await _userBadgeRepo.GetAllAsync();
@@ -50,22 +53,62 @@ namespace MH.Capstone.Domain.Services
                     User = user,
                     UserId = user.Id,
                     BadgeId = badgeTemplate.BadgeID,
-                    BadgeEarned = DateTime.UtcNow
+                    BadgeEarned = DateTimeOffset.Now
                 };
 
                 // Save it
                 await _userBadgeRepo.AddOrUpdateAsync(earnedBadge);
 
                 // Increment points after adding the badge to the UserBadges list.
-                user.Points += badgeTemplate.PointValue;
+
+                // Check if the user has a valid Login Streak, and apply the 1.5 points
+                // multipler if they do.
+                var badgePointTotal = 0;
+                if (user.IsStreakActive)
+                {
+                    badgePointTotal = (int)(badgeTemplate.PointValue * 1.5);
+                    user.Points += badgePointTotal;
+                }
+                else
+                {
+                    // IsStreakActive is a bool value. This catches all other cases.
+                    badgePointTotal = badgeTemplate.PointValue;
+                    user.Points += badgePointTotal;
+                }
+
                 await _userRepo.AddOrUpdateAsync(user);
-                
+
+                // Then send the notification for the awarded Badge. *************
+                // Convert timezone IANA ID to a TimeZoneInfo object
+                TimeZoneInfo deviceZone;
+
+                try
+                {
+                    // Converts the IANA ID successfully
+                    deviceZone = TimeZoneInfo.FindSystemTimeZoneById(ianaTimeZoneId);
+                }
+                catch
+                {
+                    // Fallback to Windows-style Pacific ID if IANA fails on Windows Server
+                    deviceZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+                }
+
+                // Convert the timestamp to the device's actual zone
+                DateTimeOffset deviceTime = TimeZoneInfo.ConvertTime((DateTimeOffset)earnedBadge.BadgeEarned, deviceZone);
+
+                // Generate the notification with the correct AM/PM and 12-hour format
+                string timeDisplay = deviceTime.ToString("MM/dd/yyyy h:mm tt");
+
+                await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId,
+                    $"Earned the {badgeTemplate.Title}",
+                    $"Congratulations! You earned the {badgeTemplate.Title} at {timeDisplay} and " +
+                    $"won {badgePointTotal} points!"
+                    ));
             }
 
             // If the loop completes without badgeID found,
             // simply finish this task.
             await Task.CompletedTask;
-            
         }
 
         // Helper method to retrieve badge data from LocalDB

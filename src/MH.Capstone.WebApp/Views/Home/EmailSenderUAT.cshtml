@@ -1,0 +1,11 @@
+@{
+    ViewData["Title"] = "Email Sender UAT";
+}
+
+<h1>@ViewData["Title"]</h1>
+<p>Use this button to enqueue a test email to your account.</p>
+
+<form method="post" action="/uat/emailer">
+    @Html.AntiForgeryToken()
+    <button type="submit" class="btn btn-primary">Send Test Email</button>
+</form>

@@ -18,12 +18,9 @@ namespace MH.Capstone.Domain.Services
         private readonly IScoringService _scoringService;
         private readonly INotificationService _notificationService;
 
-        // To update user account with Badge on first upload
-        private readonly IBadgeService _badgeService;
-
         public SightingsService(
-            ILogger<SightingsService> logger, IBadgeService badgeService,
-            IScoringService scoringService, INotificationService notificationService,
+            ILogger<SightingsService> logger, IScoringService scoringService,
+            INotificationService notificationService,
             IRepository<Sighting, ApplicationDbContext> sightingsRepo,
             IRepository<ApplicationUser, ApplicationDbContext> userRepo)
         {
@@ -32,10 +29,9 @@ namespace MH.Capstone.Domain.Services
             _scoringService = scoringService;
             _userRepo = userRepo;
             _notificationService = notificationService;
-            _badgeService = badgeService;
         }
 
-        public async Task<int> CreateSightingAsync(Sighting entity)
+        public async Task<int> CreateSightingAsync(Sighting entity, string ianaTimeZoneId = "America/Los_Angeles")
         {
             if (!entity.TryValidateEntity(out var fails))
             {
@@ -59,17 +55,52 @@ namespace MH.Capstone.Domain.Services
                 // Step 3: Award points to the user
                 var users = await _userRepo.GetAllAsync();
                 var user = users.FirstOrDefault(u => u.Id == entity.UserIdentityId);
-                
+
                 if (user != null)
                 {
+                    // Check if the user has an active loginStreak.
+                    // If so, apply a 1.5 points multiplier to their original Sighting.
+                    if (user.IsStreakActive)
+                    {
+                        var userStreakApplied = pointsEarned * 1.5;
+                        pointsEarned = (int)userStreakApplied;
+                    }
+
+                    // Adds and saves the points to the user
                     user.Points += pointsEarned;
                     await _userRepo.AddOrUpdateAsync(user);
+
+                    // Convert timezone IANA ID to a TimeZoneInfo object
+                    TimeZoneInfo deviceZone;
+
+                    try
+                    {
+                        // Converts the IANA ID successfully
+                        deviceZone = TimeZoneInfo.FindSystemTimeZoneById(ianaTimeZoneId);
+                    }
+                    catch
+                    {
+                        // Fallback to Windows-style Pacific ID if IANA fails on Windows Server
+                        deviceZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+                    }
+
+                    // Convert the timestamp to the device's actual zone
+                    DateTimeOffset deviceTime = TimeZoneInfo.ConvertTime(entity.Timestamp, deviceZone);
+
+                    // Generate the notification with the correct AM/PM and 12-hour format
+                    string timeDisplay = deviceTime.ToString("MM/dd/yyyy h:mm tt");
+
                     await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId,
                         "New Sighting Uploaded & Created!",
-                        $"Congratulations, You uploaded a new sighting at {entity.Timestamp} and " +
+                        $"Congratulations! You uploaded a new sighting at {timeDisplay} and " +
                         $"earned {pointsEarned} points!"
                         ));
+
                     _logger.LogInformation("Awarded {Points} points to user {UserId} for sighting", pointsEarned, entity.UserId);
+                    
+                    // AM and PM display mismatch catch logs
+                    _logger.LogInformation("Raw DB Timestamp: {Raw}", entity.Timestamp);
+                    _logger.LogInformation("Localized display: {Local}", timeDisplay);
                 }
 
                 // Step 4: Return points to controller
@@ -82,6 +113,21 @@ namespace MH.Capstone.Domain.Services
                     $"Sighting entity validation failed. UserId {entity.UserId} does not exist.", nameof(entity.UserId),
                     ex);
             }
+        }
+
+        public async Task<IEnumerable<Sighting>> GetSightingsInBoundsAsync(decimal minLat, decimal maxLat, decimal minLng, decimal maxLng)
+        {
+            var sevenDaysAgo = DateTimeOffset.UtcNow.AddDays(-7);
+
+            var sightings = await _sightingsRepo.GetAllAsync(s => 
+                            s.Latitude >= minLat &&
+                            s.Latitude <= maxLat &&
+                            s.Longitude >= minLng &&
+                            s.Longitude <= maxLng &&
+                            s.Timestamp >= sevenDaysAgo);
+                
+
+            return sightings.ToList();
         }
 
         public bool ValidateImage(IFormFile? imageBuffer)
@@ -108,5 +154,19 @@ namespace MH.Capstone.Domain.Services
             // If we made it here, the image is valid
             return true;
         }
+
+        #region CSP-145: Sighting Gallery Feature
+
+        public async Task<IEnumerable<Sighting>> GetUserSightingsAsync(Guid userId)
+        {
+            _logger.LogInformation("Fetching sightings for user {UserId}", userId);
+            // Use repository's predicate overload to filter, then order and fetch efficiently
+            var queryable = await _sightingsRepo.GetAllAsync(s => s.UserIdentityId == userId.ToString());
+            var sightings = queryable.OrderByDescending(s => s.Timestamp).ToList();
+            _logger.LogInformation("Retrieved {Count} sightings for user {UserId}", sightings.Count, userId);
+            return sightings;
+        }
+
+        #endregion
     }
 }

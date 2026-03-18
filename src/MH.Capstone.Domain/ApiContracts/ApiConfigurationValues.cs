@@ -45,6 +45,10 @@ namespace MH.Capstone.Domain.ApiContracts
             Endpoints = endpoints.ToList();
         }
 
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+        protected ApiConfigurationValues() {}
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+
         public abstract TConfig Create(string httpClientKey, string baseUrl,
             List<KeyValuePair<string, string>> endpoints);
     }

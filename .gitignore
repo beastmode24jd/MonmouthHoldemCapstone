@@ -427,3 +427,9 @@ newpr
 **/run*.bat
 **/.config
 **/Properties/ServiceDependencies
+
+# Ignore local development log files created by the Copilot terminal helper
+/MH.Capstone.WebApp/watch.log
+/MH.Capstone.WebApp/watch.err
+**/watch.log
+**/watch.err.watchlogs/*

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Microsoft.AspNetCore.Mvc.ViewFeatures; // Required for TempDataDictionary
 
 namespace MH.Capstone.WebApp.Tests.Unit.Controllers;
 
@@ -17,6 +18,7 @@ public class AccountControllerTests
     private Mock<IUserService> _mockUserService;
     private Mock<ILogger<AccountController>> _mockLogger;
     private AccountController _controller;
+    private Mock<UserManager<ApplicationUser>> _mockUserManager;
 
     [SetUp]
     public void Setup()
@@ -24,14 +26,26 @@ public class AccountControllerTests
         _mockAuthService = new Mock<IAuthenticationService>();
         _mockUserService = new Mock<IUserService>();
         _mockLogger = new Mock<ILogger<AccountController>>();
-        
-        _controller = new AccountController(_mockAuthService.Object, _mockUserService.Object,
-            null!, _mockLogger.Object);
-        
+
+        // Mock UserManager (requires a Mock UserStore)
+        var store = new Mock<IUserStore<ApplicationUser>>();
+        _mockUserManager = new Mock<UserManager<ApplicationUser>>(
+            store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+
+        _controller = new AccountController(
+            _mockAuthService.Object,
+            _mockUserService.Object,
+            _mockUserManager.Object,
+            _mockLogger.Object);
+
         _controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()
         };
+
+        // Initialize TempData to prevent NullReferenceException on redirects
+        var itdp = new Mock<ITempDataProvider>();
+        _controller.TempData = new TempDataDictionary(_controller.HttpContext, itdp.Object);
     }
 
     [TearDown]
@@ -57,14 +71,25 @@ public class AccountControllerTests
             RememberMe = false
         };
 
-        _mockAuthService.Setup(s => s.ValidateCredentialsAsync(loginModel.Email, loginModel.Password)).ReturnsAsync(true);
+        // Mock user exists and is not deactivated
+        var user = new ApplicationUser { Email = loginModel.Email, IsDeactivated = false };
+        _mockUserService.Setup(s => s.GetUserByEmailAsync(loginModel.Email)).ReturnsAsync(user);
+
+        // Mock password check passes
+        _mockAuthService.Setup(s => s.CheckPasswordAsync(loginModel.Email, loginModel.Password)).ReturnsAsync(true);
         _mockAuthService.Setup(s => s.SignInUserAsync(It.IsAny<HttpContext>(), loginModel.Email, loginModel.RememberMe)).Returns(Task.CompletedTask);
 
-        var result = await _controller.Login(loginModel);
+        // Mock UserManager behavior when Login() looks up user to update streaks/timezone
+        _mockUserManager.Setup(m => m.FindByEmailAsync(loginModel.Email))
+            .ReturnsAsync(user);
+        _mockUserManager.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(IdentityResult.Success);
+
+        var result = await _controller.Login(loginModel, null);
 
         var redirectResult = result as RedirectToActionResult;
         Assert.That(redirectResult, Is.Not.Null);
-        Assert.That(redirectResult.ActionName, Is.EqualTo("Index"));
+        Assert.That(redirectResult!.ActionName, Is.EqualTo("Index"));
         Assert.That(redirectResult.ControllerName, Is.EqualTo("Dashboard"));
         _mockAuthService.Verify(s => s.SignInUserAsync(It.IsAny<HttpContext>(), loginModel.Email, loginModel.RememberMe), Times.Once);
     }
@@ -78,7 +103,12 @@ public class AccountControllerTests
             Password = "WrongPassword"
         };
 
-        _mockAuthService.Setup(s => s.ValidateCredentialsAsync(loginModel.Email, loginModel.Password)).ReturnsAsync(false);
+        // Mock user exists
+        var user = new ApplicationUser { Email = loginModel.Email, IsDeactivated = false };
+        _mockUserService.Setup(s => s.GetUserByEmailAsync(loginModel.Email)).ReturnsAsync(user);
+
+        // Mock password check fails
+        _mockAuthService.Setup(s => s.CheckPasswordAsync(loginModel.Email, loginModel.Password)).ReturnsAsync(false);
 
         var result = await _controller.Login(loginModel);
 

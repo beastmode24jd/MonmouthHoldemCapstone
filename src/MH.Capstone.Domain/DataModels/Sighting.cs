@@ -43,7 +43,7 @@ namespace MH.Capstone.Domain.DataModels
 
         [Required]
         [PastDateTime]
-        public DateTime Timestamp { get; set; }
+        public DateTimeOffset Timestamp { get; set; }
 
         [MaxLength(500)]
         public string? Description { get; set; } = null;
@@ -55,7 +55,7 @@ namespace MH.Capstone.Domain.DataModels
 
         public Sighting() {}
 
-        public Sighting(Guid id, Guid userId, decimal latitude, decimal longitude, DateTime timestamp, 
+        public Sighting(Guid id, Guid userId, decimal latitude, decimal longitude, DateTimeOffset timestamp, 
             string? description, byte[] imageBuffer)
         {
             Id = id;

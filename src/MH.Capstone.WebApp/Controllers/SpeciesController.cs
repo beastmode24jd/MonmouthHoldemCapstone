@@ -1,9 +1,14 @@
-﻿    using System.Net;
+﻿using System.Net;
 using MH.Capstone.Domain.ApiContracts;
-using MH.Capstone.Domain.ApiContracts.Ninjas;
+using MH.Capstone.Domain.ApiContracts.Ninja;
 using MH.Capstone.Domain.Services.Abstraction;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Protocols.Configuration;
+using MH.Capstone.Domain.DataModels;
+using MH.Capstone.Domain.DataAccess;
+using MH.Capstone.Domain.DataAccess.Repositories;
+using MH.Capstone.Domain.Tools;
+using Microsoft.EntityFrameworkCore;
 
 namespace MH.Capstone.WebApp.Controllers
 {
@@ -12,13 +17,19 @@ namespace MH.Capstone.WebApp.Controllers
     public class SpeciesController : Controller
     {
         private readonly ILogger<SpeciesController> _logger;
-        private readonly IApiCallerFactory<NinjaApiConfigValues> _ninjaApiCallerFactory;
+        private readonly IApiCaller<NinjaApiConfigValues> _ninjaApiCaller;
+        private readonly IRepository<NinjaAnimalCacheEntity, CacheDbContext> _cacheRepo;
+        private readonly FeatureFlags _featureFlags;
 
         public SpeciesController(ILogger<SpeciesController> logger,
-            IApiCallerFactory<NinjaApiConfigValues> ninjaApiCallerFactory)
+            IApiCaller<NinjaApiConfigValues> ninjaApiCaller,
+            IRepository<NinjaAnimalCacheEntity, CacheDbContext> cacheRepo,
+            FeatureFlags featureFlags)
         {
             _logger = logger;
-            _ninjaApiCallerFactory = ninjaApiCallerFactory;
+            _ninjaApiCaller = ninjaApiCaller;
+            _cacheRepo = cacheRepo;
+            _featureFlags = featureFlags;
         }
 
         [HttpGet]
@@ -42,20 +53,18 @@ namespace MH.Capstone.WebApp.Controllers
 
             _logger.LogDebug($"Call made to our search action for an animal/species with the name '{name}'.");
 
-            var apiCaller = _ninjaApiCallerFactory.CreateApiCaller();
-
             try
             {
-                _logger.LogInformation($"Config Endpoints Length: {apiCaller.ConfigValues.Endpoints.Count}");
-                _logger.LogInformation($"Config ClientKey: {apiCaller.ConfigValues.HttpClientKey}");
-                _logger.LogInformation($"Config BaseUrl: {apiCaller.ConfigValues.BaseUrl}");
-                var url = apiCaller.ConfigValues.Endpoints
+                _logger.LogInformation($"Config Endpoints Length: {_ninjaApiCaller.ConfigValues.Endpoints.Count}");
+                _logger.LogInformation($"Config ClientKey: {_ninjaApiCaller.ConfigValues.HttpClientKey}");
+                _logger.LogInformation($"Config BaseUrl: {_ninjaApiCaller.ConfigValues.BaseUrl}");
+                var url = _ninjaApiCaller.ConfigValues.Endpoints
                     .FirstOrDefault(kvp => string.Equals(kvp.Key, "animal", StringComparison.InvariantCultureIgnoreCase))
                     .Value ?? throw new InvalidConfigurationException("The needed Animal endpoint could " +
                                                                       "not be found in the api caller's config values!");
 
                 _logger.LogWarning($"This would be a call to the api! name = {name}");
-                var result = (await apiCaller.GetAsync<IEnumerable<AnimalApiDto>>(url,
+                var result = (await _ninjaApiCaller.GetAsync<IEnumerable<AnimalApiDto>>(url,
                     new KeyValuePair<string, string>("name", name))).ToList();
 
                 if (result.Count > 0)
@@ -80,6 +89,40 @@ namespace MH.Capstone.WebApp.Controllers
                 // Log and gracefully handle any exceptions that may occur during the API call
                 _logger.LogError(ex,
                     $"An error occurred while trying to search for an animal/species with the name '{name}'.");
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
+
+        [HttpGet]
+        [Route("search/cache")]
+        [Produces("text/html")]
+        public async Task<IActionResult> CacheByName([FromQuery] string? name)
+        {
+            // Feature gated: if feature flag disabled, hide endpoint
+            if (!_featureFlags.IsEnabled("ExposeDetailedApiCacheOnUi"))
+            {
+                return NotFound();
+            }
+
+            if (string.IsNullOrWhiteSpace(name)) return BadRequest();
+
+            try
+            {
+                // Query cache entries matching the query params containing the name
+                var queryable = await _cacheRepo.GetAllAsync(e => e.QueryParams.Contains(name));
+                var entries = await queryable.ToListAsync();
+
+                if (entries == null || entries.Count == 0)
+                {
+                    return NotFound();
+                }
+
+                // Return HTML partial that will be rendered into a modal on the client
+                return PartialView("_CacheDetail", entries);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while retrieving cache entries");
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }

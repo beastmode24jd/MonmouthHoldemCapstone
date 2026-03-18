@@ -43,10 +43,17 @@ namespace MH.Capstone.Domain.Services
         public async Task UpdateUserBioAsync(ApplicationUser user, string? newBio)
         {
             // Doesn't reset the Bio string's default, if it is over 250 char.
-            if (string.IsNullOrWhiteSpace(newBio) || newBio.Length > 250)
+            if (newBio?.Length > 250)
             {
                 // Invalid bio, throw an exception.
                 throw new ArgumentOutOfRangeException(nameof(newBio), "Setting a bio requires a non-null string between 1-250 characters long");
+            }
+
+            // Reset Bio string to default value, if empty, whitespace, or null value
+            // "Clears" the field.
+            if (string.IsNullOrWhiteSpace(newBio))
+            {
+                newBio = null;
             }
 
             // Update & Save Changes

@@ -1,0 +1,61 @@
+using MH.Capstone.Domain.DataAccess;
+using MH.Capstone.Domain.DataAccess.Repositories;
+using MH.Capstone.Domain.DataModels;
+using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.Domain.Tools;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+
+namespace MH.Capstone.Domain.Services
+{
+    public class ReportService : IReportService
+    {
+        private readonly IRepository<Report, ApplicationDbContext> _reportRepo;
+        private readonly INotificationService _notificationService;
+
+        public ReportService(
+            IRepository<Report, ApplicationDbContext> reportRepo,
+            INotificationService notificationService)
+        {
+            _reportRepo = reportRepo;
+            _notificationService = notificationService;
+        }
+
+        public async Task<bool> SubmitReportAsync(Report report)
+        {
+            if (!report.TryValidateEntity(out var fails))
+            {
+                var firstFail = fails.First();
+                throw new ArgumentException($"Report entity validation failed. Property {firstFail} invalid.",
+                    firstFail);
+            }
+
+            try
+            {
+                // try to save the report, and let the database handle the duplicate report check
+                await _reportRepo.AddOrUpdateAsync(report);
+
+                // notification to the reporting user
+                await _notificationService.SendNotificationAsync(Notification.Create(
+                    report.ReportingUserId,
+                    "Report Received",
+                    $"Thank you. Your report for '{report.ReportedPageUrl}' has been received and is under review."
+                ));
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                // Check if this is a unique constraint violation (duplicate unresolved report)
+                if ((ex is SqlException sqlEx && sqlEx.IsOfErrorType(SqlErrorNumber.UniqueConstraintViolation)) ||
+                    (ex is DbUpdateException dbEx && dbEx.IsOfErrorType(SqlErrorNumber.UniqueConstraintViolation)))
+                {
+                    // if dupe report dectected
+                    return false;
+                }
+
+                throw;
+            }
+        }
+    }
+}

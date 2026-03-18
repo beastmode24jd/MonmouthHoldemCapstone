@@ -3,6 +3,40 @@
     ViewData["Title"] = "Dashboard";
     var user = await _userManager.GetUserAsync(User);
     var badges = ViewData["SortedBadges"] as List<MH.Capstone.Domain.DataModels.UserBadge>;
+
+    // Fetch user Role
+    string? displayRole = null;
+    if (user != null)
+    {
+        var userRoles = await _userManager.GetRolesAsync(user);
+        if (userRoles.Contains("Admin"))
+        {
+            displayRole = "Admin";
+        }
+        else
+        {
+            displayRole = userRoles.FirstOrDefault() ?? "User";
+        }
+    }
+
+    // Fetch the device's local time zone for display
+    var userTimeZoneId = ViewData["UserTimeZone"] as string ?? "America/Los_Angeles";
+    string formattedLastLogin = "Never";
+
+    if (user?.LastLogin != null)
+    {
+        try 
+        {
+            var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(userTimeZoneId);
+            var localTime = TimeZoneInfo.ConvertTime(user.LastLogin.Value, tzInfo);
+            formattedLastLogin = localTime.ToString("MMM dd, yyyy h:mm tt");
+        }
+        catch (Exception)
+        {
+            // Fallback for safety
+            formattedLastLogin = user.LastLogin.Value.ToString("yyyy-MM-dd HH:mm UTC");
+        }
+    }
 }
 
 <div class="container mt-4">
@@ -26,7 +60,7 @@
                             @Html.Raw(ViewData["statusMsgHtml"])
                         </div>
 
-                        <div class="mt-4">
+                        <div class="mt-4 mb-2">
                             <h5>Your Account Information</h5>
                             <ul class="list-group list-group-flush">
                                 <li class="list-group-item">
@@ -36,10 +70,26 @@
                                     <strong>Authentication Type:</strong> @User.Identity.AuthenticationType
                                 </li>
                                 <li class="list-group-item">
+                                    <strong>Account Type:</strong> 
+                                    @if (!string.IsNullOrEmpty(displayRole))
+                                    {
+                                        <span class="badge bg-primary"><i class="bi bi-shield-check"></i> @displayRole</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Standard User</span>
+                                    }
+                                </li>
+                                <li class="list-group-item">
                                     <strong>Status:</strong> <span class="badge bg-success">Active</span>
                                 </li>
                                 <li class="list-group-item">
                                     <strong>Bio: </strong> @(user?.Bio ?? "No custom bio is set.")
+                                </li>
+                                <li class="list-group-item mt-1">
+                                    <p class="text-muted small mb-0 pb-0">
+                                        Last Login: @formattedLastLogin
+                                    </p>
                                 </li>
                             </ul>
                         </div>
@@ -85,12 +135,36 @@
         <div class="col-md-8">
             <div class="card h-100">
                 <div class="card-body">
-                    <h5 class="card-title">
+                    <h5 class="card-title mb-2">
                         <i class="bi bi-speedometer2"></i> Quick Stats
                     </h5>
-                    <p class="card-text mb-0 mt-1">Current points: </p> @(user?.Points ?? 0)
-                    <br>
-                    <p class="card-text mb-1 mt-2">Recent Badges:</p>
+                    <div class="row g-3 mt-1">
+                        <div class="col-4 text-left mt-1 mb-1">
+                            <p class="card-text mb-0 mt-1"><strong>Current points:</strong> <br/>@(user?.Points ?? 0) </p>
+                        </div>
+                        <div class="col-4 text-left mt-1 mb-1">
+                            @if (user != null)
+                            {
+                                <p class="card-text mb-0 mt-1"><strong>Login Streak:</strong> </p>
+                                <span class="badge @(user.IsStreakActive ? "bg-success" : "bg-danger")">
+                                    @(user.IsStreakActive ? "Active" : "Inactive")
+                                </span>
+                            }
+                        </div>
+                        <div class="col-4 text-left mt-1 mb-1">
+                            <p class="card-text mb-0 mt-1"><strong>Current Streak:</strong>
+                                @if (user?.LoginStreak > 1 && user?.LoginStreak != null)
+                                {
+                                    @user.LoginStreak <p> Days</p>
+                                }
+                                else if (user?.LoginStreak == 1 && user?.LoginStreak != null)
+                                { <p>1 day</p> }
+                                else
+                                { <p>0 Days</p> }
+                            </p>
+                        </div>
+                    </div>
+                    <strong><p class="card-text mb-1 mt-2">Recent Badges:</p></strong>
                     <div class="mb-2 mt-0">
                         @if(badges != null && badges.Any())
                         {
@@ -103,7 +177,7 @@
                                                 <img src="~/imgs/badge/BadgeIcon1.jpg" class="dashboardProfile" role="img"/>
                                                 <br><strong>@ub.Badge.Title</strong> 
                                                 <br>@ub.Badge.PointValue points
-                                                <br><small class="text-muted">@ub.BadgeEarned?.ToString("MM-dd-yyyy")</small>
+                                                <br><small class="text-muted">@ub.BadgeEarned?.ToString("MMM dd, yyyy h:mm tt")</small>
                                             </div>
                                         </div>
                                     </div>
