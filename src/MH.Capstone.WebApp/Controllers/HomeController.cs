@@ -64,13 +64,30 @@ namespace MH.Capstone.WebApp.Controllers
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
 
+        [Authorize]
+        [HttpGet]
+        [Route("uat/emailer")]
+        [Route("uat/email")]
+        public IActionResult TestEmailView()
+        {
+            // Check feature flag first
+            if (!_featureFlags.IsEnabled("EnableEmailTestEndpoint"))
+            {
+                // Feature disabled - do nothing and return 404 so endpoint is not discoverable
+                _logger.LogInformation("Email test endpoint called but feature flag is disabled.");
+                return NotFound();
+            }
+
+            return View("EmailSenderUAT");
+        }
+
         /// <summary>
         /// Test endpoint to enqueue a simple email to the currently authenticated user's email address.
         /// Route: /uat/emailer
         /// Only active when FeatureFlag "EnableEmailTestEndpoint" is enabled.
         /// </summary>
         [Authorize]
-        [HttpGet]
+        [HttpPost]
         [Route("uat/emailer")]
         [Route("uat/email")]
         public async Task<IActionResult> SendTestEmail()
@@ -118,7 +135,7 @@ namespace MH.Capstone.WebApp.Controllers
                 await _notificationService.SendNotificationAsync(Notification
                     .Create(user.GuidId, "Test Email Enqueued!",
                         $"A test email has been queued to your email {user.Email} " +
-                        $"from our email {_emailService.SenderAddress}"));
+                        $"from our email {_emailService.SenderAddress} and will be sent soon!"));
 
                 return RedirectToAction("Notifications", "Dashboard");
             }
