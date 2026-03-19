@@ -4,6 +4,7 @@ This folder is where all documents pertaining to the project, team and/or repo w
 ## Team/Personnel Resources
 - The [directory of the development and support team](./team.md) for Monmouth Hold'em, which includes common contacts and other important links for all members of the staff.
 - The [development and weekly meeting schedules](./schd.md) for the Monmouth Hold'em team.
+- [Sprint Retrospectives folder](./sprint-retros/)
 
 ## Project Planning - Ideas, Overviews and Outline Documents
 - [Our list of project ideas](./project-ideas.md) - which were created in Milestone One and fine-tuned in Milestone Two - for the 2026 Capstone Project.
@@ -23,10 +24,3 @@ This folder is where all documents pertaining to the project, team and/or repo w
  - [Team Logo - Color Variant](./imgs/LogoColorVer.png)
  - [Team Logo - Black & White Variant](./imgs/LogoBWVer.png)
  - [Team Letterhead with Logo and Moto](./imgs/Letterhead.png)
-
-## Other Developer & Technical Resources
-- Pull Request Review (PRR) Templates
-    - [PR Body Template](./pr-templates/pull-request-body-template.md)
-    - [PRR Approval Template](./pr-templates/ghpr-review-approve.md)
-    - [PRR Request Changes Template](./pr-templates/ghpr-review-rc.md)
-    - [PRR General Comment Template](./pr-templates/ghpr-review-gc.md)

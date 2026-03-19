@@ -22,16 +22,18 @@
 | 7  (Spring)   | May 12, 2026      | May 26, 2026^     |
 | 8  (Spring)^  | May 26, 2026^     | May 28, 2026^     |
 
-***Note:** Spring Break Sprint will be a development stop-period with no forward progress during those two weeks*
-*^May Update Spring Term due to AES constraints*
+***Note:** Spring Break Sprint will be a development stop-period with no forward progress during those two weeks. Bug fixes and codebase clean up OK and encouraged.*  
+*^May Update Spring Term due to AES timing constraints.*
 
 ## Completion Deadline / AES Presentation Date
 WOU Academic Excellence Showcase, May 28, 2026. Presentation time *TBD*.
 
 # Development Team Weekly Meeting Schedule
-*Schedule Current as of Jan. 14, 2026*
+*Schedule Current as of March. 18, 2026*
 
-For meetings marked "as needed", team will decide during the stand-up meeting prior to meeting date and/or via Discord if meeting needs to be held. Team Lead will create Google Calendar events for Development Meetings as needed/requested.
+For meetings marked "as needed", team will decide during the stand-up meeting prior to meeting date and/or via Discord if meeting needs to be held.
+
+[Development Team Google Calendar](https://calendar.google.com/calendar/u/0?cid=Y18zYTVlM2JhZDNjNTI3OWJmMDkzN2FjOGU0MzBjMmE5MzJjOWFjNjM3ZjA4ZTBiZmJkNjhiNTdiNjcwMDFlZTRkQGdyb3VwLmNhbGVuZGFyLmdvb2dsZS5jb20)
 
 ## Course Meetings (CS 461 & CS 462)
 
@@ -43,11 +45,20 @@ For meetings marked "as needed", team will decide during the stand-up meeting pr
 **Tuesday: 6 p.m. to 7 p.m.**  
 *[https://wou-edu.zoom.us/my/chrisbrooks](https://wou-edu.zoom.us/my/chrisbrooks) \- Repeats Weekly*
 
-## Team Development Meetings
+## Stand Up / Scrum Meetings
+**Monday, Wedenday, Friday: 10:00 to 10:15 a.m.**  
+*M/W: ITC 211; F: Discord VC Conf. Rm. 1 \- Repeats Weekly*
 
-**Monday/Wednesday: 12 p.m. (noon) to 2 p.m.**  
-*In-Person, location varying \- Repeats Weekly (as needed)*
+## Sprint Deployment & Retrospective
+**Monday prior to sprint end: 4:30 to 6:00 p.m.**  
+*Discord VC Conf. Rm. 1 \- Repeats Bi-Weekly*
 
-**Friday: 7 p.m. to 9 p.m.**  
-*[https://wou-edu.zoom.us/my/jmcshane22](https://wou-edu.zoom.us/my/jmcshane22)  \- Repeats Weekly (as needed)*  
-***\*Note:** Timing of this meeting may change week-to-week as needed/discussed with team*
+## Sprint Planning & PBI Grooming
+**Tuesday of sprint transition: 4:00 to 5:00 p.m.**  
+*Discord VC Conf. Rm. 1 \- Repeats Bi-Weekly*
+
+## As-Needed Team/Sub-Team Development Meeting
+- **Monday of mid-sprint: 4:30 to 6:00 p.m.**
+- **Friday: 10 a.m. to 1 p.m. *(held after scum meeting)***
+
+*Discord VC Conf. Rm. 1 \- Repeats Weekly*
