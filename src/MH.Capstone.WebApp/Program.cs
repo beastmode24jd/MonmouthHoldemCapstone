@@ -135,7 +135,7 @@ namespace MH.Capstone.WebApp
                 builder.Services.Configure<EmailDispatcherOptions>(builder.Configuration.GetSection("EmailDispatcher"));
                 builder.Services.AddHostedService<EmailDispatcherService>();
 
-                entryLogger.LogInformation("AzureCommunicationEmailService registered (Development, feature flag enabled).");
+                entryLogger.LogInformation("AzureCommunicationEmailService and EmailDispatcherService registered (feature flag enabled).");
             }
             else
             {
@@ -145,7 +145,7 @@ namespace MH.Capstone.WebApp
                     return new NoOpEmailService(emailSender ?? "no-reply@localhost", logger);
                 });
 
-                entryLogger.LogInformation("NoOpEmailService registered (Development, feature flag disabled).");
+                entryLogger.LogInformation("NoOpEmailService registered (feature flag disabled).");
             }
 
             // Configure Ninja API Caller
