@@ -114,14 +114,14 @@ jobs:
           package: .
 
       - name: Deploy EF Core migration bundle - ApplicationDbContext
-        id: deploy-to-db
+        id: deploy-application-db-ctx
         if: ${{ success() }}
         run: |
           chmod +x ${{ vars.DOTNET_EF_BUNDLE_NAME_APPDBCTX }} &&
           ${{ vars.DOTNET_EF_BUNDLE_NAME_APPDBCTX }} --connection '${{ secrets.AZUREAPPSERVICE_DBCONNSTR }}' --verbose
 
       - name: Deploy EF Core migration bundle - CacheDbContext
-        id: deploy-to-db
+        id: deploy-cache-db-ctx
         if: ${{ success() }}
         run: |
           chmod +x ${{ vars.DOTNET_EF_BUNDLE_NAME_CACHEDBCTX }} &&
