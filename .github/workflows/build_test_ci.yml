@@ -117,11 +117,17 @@ jobs:
       - name: Publish with dotnet
         run: dotnet publish ./src/MH.Capstone.WebApp --no-restore --no-build --configuration Release --verbosity normal -o "${{ vars.DOTNET_ROOT }}/myapp"
 
-      - name: Create EF Core bundle
+      - name: Create EF Core bundle - ApplicationDbContext
         if: inputs.deploy
         run: |
-          dotnet ef migrations bundle --self-contained --configuration Release --no-build -o "${{ vars.DOTNET_ROOT }}/myapp/${{ vars.DOTNET_EF_BUNDLE_NAME }}" \
+          dotnet ef migrations bundle --self-contained --configuration Release --no-build -o "${{ vars.DOTNET_ROOT }}/myapp/${{ vars.DOTNET_EF_BUNDLE_NAME_APPDBCTX }}" \
           -p ./src/MH.Capstone.Domain -s ./src/MH.Capstone.WebApp -c ApplicationDbContext
+
+      - name: Create EF Core bundle - CacheDbContext
+        if: inputs.deploy
+        run: |
+          dotnet ef migrations bundle --self-contained --configuration Release --no-build -o "${{ vars.DOTNET_ROOT }}/myapp/${{ vars.DOTNET_EF_BUNDLE_NAME_CACHEDBCTX }}" \
+          -p ./src/MH.Capstone.Domain -s ./src/MH.Capstone.WebApp -c CacheDbContext
       
       - name: Get artifact name
         id: artifact_name

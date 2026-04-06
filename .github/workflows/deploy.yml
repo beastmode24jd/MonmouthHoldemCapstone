@@ -113,9 +113,16 @@ jobs:
           slot-name: 'Production'
           package: .
 
-      - name: Deploy EF Core migration bundle
+      - name: Deploy EF Core migration bundle - ApplicationDbContext
         id: deploy-to-db
         if: ${{ success() }}
         run: |
-          chmod +x ${{ vars.DOTNET_EF_BUNDLE_NAME }} &&
-          ${{ vars.DOTNET_EF_BUNDLE_NAME }} --connection '${{ secrets.AZUREAPPSERVICE_DBCONNSTR }}' --verbose
+          chmod +x ${{ vars.DOTNET_EF_BUNDLE_NAME_APPDBCTX }} &&
+          ${{ vars.DOTNET_EF_BUNDLE_NAME_APPDBCTX }} --connection '${{ secrets.AZUREAPPSERVICE_DBCONNSTR }}' --verbose
+
+      - name: Deploy EF Core migration bundle - CacheDbContext
+        id: deploy-to-db
+        if: ${{ success() }}
+        run: |
+          chmod +x ${{ vars.DOTNET_EF_BUNDLE_NAME_CACHEDBCTX }} &&
+          ${{ vars.DOTNET_EF_BUNDLE_NAME_CACHEDBCTX }} --connection '${{ secrets.AZUREAPPSERVICE_DBCONNSTR }}' --verbose
