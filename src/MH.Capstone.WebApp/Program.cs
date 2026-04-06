@@ -39,7 +39,8 @@ namespace MH.Capstone.WebApp
                         $"ENV is {builder.Environment.EnvironmentName}."),
                     sqlOptions => 
                         // Handle transient Azure SQL failures
-                        sqlOptions.EnableRetryOnFailure())
+                        sqlOptions.EnableRetryOnFailure()
+                            .MigrationsHistoryTable("__EFMigrationsHistory_ApplicationDbContext"))
                     // Must implement the synchronous SeedData method for EF Core Tooling.
                     .UseSeeding((context, _) => {
                         if (context is ApplicationDbContext appSyncContext)
@@ -66,7 +67,8 @@ namespace MH.Capstone.WebApp
                         $"ENV is {builder.Environment.EnvironmentName}."),
                     sqlOptions => 
                         // Handle transient Azure SQL failures
-                        sqlOptions.EnableRetryOnFailure())
+                        sqlOptions.EnableRetryOnFailure()
+                            .MigrationsHistoryTable("__EFMigrationsHistory_ApplicationDbContext"))
             );
 
             // Configure Identity for authentication
