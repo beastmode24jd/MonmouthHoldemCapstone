@@ -1,4 +1,5 @@
 using System;
+using MH.Capstone.Tests.Acceptance.Drivers;
 using Reqnroll;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions
@@ -6,6 +7,9 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
     [Binding]
     public class CSP53StepDefinitions
     {
+        private readonly SightingsDriver _sightingsDriver;
+        private readonly AuthenticationDriver _authenticationDriver;
+
         [Given("user Alpha is logged in")]
         public void GivenUserAlphaIsLoggedIn()
         {

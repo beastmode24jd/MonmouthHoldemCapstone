@@ -66,5 +66,11 @@ namespace MH.Capstone.Tests.Acceptance.Drivers
                 throw new Exception($"Failed to log in user '{username}'.");
             }
         }
+
+        public bool WasDeniedAccess(string urlToTest)
+        {
+            _webDriver.Navigate().GoToUrl(urlToTest);
+            return _webDriver.Url.Contains("/account/login", StringComparison.InvariantCultureIgnoreCase);
+        }
     }
 }
