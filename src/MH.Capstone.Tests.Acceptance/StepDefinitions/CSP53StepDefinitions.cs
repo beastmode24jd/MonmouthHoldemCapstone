@@ -10,17 +10,26 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
     {
         private readonly SightingsDriver _sightingsDriver;
         private readonly AuthenticationDriver _authenticationDriver;
+        private readonly DashboardDriver _dashboardDriver;
+
+        public CSP53StepDefinitions(SightingsDriver sightingsDriver, 
+            AuthenticationDriver authenticationDriver, DashboardDriver dashboardDriver)
+        {
+            _sightingsDriver = sightingsDriver;
+            _authenticationDriver = authenticationDriver;
+            _dashboardDriver = dashboardDriver;
+        }
 
         [Given("user Alpha is logged in")]
         public void GivenUserAlphaIsLoggedIn()
         {
-            throw new PendingStepException();
+            _authenticationDriver.PreformLoginForUser("alpha@test.com", "Capstone26!");
         }
 
         [Given("user is on the sightings upload page")]
         public void GivenUserIsOnTheSightingsUploadPage()
         {
-            throw new PendingStepException();
+            _sightingsDriver.NavigateToSightingsUpload();
         }
 
         [Given("user has an invalid image file")]
@@ -62,7 +71,7 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
         [Then("user should be redirected to their dashboard.")]
         public void ThenUserShouldBeRedirectedToTheirDashboard()
         {
-            throw new PendingStepException();
+            _dashboardDriver.IsOnDashboard().Should().BeTrue();
         }
 
         [Given("an unauthenticated user")]

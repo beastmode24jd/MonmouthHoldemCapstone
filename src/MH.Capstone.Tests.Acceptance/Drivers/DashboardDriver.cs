@@ -18,13 +18,11 @@ namespace MH.Capstone.Tests.Acceptance.Drivers
             _webDriver = webDriver;
         }
 
-        public bool IsOnDashboard() => IsOnDashboard(_webDriver);
-
-        public static bool IsOnDashboard(IWebDriver webDriver)
+        public bool IsOnDashboard()
         {
             // TODO - Put this URL in a config file or something similar so that it can be run against different environments
             const string url = "https://localhost:7147/Dashboard";
-            return string.Equals(webDriver.Url, url, StringComparison.InvariantCultureIgnoreCase)
+            return string.Equals(_webDriver.Url, url, StringComparison.InvariantCultureIgnoreCase);
         }
     }
 }
