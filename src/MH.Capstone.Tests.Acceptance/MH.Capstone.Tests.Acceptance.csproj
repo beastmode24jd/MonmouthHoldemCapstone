@@ -36,7 +36,12 @@
     <PackageReference Include="Selenium.WebDriver.ChromeDriver" Version="147.0.7727.5600" />
   </ItemGroup>
   <ItemGroup>
+    <!-- This gives you access to WebApplication and WebApplicationBuilder -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\MH.Capstone.Domain\MH.Capstone.Domain.csproj" />
+    <ProjectReference Include="..\MH.Capstone.WebApp\MH.Capstone.WebApp.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="NUnit.Framework" />

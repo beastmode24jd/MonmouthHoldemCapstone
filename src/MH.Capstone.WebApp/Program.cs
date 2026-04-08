@@ -18,7 +18,12 @@ namespace MH.Capstone.WebApp
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+            var app = Configure(builder);
+            app.Run();
+        }
 
+        public static WebApplication Configure(WebApplicationBuilder builder)
+        {
             // Configure logging based on environment first so that it is available during app startup and for all services.
             builder.Logging.ConfigureLogging(builder.Environment);
             var entryLogger = CreateProgramEntryLogger();
@@ -186,7 +191,7 @@ namespace MH.Capstone.WebApp
                 pattern: "{controller=Home}/{action=Index}/{id?}")
                 .WithStaticAssets();
 
-            app.Run();
+            return app;
         }
 
         public static ILogger CreateProgramEntryLogger()
