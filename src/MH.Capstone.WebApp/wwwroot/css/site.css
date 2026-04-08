@@ -128,7 +128,7 @@ button.btnDark {
     font-family: Verdana, Tahoma, Arial, sans-serif;
     font-weight: bold;
 
-    padding: 0.7%;
+    padding: 0.4%;
     border-radius: 10px;
     font-size: min(20vw, 16px);
     color: white;
@@ -304,7 +304,7 @@ a.navbar-brand:hover {
 }
 
 #frontPageBtn {
-    padding: 2%;
+    padding: 1%;
     font-size: min(20vw, 25px);
 }
 
