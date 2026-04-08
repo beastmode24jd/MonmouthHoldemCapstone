@@ -8,18 +8,8 @@ using Reqnroll.Microsoft.Extensions.DependencyInjection;
 namespace MH.Capstone.Tests.Acceptance
 {
     [ExcludeFromCodeCoverage]
-    public static class Startup
+    public static class TestEnvironmentDriver
     {
-        public static WebApplication ConfigureWebApp()
-        {
-            var builder = WebApplication.CreateBuilder(new WebApplicationOptions
-            {
-                EnvironmentName = "Acceptance"
-            });
-
-            return WebApp.Program.Configure(builder);
-        }
-
         [ScenarioDependencies]
         public static IServiceCollection RegisterTestDependencies()
         {
@@ -27,8 +17,19 @@ namespace MH.Capstone.Tests.Acceptance
 
             // Register any dependencies needed for the tests here.
             services.AddScoped<IWebDriver>(sp => new ChromeDriver());
+            services.AddSingleton<WebApplication>(sp => TestEnvironmentDriver.ConfigureDefaultTestableWebApp());
 
             return services;
+        }
+
+        public static WebApplication ConfigureDefaultTestableWebApp()
+        {
+            var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+            {
+                EnvironmentName = "Acceptance"
+            });
+
+            return WebApp.Program.Configure(builder);
         }
     }
 }

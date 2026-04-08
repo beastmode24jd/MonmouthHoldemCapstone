@@ -10,26 +10,19 @@ namespace MH.Capstone.Tests.Acceptance.Hooks
     [ExcludeFromCodeCoverage]
     public sealed class GlobalHooks
     {
-        private WebApplication? _webApp;
-
         // Add any global setup logic here that needs to be run before any tests are executed
         [BeforeTestRun]
-        public async Task BeforeTestRun()
-        { 
-            _webApp = Startup.ConfigureWebApp();
-            await _webApp.StartAsync();
+        public static async Task BeforeTestRun(WebApplication webApp)
+        {
+            await webApp.StartAsync();
         }
 
         // Add any global teardown logic here that needs to be run after all tests have finished executing
         [AfterTestRun]
-        public async Task AfterTestRun()
+        public static async Task AfterTestRun(WebApplication webApp)
         {
-            if (_webApp != null)
-            {
-                await _webApp.StopAsync();
-                await _webApp.DisposeAsync();
-                _webApp = null;
-            }
+            await webApp.StopAsync();
+            await webApp.DisposeAsync();
         }
     }
 }
