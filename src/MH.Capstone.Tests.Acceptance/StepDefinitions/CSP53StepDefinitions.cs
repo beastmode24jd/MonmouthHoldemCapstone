@@ -1,4 +1,5 @@
 using System;
+using FluentAssertions;
 using MH.Capstone.Tests.Acceptance.Drivers;
 using Reqnroll;
 
@@ -67,19 +68,19 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
         [Given("an unauthenticated user")]
         public void GivenAnUnauthenticatedUser()
         {
-            throw new PendingStepException();
+            _authenticationDriver.LogoutUser();
         }
 
         [When("user attempts to access the sightings upload page")]
         public void WhenUserAttemptsToAccessTheSightingsUploadPage()
         {
-            throw new PendingStepException();
+            _sightingsDriver.NavigateToSightingsUpload();
         }
 
         [Then("user is denied access to the page.")]
         public void ThenUserIsDeniedAccessToThePage()
         {
-            throw new PendingStepException();
+            _authenticationDriver.WasPageAccessDenied().Should().BeTrue();
         }
 
     }

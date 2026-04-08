@@ -20,7 +20,7 @@ namespace MH.Capstone.Tests.Acceptance.Drivers
             _webDriver = webDriver;
         }
 
-        public bool CheckIfLoggedIn(string? username = null)
+        public bool IsUserLoggedIn(string? username = null)
         {
             // TODO - Put this URL in a config file or something similar so that it can be run against different environments
             _webDriver.Navigate().GoToUrl("https://localhost:7147");
@@ -39,19 +39,14 @@ namespace MH.Capstone.Tests.Acceptance.Drivers
         public void PreformLoginForUser(string username, string password)
         {
             // Check if the user is already logged in
-            if (CheckIfLoggedIn(username))
+            if (IsUserLoggedIn(username))
             {
                 return;
             }
 
-            // If logged-in user is a different user, log out the current user first
-            if (CheckIfLoggedIn())
-            {
-                var userDropdown = _webDriver.FindElement(By.Id("userDropdownNavDisplay"));
-                userDropdown.Click();
-                var logoutBtn = _webDriver.FindElement(By.Id("logoutBtn"));
-                logoutBtn.Click();
-            }
+            // If logged-in user is a different user, log out the current user first.
+            // LogoutUser will handle the case where there is no user logged in, so we can call it unconditionally here
+            LogoutUser();
 
             // Log in the user using the login page
             var loginPage = new LoginPageObject(_webDriver);
@@ -61,16 +56,26 @@ namespace MH.Capstone.Tests.Acceptance.Drivers
             loginPage.SubmitBtn.Click();
 
             // Verify that the user is now logged in, throwing an exception if not
-            if (!CheckIfLoggedIn(username))
+            if (!IsUserLoggedIn(username))
             {
                 throw new Exception($"Failed to log in user '{username}'.");
             }
         }
 
-        public bool WasDeniedAccess(string urlToTest)
+        public void LogoutUser()
+        {
+            if (!IsUserLoggedIn()) return;
+            var logoutBtn = _webDriver.FindElement(By.Id("logoutBtn"));
+            logoutBtn.Click();
+        }
+
+        public bool WasPageAccessDenied(string urlToTest)
         {
             _webDriver.Navigate().GoToUrl(urlToTest);
-            return _webDriver.Url.Contains("/account/login", StringComparison.InvariantCultureIgnoreCase);
+            return WasPageAccessDenied();
         }
+
+        public bool WasPageAccessDenied() => 
+            _webDriver.Url.Contains("/account/login", StringComparison.InvariantCultureIgnoreCase);
     }
 }

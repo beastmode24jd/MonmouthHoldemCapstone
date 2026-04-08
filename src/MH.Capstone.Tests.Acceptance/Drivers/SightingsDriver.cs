@@ -18,6 +18,8 @@ namespace MH.Capstone.Tests.Acceptance.Drivers
             _webDriver = webDriver;
         }
 
-
+        // TODO - Put this URL in a config file or something similar so that it can be run against different environments
+        public void NavigateToSightingsUpload() => 
+            _webDriver.Navigate().GoToUrl("https://localhost:7147/Sighting/Create");
     }
 }
