@@ -39,7 +39,10 @@
                         <div class="input-group">
                             <input asp-for="Password" class="form-control" type="password" id="passwordField"
                                    placeholder="Enter your password" required />
-                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                            <button class="btn btn-outline-secondary" type="button"
+                                data-password-toggle
+                                data-target-input="passwordField"
+                                data-target-icon="toggleIcon">
                                 <i class="bi bi-eye" id="toggleIcon"></i>
                             </button>
                         </div>
@@ -81,22 +84,6 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-            // Password visibility toggle
-            document.getElementById('togglePassword').addEventListener('click', function () {
-                const passwordField = document.getElementById('passwordField');
-                const toggleIcon = document.getElementById('toggleIcon');
-
-                if (passwordField.type === 'password') {
-                    passwordField.type = 'text';
-                    toggleIcon.classList.remove('bi-eye');
-                    toggleIcon.classList.add('bi-eye-slash');
-                } else {
-                    passwordField.type = 'password';
-                    toggleIcon.classList.remove('bi-eye-slash');
-                    toggleIcon.classList.add('bi-eye');
-                }
-            });
-
             // Form validation and button state
             const form = document.getElementById('loginForm');
             const emailInput = document.querySelector('input[name="Email"]');
