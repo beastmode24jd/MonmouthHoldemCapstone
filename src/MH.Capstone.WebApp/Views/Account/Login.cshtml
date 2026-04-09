@@ -8,12 +8,6 @@
         <div class="card shadow">
             <div class="card-body">
                 <h2 class="card-title text-center mb-4">Login</h2>
-                @if (TempData["PasswordResetSuccess"] is string msg)
-                {
-                    <div class="alert alert-success" role="alert">
-                        @msg
-                    </div>
-                }
                 @if (ViewData["ShowReactivateOption"] is bool showReactivate && showReactivate)
                 {
                     <div class="alert alert-warning" role="alert">
@@ -23,8 +17,23 @@
                         </a>
                     </div>
                 }
+                else if (!ViewData.ModelState.IsValid)
+                {
+                    // Retrieve only 'ModelOnly' errors (those with an empty key)
+                    var modelErrors = ViewData.ModelState[string.Empty]?.Errors;
+                    
+                    if (modelErrors != null && modelErrors.Any())
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            @foreach (var error in modelErrors)
+                            {
+                                @* Use Html.Raw to render the <a> tag provided by the controller *@
+                                <div>@Html.Raw(error.ErrorMessage)</div>
+                            }
+                        </div>
+                    }
+                }
                 <form asp-action="Login" asp-controller="Account" method="post" id="loginForm">
-                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
                     <input type="hidden" asp-for="ReturnUrl" />
 
                     <div class="mb-3">
@@ -34,7 +43,7 @@
                         <span asp-validation-for="Email" class="text-danger"></span>
                     </div>
 
-                    <div class="mb-3">
+                    <div class="mb-1">
                         <label asp-for="Password" class="form-label">Password</label>
                         <div class="input-group">
                             <input asp-for="Password" class="form-control" type="password" id="passwordField"
@@ -49,9 +58,9 @@
                         <span asp-validation-for="Password" class="text-danger"></span>
                     </div>
 
-                    <div class="d-flex justify-content-end mb-2">
+                    <div class="d-flex justify-content-end mb-3">
                         <a asp-controller="Account"     asp-action="ForgotPassword"
-                               class="link-primary text-decoration-underline">
+                               class="link-primary text-decoration-underline form-text">
                             Forgot Password?
                         </a>
                     </div>
