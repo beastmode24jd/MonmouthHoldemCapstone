@@ -45,8 +45,8 @@
                                 <i class="bi bi-eye" id="toggleIcon"></i>
                             </button>
                         </div>
-                        <span asp-validation-for="Password" class="text-danger"></span>
                         <div class="form-text">Password must be at least 8 characters with uppercase, lowercase, number, and special character.</div>
+                        <span asp-validation-for="Password" class="form-text d-block text-danger"></span>
                     </div>
 
                     <div class="mb-3">
@@ -60,7 +60,7 @@
                                 <i class="bi bi-eye" id="toggleConfirmIcon"></i>
                             </button>
                         </div>
-                        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                        <span asp-validation-for="ConfirmPassword" class="form-text d-block text-danger"></span>
                     </div>
 
                     <div class="d-grid gap-2">
