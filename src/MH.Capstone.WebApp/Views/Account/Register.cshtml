@@ -1,3 +1,4 @@
+@using Microsoft.IdentityModel.Tokens
 @model RegisterViewModel
 @{
     ViewData["Title"] = "Register";
@@ -9,7 +10,22 @@
             <div class="card-body">
                 <h2 class="card-title text-center mb-4">Create Account</h2>
 
-                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    @* Get "ModelOnly" errors (empty string key) *@
+                    var modelErrors = ViewData.ModelState[string.Empty]?.Errors;
+
+                    if (modelErrors != null && modelErrors.Any())
+                    {
+                        @* Use Html.Raw to render the redirect link to Login page *@
+                        <div class="alert alert-danger" role="alert">
+                            @foreach (var error in modelErrors)
+                            {
+                                <div>@Html.Raw(error.ErrorMessage)</div>
+                            }
+                        </div>
+                    }
+                }
 
                 <form asp-action="Register" asp-controller="Account" method="post" id="registerForm">
                     <div class="mb-3">
