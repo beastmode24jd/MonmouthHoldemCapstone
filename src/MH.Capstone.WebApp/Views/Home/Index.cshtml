@@ -3,21 +3,35 @@
 }
 
 <div class="text-center">
-    <div class="banner-img-2" role="img" aria-label="A landscape view of an evergreen forest in sunlight."></div>
+    <div class="banner-img-2" role="img" aria-label="A landscape view of an evergreen forest in sunlight.">
+        <div class="hero-text">
+            <h1 class="lightText">Welcome to Wildlife AID!</h1>
+        </div>
+    </div>
 
     <div class="container ps-0">
         <div class="row g-0">
             <div class="col">
-                <h3 class="mainHeader mt-4">What is this app?</h3>
+                <h3 class="mainHeader mt-4">Our Product Vision</h3>
                 <p class="displayText">
-                    Wildlife AID is a Desktop Application that brings competition, discovery, and education together in the natural world.
-                     By blending engaging gameplay with real-world exploration, Wildlife AID transforms 
-                     <a href="https://en.wikipedia.org/wiki/Zoology">zoology,</a> botany, and outdoor exploration into an interactive, rewarding experience for everyone.
+                    Wildlife AID brings together competition, discovery, and education in the natural world.
+                    <br/>By blending engaging gameplay with real-world exploration, Wildlife AID redefines how people experience, understand, and connect with nature.
+                    <br/>
+                    <br/>From rare and exotic wildlife to the bugs in your own backyard, Wildlife AID transforms zoology, nature watching, and outdoor exploration into an interactive, rewarding experience for everyone!
                 </p>
 
-                <h3 class="mainHeader mt-4">How do I register?</h3>
+                <h3 class="subheader mt-4">How Wildlife AID helps you learn</h3>
                 <p class="displayText">
-                    Either by clicking the "Menu" in the upper right of the navigation bar on the application, or by clicking <a asp-controller="Account" asp-action="Register">this link.</a>
+                    Our GPS map assists users with exploring their local area, while our animal search feature gives prospective players the tools to identify different animal species, markings, and more.
+                    <br/><br/>Once a user has a photo of an animal, our app scans the photo to identify the species, saving it both to the GPS map and the local Sightings Gallery, before assigning the player points.
+                    <br/><br/>By assigning points to Sighting uploads, our app encourages players to learn more about the local wildlife through our mapping and search tools!
+                    
+                </p>
+
+                <h3 class="subheader mt-4">Local and built-in Community</h3>
+                <p class="displayText">
+                    You can join local chatrooms to ask questions and share pictures with your fellow players, or ask our app follow-up questions about
+                    the animal you've just encountered. We also have an animal search, in case you want more information on an animal species you're looking out for.
                 </p>
             </div>
         </div>
@@ -26,7 +40,7 @@
     <div class="container">
         <div class="row pb-1 mb-2">
             <div class="col">
-                <button aria-label="Account Registration" class="btnDark" onclick="location = '@Url.Action("Register", "Account")'">Make an account now!</button>
+                <button aria-label="Account Registration" class="btnDark" id="frontPageBtn" onclick="location = '@Url.Action("Register", "Account")'">Make an account now!</button>
             </div>
         </div>
     </div>
