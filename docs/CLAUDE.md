@@ -168,6 +168,38 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 
 - **`Tests.Acceptance`** — Reqnroll feature files in `Features/`, step definitions in `StepDefinitions/`, Selenium page objects in `PageObjects/`, and browser drivers in `Drivers/`. A `TestWebAppHost.cs` auto-starts the web application when tests run. Uses `GlobalHooks` (must be static) for Reqnroll lifecycle management.
 
+#### Acceptance test infrastructure details
+
+- **Environment:** `ASPNETCORE_ENVIRONMENT = "Acceptance"`. The in-process `TestWebAppHost` starts a real Kestrel listener using `appsettings.Acceptance.json` (default port `https://localhost:5001`).
+- **Database:** Real SQL Server LocalDB (`WAID_AppDataDb`) — **not** InMemory. Migrations and seeding run normally on startup, same as production.
+- **Config load order:** `appsettings.json` → `appsettings.Acceptance.json` → `appsettings.Acceptance.Local.json` (gitignored, per-developer overrides) → environment variables.
+- **Browser:** One shared `ChromeDriver` instance for the entire test run (`BeforeTestRun` / `AfterTestRun`). No browser restart between scenarios.
+- **Scenario isolation:** `TestWebAppHost.ResetSeedData()` exists as a `TODO` stub. Until implemented, scenarios must be written to tolerate persistent database state across the run — or must clean up after themselves.
+- **DI in steps:** Reqnroll's per-scenario DI container (via `[ScenarioDependencies]` in `TestDependencySetup`) provides `IWebDriver` and `AcceptanceTestSettings` as singletons. Drivers and page objects are resolved automatically as transient.
+
+#### Seed user already referenced in step definitions
+
+`CSP53StepDefinitions` hard-codes: **`alpha@test.com` / `Capstone26!`** as "user Alpha". This user must exist in the `WAID_AppDataDb` database with the `User` role for any CSP-53 scenarios to pass.
+
+#### Page element IDs used by existing PageObjects/Drivers
+
+| Page | Element ID | Purpose |
+|---|---|---|
+| Any page | `userDropdownNavDisplay` | Detect logged-in user (nav bar) |
+| Any page | `logoutBtn` | Logout button |
+| `/Account/Login` | `Email` | Username input |
+| `/Account/Login` | `passwordField` | Password input |
+| `/Account/Login` | `RememberMe` | Remember me checkbox |
+| `/Account/Login` | `submitBtn` | Login submit button |
+| `/Sighting/Create` | `Latitude` | Latitude input |
+| `/Sighting/Create` | `Longitude` | Longitude input |
+| `/Sighting/Create` | `Timestamp` | Timestamp input |
+| `/Sighting/Create` | `Description` | Description textarea |
+| `/Sighting/Create` | `UploadedImage` | Image file upload |
+| `/Sighting/Create` | `SubmitBtn` | Form submit button |
+
+Access-denied detection: checks if `driver.Url` contains `/account/login` (case-insensitive redirect).
+
 ---
 
 ## CI/CD
@@ -211,3 +243,212 @@ Two GitHub Actions workflows in `.github/workflows/`:
 | API Ninja contract | `src/MH.Capstone.Domain/ApiContracts/Ninja/` |
 | Acceptance test features | `src/MH.Capstone.Tests.Acceptance/Features/` |
 | Architectural guidelines | `docs/architectural_guidelines.md` |
+
+---
+
+## Detailed Database Schema
+
+Two EF Core DbContexts, both using the `DataDb` connection string.
+
+### ApplicationDbContext tables
+
+#### `AspNetUsers` (`ApplicationUser : IdentityUser`)
+
+| Column | Type | Notes |
+|---|---|---|
+| `Id` | nvarchar(450) | PK, GUID stored as string |
+| `Email` | nvarchar(256) | |
+| `NormalizedEmail` | nvarchar(256) | Indexed |
+| `UserName` | nvarchar(256) | |
+| `NormalizedUserName` | nvarchar(256) | Unique index (nullable-filtered) |
+| `PasswordHash` | nvarchar(max) | |
+| `EmailConfirmed` | bit | |
+| `ProfileImage` | varbinary(max) | nullable; null = use default avatar |
+| `ProfileImageType` | nvarchar(50) | nullable; e.g. `"image/png"` |
+| `IsDeactivated` | bit | soft-delete flag |
+| `Points` | int | total accumulated points |
+| `Bio` | nvarchar(250) | nullable |
+| `LastLogin` | datetimeoffset | nullable |
+| `LoginStreak` | int | days in current streak |
+| Standard Identity columns | — | `SecurityStamp`, `ConcurrencyStamp`, `LockoutEnabled`, `LockoutEnd`, `AccessFailedCount`, `TwoFactorEnabled`, `PhoneNumber`, `PhoneNumberConfirmed` |
+
+`IsStreakActive` (not mapped): true when `(UtcNow − LastLogin) ≤ 30 days`.
+
+#### `Sighting`
+
+| Column | Type | Constraints |
+|---|---|---|
+| `Id` | uniqueidentifier | PK, identity |
+| `UserId` | nvarchar(450) | FK → AspNetUsers (cascade delete), indexed |
+| `Lat` | decimal(9,6) | -90 to 90 |
+| `Long` | decimal(9,6) | -180 to 180 |
+| `Timestamp` | datetimeoffset | must be in the past (`[PastDateTime]`) |
+| `Description` | nvarchar(500) | nullable |
+| `ImageBuffer` | varbinary(max) | required; 1 byte – 2 MB |
+
+#### `Badge`
+
+| Column | Type | Constraints |
+|---|---|---|
+| `BadgeID` | uniqueidentifier | PK |
+| `Title` | nvarchar(50) | 1–50 chars |
+| `Description` | nvarchar(150) | max 150 |
+| `PointValue` | int | default 10 |
+| `BadgeIcon` | varbinary(max) | nullable |
+
+Three badges are always seeded (idempotent upsert in `ApplicationDbContextSeeding`):
+
+| Constant | GUID | Title | Points |
+|---|---|---|---|
+| `BadgeId.ProfileBadgeGUID` | `A1B2C3D4-E5F6-4789-8A9B-0C1D2E3F4A5B` | Custom Profile Badge | 10 |
+| `BadgeId.CustomBioBadgeGUID` | `91E7773E-F6D7-457E-911E-8246891D65A2` | Custom Bio Badge | 10 |
+| `BadgeId.FirstSightingBadgeGUID` | `B2C3D4E5-F6A7-4890-9B0C-1D2E3F4B5A6F` | First Sighting Badge | 25 |
+
+#### `PersonalBadges` (`UserBadge`)
+
+| Column | Type | Notes |
+|---|---|---|
+| `UserBadgeId` | uniqueidentifier | PK |
+| `User ID` | nvarchar(450) | FK → AspNetUsers (cascade), indexed |
+| `Badge ID` | uniqueidentifier | FK → Badge (cascade), indexed |
+| `BadgeEarned` | datetimeoffset | nullable |
+
+#### `Notification`
+
+| Column | Type | Constraints |
+|---|---|---|
+| `Id` | uniqueidentifier | PK, identity |
+| `RecipientId` | nvarchar(450) | FK → AspNetUsers (cascade), indexed |
+| `Title` | nvarchar(50) | 1–50 chars |
+| `Message` | nvarchar(250) | 1–250 chars |
+| `SentAt` | datetimeoffset | required |
+| `IsRead` | bit | default false |
+
+`IsPostdated` (not mapped): true when `SentAt > UtcNow` — future-dated delivery is supported.
+
+#### `Report`
+
+| Column | Type | Constraints |
+|---|---|---|
+| `Id` | uniqueidentifier | PK, identity |
+| `ReportingUserId` | nvarchar(450) | FK → AspNetUsers (cascade) |
+| `ReportedPageUrl` | nvarchar(2048) | required |
+| `Reason` | nvarchar(100) | required |
+| `Description` | nvarchar(1000) | nullable |
+| `SubmittedAt` | datetime2 | defaults to `DateTime.UtcNow` |
+| `IsResolved` | bit | default false |
+
+Unique filtered index on `(ReportingUserId, ReportedPageUrl)` where `IsResolved = 0` — prevents duplicate open reports, but allows re-reporting after resolution.
+
+#### `EmailQueue`
+
+| Column | Type | Notes |
+|---|---|---|
+| `Id` | uniqueidentifier | PK, identity |
+| `Recipient` | nvarchar(450) | email address |
+| `Subject` | nvarchar(250) | |
+| `HtmlBody` | nvarchar(max) | required |
+| `PlainTextBody` | nvarchar(max) | nullable |
+| `CreatedAt` | datetimeoffset | defaults to `UtcNow` |
+| `ScheduledAt` | datetimeoffset | nullable; null = send immediately |
+| `IsSent` | bit | |
+| `SentAt` | datetimeoffset | nullable |
+| `Attempts` | int | retry count |
+| `LastAttemptAt` | datetimeoffset | nullable |
+| `LastError` | nvarchar(max) | nullable |
+| `Processing` | bit | dispatcher lock flag |
+
+Composite index on `(IsSent, ScheduledAt)` for dispatcher queries.
+
+### Standard ASP.NET Identity tables (auto-managed)
+
+`AspNetRoles`, `AspNetUserRoles`, `AspNetUserClaims`, `AspNetUserLogins`, `AspNetUserTokens`, `AspNetRoleClaims`.
+
+Seeded roles: `User`, `Admin`.
+
+### CacheDbContext tables
+
+`ApiCallerCacheEntity` / `NinjaAnimalCacheEntity` — SQL-backed cache for API-Ninjas Animals API responses. Managed separately; migrations in `src/MH.Capstone.Domain/Migrations/Cache/`.
+
+### FK dependency order for seeding
+
+```
+AspNetRoles
+  ↓
+AspNetUsers (ApplicationUser)
+  ↓
+Badge          (no FK dependencies)
+  ↓
+Sighting       (FK → AspNetUsers)
+PersonalBadges (FK → AspNetUsers + Badge)
+Notification   (FK → AspNetUsers)
+Report         (FK → AspNetUsers)
+EmailQueue     (no FK; standalone outbox)
+```
+
+---
+
+## Test Seed Data Guidance
+
+### Constraints to remember when constructing test data
+
+- `Sighting.ImageBuffer` is **required and non-empty** — use a 1-byte placeholder `new byte[] { 0x01 }` (matches existing `SightingValidValuesSource.DefaultValidSighting` pattern)
+- `Sighting.Timestamp` must be **in the past** (`[PastDateTime]` attribute validates this) — use `DateTimeOffset.UtcNow.AddDays(-N)`
+- `Report` unique filtered index: a user cannot have two **unresolved** reports for the same URL — stagger `IsResolved` values or use different URLs when seeding multiple reports per user
+- `UserBadge` requires the `Badge` row to exist first — always seed badges before `PersonalBadges` (the three standard badges are always seeded by `ApplicationDbContextSeeding`)
+- `ApplicationUser.Id` is a GUID stored as a string — use fixed GUIDs (not `Guid.NewGuid()`) in seed data so foreign keys remain stable across re-seeds
+- Passwords must satisfy Identity policy: min 8 chars, requires digit, uppercase, lowercase, non-alphanumeric — e.g. `Capstone26!`
+- Users need `NormalizedEmail` and `NormalizedUserName` set (`.ToUpper()`) and a hashed password via `PasswordHasher<ApplicationUser>`
+- Assign users to the `User` or `Admin` role via `AspNetUserRoles` (role rows are seeded by `ApplicationDbContextSeeding`)
+
+### Acceptance test seed personas
+
+These users must exist in `WAID_AppDataDb` for acceptance tests to pass. The password for all test users is `Capstone26!`.
+
+| Email | Role | Points | Badges | Sightings | Purpose |
+|---|---|---|---|---|---|
+| `alpha@test.com` | User | 75 | FirstSighting | 3 sightings | **Required** — hard-coded in `CSP53StepDefinitions` as "user Alpha"; used for all sighting upload scenarios |
+| `alice@test.com` | User | 200 | Profile + FirstSighting | 5 sightings | Leaderboard top-ranked user; exercises badge + scoring paths |
+| `bob@test.com` | User | 20 | (none) | 1 sighting | Mid-ranked user; no badges yet |
+| `newuser@test.com` | User | 0 | (none) | 0 sightings | Baseline new account; exercises empty-state views |
+| `admin@test.com` | Admin | 0 | (none) | 0 sightings | Admin-role user for moderation/report scenarios; also satisfies `AdminAccount:Hidden` config if set to this address |
+
+### Suggested sighting locations (Pacific Northwest theme)
+
+| Label | Latitude | Longitude | User | Notes |
+|---|---|---|---|---|
+| WOU Campus | 44.847600 | -123.234300 | alpha | Within Salem-area bounds |
+| Silver Falls | 44.877000 | -122.654000 | alpha | Common — many global sightings |
+| Crater Lake | 42.944600 | -122.109000 | alice | Rare/mythic — few global sightings |
+| Portland | 45.523100 | -122.676200 | alice | Urban sighting |
+| Eugene | 44.052100 | -123.086800 | alice | Mid-range sighting |
+| Outside Oregon | 34.052200 | -118.243700 | bob | LA — useful for map bounds filtering tests |
+
+### Scoring tier thresholds to seed around
+
+Per `ScoringService`:
+- **Mythic** (≤5 global sightings of a species): 10 pts × 5 = **50 pts**
+- **Rare** (6–50 global sightings): 10 pts × 2 = **20 pts**
+- **Common** (>50 global sightings): 10 pts × 1 = **10 pts**
+
+Seed at least one sighting per tier to exercise all scoring branches.
+
+### Notification scenarios to seed
+
+- At least one **unread** notification for `alpha` — so the notification bell/badge has something to display
+- At least one **read** notification — to verify read-state rendering
+- Optionally one **postdated** notification (`SentAt > UtcNow`) to test `IsPostdated` path
+
+### LoginStreak scenarios to seed
+
+| User | `LastLogin` | `LoginStreak` | `IsStreakActive` |
+|---|---|---|---|
+| `alpha` | `UtcNow - 1 day` | 5 | true |
+| `bob` | `UtcNow - 31 days` | 3 | false (expired) |
+| `newuser` | null | 0 | false (never logged in) |
+
+### Where to add acceptance seed data
+
+The acceptance-specific seed users should be added to `ApplicationDbContextSeeding.SeedDataAsync` gated on an environment check, **or** in a dedicated acceptance-only seeding method called from `TestWebAppHost.StartAsync`. The latter is preferred so production/staging seeding remains unaffected.
+
+`TestWebAppHost.ResetSeedData()` is currently a `NotImplementedException` stub — implementing it to truncate non-badge rows and re-run seed will be required for true scenario isolation once test count grows.
