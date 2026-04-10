@@ -1,13 +1,14 @@
-using System.Linq.Expressions;
+using System.IO;
+using System.Text.Json;
 using MH.Capstone.Domain.DataAccess;
-using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
-using MH.Capstone.Domain.Services;
-using MH.Capstone.Domain.Services.Abstraction;
-using MH.Capstone.Tests.SharedInternals;
-using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Support.UI;
 using Reqnroll;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
@@ -15,229 +16,494 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 [Binding]
 public class ManualUserReportSteps
 {
-    private readonly List<Report> _reports = new();
-    private readonly List<Notification> _notifications = new();
-    private Mock<IRepository<Report, ApplicationDbContext>> _reportRepoMock = null!;
-    private Mock<INotificationService> _notificationServiceMock = null!;
-    private IReportService _reportService = null!;
-    
-    private bool _isLoggedIn;
-    private Guid _currentUserId;
-    private string _currentPageUrl = "/Map";
-    private Report? _submittedReport;
-    private bool _submissionResult;
-    private bool _shouldBeRedirected;
+    private IWebDriver _driver = null!;
+    private WebDriverWait _wait = null!;
+    private const string BaseUrl = "https://localhost:7147";
+    private const string ReportablePath = "/Map";
+    private const string DefaultReason = "Inappropriate content";
+    private const string DefaultPassword = "Test@1234";
 
-    [Given(@"I am logged in and viewing a sighting page")]
-    public void GivenIAmLoggedInAndViewingASightingPage()
-    {
-        _isLoggedIn = true;
-        _currentUserId = Guid.NewGuid();
-        _currentPageUrl = "/Map";
-        
-        SetupMocks();
-    }
+    private readonly List<string> _createdUserIds = new();
+    private readonly Dictionary<string, ApplicationUser> _personaUsers = new();
+    private string _currentPersona = string.Empty;
 
-    [Given(@"I submit a report on a sighting page")]
-    public async Task GivenISubmitAReportOnASightingPage()
-    {
-        GivenIAmLoggedInAndViewingASightingPage();
-        WhenIClickReportThisPage();
-        WhenISelectAReasonAndOptionallyEnterADescription();
-        await WhenISubmitTheForm();
-    }
+    private static readonly Lazy<string?> _connectionString = new(LoadConnectionString);
 
-    [Given(@"I have already submitted a report for a specific page")]
-    public async Task GivenIHaveAlreadySubmittedAReportForASpecificPage()
-    {
-        await GivenISubmitAReportOnASightingPage();
-    }
+    #region Setup and Teardown
 
-    [Given(@"I am not logged in")]
-    public void GivenIAmNotLoggedIn()
+    [BeforeScenario]
+    public void SetupBrowser()
     {
-        _isLoggedIn = false;
-    }
-
-    [Given(@"a user has submitted a report")]
-    public async Task GivenAUserHasSubmittedAReport()
-    {
-        await GivenISubmitAReportOnASightingPage();
-    }
-
-    [When(@"I click ""Report this page""")]
-    public void WhenIClickReportThisPage()
-    {
-        // Verify user is authenticated
-        Assert.That(_isLoggedIn, Is.True, "User must be logged in to report");
-    }
-
-    [When(@"I select a reason and optionally enter a description")]
-    public void WhenISelectAReasonAndOptionallyEnterADescription()
-    {
-        // Simulate form input - these values will be used in submit
-    }
-
-    [When(@"I submit the form")]
-    public async Task WhenISubmitTheForm()
-    {
-        _submittedReport = new Report
+        // Skip cleanly in CI (or anywhere the dev settings file isn't present) instead of hard-failing.
+        if (_connectionString.Value is null)
         {
-            Id = Guid.NewGuid(),
-            ReportingUserId = _currentUserId,
-            ReportedPageUrl = _currentPageUrl,
-            Reason = "Inappropriate content",
-            Description = "Test report description",
-            SubmittedAt = DateTime.UtcNow,
-            IsResolved = false
-        };
+            Assert.Ignore(
+                "Skipping: could not locate MH.Capstone.WebApp/appsettings.Development.json. " +
+                "These BDD tests need the local dev connection string to seed/verify the database.");
+        }
 
-        _submissionResult = await _reportService.SubmitReportAsync(_submittedReport);
+        var options = new ChromeOptions();
+        options.AddArgument("--headless=new");
+        options.AddArgument("--no-sandbox");
+        options.AddArgument("--disable-dev-shm-usage");
+        options.AddArgument("--ignore-certificate-errors");
+        options.AddArgument("--disable-gpu");
+        options.AddArgument("--window-size=1920,1080");
+
+        _driver = new ChromeDriver(options);
+        _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+        _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(15));
     }
 
-    [When(@"the report is saved")]
+    [AfterScenario]
+    public void Cleanup()
+    {
+        if (_createdUserIds.Any())
+        {
+            using var scope = GetServiceScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+            // Reports FK ReportingUserId -> AspNetUsers.Id; delete reports first to avoid FK violation.
+            var reportsToDelete = dbContext.Reports
+                .Where(r => _createdUserIds.Contains(r.ReportingUserIdentityId))
+                .ToList();
+            dbContext.Reports.RemoveRange(reportsToDelete);
+
+            var notificationsToDelete = dbContext.Notifications
+                .Where(n => _createdUserIds.Contains(n.LinkedUserIdentityId))
+                .ToList();
+            dbContext.Notifications.RemoveRange(notificationsToDelete);
+
+            dbContext.SaveChanges();
+
+            foreach (var userId in _createdUserIds)
+            {
+                var user = dbContext.Users.Find(userId);
+                if (user != null)
+                {
+                    userManager.DeleteAsync(user).GetAwaiter().GetResult();
+                }
+            }
+
+            dbContext.SaveChanges();
+        }
+
+        _driver?.Quit();
+        _driver?.Dispose();
+    }
+
+    #endregion
+
+    #region Given Steps
+
+    [Given("{word} is logged in and viewing a sighting page")]
+    public void GivenPersonaIsLoggedInAndViewingASightingPage(string name)
+    {
+        var user = EnsurePersona(name);
+        LoginUser(user.Email!, DefaultPassword);
+        NavigateToReportablePage();
+    }
+
+    [Given("{word} submits a report on a sighting page")]
+    public void GivenPersonaSubmitsAReportOnASightingPage(string name)
+    {
+        GivenPersonaIsLoggedInAndViewingASightingPage(name);
+        OpenReportModal();
+        FillReportForm(DefaultReason, $"Test report submitted by {name}");
+        SubmitReportForm();
+        WaitForReportSuccessMessage();
+    }
+
+    [Given("{word} has already submitted a report for a specific page")]
+    public void GivenPersonaHasAlreadySubmittedAReportForASpecificPage(string name)
+    {
+        GivenPersonaSubmitsAReportOnASightingPage(name);
+        // Success closes the modal after ~2s; wait it out so the next action starts clean.
+        WaitForReportModalHidden();
+    }
+
+    [Given("James is not logged in")]
+    public void GivenJamesIsNotLoggedIn()
+    {
+        _currentPersona = "James";
+        // No user created, no login performed.
+    }
+
+    [Given("{word} has submitted a report")]
+    public void GivenPersonaHasSubmittedAReport(string name)
+    {
+        GivenPersonaSubmitsAReportOnASightingPage(name);
+    }
+
+    #endregion
+
+    #region When Steps
+
+    [When("{word} clicks {string}")]
+    public void WhenPersonaClicksButton(string name, string buttonLabel)
+    {
+        Assert.That(_currentPersona, Is.EqualTo(name), "Scenario persona mismatch");
+        Assert.That(buttonLabel, Is.EqualTo("Report this page"));
+        OpenReportModal();
+    }
+
+    [When("{word} selects a reason and optionally enters a description")]
+    public void WhenPersonaSelectsAReasonAndOptionallyEntersADescription(string name)
+    {
+        FillReportForm(DefaultReason, $"Test report submitted by {name}");
+    }
+
+    [When("{word} submits the form")]
+    public void WhenPersonaSubmitsTheForm(string name)
+    {
+        SubmitReportForm();
+        WaitForReportSuccessMessage();
+    }
+
+    [When("the report is saved")]
     public void WhenTheReportIsSaved()
     {
-        // Report already saved in previous steps
+        // Success message was already awaited in the submit step.
     }
 
-    [When(@"I attempt to submit another report for the same page")]
-    public async Task WhenIAttemptToSubmitAnotherReportForTheSamePage()
+    [When("{word} attempts to submit another report for the same page")]
+    public void WhenPersonaAttemptsToSubmitAnotherReportForTheSamePage(string name)
     {
-        var duplicateReport = new Report
-        {
-            Id = Guid.NewGuid(),
-            ReportingUserId = _currentUserId,
-            ReportedPageUrl = _currentPageUrl,
-            Reason = "Spam",
-            Description = "Duplicate test",
-            SubmittedAt = DateTime.UtcNow,
-            IsResolved = false
-        };
-
-        _submissionResult = await _reportService.SubmitReportAsync(duplicateReport);
+        OpenReportModal();
+        FillReportForm("Spam", $"Duplicate attempt by {name}");
+        SubmitReportForm();
+        WaitForReportErrorMessage();
     }
 
-    [When(@"I attempt to access the report submission endpoint")]
-    public void WhenIAttemptToAccessTheReportSubmissionEndpoint()
+    [When("James visits a page on the site")]
+    public void WhenJamesVisitsAPageOnTheSite()
     {
-        // Check if authorization would redirect
-        _shouldBeRedirected = !_isLoggedIn;
+        _driver.Navigate().GoToUrl(BaseUrl);
+        _wait.Until(d => d.FindElement(By.TagName("body")));
     }
 
-    [When(@"an admin views the reports panel")]
-    public void WhenAnAdminViewsTheReportsPanel()
+    [When("Patricia checks the admin review queue")]
+    public void WhenPatriciaChecksTheAdminReviewQueue()
     {
-        // Admin viewing would query unresolved reports
+        // No admin UI yet (CSP-101 covers reporting; admin queue UI is a future story).
+        // The Then step verifies persistence via a DB query — that's the contract the
+        // future admin panel will read from.
     }
 
-    [Then(@"the report should be saved to the database")]
+    #endregion
+
+    #region Then Steps
+
+    [Then("the report should be saved to the database")]
     public void ThenTheReportShouldBeSavedToTheDatabase()
     {
-        Assert.That(_submissionResult, Is.True, "Report submission should succeed");
-        Assert.That(_reports.Count, Is.EqualTo(1), "Report should be saved");
-        
-        var savedReport = _reports.First();
-        Assert.That(savedReport.ReportingUserId, Is.EqualTo(_currentUserId));
-        Assert.That(savedReport.ReportedPageUrl, Is.EqualTo(_currentPageUrl));
+        var user = _personaUsers[_currentPersona];
+
+        using var scope = GetServiceScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var report = dbContext.Reports
+            .AsNoTracking()
+            .FirstOrDefault(r =>
+                r.ReportingUserIdentityId == user.Id &&
+                r.ReportedPageUrl == ReportablePath);
+
+        Assert.That(report, Is.Not.Null, $"Report for {_currentPersona} on {ReportablePath} should be persisted");
     }
 
-    [Then(@"I should receive an in-app notification confirming my report was received")]
-    public void ThenIShouldReceiveAnInAppNotificationConfirmingMyReportWasReceived()
+    [Then("{word} should receive an in-app notification confirming the report was received")]
+    public void ThenPersonaShouldReceiveAnInAppNotification(string name)
     {
-        Assert.That(_notifications.Count, Is.EqualTo(1), "Should have sent notification");
-        
-        var notification = _notifications.First();
-        Assert.That(notification.RecipientId, Is.EqualTo(_currentUserId));
-        Assert.That(notification.Title, Is.EqualTo("Report Received"));
-        Assert.That(notification.Message, Does.Contain("has been received"));
+        var user = _personaUsers[name];
+
+        using var scope = GetServiceScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var notification = dbContext.Notifications
+            .AsNoTracking()
+            .Where(n => n.LinkedUserIdentityId == user.Id && n.Title == "Report Received")
+            .OrderByDescending(n => n.SentAt)
+            .FirstOrDefault();
+
+        Assert.That(notification, Is.Not.Null, $"{name} should have a 'Report Received' notification");
+        Assert.That(notification!.Message, Does.Contain("has been received"));
     }
 
-    [Then(@"it should contain my UserId, the page URL, the selected reason, and a SubmittedAt timestamp")]
-    public void ThenItShouldContainMyUserIdThePageURLTheSelectedReasonAndASubmittedAtTimestamp()
+    [Then("it should contain {word}'s UserId, the page URL, the selected reason, and a SubmittedAt timestamp")]
+    public void ThenItShouldContainPersonaUserIdMetadata(string name)
     {
-        Assert.That(_reports.Count, Is.GreaterThan(0), "Report should exist");
-        
-        var report = _reports.First();
-        Assert.That(report.ReportingUserId, Is.EqualTo(_currentUserId), "Should have correct UserId");
-        Assert.That(report.ReportedPageUrl, Is.EqualTo("/Map"), "Should have correct page URL");
-        Assert.That(report.Reason, Is.EqualTo("Inappropriate content"), "Should have correct reason");
+        var user = _personaUsers[name];
+
+        using var scope = GetServiceScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var report = dbContext.Reports
+            .AsNoTracking()
+            .FirstOrDefault(r =>
+                r.ReportingUserIdentityId == user.Id &&
+                r.ReportedPageUrl == ReportablePath);
+
+        Assert.That(report, Is.Not.Null, "Report should exist in the database");
+        Assert.That(report!.ReportingUserIdentityId, Is.EqualTo(user.Id), $"Should have {name}'s UserId");
+        Assert.That(report.ReportedPageUrl, Is.EqualTo(ReportablePath), "Should have correct page URL");
+        Assert.That(report.Reason, Is.EqualTo(DefaultReason), "Should have correct reason");
         Assert.That(report.SubmittedAt, Is.Not.EqualTo(default(DateTime)), "Should have SubmittedAt timestamp");
-        Assert.That(report.SubmittedAt, Is.LessThanOrEqualTo(DateTime.UtcNow), "Timestamp should not be in future");
+        Assert.That(report.SubmittedAt, Is.LessThanOrEqualTo(DateTime.UtcNow.AddMinutes(1)),
+            "Timestamp should not be meaningfully in the future");
     }
 
-    [Then(@"the system should reject the duplicate")]
+    [Then("the system should reject the duplicate")]
     public void ThenTheSystemShouldRejectTheDuplicate()
     {
-        Assert.That(_submissionResult, Is.False, "Duplicate report should be rejected");
-        Assert.That(_reports.Count, Is.EqualTo(1), "Should only have one report");
+        var user = _personaUsers[_currentPersona];
+
+        using var scope = GetServiceScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var reportCount = dbContext.Reports
+            .AsNoTracking()
+            .Count(r =>
+                r.ReportingUserIdentityId == user.Id &&
+                r.ReportedPageUrl == ReportablePath &&
+                !r.IsResolved);
+
+        Assert.That(reportCount, Is.EqualTo(1),
+            $"Only one unresolved report should exist for {_currentPersona} on {ReportablePath}");
     }
 
-    [Then(@"I should see a message saying I have already reported this content")]
-    public void ThenIShouldSeeAMessageSayingIHaveAlreadyReportedThisContent()
+    [Then("{word} should see a message saying she has already reported this content")]
+    public void ThenPersonaShouldSeeAlreadyReportedMessage(string name)
     {
-        // Verification that controller returns appropriate error message
-        Assert.That(_submissionResult, Is.False, "Should indicate duplicate");
+        var messageDiv = _driver.FindElement(By.Id("reportMessage"));
+        var messageClass = messageDiv.GetAttribute("class") ?? string.Empty;
+        var messageText = messageDiv.Text ?? string.Empty;
+
+        Assert.That(messageClass, Does.Contain("alert-danger"),
+            "Duplicate submission should show an error alert");
+        Assert.That(messageText, Does.Contain("already reported").IgnoreCase,
+            $"{name} should see an 'already reported' error message");
     }
 
-    [Then(@"I should be redirected to the login page")]
-    public void ThenIShouldBeRedirectedToTheLoginPage()
+    [Then("James should not see the {string} button")]
+    public void ThenJamesShouldNotSeeTheReportThisPageButton(string buttonLabel)
     {
-        Assert.That(_shouldBeRedirected, Is.True, "Unauthenticated users should be redirected");
+        var reportButtons = _driver.FindElements(By.CssSelector("button[data-bs-target='#reportModal']"));
+        Assert.That(reportButtons, Is.Empty,
+            "Anonymous users should not see the Report this page button");
     }
 
-    [Then(@"the report should appear with status ""Unresolved""")]
-    public void ThenTheReportShouldAppearWithStatusUnresolved()
+    [Then("Alex's report should appear with status {string}")]
+    public void ThenAlexsReportShouldAppearWithStatus(string status)
     {
-        var unresolvedReports = _reports.Where(r => !r.IsResolved).ToList();
-        Assert.That(unresolvedReports.Count, Is.GreaterThan(0), "Should have unresolved reports");
-        
-        var report = unresolvedReports.First();
-        Assert.That(report.IsResolved, Is.False, "Report should be unresolved");
+        Assert.That(status, Is.EqualTo("Unresolved"), "Only Unresolved status is implemented");
+        var alex = _personaUsers["Alex"];
+
+        using var scope = GetServiceScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var unresolved = dbContext.Reports
+            .AsNoTracking()
+            .Where(r => r.ReportingUserIdentityId == alex.Id && !r.IsResolved)
+            .ToList();
+
+        Assert.That(unresolved, Is.Not.Empty, "Alex should have at least one unresolved report");
     }
+
+    #endregion
 
     #region Helper Methods
 
-    private void SetupMocks()
+    private ApplicationUser EnsurePersona(string name)
     {
-        _reportRepoMock = new Mock<IRepository<Report, ApplicationDbContext>>();
-        _notificationServiceMock = new Mock<INotificationService>();
+        if (_personaUsers.TryGetValue(name, out var existing))
+        {
+            _currentPersona = name;
+            return existing;
+        }
 
-        // Setup repository to save reports to our list
-        _reportRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<Report>()))
-            .ReturnsAsync((Report report) =>
+        using var scope = GetServiceScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var username = $"Test{name}{suffix}";
+        var email = $"{username}@test.com";
+
+        var user = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            EmailConfirmed = true,
+            Points = 0,
+            IsDeactivated = false
+        };
+
+        var result = userManager.CreateAsync(user, DefaultPassword).GetAwaiter().GetResult();
+        if (!result.Succeeded)
+        {
+            throw new Exception(
+                $"Failed to create test user {email}: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+        }
+
+        _createdUserIds.Add(user.Id);
+        _personaUsers[name] = user;
+        _currentPersona = name;
+        return user;
+    }
+
+    private void LoginUser(string email, string password)
+    {
+        _driver.Navigate().GoToUrl($"{BaseUrl}/Account/Login");
+        _wait.Until(d => d.FindElement(By.Id("Email")));
+
+        var emailInput = _driver.FindElement(By.Id("Email"));
+        var passwordInput = _driver.FindElement(By.Id("passwordField"));
+        var submitButton = _driver.FindElement(By.Id("submitBtn"));
+
+        emailInput.SendKeys(email);
+        passwordInput.SendKeys(password);
+
+        _wait.Until(d => submitButton.Enabled);
+        submitButton.Click();
+
+        _wait.Until(d => !d.Url.Contains("/Account/Login", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void NavigateToReportablePage()
+    {
+        _driver.Navigate().GoToUrl($"{BaseUrl}{ReportablePath}");
+        _wait.Until(d => d.FindElement(By.CssSelector("button[data-bs-target='#reportModal']")));
+    }
+
+    private void OpenReportModal()
+    {
+        var openButton = _wait.Until(d => d.FindElement(By.CssSelector("button[data-bs-target='#reportModal']")));
+        openButton.Click();
+
+        // Wait for Bootstrap to mark the modal as shown.
+        _wait.Until(d =>
+        {
+            var modal = d.FindElement(By.Id("reportModal"));
+            var classes = modal.GetAttribute("class") ?? string.Empty;
+            return classes.Contains("show");
+        });
+    }
+
+    private void FillReportForm(string reason, string description)
+    {
+        var reasonSelect = new SelectElement(_driver.FindElement(By.Id("reportReason")));
+        reasonSelect.SelectByValue(reason);
+
+        var descriptionBox = _driver.FindElement(By.Id("reportDescription"));
+        descriptionBox.Clear();
+        descriptionBox.SendKeys(description);
+    }
+
+    private void SubmitReportForm()
+    {
+        _driver.FindElement(By.Id("reportSubmitBtn")).Click();
+    }
+
+    private void WaitForReportSuccessMessage()
+    {
+        _wait.Until(d =>
+        {
+            var el = d.FindElement(By.Id("reportMessage"));
+            var classes = el.GetAttribute("class") ?? string.Empty;
+            return classes.Contains("alert-success");
+        });
+    }
+
+    private void WaitForReportErrorMessage()
+    {
+        _wait.Until(d =>
+        {
+            var el = d.FindElement(By.Id("reportMessage"));
+            var classes = el.GetAttribute("class") ?? string.Empty;
+            return classes.Contains("alert-danger");
+        });
+    }
+
+    private void WaitForReportModalHidden()
+    {
+        // The modal auto-hides ~2s after a successful submission.
+        var longerWait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+        longerWait.Until(d =>
+        {
+            var modal = d.FindElement(By.Id("reportModal"));
+            var classes = modal.GetAttribute("class") ?? string.Empty;
+            return !classes.Contains("show");
+        });
+    }
+
+    private IServiceScope GetServiceScope()
+    {
+        var connectionString = _connectionString.Value
+                               ?? throw new InvalidOperationException(
+                                   "Connection string unavailable. BeforeScenario should have skipped this test.");
+
+        var services = new ServiceCollection();
+
+        services.AddDbContext<ApplicationDbContext>(options =>
+            options.UseSqlServer(connectionString));
+
+        services.AddDbContext<CacheDbContext>(options =>
+            options.UseSqlServer(connectionString));
+
+        services.AddIdentity<ApplicationUser, IdentityRole>(options =>
             {
-                // Check for duplicate (simulate unique constraint)
-                var existingReport = _reports.FirstOrDefault(r => 
-                    r.ReportingUserId == report.ReportingUserId && 
-                    r.ReportedPageUrl == report.ReportedPageUrl && 
-                    !r.IsResolved);
+                options.Password.RequireDigit = false;
+                options.Password.RequiredLength = 1;
+                options.Password.RequireNonAlphanumeric = false;
+                options.Password.RequireUppercase = false;
+                options.Password.RequireLowercase = false;
+            })
+            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddDefaultTokenProviders();
 
-                if (existingReport != null)
-                {
-                    // Create a proper SQL unique constraint violation exception
-                    var sqlException = new SqlExceptionBuilder()
-                        .WithNumber((int)SqlErrorNumber.UniqueConstraintViolation)
-                        .WithMessage("Violation of UNIQUE KEY constraint 'UQ_Reports_UnresolvedUserPage'.")
-                        .Build();
-                    
-                    throw new Microsoft.EntityFrameworkCore.DbUpdateException(
-                        "An error occurred while saving the entity changes. See the inner exception for details.",
-                        sqlException);
-                }
+        services.AddLogging();
 
-                _reports.Add(report);
-                return report;
-            });
+        return services.BuildServiceProvider().CreateScope();
+    }
 
-        // Setup notification service to track notifications
-        _notificationServiceMock.Setup(n => n.SendNotificationAsync(It.IsAny<Notification>()))
-            .Callback<Notification>(notification => _notifications.Add(notification))
-            .Returns(Task.CompletedTask);
+    private static string? LoadConnectionString()
+    {
+        var settingsPath = FindWebAppDevSettings();
+        if (settingsPath is null)
+        {
+            return null;
+        }
 
-        _reportService = new ReportService(
-            _reportRepoMock.Object,
-            _notificationServiceMock.Object);
+        using var stream = File.OpenRead(settingsPath);
+        using var doc = JsonDocument.Parse(stream);
+
+        if (doc.RootElement.TryGetProperty("ConnectionStrings", out var connectionStrings) &&
+            connectionStrings.TryGetProperty("DataDb", out var dataDb) &&
+            dataDb.ValueKind == JsonValueKind.String)
+        {
+            return dataDb.GetString();
+        }
+
+        return null;
+    }
+
+    private static string? FindWebAppDevSettings()
+    {
+        // Walk up from the test bin directory until we find a parent that contains
+        // MH.Capstone.WebApp/appsettings.Development.json (i.e. the src/ folder).
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var candidate = Path.Combine(dir.FullName, "MH.Capstone.WebApp", "appsettings.Development.json");
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            dir = dir.Parent;
+        }
+
+        return null;
     }
 
     #endregion

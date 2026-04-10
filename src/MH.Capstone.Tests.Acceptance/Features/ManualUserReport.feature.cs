@@ -112,15 +112,15 @@ namespace MH.Capstone.Tests.Acceptance.Features
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("User successfully submits a report")]
+        [global::NUnit.Framework.DescriptionAttribute("Alex successfully submits a report")]
         [global::NUnit.Framework.CategoryAttribute("functionality")]
-        public async global::System.Threading.Tasks.Task UserSuccessfullySubmitsAReport()
+        public async global::System.Threading.Tasks.Task AlexSuccessfullySubmitsAReport()
         {
             string[] tagsOfScenario = new string[] {
                     "functionality"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "0";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("User successfully submits a report", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Alex successfully submits a report", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
 #line 8
@@ -134,22 +134,22 @@ namespace MH.Capstone.Tests.Acceptance.Features
             {
                 await this.ScenarioStartAsync();
 #line 9
-    await testRunner.GivenAsync("I am logged in and viewing a sighting page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+    await testRunner.GivenAsync("Alex is logged in and viewing a sighting page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 10
-    await testRunner.WhenAsync("I click \"Report this page\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+    await testRunner.WhenAsync("Alex clicks \"Report this page\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 11
-    await testRunner.AndAsync("I select a reason and optionally enter a description", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.AndAsync("Alex selects a reason and optionally enters a description", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 12
-    await testRunner.AndAsync("I submit the form", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.AndAsync("Alex submits the form", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 13
     await testRunner.ThenAsync("the report should be saved to the database", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
 #line 14
-    await testRunner.AndAsync("I should receive an in-app notification confirming my report was received", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.AndAsync("Alex should receive an in-app notification confirming the report was received", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
@@ -178,29 +178,29 @@ namespace MH.Capstone.Tests.Acceptance.Features
             {
                 await this.ScenarioStartAsync();
 #line 18
-    await testRunner.GivenAsync("I submit a report on a sighting page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+    await testRunner.GivenAsync("Alex submits a report on a sighting page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 19
     await testRunner.WhenAsync("the report is saved", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 20
-    await testRunner.ThenAsync("it should contain my UserId, the page URL, the selected reason, and a SubmittedAt" +
-                        " timestamp", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+    await testRunner.ThenAsync("it should contain Alex\'s UserId, the page URL, the selected reason, and a Submitt" +
+                        "edAt timestamp", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("User cannot report the same page twice")]
+        [global::NUnit.Framework.DescriptionAttribute("Lily cannot report the same page twice")]
         [global::NUnit.Framework.CategoryAttribute("functionality")]
-        public async global::System.Threading.Tasks.Task UserCannotReportTheSamePageTwice()
+        public async global::System.Threading.Tasks.Task LilyCannotReportTheSamePageTwice()
         {
             string[] tagsOfScenario = new string[] {
                     "functionality"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "2";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("User cannot report the same page twice", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Lily cannot report the same page twice", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
 #line 23
@@ -214,31 +214,31 @@ namespace MH.Capstone.Tests.Acceptance.Features
             {
                 await this.ScenarioStartAsync();
 #line 24
-    await testRunner.GivenAsync("I have already submitted a report for a specific page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+    await testRunner.GivenAsync("Lily has already submitted a report for a specific page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 25
-    await testRunner.WhenAsync("I attempt to submit another report for the same page", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+    await testRunner.WhenAsync("Lily attempts to submit another report for the same page", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 26
     await testRunner.ThenAsync("the system should reject the duplicate", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
 #line 27
-    await testRunner.AndAsync("I should see a message saying I have already reported this content", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.AndAsync("Lily should see a message saying she has already reported this content", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Unauthenticated user cannot submit a report")]
+        [global::NUnit.Framework.DescriptionAttribute("James (unauthenticated) cannot access the report feature")]
         [global::NUnit.Framework.CategoryAttribute("functionality")]
-        public async global::System.Threading.Tasks.Task UnauthenticatedUserCannotSubmitAReport()
+        public async global::System.Threading.Tasks.Task JamesUnauthenticatedCannotAccessTheReportFeature()
         {
             string[] tagsOfScenario = new string[] {
                     "functionality"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "3";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Unauthenticated user cannot submit a report", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("James (unauthenticated) cannot access the report feature", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
 #line 30
@@ -252,28 +252,28 @@ namespace MH.Capstone.Tests.Acceptance.Features
             {
                 await this.ScenarioStartAsync();
 #line 31
-    await testRunner.GivenAsync("I am not logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+    await testRunner.GivenAsync("James is not logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 32
-    await testRunner.WhenAsync("I attempt to access the report submission endpoint", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+    await testRunner.WhenAsync("James visits a page on the site", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 33
-    await testRunner.ThenAsync("I should be redirected to the login page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+    await testRunner.ThenAsync("James should not see the \"Report this page\" button", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Report appears in admin review queue")]
+        [global::NUnit.Framework.DescriptionAttribute("Report appears in Patricia\'s admin review queue")]
         [global::NUnit.Framework.CategoryAttribute("functionality")]
-        public async global::System.Threading.Tasks.Task ReportAppearsInAdminReviewQueue()
+        public async global::System.Threading.Tasks.Task ReportAppearsInPatriciasAdminReviewQueue()
         {
             string[] tagsOfScenario = new string[] {
                     "functionality"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "4";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Report appears in admin review queue", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Report appears in Patricia\'s admin review queue", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
 #line 36
@@ -287,13 +287,13 @@ namespace MH.Capstone.Tests.Acceptance.Features
             {
                 await this.ScenarioStartAsync();
 #line 37
-    await testRunner.GivenAsync("a user has submitted a report", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+    await testRunner.GivenAsync("Alex has submitted a report", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 38
-    await testRunner.WhenAsync("an admin views the reports panel", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+    await testRunner.WhenAsync("Patricia checks the admin review queue", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 39
-    await testRunner.ThenAsync("the report should appear with status \"Unresolved\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+    await testRunner.ThenAsync("Alex\'s report should appear with status \"Unresolved\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
