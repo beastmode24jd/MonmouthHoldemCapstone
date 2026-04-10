@@ -21,7 +21,11 @@ public class LeaderboardSteps
 
     // Test data tracking for cleanup
     private readonly List<string> _createdUserIds = new();
-    private ApplicationUser? _currentTestUser;
+    private readonly string _testRunId = Guid.NewGuid().ToString("N")[..8];
+
+    // Named persona tracking
+    private readonly Dictionary<string, ApplicationUser> _personas = new();
+    private ApplicationUser? _loggedInUser;
 
     #region Setup and Teardown
 
@@ -44,7 +48,6 @@ public class LeaderboardSteps
     [AfterScenario]
     public void Cleanup()
     {
-        // Clean up test users from the database
         if (_createdUserIds.Any())
         {
             using var scope = GetServiceScope();
@@ -78,17 +81,29 @@ public class LeaderboardSteps
         _wait.Until(d => d.Title != "");
     }
 
-    [Given(@"there are multiple users with different point totals")]
-    public void GivenThereAreMultipleUsersWithDifferentPointTotals()
+    [Given(@"(.+) has (\d+) points")]
+    public void GivenPersonaHasPoints(string name, int points)
     {
         using var scope = GetServiceScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        CreateTestUser(userManager, dbContext, "TestHighScorer", "Test@1234", 500);
-        CreateTestUser(userManager, dbContext, "TestMidScorer", "Test@1234", 250);
-        CreateTestUser(userManager, dbContext, "TestLowScorer", "Test@1234", 100);
-        CreateTestUser(userManager, dbContext, "TestBeginner", "Test@1234", 50);
+        var user = CreateTestUser(userManager, dbContext, $"{name}_{_testRunId}", "Test@1234", points);
+        _personas[name] = user;
+    }
+
+    [Given(@"(.+) is logged in with (\d+) points")]
+    public void GivenPersonaIsLoggedInWithPoints(string name, int points)
+    {
+        using var scope = GetServiceScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var user = CreateTestUser(userManager, dbContext, $"{name}_{_testRunId}", "Test@1234", points);
+        _personas[name] = user;
+        _loggedInUser = user;
+
+        LoginUser($"{name}_{_testRunId}", "Test@1234");
     }
 
     [Given(@"there are more than 30 users in the system")]
@@ -98,42 +113,10 @@ public class LeaderboardSteps
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        // Create 35 users to exceed the 30-entry limit
         for (int i = 1; i <= 35; i++)
         {
-            CreateTestUser(userManager, dbContext, $"TestUser{i:D3}", "Test@1234", 1000 - (i * 10));
+            CreateTestUser(userManager, dbContext, $"User{i:D3}_{_testRunId}", "Test@1234", 1000 - (i * 10));
         }
-    }
-
-    [Given(@"I am logged in as a user with points")]
-    public void GivenIAmLoggedInAsAUserWithPoints()
-    {
-        using var scope = GetServiceScope();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-        // Create the current user with 300 points
-        _currentTestUser = CreateTestUser(userManager, dbContext, "TestCurrentUser", "Test@1234", 300);
-
-        // Create other users for context
-        CreateTestUser(userManager, dbContext, "TestTopUser", "Test@1234", 500);
-        CreateTestUser(userManager, dbContext, "TestOtherUser", "Test@1234", 200);
-
-        // Log in as the current test user via the browser
-        LoginUser("TestCurrentUser", "Test@1234");
-    }
-
-    [Given(@"there are users with zero points in the system")]
-    public void GivenThereAreUsersWithZeroPointsInTheSystem()
-    {
-        using var scope = GetServiceScope();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-        CreateTestUser(userManager, dbContext, "TestVeteran", "Test@1234", 150);
-        CreateTestUser(userManager, dbContext, "TestNewbie1", "Test@1234", 0);
-        CreateTestUser(userManager, dbContext, "TestNewbie2", "Test@1234", 0);
-        CreateTestUser(userManager, dbContext, "TestActive", "Test@1234", 75);
     }
 
     #endregion
@@ -150,8 +133,13 @@ public class LeaderboardSteps
     public void WhenIViewTheLeaderboard()
     {
         _driver.Navigate().GoToUrl($"{BaseUrl}/Leaderboard");
+        _wait.Until(d => d.FindElements(By.CssSelector("table tbody tr")).Count > 0);
+    }
 
-        // Wait for leaderboard table to load
+    [When(@"(.+) views the leaderboard")]
+    public void WhenPersonaViewsTheLeaderboard(string name)
+    {
+        _driver.Navigate().GoToUrl($"{BaseUrl}/Leaderboard");
         _wait.Until(d => d.FindElements(By.CssSelector("table tbody tr")).Count > 0);
     }
 
@@ -180,7 +168,6 @@ public class LeaderboardSteps
 
         var points = ExtractPointsFromRows(rows);
 
-        // Verify descending order
         for (int i = 0; i < points.Count - 1; i++)
         {
             Assert.That(points[i], Is.GreaterThanOrEqualTo(points[i + 1]),
@@ -188,30 +175,26 @@ public class LeaderboardSteps
         }
     }
 
-    [Then(@"the user with the most points should appear first")]
-    public void ThenTheUserWithTheMostPointsShouldAppearFirst()
+    [Then(@"(.+) should appear above (.+)")]
+    public void ThenPersonaShouldAppearAbovePersona(string higher, string lower)
     {
-        var firstRow = _driver.FindElement(By.CssSelector("table tbody tr:first-child"));
-        var cells = firstRow.FindElements(By.TagName("td"));
+        var rows = _driver.FindElements(By.CssSelector("table tbody tr"));
+        int higherIndex = -1;
+        int lowerIndex = -1;
 
-        Assert.That(cells.Count, Is.GreaterThanOrEqualTo(3),
-            "First row should have rank, name, and points columns");
-
-        // Verify rank column shows 1
-        var rank = cells[0].Text.Trim();
-        Assert.That(rank, Is.EqualTo("1"), "First entry should have rank #1");
-
-        // Verify no other visible user has more points
-        var firstUserPoints = int.Parse(cells[2].Text.Trim());
-        var allRows = _driver.FindElements(By.CssSelector("table tbody tr"));
-
-        foreach (var row in allRows.Skip(1))
+        for (int i = 0; i < rows.Count; i++)
         {
-            var rowCells = row.FindElements(By.TagName("td"));
-            var rowPoints = int.Parse(rowCells[2].Text.Trim());
-            Assert.That(firstUserPoints, Is.GreaterThanOrEqualTo(rowPoints),
-                "First user should have the highest points");
+            var cells = rows[i].FindElements(By.TagName("td"));
+            var username = cells[1].Text.Trim();
+
+            if (username == $"{higher}_{_testRunId}") higherIndex = i;
+            if (username == $"{lower}_{_testRunId}") lowerIndex = i;
         }
+
+        Assert.That(higherIndex, Is.GreaterThanOrEqualTo(0), $"{higher} should be on the leaderboard");
+        Assert.That(lowerIndex, Is.GreaterThanOrEqualTo(0), $"{lower} should be on the leaderboard");
+        Assert.That(higherIndex, Is.LessThan(lowerIndex),
+            $"{higher} (row {higherIndex}) should appear above {lower} (row {lowerIndex})");
     }
 
     [Then(@"I should see a maximum of 30 user entries")]
@@ -235,7 +218,6 @@ public class LeaderboardSteps
         Assert.That(displayedUsers.Count, Is.EqualTo(30),
             "Should display exactly 30 users when there are more than 30 in the system");
 
-        // Verify they're sorted correctly (descending)
         for (int i = 0; i < displayedUsers.Count - 1; i++)
         {
             Assert.That(displayedUsers[i].Points, Is.GreaterThanOrEqualTo(displayedUsers[i + 1].Points),
@@ -243,45 +225,43 @@ public class LeaderboardSteps
         }
     }
 
-    [Then(@"my user entry should be visually highlighted")]
-    public void ThenMyUserEntryShouldBeVisuallyHighlighted()
+    [Then(@"(.+)'s entry should be visually highlighted")]
+    public void ThenPersonaEntryHighlighted(string name)
     {
-        Assert.That(_currentTestUser, Is.Not.Null, "Current test user should exist");
+        Assert.That(_personas.ContainsKey(name), Is.True, $"{name} should exist as a test persona");
+        var user = _personas[name];
 
-        // The view renders each row with id="user-{Id}"
-        var currentUserRow = _driver.FindElement(By.Id($"user-{_currentTestUser!.Id}"));
+        var userRow = _driver.FindElement(By.Id($"user-{user.Id}"));
+        Assert.That(userRow, Is.Not.Null, $"{name}'s row should exist in leaderboard");
 
-        Assert.That(currentUserRow, Is.Not.Null, "Current user's row should exist in leaderboard");
-
-        // The view applies "table-primary fw-bold" when entry.Id == Model.CurrentUserId
-        var rowClass = currentUserRow.GetAttribute("class");
+        var rowClass = userRow.GetAttribute("class");
         Assert.That(rowClass, Does.Contain("table-primary"),
-            "Current user's row should have 'table-primary' class for highlighting");
+            $"{name}'s row should have 'table-primary' class for highlighting");
         Assert.That(rowClass, Does.Contain("fw-bold"),
-            "Current user's row should have 'fw-bold' class for emphasis");
+            $"{name}'s row should have 'fw-bold' class for emphasis");
     }
 
-    [Then(@"my current point total should be visible")]
-    public void ThenMyCurrentPointTotalShouldBeVisible()
+    [Then(@"(.+)'s point total of (\d+) should be visible")]
+    public void ThenPersonaPointTotalVisible(string name, int expectedPoints)
     {
-        Assert.That(_currentTestUser, Is.Not.Null, "Current test user should exist");
+        Assert.That(_personas.ContainsKey(name), Is.True, $"{name} should exist as a test persona");
+        var user = _personas[name];
 
-        var currentUserRow = _driver.FindElement(By.Id($"user-{_currentTestUser!.Id}"));
-        var cells = currentUserRow.FindElements(By.TagName("td"));
+        var userRow = _driver.FindElement(By.Id($"user-{user.Id}"));
+        var cells = userRow.FindElements(By.TagName("td"));
 
         Assert.That(cells.Count, Is.GreaterThanOrEqualTo(3), "User row should have points column");
 
         var pointsText = cells[2].Text.Trim();
         Assert.That(int.TryParse(pointsText, out int points), Is.True,
             "Points should be displayed as a number");
-        Assert.That(points, Is.EqualTo(300),
-            "Current user's points should match the expected value of 300");
+        Assert.That(points, Is.EqualTo(expectedPoints),
+            $"{name}'s points should be {expectedPoints}");
     }
 
-    [Then(@"I should be able to locate my entry easily")]
-    public void ThenIShouldBeAbleToLocateMyEntryEasily()
+    [Then(@"(.+) should be able to locate their entry easily")]
+    public void ThenPersonaCanLocateEntry(string name)
     {
-        // The view renders a "Jump to My Rank (#N)" button when Model.UserRank > 0
         var jumpButton = _driver.FindElements(By.CssSelector("a.btn.btn-primary"))
             .FirstOrDefault(b => b.Text.Contains("Jump to My Rank"));
 
@@ -289,22 +269,31 @@ public class LeaderboardSteps
             "Page should have a 'Jump to My Rank' button for easy navigation");
         Assert.That(jumpButton!.Displayed, Is.True,
             "Jump to My Rank button should be visible");
-
-        // The button text is "Jump to My Rank (#N)" — verify it includes a rank number
         Assert.That(jumpButton.Text, Does.Match(@"#\d+"),
             "Button should display the user's rank number");
     }
 
-    [Then(@"users with zero points should be included in the list")]
-    public void ThenUsersWithZeroPointsShouldBeIncludedInTheList()
+    [Then(@"(.+) and (.+) should be included in the list with zero points")]
+    public void ThenPersonasShouldBeIncludedWithZeroPoints(string name1, string name2)
     {
         var rows = _driver.FindElements(By.CssSelector("table tbody tr"));
-        var points = ExtractPointsFromRows(rows);
+        var foundUsers = new List<string>();
 
-        var zeroPointCount = points.Count(p => p == 0);
+        foreach (var row in rows)
+        {
+            var cells = row.FindElements(By.TagName("td"));
+            var username = cells[1].Text.Trim();
+            var points = int.Parse(cells[2].Text.Trim());
 
-        Assert.That(zeroPointCount, Is.GreaterThan(0),
-            "Leaderboard should include users with zero points");
+            if (username == $"{name1}_{_testRunId}" || username == $"{name2}_{_testRunId}")
+            {
+                Assert.That(points, Is.EqualTo(0), $"{username} should have zero points");
+                foundUsers.Add(username);
+            }
+        }
+
+        Assert.That(foundUsers.Count, Is.EqualTo(2),
+            $"Both {name1} and {name2} should appear on the leaderboard");
     }
 
     [Then(@"they should appear after all users with positive points")]
@@ -411,7 +400,6 @@ public class LeaderboardSteps
     {
         _driver.Navigate().GoToUrl($"{BaseUrl}/Account/Login");
 
-        // Wait for login form — the view uses asp-for="Email" which generates id="Email"
         _wait.Until(d => d.FindElement(By.Id("Email")));
 
         var emailInput = _driver.FindElement(By.Id("Email"));
@@ -421,11 +409,9 @@ public class LeaderboardSteps
         emailInput.SendKeys($"{username}@test.com");
         passwordInput.SendKeys(password);
 
-        // The submit button is disabled until JS validation runs; wait for it to enable
         _wait.Until(d => submitButton.Enabled);
         submitButton.Click();
 
-        // Wait for redirect after login
         _wait.Until(d => !d.Url.Contains("/Account/Login", StringComparison.OrdinalIgnoreCase));
     }
 

@@ -1,5 +1,5 @@
 @leaderboard
-Feature: Points Leaderboard Display (CSP-XXX)
+Feature: Points Leaderboard Display (CSP-97)
   As a user or visitor of the Wildlife AID app
   I want to view the leaderboard with rankings by points
   So I can see how I compare to other players and view top contributors
@@ -12,10 +12,13 @@ Feature: Points Leaderboard Display (CSP-XXX)
 
   @functionality
   Scenario: Leaderboard displays users in descending order by points
-    Given there are multiple users with different point totals
+    Given Patricia has 500 points
+    And Alex has 250 points
+    And Lily has 100 points
     When I view the leaderboard
     Then users should be displayed in descending order by points
-    And the user with the most points should appear first
+    And Patricia should appear above Alex
+    And Alex should appear above Lily
 
   @functionality
   Scenario: Leaderboard limits display to maximum of 30 entries
@@ -26,15 +29,19 @@ Feature: Points Leaderboard Display (CSP-XXX)
 
   @functionality
   Scenario: Logged-in user's entry is highlighted on leaderboard
-    Given I am logged in as a user with points
-    When I view the leaderboard
-    Then my user entry should be visually highlighted
-    And my current point total should be visible
-    And I should be able to locate my entry easily
+    Given Patricia has 500 points
+    And Lily has 100 points
+    And Alex is logged in with 300 points
+    When Alex views the leaderboard
+    Then Alex's entry should be visually highlighted
+    And Alex's point total of 300 should be visible
+    And Alex should be able to locate their entry easily
 
   @functionality
   Scenario: Users with zero points appear on leaderboard
-    Given there are users with zero points in the system
+    Given Patricia has 150 points
+    And Alex has 0 points
+    And Lily has 0 points
     When I view the leaderboard
-    Then users with zero points should be included in the list
+    Then Alex and Lily should be included in the list with zero points
     And they should appear after all users with positive points
