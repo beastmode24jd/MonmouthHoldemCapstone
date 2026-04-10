@@ -420,6 +420,9 @@ FodyWeavers.xsd
 *.msm
 *.msp
 
+# Claude Code
+**/.claude/
+
 # Team-Added additional ignores
 # JD GitHib CLI PR Helper Files
 prb.md
