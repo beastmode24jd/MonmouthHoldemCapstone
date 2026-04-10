@@ -339,8 +339,16 @@ public class LeaderboardSteps
 
     private IServiceScope GetServiceScope()
     {
+        var webAppPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "..", "MH.Capstone.WebApp");
+        var configFile = Path.Combine(webAppPath, "appsettings.Development.json");
+
+        if (!File.Exists(configFile))
+        {
+            Assert.Ignore("Skipped: appsettings.Development.json not found (CI environment).");
+        }
+
         var configuration = new ConfigurationBuilder()
-            .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "..", "MH.Capstone.WebApp"))
+            .SetBasePath(webAppPath)
             .AddJsonFile("appsettings.Development.json", optional: false)
             .Build();
 
