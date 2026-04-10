@@ -18,10 +18,10 @@ namespace MH.Capstone.Tests.Acceptance.Features
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Reqnroll", "3.0.0.0")]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     [global::NUnit.Framework.TestFixtureAttribute()]
-    [global::NUnit.Framework.DescriptionAttribute("Points Leaderboard Display (CSP-XXX)")]
+    [global::NUnit.Framework.DescriptionAttribute("Points Leaderboard Display (CSP-97)")]
     [global::NUnit.Framework.FixtureLifeCycleAttribute(global::NUnit.Framework.LifeCycle.InstancePerTestCase)]
     [global::NUnit.Framework.CategoryAttribute("leaderboard")]
-    public partial class PointsLeaderboardDisplayCSP_XXXFeature
+    public partial class PointsLeaderboardDisplayCSP_97Feature
     {
         
         private global::Reqnroll.ITestRunner testRunner;
@@ -29,7 +29,7 @@ namespace MH.Capstone.Tests.Acceptance.Features
         private static string[] featureTags = new string[] {
                 "leaderboard"};
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en-US"), "Features", "Points Leaderboard Display (CSP-XXX)", "  As a user or visitor of the Wildlife AID app\r\n  I want to view the leaderboard " +
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en-US"), "Features", "Points Leaderboard Display (CSP-97)", "  As a user or visitor of the Wildlife AID app\r\n  I want to view the leaderboard " +
                 "with rankings by points\r\n  So I can see how I compare to other players and view " +
                 "top contributors", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
@@ -170,16 +170,25 @@ namespace MH.Capstone.Tests.Acceptance.Features
             {
                 await this.ScenarioStartAsync();
 #line 15
-    await testRunner.GivenAsync("there are multiple users with different point totals", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+    await testRunner.GivenAsync("Patricia has 500 points", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 16
-    await testRunner.WhenAsync("I view the leaderboard", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+    await testRunner.AndAsync("Alex has 250 points", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 17
-    await testRunner.ThenAsync("users should be displayed in descending order by points", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+    await testRunner.AndAsync("Lily has 100 points", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 18
-    await testRunner.AndAsync("the user with the most points should appear first", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.WhenAsync("I view the leaderboard", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 19
+    await testRunner.ThenAsync("users should be displayed in descending order by points", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+#line 20
+    await testRunner.AndAsync("Patricia should appear above Alex", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 21
+    await testRunner.AndAsync("Alex should appear above Lily", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
@@ -197,7 +206,7 @@ namespace MH.Capstone.Tests.Acceptance.Features
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Leaderboard limits display to maximum of 30 entries", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 21
+#line 24
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -207,16 +216,16 @@ namespace MH.Capstone.Tests.Acceptance.Features
             else
             {
                 await this.ScenarioStartAsync();
-#line 22
+#line 25
     await testRunner.GivenAsync("there are more than 30 users in the system", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 23
+#line 26
     await testRunner.WhenAsync("I view the leaderboard", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 24
+#line 27
     await testRunner.ThenAsync("I should see a maximum of 30 user entries", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
-#line 25
+#line 28
     await testRunner.AndAsync("the top 30 highest-scoring users should be shown", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
@@ -235,7 +244,7 @@ namespace MH.Capstone.Tests.Acceptance.Features
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Logged-in user\'s entry is highlighted on leaderboard", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 28
+#line 31
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -245,20 +254,26 @@ namespace MH.Capstone.Tests.Acceptance.Features
             else
             {
                 await this.ScenarioStartAsync();
-#line 29
-    await testRunner.GivenAsync("I am logged in as a user with points", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
-#line hidden
-#line 30
-    await testRunner.WhenAsync("I view the leaderboard", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
-#line hidden
-#line 31
-    await testRunner.ThenAsync("my user entry should be visually highlighted", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
-#line hidden
 #line 32
-    await testRunner.AndAsync("my current point total should be visible", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.GivenAsync("Patricia has 500 points", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 33
-    await testRunner.AndAsync("I should be able to locate my entry easily", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.AndAsync("Lily has 100 points", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 34
+    await testRunner.AndAsync("Alex is logged in with 300 points", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 35
+    await testRunner.WhenAsync("Alex views the leaderboard", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 36
+    await testRunner.ThenAsync("Alex\'s entry should be visually highlighted", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+#line 37
+    await testRunner.AndAsync("Alex\'s point total of 300 should be visible", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 38
+    await testRunner.AndAsync("Alex should be able to locate their entry easily", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
@@ -276,7 +291,7 @@ namespace MH.Capstone.Tests.Acceptance.Features
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Users with zero points appear on leaderboard", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 36
+#line 41
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -286,16 +301,22 @@ namespace MH.Capstone.Tests.Acceptance.Features
             else
             {
                 await this.ScenarioStartAsync();
-#line 37
-    await testRunner.GivenAsync("there are users with zero points in the system", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line 42
+    await testRunner.GivenAsync("Patricia has 150 points", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 38
+#line 43
+    await testRunner.AndAsync("Alex has 0 points", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 44
+    await testRunner.AndAsync("Lily has 0 points", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 45
     await testRunner.WhenAsync("I view the leaderboard", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 39
-    await testRunner.ThenAsync("users with zero points should be included in the list", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line 46
+    await testRunner.ThenAsync("Alex and Lily should be included in the list with zero points", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
-#line 40
+#line 47
     await testRunner.AndAsync("they should appear after all users with positive points", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
