@@ -1,25 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using MH.Capstone.Tests.Acceptance.Configuration;
 using OpenQA.Selenium;
 
-namespace MH.Capstone.Tests.Acceptance.Drivers
+namespace MH.Capstone.Tests.Acceptance.Drivers;
+
+[ExcludeFromCodeCoverage]
+public class SightingsDriver
 {
-    [ExcludeFromCodeCoverage]
-    public class SightingsDriver
+    private readonly IWebDriver _webDriver;
+    private readonly string _baseUrl;
+
+    public SightingsDriver(IWebDriver webDriver, AcceptanceTestSettings settings)
     {
-        private readonly IWebDriver _webDriver;
-
-        public SightingsDriver(IWebDriver webDriver)
-        {
-            _webDriver = webDriver;
-        }
-
-        // TODO - Put this URL in a config file or something similar so that it can be run against different environments
-        public void NavigateToSightingsUpload() => 
-            _webDriver.Navigate().GoToUrl("https://localhost:7147/Sighting/Create");
+        _webDriver = webDriver;
+        _baseUrl = settings.BaseUrl.TrimEnd('/');
     }
+
+    public void NavigateToSightingsUpload() =>
+        _webDriver.Navigate().GoToUrl($"{_baseUrl}/Sighting/Create");
 }

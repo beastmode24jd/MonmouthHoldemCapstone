@@ -1,0 +1,16 @@
+{
+  "_readme": "Copy this file to appsettings.Acceptance.json (same directory) and fill in your local values. That file is gitignored and will never be committed.",
+  "ConnectionStrings": {
+    "DataDb": "Data Source=(localdb)\\MSSQLLocalDB;Database=WAID_AppDataDb;Integrated Security=True;Connect Timeout=60;Encrypt=False"
+  },
+  "Api": {
+    "External": {
+      "Ninjas": {
+        "ApiKey": "your-api-key-here"
+      }
+    }
+  },
+  "AcceptanceTesting": {
+    "BaseUrl": "https://localhost:5001"
+  }
+}
