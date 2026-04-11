@@ -96,11 +96,16 @@ namespace MH.Capstone.Domain.Services
         {
             // BasePoints is a const at the top of this file, check the const field
 
+            if (globalSightingsCount < 0)
+            {
+                throw new ArgumentException("Global sighting count cannot be negative", nameof(globalSightingsCount));
+            }
+
             // Placeholder vals
             double someDouble = 2.0;
             string someString = "hi";
 
-            return (BasePoints,someDouble, someString);
+            return (BasePoints, someDouble, someString);
         }
     }
 }

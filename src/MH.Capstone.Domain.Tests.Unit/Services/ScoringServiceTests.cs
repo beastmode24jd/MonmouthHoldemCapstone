@@ -5,6 +5,7 @@ using MH.Capstone.Domain.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading.Tasks;
 
 namespace MH.Capstone.Domain.Tests.Unit.Services;
 
@@ -187,6 +188,53 @@ public class ScoringServiceTests
 
         // Act & Assert
         Assert.ThrowsAsync<ArgumentException>(async () => await sut.CalculatePointsAsync(globalCount));
+    }
+
+    #endregion
+
+    #region Sighting Metadata tests (CSP-140)
+
+    [TestCase(1)] // Mythic Sighting [≤5 sightings: Mythic (5.0×)]
+    [TestCase(25)] // Rare Sighting [≤50 sightings: Rare (2.0×)]
+    [TestCase(51)] // Common Sighting [>50 sightings: Common (1.0×)]
+    public async Task GetRarityMultiplerAndName_DifferentRarityScores_ReturnsExpected(int input)
+    {
+        // Arrange
+        var sut = CreateSut();
+
+        double expectedMultiplier;
+        string expectedRarity;
+        int expectedBasePoints = 10;
+
+        // Initialize the expected Rarity names and double multiplers.
+        (expectedRarity, expectedMultiplier) = input switch
+        {
+            <= 5 => ("Mythic", 5.0),
+            <= 50 => ("Rare", 2.0),
+            _ => ("Common", 1.0)
+        };
+
+        // Act
+        var (actualBasePoints, actualMultiplier, actualRarity) = await sut.GetRarityMultiplierAndName(input);
+        
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(actualBasePoints, Is.EqualTo(expectedBasePoints), "Base points for a Sighting should be 10.");
+            Assert.That(actualMultiplier, Is.EqualTo(expectedMultiplier), $"Multipler {actualMultiplier} did not match expected range for {expectedRarity}.");
+            Assert.That(actualRarity, Is.EqualTo(expectedRarity), $"Rarity of {expectedRarity} expected, rarity of {actualRarity} was given.");
+        });
+    }
+
+    [Test]
+    public void GetRarityMultiplierAndName_InvalidGlobalCount_ThrowsException()
+    {
+        // Arrange
+        var sut = CreateSut();
+        const int globalCount = -1;
+
+        // Act & Assert
+        Assert.ThrowsAsync<ArgumentException>(async () => await sut.GetRarityMultiplierAndName(globalCount));
     }
 
     #endregion
