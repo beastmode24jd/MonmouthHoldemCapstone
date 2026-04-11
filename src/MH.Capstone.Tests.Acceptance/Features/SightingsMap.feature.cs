@@ -27,7 +27,7 @@ namespace MH.Capstone.Tests.Acceptance.Features
         
         private static string[] featureTags = ((string[])(null));
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en-US"), "Features", "Sightings Map", "    As a user of the Wildlife AID app\r\n    I want to view wildlife sightings on a" +
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "Sightings Map", "    As a user of the Wildlife AID app\r\n    I want to view wildlife sightings on a" +
                 "n interactive map\r\n    So that I can see where animals have been spotted in my a" +
                 "rea", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
