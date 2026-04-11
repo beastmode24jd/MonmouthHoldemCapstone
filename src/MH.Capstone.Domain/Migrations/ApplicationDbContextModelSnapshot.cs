@@ -137,7 +137,7 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
 
                     b.HasKey("BadgeID");
 
-                    b.ToTable("Badge");
+                    b.ToTable("Badge", (string)null);
                 });
 
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.EmailQueue", b =>
@@ -191,7 +191,7 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
 
                     b.HasIndex("IsSent", "ScheduledAt");
 
-                    b.ToTable("EmailQueue");
+                    b.ToTable("EmailQueue", (string)null);
                 });
 
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Notification", b =>
@@ -226,7 +226,7 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
 
                     b.HasIndex("LinkedUserIdentityId");
 
-                    b.ToTable("Notification");
+                    b.ToTable("Notification", (string)null);
                 });
 
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Report", b =>
@@ -267,7 +267,7 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .IsUnique()
                         .HasFilter("[IsResolved] = 0");
 
-                    b.ToTable("Report");
+                    b.ToTable("Report", (string)null);
                 });
 
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Sighting", b =>
@@ -303,24 +303,11 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .HasColumnType("nvarchar(450)")
                         .HasColumnName("UserId");
 
-                    b.Property<bool>("loginStreak")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("rarity")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<double>("rarityMultipler")
-                        .HasColumnType("float");
-
-                    b.Property<int>("totalPointValue")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("UserIdentityId");
 
-                    b.ToTable("Sighting");
+                    b.ToTable("Sighting", (string)null);
                 });
 
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.UserBadge", b =>
@@ -348,7 +335,7 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("PersonalBadges");
+                    b.ToTable("PersonalBadges", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

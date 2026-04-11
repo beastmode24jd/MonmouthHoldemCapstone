@@ -55,20 +55,20 @@ namespace MH.Capstone.Domain.DataModels
 
         // Rarity score, point value, and user's login streak value for display metadata.
         //      Defaults to placeholder values until updated by Sightings Service
-        public int totalPointValue { get; set; } = 0;
+        public int PointValue { get; set; } = 0;
 
-        public bool loginStreak { get; set; } = false;
+        public bool LoginStreak { get; set; } = false;
 
         // Mythic, Rare, and Common are the current rarity score values applied
-        public string rarity { get; set; } = "Common";
+        public string Rarity { get; set; } = "Common";
 
         // Currently set to 5.0 (Mythic), 2.0 (Rare), and 1.0 (Common)
-        public double rarityMultipler { get; set; } = 1.0; // Common rarity
+        public double RarityMultipler { get; set; } = 1.0; // Common rarity
 
         public Sighting() {}
 
         public Sighting(Guid id, Guid userId, decimal latitude, decimal longitude, DateTimeOffset timestamp, 
-            string? description, byte[] imageBuffer, int pointValue, bool loginStreak, string rarity)
+            string? description, byte[] imageBuffer, int pointValue, bool loginStreak, string rarity, double rarityMMultipler)
         {
             Id = id;
             UserId = userId;
@@ -77,6 +77,10 @@ namespace MH.Capstone.Domain.DataModels
             Timestamp = timestamp;
             Description = description;
             ImageBuffer = imageBuffer;
+            PointValue = pointValue;
+            LoginStreak = loginStreak;
+            Rarity = rarity;
+            RarityMultipler = RarityMultipler;
         }
     }
 }
