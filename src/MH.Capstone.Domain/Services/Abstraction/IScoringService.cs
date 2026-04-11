@@ -27,7 +27,6 @@ namespace MH.Capstone.Domain.Services.Abstraction
         /// - Common: 1.0× (>50 global sightings)
         Task<int> CalculatePointsAsync(int globalSightingsCount);
 
-        
         /// <summary>
         /// Gets the total global count of sightings for a specific species.
         /// This will be used to determine rarity tier.
@@ -36,5 +35,13 @@ namespace MH.Capstone.Domain.Services.Abstraction
         /// <returns>The total global count of sightings for the specified species.</returns>
 
         Task<int> GetGlobalSightingsCountAsync(int speciesId);
+
+        /// <summary>
+        /// Takes the global count of the species, and returns the base point amount, rarity multipler, and name in an implicit tuple of an int, double, and a string.
+        /// Currently used for saving extra data to Sightings, and for display in the Gallery.
+        /// </summary>
+        /// <param name="globalSightingsCount"></param>
+        /// <returns>An implicit tuple holding the current base points amount, Rarity multipler, and the Rarity name.</returns>
+        Task<(int basePoints, double multipler, string name)> GetRarityMultiplierAndName(int globalSightingsCount);
     }
 }

@@ -21,7 +21,7 @@ namespace MH.Capstone.Domain.Services
 
         // Set constants for base points and rarity multiplies
 
-        //Base points constatnt - ALL sightings start with 10 points before rarity multiplier is applied
+        //Base points constant - ALL sightings start with 10 points before rarity multiplier is applied
         private const int BasePoints = 10;
 
         // Rarity tier Thresholds - these will be used to determine which rarity multiplier to apply based on the global sightings count for the species
@@ -90,6 +90,17 @@ namespace MH.Capstone.Domain.Services
             _logger.LogInformation("Global sighting count for species {SpeciesId}: {Count}", speciesId, count);
 
             return count;
+        }
+
+        public async Task<(int basePoints, double multipler, string name)> GetRarityMultiplierAndName(int globalSightingsCount)
+        {
+            // BasePoints is a const at the top of this file, check the const field
+
+            // Placeholder vals
+            double someDouble = 2.0;
+            string someString = "hi";
+
+            return (BasePoints,someDouble, someString);
         }
     }
 }
