@@ -101,11 +101,29 @@ namespace MH.Capstone.Domain.Services
                 throw new ArgumentException("Global sighting count cannot be negative", nameof(globalSightingsCount));
             }
 
-            // Placeholder vals
-            double someDouble = 2.0;
-            string someString = "hi";
+            // Return value initialization
+            double multiplier = 0.0;
+            string rarityName = "hi";
 
-            return (BasePoints, someDouble, someString);
+            if (globalSightingsCount <= MythicThreshold)
+            {
+                // Mythic scoring
+                multiplier = MythicMultiplier;
+                rarityName = "Mythic";
+
+            } else if (globalSightingsCount <= RareThreshold) {
+
+                // Rare scoring
+                multiplier = RareMultiplier;
+                rarityName = "Rare";
+
+            } else {
+                // Common scoring
+                multiplier = CommonMultiplier;
+                rarityName = "Common";
+            }
+
+            return (BasePoints, multiplier, rarityName);
         }
     }
 }
