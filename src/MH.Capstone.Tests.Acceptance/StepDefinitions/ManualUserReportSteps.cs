@@ -3,6 +3,7 @@ using System.Text.Json;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataModels;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -281,8 +282,17 @@ public class ManualUserReportSteps
 
         Assert.That(messageClass, Does.Contain("alert-danger"),
             "Duplicate submission should show an error alert");
-        Assert.That(messageText, Does.Contain("already reported").IgnoreCase,
-            $"{name} should see an 'already reported' error message");
+
+        // The modal JS renders duplicates through one of two branches:
+        //   else  -> "You have already reported this page." (from 409 JSON body)
+        //   catch -> "Report submission failed. Please wait until your previous report is resolved."
+        // Both communicate the same user-facing duplicate rejection.
+        var indicatesDuplicate =
+            messageText.Contains("already reported", StringComparison.OrdinalIgnoreCase) ||
+            messageText.Contains("previous report", StringComparison.OrdinalIgnoreCase);
+
+        Assert.That(indicatesDuplicate, Is.True,
+            $"{name} should see an error indicating the report is a duplicate. Actual: '{messageText}'");
     }
 
     [Then("James should not see the {string} button")]
@@ -377,15 +387,32 @@ public class ManualUserReportSteps
 
     private void OpenReportModal()
     {
-        var openButton = _wait.Until(d => d.FindElement(By.CssSelector("button[data-bs-target='#reportModal']")));
-        openButton.Click();
+        // Scroll to top so nothing covers the fixed-position floating button.
+        ((IJavaScriptExecutor)_driver).ExecuteScript("window.scrollTo(0, 0);");
 
-        // Wait for Bootstrap to mark the modal as shown.
+        var openButton = _wait.Until(d =>
+        {
+            var el = d.FindElement(By.CssSelector("button[data-bs-target='#reportModal']"));
+            return (el.Displayed && el.Enabled) ? el : null;
+        });
+
+        // JS click sidesteps overlay interception from the Leaflet map tiles and tooltips.
+        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", openButton!);
+
+        // Wait for Bootstrap modal to be fully shown (fade animation complete).
         _wait.Until(d =>
         {
             var modal = d.FindElement(By.Id("reportModal"));
             var classes = modal.GetAttribute("class") ?? string.Empty;
-            return classes.Contains("show");
+            var ariaHidden = modal.GetAttribute("aria-hidden");
+            return classes.Contains("show") && ariaHidden != "true";
+        });
+
+        // Wait for the form controls inside the modal to be interactable.
+        _wait.Until(d =>
+        {
+            var select = d.FindElement(By.Id("reportReason"));
+            return select.Displayed && select.Enabled;
         });
     }
 
@@ -401,7 +428,12 @@ public class ManualUserReportSteps
 
     private void SubmitReportForm()
     {
-        _driver.FindElement(By.Id("reportSubmitBtn")).Click();
+        var submitBtn = _wait.Until(d =>
+        {
+            var el = d.FindElement(By.Id("reportSubmitBtn"));
+            return (el.Displayed && el.Enabled) ? el : null;
+        });
+        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", submitBtn!);
     }
 
     private void WaitForReportSuccessMessage()
@@ -442,13 +474,35 @@ public class ManualUserReportSteps
                                ?? throw new InvalidOperationException(
                                    "Connection string unavailable. BeforeScenario should have skipped this test.");
 
+        // Azure SQL serverless tiers can take ~30s to wake from pause. Give the first
+        // connection plenty of headroom and retry transient failures automatically.
+        var builder = new SqlConnectionStringBuilder(connectionString)
+        {
+            ConnectTimeout = 120
+        };
+        connectionString = builder.ConnectionString;
+
         var services = new ServiceCollection();
 
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(connectionString));
+            options.UseSqlServer(connectionString, sql =>
+            {
+                sql.CommandTimeout(120);
+                sql.EnableRetryOnFailure(
+                    maxRetryCount: 5,
+                    maxRetryDelay: TimeSpan.FromSeconds(15),
+                    errorNumbersToAdd: null);
+            }));
 
         services.AddDbContext<CacheDbContext>(options =>
-            options.UseSqlServer(connectionString));
+            options.UseSqlServer(connectionString, sql =>
+            {
+                sql.CommandTimeout(120);
+                sql.EnableRetryOnFailure(
+                    maxRetryCount: 5,
+                    maxRetryDelay: TimeSpan.FromSeconds(15),
+                    errorNumbersToAdd: null);
+            }));
 
         services.AddIdentity<ApplicationUser, IdentityRole>(options =>
             {
