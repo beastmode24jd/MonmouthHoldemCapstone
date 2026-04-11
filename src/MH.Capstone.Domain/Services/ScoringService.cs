@@ -92,7 +92,7 @@ namespace MH.Capstone.Domain.Services
             return count;
         }
 
-        public async Task<(int basePoints, double multipler, string name)> GetRarityMultiplierAndName(int globalSightingsCount)
+        public async Task<(double multipler, string name)> GetRarityMultiplierAndName(int globalSightingsCount)
         {
             // BasePoints is a const at the top of this file, check the const field
 
@@ -123,7 +123,7 @@ namespace MH.Capstone.Domain.Services
                 rarityName = "Common";
             }
 
-            return (BasePoints, multiplier, rarityName);
+            return (multiplier, rarityName);
         }
     }
 }

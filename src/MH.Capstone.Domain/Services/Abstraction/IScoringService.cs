@@ -37,11 +37,11 @@ namespace MH.Capstone.Domain.Services.Abstraction
         Task<int> GetGlobalSightingsCountAsync(int speciesId);
 
         /// <summary>
-        /// Takes the global count of the species, and returns the base point amount, rarity multipler, and name in an implicit tuple of an int, double, and a string.
+        /// Takes the global count of the species, and returns the rarity multipler and name in an implicit tuple of a double, and a string.
         /// Currently used for saving extra data to Sightings, and for display in the Gallery.
         /// </summary>
         /// <param name="globalSightingsCount"></param>
-        /// <returns>An implicit tuple holding the current base points amount, Rarity multipler, and the Rarity name.</returns>
-        Task<(int basePoints, double multipler, string name)> GetRarityMultiplierAndName(int globalSightingsCount);
+        /// <returns>An implicit tuple holding the current Rarity multipler and the Rarity name.</returns>
+        Task<(double multipler, string name)> GetRarityMultiplierAndName(int globalSightingsCount);
     }
 }

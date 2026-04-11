@@ -204,7 +204,6 @@ public class ScoringServiceTests
 
         double expectedMultiplier;
         string expectedRarity;
-        int expectedBasePoints = 10;
 
         // Initialize the expected Rarity names and double multiplers.
         (expectedRarity, expectedMultiplier) = input switch
@@ -215,12 +214,11 @@ public class ScoringServiceTests
         };
 
         // Act
-        var (actualBasePoints, actualMultiplier, actualRarity) = await sut.GetRarityMultiplierAndName(input);
+        var (actualMultiplier, actualRarity) = await sut.GetRarityMultiplierAndName(input);
         
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(actualBasePoints, Is.EqualTo(expectedBasePoints), "Base points for a Sighting should be 10.");
             Assert.That(actualMultiplier, Is.EqualTo(expectedMultiplier), $"Multipler {actualMultiplier} did not match expected range for {expectedRarity}.");
             Assert.That(actualRarity, Is.EqualTo(expectedRarity), $"Rarity of {expectedRarity} expected, rarity of {actualRarity} was given.");
         });
