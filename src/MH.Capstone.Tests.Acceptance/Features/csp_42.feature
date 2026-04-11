@@ -4,7 +4,7 @@ Feature: Profile Customization
     So that I can showcase my unique style and experience in the Dashboard
         when I log in
 
-@browser
+@dashboard
 Scenario: User has not submitted a custom profile image
     Given I have not submitted a custom profile image
     When I look at the menu bar at the top of the page
