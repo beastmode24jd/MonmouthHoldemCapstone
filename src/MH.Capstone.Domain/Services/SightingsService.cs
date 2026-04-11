@@ -44,31 +44,40 @@ namespace MH.Capstone.Domain.Services
 
             try
             {
-                // Step 1: Save the sighting to database
-                await _sightingsRepo.AddOrUpdateAsync(entity);
-
-                // Step 2: Calculate points based on rarity (CSP-104)
+                // Calculate points based on rarity (CSP-104)
                 // TODO: Replace hardcoded speciesId with actual species when Species table exists
                 int globalCount = await _scoringService.GetGlobalSightingsCountAsync(1); // Placeholder species ID
+
+                // Get the Rarity multiplier and name for the Sighting, map the metadata
+                var (multiplier, rarityName) = await _scoringService.GetRarityMultiplierAndName(globalCount);
+                entity.Rarity = rarityName;
+                entity.RarityMultipler = multiplier;
+
+                // Get the initial point value of the Sighting (rarity multiplier applied to base)
                 int pointsEarned = await _scoringService.CalculatePointsAsync(globalCount);
 
-                // Step 3: Award points to the user
+                // Get the user, to award points AND get login streak and final point calc
                 var users = await _userRepo.GetAllAsync();
                 var user = users.FirstOrDefault(u => u.Id == entity.UserIdentityId);
 
                 if (user != null)
                 {
-                    // Check if the user has an active loginStreak.
-                    // If so, apply a 1.5 points multiplier to their original Sighting.
+                    entity.LoginStreak = user.IsStreakActive; // Save current loginStreak to Sighting
+
+                    // Check if user has an active loginStreak.
+                    // If so, apply 1.5 points multiplier to their pointsEarned.
                     if (user.IsStreakActive)
                     {
-                        var userStreakApplied = pointsEarned * 1.5;
-                        pointsEarned = (int)userStreakApplied;
+                        pointsEarned = (int)(pointsEarned * 1.5);
                     }
 
-                    // Adds and saves the points to the user
+                    // Add and save the points to the user
                     user.Points += pointsEarned;
                     await _userRepo.AddOrUpdateAsync(user);
+
+                    // Save the point value of the Sighting, then save in DB.
+                    entity.PointValue = pointsEarned;
+                    await _sightingsRepo.AddOrUpdateAsync(entity);
 
                     // Convert timezone IANA ID to a TimeZoneInfo object
                     TimeZoneInfo deviceZone;
@@ -103,7 +112,7 @@ namespace MH.Capstone.Domain.Services
                     _logger.LogInformation("Localized display: {Local}", timeDisplay);
                 }
 
-                // Step 4: Return points to controller
+                // Return points to controller
                 return pointsEarned;
             }
             catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 547 })

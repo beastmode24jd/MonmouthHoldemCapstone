@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
 using MH.Capstone.Domain.DataAccess;
@@ -33,7 +34,17 @@ namespace MH.Capstone.Domain.Services
         private const double RareMultiplier = 2.0;
         private const double CommonMultiplier = 1.0;
 
-         public ScoringService(
+        private (double Multiplier, string Name) GetRarityMetadata(int globalSightingsCount)
+        {
+            return globalSightingsCount switch
+            {
+                <= MythicThreshold => (MythicMultiplier, "Mythic"),
+                <= RareThreshold => (RareMultiplier, "Rare"),
+                _ => (CommonMultiplier, "Common")
+            };
+        }
+
+        public ScoringService(
             ILogger<ScoringService> logger,
             IRepository<Sighting, ApplicationDbContext> sightingsRepo)
         {
@@ -53,12 +64,8 @@ namespace MH.Capstone.Domain.Services
             }
 
             // Determine rarity multiplier based on global count
-            double multiplier = globalSightingsCount switch
-            {
-                <= MythicThreshold => MythicMultiplier,   // ≤5 sightings: Mythic (5.0×)
-                <= RareThreshold => RareMultiplier,       // ≤50 sightings: Rare (2.0×)
-                _ => CommonMultiplier                      // >50 sightings: Common (1.0×)
-            };
+            // Uses private helper method, since metadata call uses this same code block
+            var (multiplier, _) = GetRarityMetadata(globalSightingsCount);
 
             // Calculate final points
             int points = (int)(BasePoints * multiplier);
@@ -94,36 +101,16 @@ namespace MH.Capstone.Domain.Services
 
         public async Task<(double multipler, string name)> GetRarityMultiplierAndName(int globalSightingsCount)
         {
-            // BasePoints is a const at the top of this file, check the const field
-
             if (globalSightingsCount < 0)
             {
                 throw new ArgumentException("Global sighting count cannot be negative", nameof(globalSightingsCount));
             }
 
-            // Return value initialization
-            double multiplier = 0.0;
-            string rarityName = "hi";
+            // Use the private helper method to get the return values
+            var metadata = GetRarityMetadata(globalSightingsCount);
 
-            if (globalSightingsCount <= MythicThreshold)
-            {
-                // Mythic scoring
-                multiplier = MythicMultiplier;
-                rarityName = "Mythic";
-
-            } else if (globalSightingsCount <= RareThreshold) {
-
-                // Rare scoring
-                multiplier = RareMultiplier;
-                rarityName = "Rare";
-
-            } else {
-                // Common scoring
-                multiplier = CommonMultiplier;
-                rarityName = "Common";
-            }
-
-            return (multiplier, rarityName);
+            // Return the full tuple from this
+            return await Task.FromResult((metadata.Multiplier, metadata.Name));
         }
     }
 }

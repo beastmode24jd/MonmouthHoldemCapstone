@@ -68,7 +68,7 @@ namespace MH.Capstone.Domain.DataModels
         public Sighting() {}
 
         public Sighting(Guid id, Guid userId, decimal latitude, decimal longitude, DateTimeOffset timestamp, 
-            string? description, byte[] imageBuffer, int pointValue, bool loginStreak, string rarity, double rarityMMultipler)
+            string? description, byte[] imageBuffer, int pointValue, bool loginStreak, string rarity, double rarityMultipler)
         {
             Id = id;
             UserId = userId;
@@ -80,7 +80,7 @@ namespace MH.Capstone.Domain.DataModels
             PointValue = pointValue;
             LoginStreak = loginStreak;
             Rarity = rarity;
-            RarityMultipler = RarityMultipler;
+            RarityMultipler = rarityMultipler;
         }
     }
 }
