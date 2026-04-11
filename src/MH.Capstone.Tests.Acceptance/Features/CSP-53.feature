@@ -24,6 +24,6 @@ Scenario: A valid upload completes and confirms
   Then user should be redirected to their dashboard.
 
 Scenario: Non-Logged-in user cannot access page
-  Given an unauthenticated user
+  Given user James is access the application
   When user attempts to access the sightings upload page
   Then user is denied access to the page.

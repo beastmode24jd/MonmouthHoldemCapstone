@@ -52,8 +52,8 @@ public class AuthenticationDriver
     public void LogoutUser()
     {
         if (!IsUserLoggedIn()) return;
-        var logoutBtn = _webDriver.FindElement(By.Id("logoutBtn"));
-        logoutBtn.Click();
+        var logoutForm = _webDriver.FindElement(By.Id("logoutForm"));
+        logoutForm.Submit();
     }
 
     public bool WasPageAccessDenied(string urlToTest)

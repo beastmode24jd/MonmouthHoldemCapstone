@@ -12,7 +12,10 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
         private readonly AuthenticationDriver _authenticationDriver;
         private readonly DashboardDriver _dashboardDriver;
 
-        public CSP53StepDefinitions(SightingsDriver sightingsDriver, 
+        // Holds the path of a temp file prepared by a Given step and consumed by a When step.
+        private string? _preparedImageFilePath;
+
+        public CSP53StepDefinitions(SightingsDriver sightingsDriver,
             AuthenticationDriver authenticationDriver, DashboardDriver dashboardDriver)
         {
             _sightingsDriver = sightingsDriver;
@@ -35,37 +38,59 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
         [Given("user has an invalid image file")]
         public void GivenUserHasAnInvalidImageFile()
         {
-            throw new PendingStepException();
+            // Create a plain-text temp file. When the browser submits it, the content-type
+            // will be "text/plain" (derived from the .txt extension), which causes
+            // ISightingsService.ValidateImage to reject it.
+            var path = Path.Combine(Path.GetTempPath(), $"invalid_image_{Guid.NewGuid()}.txt");
+            File.WriteAllText(path, "this is not an image");
+            _preparedImageFilePath = path;
         }
 
         [When("user attempts to upload the image file")]
         public void WhenUserAttemptsToUploadTheImageFile()
         {
-            throw new PendingStepException();
+            _sightingsDriver.UploadFileAndSubmit(_preparedImageFilePath!);
         }
 
         [Then("user should see a error\\/failure message.")]
         public void ThenUserShouldSeeAErrorFailureMessage()
         {
-            throw new PendingStepException();
+            _sightingsDriver.IsOnSightingsUploadPage().Should().BeTrue();
+            _sightingsDriver.HasVisibleValidationErrors().Should().BeTrue();
         }
 
         [Given("user has not completed all the required fields")]
         public void GivenUserHasNotCompletedAllTheRequiredFields()
         {
-            throw new PendingStepException();
+            // The upload form's only required field without a server-supplied default is
+            // UploadedImage. Leaving the file input empty satisfies "not all required fields
+            // are complete" — no additional interaction is needed here.
         }
 
         [When("user attempts to submit the sightings upload form")]
         public void WhenUserAttemptsToSubmitTheSightingsUploadForm()
         {
-            throw new PendingStepException();
+            _sightingsDriver.SubmitSightingsForm();
         }
 
         [Given("user has entered all valid and required information")]
         public void GivenUserHasEnteredAllValidAndRequiredInformation()
         {
-            throw new PendingStepException();
+            // Create a minimal JPEG file (magic bytes + a few padding bytes).
+            // ValidateImage checks content-type (derived from the .jpg extension by the
+            // browser) and that size is between 1 byte and 2 MB — actual pixel data is
+            // not inspected, so magic bytes alone are sufficient.
+            var path = Path.Combine(Path.GetTempPath(), $"valid_image_{Guid.NewGuid()}.jpg");
+            byte[] minimalJpeg =
+            [
+                0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, // JFIF SOI + APP0 marker
+                0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01,
+                0x00, 0x01, 0x00, 0x00, 0xFF, 0xD9              // EOI
+            ];
+            File.WriteAllBytes(path, minimalJpeg);
+            _preparedImageFilePath = path;
+
+            _sightingsDriver.SetImageForUpload(path);
         }
 
         [Then("user should be redirected to their dashboard.")]
@@ -74,10 +99,10 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
             _dashboardDriver.IsOnDashboard().Should().BeTrue();
         }
 
-        [Given("an unauthenticated user")]
+        [Given("user James is access the application")]
         public void GivenAnUnauthenticatedUser()
         {
-            _authenticationDriver.PreformLoginForUser("james@test.com", "Capstone26!");
+            _authenticationDriver.LogoutUser();
         }
 
         [When("user attempts to access the sightings upload page")]

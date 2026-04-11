@@ -246,7 +246,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             {
                 await this.ScenarioStartAsync();
 #line 27
-  await testRunner.GivenAsync("an unauthenticated user", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+  await testRunner.GivenAsync("user James is access the application", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 28
   await testRunner.WhenAsync("user attempts to access the sightings upload page", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
