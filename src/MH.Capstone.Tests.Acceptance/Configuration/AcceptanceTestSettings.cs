@@ -10,8 +10,8 @@ namespace MH.Capstone.Tests.Acceptance.Configuration;
 [ExcludeFromCodeCoverage]
 public sealed class AcceptanceTestSettings
 {
-    /// <summary>Base URL Selenium navigates to (e.g. https://localhost:5001).</summary>
-    public string BaseUrl { get; init; } = "https://localhost:5001";
+    /// <summary>Base URL Selenium navigates to (e.g. http://localhost:7654).</summary>
+    public string BaseUrl { get; init; } = "http://localhost:7654";
 
     /// <summary>When true, Chrome runs headless (no visible window).</summary>
     public bool HeadlessSelenium { get; init; } = true;

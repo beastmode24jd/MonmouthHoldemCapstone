@@ -129,7 +129,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             {
                 await this.ScenarioStartAsync();
 #line 6
-  await testRunner.GivenAsync("user Alpha is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+  await testRunner.GivenAsync("user Alex is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 7
   await testRunner.AndAsync("user is on the sightings upload page", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
@@ -168,7 +168,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             {
                 await this.ScenarioStartAsync();
 #line 13
-  await testRunner.GivenAsync("user Alpha is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+  await testRunner.GivenAsync("user Alex is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 14
   await testRunner.AndAsync("user is on the sightings upload page", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
@@ -207,7 +207,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             {
                 await this.ScenarioStartAsync();
 #line 20
-  await testRunner.GivenAsync("user Alpha is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+  await testRunner.GivenAsync("user Alex is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 21
   await testRunner.AndAsync("user is on the sightings upload page", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");

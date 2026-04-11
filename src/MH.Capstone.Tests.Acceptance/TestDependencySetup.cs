@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using MH.Capstone.Tests.Acceptance.Configuration;
+using MH.Capstone.Tests.Acceptance.Drivers;
 using MH.Capstone.Tests.Acceptance.Hooks;
 using Microsoft.Extensions.DependencyInjection;
 using OpenQA.Selenium;
@@ -25,11 +26,18 @@ public static class TestDependencySetup
 
         // AcceptanceTestSettings is a singleton for the test run; the per-scenario
         // DI container gets the same instance that BeforeTestRun loaded.
-        services.AddSingleton(GlobalHooks.GetSettings());
+        services.AddSingleton(Startup.GetSettings());
 
         // One shared ChromeDriver for all scenarios (avoids the cost of a browser
         // launch per scenario). Drivers and page objects reuse this instance.
-        services.AddSingleton<IWebDriver>(GlobalHooks.GetWebDriver());
+        services.AddSingleton<IWebDriver>(Startup.GetWebDriver());
+
+        // Driver classes must be explicitly registered when using
+        // Reqnroll.Microsoft.Extensions.DependencyInjection — they are not
+        // auto-discovered the way step-definition bindings are.
+        services.AddTransient<AuthenticationDriver>();
+        services.AddTransient<DashboardDriver>();
+        services.AddTransient<SightingsDriver>();
 
         return services;
     }

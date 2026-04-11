@@ -33,7 +33,7 @@ internal static class AcceptanceTestConfiguration
 
         return new AcceptanceTestSettings
         {
-            BaseUrl         = config["AcceptanceTesting:BaseUrl"]         ?? "https://localhost:5001",
+            BaseUrl         = config["AcceptanceTesting:BaseUrl"]         ?? "http://localhost:7654",
             HeadlessSelenium = bool.Parse(config["AcceptanceTesting:HeadlessSelenium"] ?? "true"),
             WebAppContentRoot = webAppRoot,
         };

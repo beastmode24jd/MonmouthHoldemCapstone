@@ -8,7 +8,7 @@ namespace MH.Capstone.Tests.Acceptance.Hooks;
 
 [Binding]
 [ExcludeFromCodeCoverage]
-public sealed class GlobalHooks
+public sealed class Startup
 {
     private static AcceptanceTestSettings? _settings;
     private static IWebDriver? _webDriver;

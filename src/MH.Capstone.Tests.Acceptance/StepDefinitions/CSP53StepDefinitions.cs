@@ -20,10 +20,10 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
             _dashboardDriver = dashboardDriver;
         }
 
-        [Given("user Alpha is logged in")]
-        public void GivenUserAlphaIsLoggedIn()
+        [Given("user Alex is logged in")]
+        public void GivenUserAlexIsLoggedIn()
         {
-            _authenticationDriver.PreformLoginForUser("alpha@test.com", "Capstone26!");
+            _authenticationDriver.PreformLoginForUser("alex@test.com", "Capstone26!");
         }
 
         [Given("user is on the sightings upload page")]
@@ -77,7 +77,7 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
         [Given("an unauthenticated user")]
         public void GivenAnUnauthenticatedUser()
         {
-            _authenticationDriver.LogoutUser();
+            _authenticationDriver.PreformLoginForUser("james@test.com", "Capstone26!");
         }
 
         [When("user attempts to access the sightings upload page")]
