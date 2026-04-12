@@ -130,8 +130,8 @@ namespace MH.Capstone.WebApp.Controllers
             // This handles byte[] to base64 conversion for images
             var viewModel = new SightingGalleryViewModel(sightings);
 
-            _logger.LogInformation("User {UserId} accessed gallery with {Count} sightings", 
-                user.Id, viewModel.SightingCount);
+            _logger.LogInformation("User {Email} accessed gallery with {Count} sightings", 
+                user.Email, viewModel.SightingCount);
 
             return View(viewModel);
         }

@@ -166,7 +166,6 @@ namespace MH.Capstone.Domain.Services
 
         #region CSP-145: Sighting Gallery Feature
 
-        // NEED TO MODIFY SIGHTINGS DATA MODEL TO SAVE RARITY TYPE, LOGIN STREAK BOOL
         public async Task<IEnumerable<Sighting>> GetUserSightingsAsync(Guid userId)
         {
             _logger.LogInformation("Fetching sightings for user {UserId}", userId);

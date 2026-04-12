@@ -55,7 +55,7 @@ namespace MH.Capstone.Domain.DataModels
 
         // Rarity score, point value, and user's login streak value for display metadata.
         //      Defaults to placeholder values until updated by Sightings Service
-        public int PointValue { get; set; } = 0;
+        public int PointValue { get; set; } = 10;
 
         public bool LoginStreak { get; set; } = false;
 
