@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Microsoft.AspNetCore.Mvc.ViewFeatures; // Required for TempDataDictionary
+using Microsoft.AspNetCore.Mvc.Routing; // Required for UrlActionContext class
 
 namespace MH.Capstone.WebApp.Tests.Unit.Controllers;
 
@@ -19,6 +20,7 @@ public class AccountControllerTests
     private Mock<ILogger<AccountController>> _mockLogger;
     private AccountController _controller;
     private Mock<UserManager<ApplicationUser>> _mockUserManager;
+    private Mock<IUrlHelper> _mockUrlHelper;
 
     [SetUp]
     public void Setup()
@@ -26,6 +28,7 @@ public class AccountControllerTests
         _mockAuthService = new Mock<IAuthenticationService>();
         _mockUserService = new Mock<IUserService>();
         _mockLogger = new Mock<ILogger<AccountController>>();
+        _mockUrlHelper = new Mock<IUrlHelper>();
 
         // Mock UserManager (requires a Mock UserStore)
         var store = new Mock<IUserStore<ApplicationUser>>();
@@ -37,6 +40,14 @@ public class AccountControllerTests
             _mockUserService.Object,
             _mockUserManager.Object,
             _mockLogger.Object);
+
+        // Setup the Mock URL Helper to return a dummy string
+        _mockUrlHelper
+            .Setup(x => x.Action(It.IsAny<UrlActionContext>()))
+            .Returns("/account/login");
+
+        // Assign the mock to the controller
+        _controller.Url = _mockUrlHelper.Object;
 
         _controller.ControllerContext = new ControllerContext
         {

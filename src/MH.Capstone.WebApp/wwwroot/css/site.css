@@ -306,6 +306,15 @@ a.navbar-brand:hover {
     font-size: min(20vw, 25px);
 }
 
+.alert-link {
+    font-family: Arial, Verdana, Tahoma, sans-serif;
+    font-size: min(20vw, 16px);
+}
+
+.alert-link:hover {
+    color: #1C261C;
+}
+
 #menuBtn {
     color: white;
     background-color: #1D6234;
