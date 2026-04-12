@@ -149,6 +149,25 @@ namespace MH.Capstone.WebApp.Controllers
             foreach (var sighting in viewModel.Sightings)
             {
                 sighting.Timestamp = TimeZoneInfo.ConvertTime(sighting.Timestamp, userZone);
+                
+                // Correcting visual bugs for previous saved Sightings
+                if (sighting.PointValue < 10 && sighting.PointValue >= 0)
+                {
+                    // Assign the front-end display the default value.
+                    sighting.PointValue = 10;
+                }
+
+                if (sighting.RarityMultiplier == 0)
+                {
+                    // Invalid Rarity Multiplier, default to Common Rarity
+                    sighting.RarityMultiplier = 1.0;
+                }
+
+                if (sighting.Rarity != "Common" && sighting.Rarity != "Mythic" && sighting.Rarity != "Rare")
+                {
+                    // Invalid Rarity value. Default to Common.
+                    sighting.Rarity = "Common";
+                }
             }
 
             _logger.LogInformation("User {Email} accessed gallery with {Count} sightings", 

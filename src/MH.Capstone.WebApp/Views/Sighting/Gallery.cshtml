@@ -71,20 +71,16 @@
                                         </small>
                                     </div>
 
-                                    @* Multiplier Icons *@
-                                    <div class="mb-2">
+                                    <div class="mb-3 d-flex flex-wrap align-items-center">
                                         @* Rarity Badge *@
-                                        <span class="badge @rarityBadgeClass">
+                                        <span class="badge @rarityBadgeClass me-1">
                                             @sighting.Rarity (@sighting.RarityMultiplier.ToString("0.0")x)
                                         </span>
 
-                                    </div>
-
-                                    <div class="mb-2">
-                                        @* Login Streak Badge *@
+                                        @* Login Streak Badge - Only shown if active *@
                                         @if (sighting.LoginStreak)
                                         {
-                                            <span class="badge bg-success ms-1">Login Streak (1.5x)</span>
+                                            <span class="badge bg-success">Login Streak (1.5x)</span>
                                         }
                                     </div>
                                     
