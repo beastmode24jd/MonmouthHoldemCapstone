@@ -12,7 +12,7 @@ using Reqnroll;
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
 [Binding]
-public class csp_42_Steps
+public class CSP42StepDefinitions
 {
     
 }
