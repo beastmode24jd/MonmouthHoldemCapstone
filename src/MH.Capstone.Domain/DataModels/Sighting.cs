@@ -63,12 +63,12 @@ namespace MH.Capstone.Domain.DataModels
         public string Rarity { get; set; } = "Common";
 
         // Currently set to 5.0 (Mythic), 2.0 (Rare), and 1.0 (Common)
-        public double RarityMultipler { get; set; } = 1.0; // Common rarity
+        public double RarityMultiplier { get; set; } = 1.0; // Common rarity
 
         public Sighting() {}
 
         public Sighting(Guid id, Guid userId, decimal latitude, decimal longitude, DateTimeOffset timestamp, 
-            string? description, byte[] imageBuffer, int pointValue, bool loginStreak, string rarity, double rarityMultipler)
+            string? description, byte[] imageBuffer, int pointValue, bool loginStreak, string rarity, double rarityMultiplier)
         {
             Id = id;
             UserId = userId;
@@ -80,7 +80,7 @@ namespace MH.Capstone.Domain.DataModels
             PointValue = pointValue;
             LoginStreak = loginStreak;
             Rarity = rarity;
-            RarityMultipler = rarityMultipler;
+            RarityMultiplier = rarityMultiplier;
         }
     }
 }

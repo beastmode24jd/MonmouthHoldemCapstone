@@ -51,7 +51,7 @@ namespace MH.Capstone.Domain.Services
                 // Get the Rarity multiplier and name for the Sighting, map the metadata
                 var (multiplier, rarityName) = await _scoringService.GetRarityMultiplierAndName(globalCount);
                 entity.Rarity = rarityName;
-                entity.RarityMultipler = multiplier;
+                entity.RarityMultiplier = multiplier;
 
                 // Get the initial point value of the Sighting (rarity multiplier applied to base)
                 int pointsEarned = await _scoringService.CalculatePointsAsync(globalCount);

@@ -304,7 +304,7 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<double>("RarityMultipler")
+                    b.Property<double>("RarityMultiplier")
                         .HasColumnType("float");
 
                     b.Property<DateTimeOffset>("Timestamp")

@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MH.Capstone.Domain.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260411050926_AddSightingScoringMetadata")]
+    [Migration("20260412175159_AddSightingScoringMetadata")]
     partial class AddSightingScoringMetadata
     {
         /// <inheritdoc />
@@ -307,7 +307,7 @@ namespace MH.Capstone.Domain.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<double>("RarityMultipler")
+                    b.Property<double>("RarityMultiplier")
                         .HasColumnType("float");
 
                     b.Property<DateTimeOffset>("Timestamp")

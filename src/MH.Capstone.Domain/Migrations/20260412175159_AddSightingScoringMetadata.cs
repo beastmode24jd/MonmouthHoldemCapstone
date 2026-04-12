@@ -32,7 +32,7 @@ namespace MH.Capstone.Domain.Migrations
                 defaultValue: "");
 
             migrationBuilder.AddColumn<double>(
-                name: "RarityMultipler",
+                name: "RarityMultiplier",
                 table: "Sighting",
                 type: "float",
                 nullable: false,
@@ -55,7 +55,7 @@ namespace MH.Capstone.Domain.Migrations
                 table: "Sighting");
 
             migrationBuilder.DropColumn(
-                name: "RarityMultipler",
+                name: "RarityMultiplier",
                 table: "Sighting");
         }
     }
