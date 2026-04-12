@@ -7,11 +7,13 @@ using Reqnroll.BoDi;
 namespace MH.Capstone.Tests.Acceptance.Support;
 
 /// <summary>
-/// Shared Selenium WebDriver lifecycle for any feature tagged @ai-companion
-/// (and future stories such as CSP-153 once they opt in to the same tag).
-/// Registers a singleton IWebDriver + WebDriverWait into the scenario's
-/// Reqnroll DI container so step definition classes can receive them via
-/// constructor injection rather than spinning up their own driver each scenario.
+/// Shared Selenium WebDriver for BDD test. Removes duplicate browers setup code. 
+/// Centalized Chrome driver creation and tear down. Uses headless Chrome for CI compatibility.
+
+/// To add a new feature:
+///   1. Add @selenium to the .feature file
+///   2. Accept IWebDriver + WebDriverWait in the step def constructor
+///   3. That's it — Hooks handles setup and teardown
 /// </summary>
 [Binding]
 public class Hooks
@@ -25,7 +27,7 @@ public class Hooks
         _container = container;
     }
 
-    [BeforeScenario("@ai-companion")]
+    [BeforeScenario("@selenium", "@ai-companion")]
     public void RegisterHeadlessChromeDriver()
     {
         var options = new ChromeOptions();
@@ -45,7 +47,7 @@ public class Hooks
         _container.RegisterInstanceAs(wait);
     }
 
-    [AfterScenario("@ai-companion")]
+    [AfterScenario("@selenium", "@ai-companion")]
     public void DisposeDriver()
     {
         if (_container.IsRegistered<IWebDriver>())
