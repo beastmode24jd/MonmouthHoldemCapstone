@@ -13,33 +13,45 @@ public class GeminiAIServiceTests
     [SetUp]
     public void SetUp()
     {
-        var httpClient = new HttpClient();
         var options = Options.Create(new GeminiOptions
         {
-            ApiKey = "fake-key",
+            ApiKey = "fake-key-for-unit-tests",
             Model = "gemini-2.5-flash",
             BaseUrl = "https://generativelanguage.googleapis.com/v1beta/"
         });
 
-        _service = new GeminiAIService(httpClient, options);
-    }
-
-    [Test]
-    public async Task AskAsync_WithValidQuestion_ShouldReturnNonEmptyReply()
-    {
-        // RED: GeminiAIService throws NotImplementedException. This test will go
-        // GREEN once the real Gemini HTTP call is wired up.
-        var reply = await _service.AskAsync("What should I know about black bear safety?");
-
-        Assert.That(reply, Is.Not.Null);
-        Assert.That(reply, Is.Not.Empty);
+        _service = new GeminiAIService(new HttpClient(), options);
     }
 
     [Test]
     public void AskAsync_WithEmptyQuestion_ShouldThrowArgumentException()
     {
-        // RED: Once GREEN lands, empty input should be rejected at the service boundary.
         Assert.ThrowsAsync<ArgumentException>(async () =>
             await _service.AskAsync(string.Empty));
+    }
+
+    [Test]
+    public void AskAsync_WithWhitespaceQuestion_ShouldThrowArgumentException()
+    {
+        Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _service.AskAsync("   "));
+    }
+
+    [Test]
+    public void AskAsync_WithNullQuestion_ShouldThrowArgumentException()
+    {
+        Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _service.AskAsync(null!));
+    }
+
+    [Test]
+    public async Task AskAsync_WithValidQuestion_ShouldCallGeminiApi()
+    {
+        // This test uses a fake API key so the Gemini call will fail with 400/401.
+        // The point is to prove the code reaches the HTTP call rather than throwing
+        // NotImplementedException (which was the RED state).
+        // A real integration test with a live key belongs in Tests.Integration.
+        Assert.ThrowsAsync<HttpRequestException>(async () =>
+            await _service.AskAsync("What is a black bear?"));
     }
 }

@@ -1,9 +1,11 @@
+using MH.Capstone.Domain.ApiContracts.Gemini;
 using MH.Capstone.Domain.ApiContracts.Ninja;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.Domain.Services.Api;
 using MH.Capstone.Domain.Services.Background;
 using MH.Capstone.Domain.Services.Notifications;
 using Microsoft.AspNetCore.Identity;
@@ -114,6 +116,10 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<ISightingsService, SightingsService>();
             builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
             builder.Services.AddScoped<IReportService, ReportService>();
+
+            // AI Companion (CSP-120) — Gemini-backed wildlife education chat
+            builder.Services.Configure<GeminiOptions>(builder.Configuration.GetSection(GeminiOptions.SectionName));
+            builder.Services.AddHttpClient<IAIService, GeminiAIService>();
 
             // Configure Azure Communication Services Email client depending on environment and feature flag
             var emailConnectionString = builder.Configuration.GetConnectionString("AzureCommunicationServices");
