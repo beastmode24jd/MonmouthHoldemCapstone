@@ -18,22 +18,21 @@ namespace MH.Capstone.Tests.Acceptance.Features
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Reqnroll", "3.0.0.0")]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     [global::NUnit.Framework.TestFixtureAttribute()]
-    [global::NUnit.Framework.DescriptionAttribute("Points Leaderboard Display (CSP-97)")]
+    [global::NUnit.Framework.DescriptionAttribute("Manual User Report of Page (CSP-101)")]
     [global::NUnit.Framework.FixtureLifeCycleAttribute(global::NUnit.Framework.LifeCycle.InstancePerTestCase)]
-    [global::NUnit.Framework.CategoryAttribute("leaderboard")]
-    public partial class PointsLeaderboardDisplayCSP_97Feature
+    [global::NUnit.Framework.CategoryAttribute("report")]
+    public partial class ManualUserReportOfPageCSP_101Feature
     {
         
         private global::Reqnroll.ITestRunner testRunner;
         
         private static string[] featureTags = new string[] {
-                "leaderboard"};
+                "report"};
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "Points Leaderboard Display (CSP-97)", "  As a user or visitor of the Wildlife AID app\r\n  I want to view the leaderboard " +
-                "with rankings by points\r\n  So I can see how I compare to other players and view " +
-                "top contributors", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "Manual User Report of Page (CSP-101)", "  As a logged-in user\r\n  I want to report inappropriate or problematic pages\r\n  S" +
+                "o that the moderation team can review and take action", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
-#line 1 "Leaderboard.feature"
+#line 1 "CSP-101.feature"
 #line hidden
         
         [global::NUnit.Framework.OneTimeSetUpAttribute()]
@@ -109,19 +108,19 @@ namespace MH.Capstone.Tests.Acceptance.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/Leaderboard.feature.ndjson", 7);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/CSP-101.feature.ndjson", 7);
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Navigation bar contains Leaderboard link")]
-        [global::NUnit.Framework.CategoryAttribute("elementcheck")]
-        public async global::System.Threading.Tasks.Task NavigationBarContainsLeaderboardLink()
+        [global::NUnit.Framework.DescriptionAttribute("Alex successfully submits a report")]
+        [global::NUnit.Framework.CategoryAttribute("functionality")]
+        public async global::System.Threading.Tasks.Task AlexSuccessfullySubmitsAReport()
         {
             string[] tagsOfScenario = new string[] {
-                    "elementcheck"};
+                    "functionality"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "0";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Navigation bar contains Leaderboard link", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Alex successfully submits a report", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
 #line 8
@@ -135,31 +134,40 @@ namespace MH.Capstone.Tests.Acceptance.Features
             {
                 await this.ScenarioStartAsync();
 #line 9
-    await testRunner.GivenAsync("I am on the home page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+    await testRunner.GivenAsync("Alex is logged in and viewing a sighting page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 10
-    await testRunner.WhenAsync("I view the navigation bar", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+    await testRunner.WhenAsync("Alex clicks \"Report this page\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 11
-    await testRunner.ThenAsync("I should see a \"Leaderboard\" link", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+    await testRunner.AndAsync("Alex selects a reason and optionally enters a description", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 12
+    await testRunner.AndAsync("Alex submits the form", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 13
+    await testRunner.ThenAsync("the report should be saved to the database", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+#line 14
+    await testRunner.AndAsync("Alex should receive an in-app notification confirming the report was received", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Leaderboard displays users in descending order by points")]
+        [global::NUnit.Framework.DescriptionAttribute("Report is stored with correct metadata")]
         [global::NUnit.Framework.CategoryAttribute("functionality")]
-        public async global::System.Threading.Tasks.Task LeaderboardDisplaysUsersInDescendingOrderByPoints()
+        public async global::System.Threading.Tasks.Task ReportIsStoredWithCorrectMetadata()
         {
             string[] tagsOfScenario = new string[] {
                     "functionality"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "1";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Leaderboard displays users in descending order by points", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Report is stored with correct metadata", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 14
+#line 17
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -169,44 +177,33 @@ namespace MH.Capstone.Tests.Acceptance.Features
             else
             {
                 await this.ScenarioStartAsync();
-#line 15
-    await testRunner.GivenAsync("Patricia has 500 points", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
-#line hidden
-#line 16
-    await testRunner.AndAsync("Alex has 250 points", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
-#line hidden
-#line 17
-    await testRunner.AndAsync("Lily has 100 points", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
-#line hidden
 #line 18
-    await testRunner.WhenAsync("I view the leaderboard", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+    await testRunner.GivenAsync("Alex submits a report on a sighting page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 19
-    await testRunner.ThenAsync("users should be displayed in descending order by points", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+    await testRunner.WhenAsync("the report is saved", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 20
-    await testRunner.AndAsync("Patricia should appear above Alex", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
-#line hidden
-#line 21
-    await testRunner.AndAsync("Alex should appear above Lily", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.ThenAsync("it should contain Alex\'s UserId, the page URL, the selected reason, and a Submitt" +
+                        "edAt timestamp", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Leaderboard limits display to maximum of 30 entries")]
+        [global::NUnit.Framework.DescriptionAttribute("Lily cannot report the same page twice")]
         [global::NUnit.Framework.CategoryAttribute("functionality")]
-        public async global::System.Threading.Tasks.Task LeaderboardLimitsDisplayToMaximumOf30Entries()
+        public async global::System.Threading.Tasks.Task LilyCannotReportTheSamePageTwice()
         {
             string[] tagsOfScenario = new string[] {
                     "functionality"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "2";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Leaderboard limits display to maximum of 30 entries", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Lily cannot report the same page twice", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 24
+#line 23
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -216,35 +213,35 @@ namespace MH.Capstone.Tests.Acceptance.Features
             else
             {
                 await this.ScenarioStartAsync();
+#line 24
+    await testRunner.GivenAsync("Lily has already submitted a report for a specific page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line hidden
 #line 25
-    await testRunner.GivenAsync("there are more than 30 users in the system", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+    await testRunner.WhenAsync("Lily attempts to submit another report for the same page", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 26
-    await testRunner.WhenAsync("I view the leaderboard", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+    await testRunner.ThenAsync("the system should reject the duplicate", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
 #line 27
-    await testRunner.ThenAsync("I should see a maximum of 30 user entries", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
-#line hidden
-#line 28
-    await testRunner.AndAsync("the top 30 highest-scoring users should be shown", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.AndAsync("Lily should see a message saying she has already reported this content", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Logged-in user\'s entry is highlighted on leaderboard")]
+        [global::NUnit.Framework.DescriptionAttribute("James (unauthenticated) cannot access the report feature")]
         [global::NUnit.Framework.CategoryAttribute("functionality")]
-        public async global::System.Threading.Tasks.Task Logged_InUsersEntryIsHighlightedOnLeaderboard()
+        public async global::System.Threading.Tasks.Task JamesUnauthenticatedCannotAccessTheReportFeature()
         {
             string[] tagsOfScenario = new string[] {
                     "functionality"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "3";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Logged-in user\'s entry is highlighted on leaderboard", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("James (unauthenticated) cannot access the report feature", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 31
+#line 30
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -254,44 +251,32 @@ namespace MH.Capstone.Tests.Acceptance.Features
             else
             {
                 await this.ScenarioStartAsync();
+#line 31
+    await testRunner.GivenAsync("James is not logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line hidden
 #line 32
-    await testRunner.GivenAsync("Patricia has 500 points", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+    await testRunner.WhenAsync("James visits a page on the site", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 33
-    await testRunner.AndAsync("Lily has 100 points", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
-#line hidden
-#line 34
-    await testRunner.AndAsync("Alex is logged in with 300 points", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
-#line hidden
-#line 35
-    await testRunner.WhenAsync("Alex views the leaderboard", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
-#line hidden
-#line 36
-    await testRunner.ThenAsync("Alex\'s entry should be visually highlighted", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
-#line hidden
-#line 37
-    await testRunner.AndAsync("Alex\'s point total of 300 should be visible", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
-#line hidden
-#line 38
-    await testRunner.AndAsync("Alex should be able to locate their entry easily", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.ThenAsync("James should not see the \"Report this page\" button", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Users with zero points appear on leaderboard")]
+        [global::NUnit.Framework.DescriptionAttribute("Report appears in Patricia\'s admin review queue")]
         [global::NUnit.Framework.CategoryAttribute("functionality")]
-        public async global::System.Threading.Tasks.Task UsersWithZeroPointsAppearOnLeaderboard()
+        public async global::System.Threading.Tasks.Task ReportAppearsInPatriciasAdminReviewQueue()
         {
             string[] tagsOfScenario = new string[] {
                     "functionality"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "4";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Users with zero points appear on leaderboard", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Report appears in Patricia\'s admin review queue", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 41
+#line 36
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -301,23 +286,14 @@ namespace MH.Capstone.Tests.Acceptance.Features
             else
             {
                 await this.ScenarioStartAsync();
-#line 42
-    await testRunner.GivenAsync("Patricia has 150 points", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line 37
+    await testRunner.GivenAsync("Alex has submitted a report", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 43
-    await testRunner.AndAsync("Alex has 0 points", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line 38
+    await testRunner.WhenAsync("Patricia checks the admin review queue", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 44
-    await testRunner.AndAsync("Lily has 0 points", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
-#line hidden
-#line 45
-    await testRunner.WhenAsync("I view the leaderboard", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
-#line hidden
-#line 46
-    await testRunner.ThenAsync("Alex and Lily should be included in the list with zero points", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
-#line hidden
-#line 47
-    await testRunner.AndAsync("they should appear after all users with positive points", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line 39
+    await testRunner.ThenAsync("Alex\'s report should appear with status \"Unresolved\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

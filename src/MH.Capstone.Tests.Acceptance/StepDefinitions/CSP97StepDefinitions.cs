@@ -13,7 +13,7 @@ using Reqnroll;
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
 [Binding]
-public class LeaderboardSteps
+public class CSP97StepDefinitions
 {
     private IWebDriver _driver = null!;
     private WebDriverWait _wait = null!;
