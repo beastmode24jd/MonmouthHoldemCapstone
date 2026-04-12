@@ -16,7 +16,7 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
 [Binding]
 [Scope(Tag = "ai-companion")]
-public class AICompanionSteps
+public class CSP120StepDefinitions
 {
     private readonly IWebDriver _driver;
     private readonly WebDriverWait _wait;
@@ -27,7 +27,7 @@ public class AICompanionSteps
     private readonly List<string> _createdUserIds = new();
     private readonly Dictionary<string, ApplicationUser> _personaUsers = new();
 
-    public AICompanionSteps(IWebDriver driver, WebDriverWait wait)
+    public CSP120StepDefinitions(IWebDriver driver, WebDriverWait wait)
     {
         _driver = driver;
         _wait = wait;

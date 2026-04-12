@@ -33,7 +33,7 @@ namespace MH.Capstone.Tests.Acceptance.Features
                 "on\r\n  So that I can ask wildlife-education and observer-safety questions from an" +
                 "y page", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
-#line 1 "AICompanion.feature"
+#line 1 "CSP-120.feature"
 #line hidden
         
         [global::NUnit.Framework.OneTimeSetUpAttribute()]
@@ -109,7 +109,7 @@ namespace MH.Capstone.Tests.Acceptance.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/AICompanion.feature.ndjson", 6);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/CSP-120.feature.ndjson", 6);
         }
         
         [global::NUnit.Framework.TestAttribute()]
