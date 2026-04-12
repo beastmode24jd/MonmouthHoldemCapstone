@@ -75,6 +75,49 @@ public class CSP42StepDefinitions
             "because a user without a custom upload should see the default placeholder.");
     }
 
+    [Given("I am logged in")]
+    public void GivenIAmLoggedIn()
+    {
+        // Log in user who has not submitted a custom profile image
+        _driver.Navigate().GoToUrl("https://localhost:7147/account/login");
+
+        // Provide valid username and password params
+        var emailInput = _driver.FindElement(By.Id("emailField"));
+        var passwordInput = _driver.FindElement(By.Id("passwordField"));
+        var loginButton = _driver.FindElement(By.Id("submitBtn"));
+
+        // Enter Lily's persona credentials
+        emailInput.SendKeys("alex@test.com");
+        passwordInput.SendKeys("Capstone26!");
+
+        // Submit the form [cite: 205]
+        loginButton.Click();
+    }
+
+    [When("When I navigate to the Profile Customization part of my Dashboard")]
+    public void WhenINavigateToTheProfileCustomizationPartOfMyDashboard()
+    {
+        // Make sure the profile customization form exists on the Dashboard
+        var customProfileForm = _driver.FindElement(By.Id("uploadForm"));
+    }
+
+    [Then("I can select a profile image to upload from my device")]
+    public void ThenICanSelectAProfileImageToUploadFromMyDevice()
+    {
+        // Find the fileUpload element
+        var fileUpload = _driver.FindElement(By.Id("fileInput"));
+
+        fileUpload.Displayed.Should().BeTrue();
+        fileUpload.Enabled.Should().BeTrue();
+
+        // Verify that it accepts image file types
+        string? acceptAttribute = fileUpload.GetAttribute("accept");
+
+        // Check for "image/*" to ensure the browser filter is restricted to images
+        acceptAttribute.Should().Be("image/*", 
+            "because the profile upload should only allow image files to prevent invalid formats.");
+    }
+
     /* USEFUL FOR LATER TESTING
 
         // Takes them to the dashboard

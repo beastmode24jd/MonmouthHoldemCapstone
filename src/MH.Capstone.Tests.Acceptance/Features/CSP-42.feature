@@ -10,23 +10,24 @@ Scenario: Alex has not submitted a custom profile image
     When I look at the menu bar at the top of the page
     Then I should see a placeholder image
 
+@dashboard
+Scenario: Alex is logged in and on the Dashboard
+    Given I am logged in
+    When I navigate to the Profile Customization part of my Dashboard
+    Then I can select a profile image to upload from my device
+
 
 # BELOW THIS LINE ARE UN-INCORPORATED GHERKIN TESTS.
 # JUST HERE FOR REFERENCE. NO TOUCHY
 
-# Scenario: Alex is logged in and navigates to the “Edit Profile” page.
-# Given I am logged in
-# When I navigate to the “Edit Profile” page
-# Then I can select a profile image to upload from my device
+# Scenario: Lily has selected a valid avatar image file she wishes to save.
 
-# Scenario: Alex has selected a valid avatar image file he wishes to save.
-
-# Given I have selected an image
+# Given I have selected an image (use Badge placeholder icon)
 # When I click the Save button
 # And the image is uploaded
 # Then the image is displayed as my new avatar
 
-# Scenario: Alex is trying to submit a profile image file larger than the
+# Scenario: Lily is trying to submit a profile image file larger than the
     # application maximum allows.
 
 # Given I have selected an image past the set file-size
