@@ -21,7 +21,7 @@ public class CSP52SightingsMapSteps : IDisposable
         options.AddArgument("--no-sandbox");
         options.AddArgument("--disable-dev-shm-usage");
         options.AddArgument("--ignore-certificate-errors");
-        
+
         // Let Selenium Manager handle the driver automatically
         _driver = new ChromeDriver(options);
         _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
@@ -37,21 +37,21 @@ public class CSP52SightingsMapSteps : IDisposable
     public void GivenIAmLoggedInAsARegisteredUser()
     {
         _driver.Navigate().GoToUrl($"{_baseUrl}/Account/Login");
-        
+
         var emailField = _driver.FindElement(By.Id("Email"));
         var passwordField = _driver.FindElement(By.Id("passwordField"));
-        
+
         emailField.SendKeys(TestEmail);
         passwordField.SendKeys(TestPassword);
-        
+
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
-        var submitButton = wait.Until(d => 
+        var submitButton = wait.Until(d =>
         {
             var btn = d.FindElement(By.Id("submitBtn"));
             return btn.Enabled ? btn : null;
         });
         submitButton?.Click();
-        
+
         wait.Until(d => !d.Url.Contains("/Account/Login"));
     }
 
@@ -108,12 +108,24 @@ public class CSP52SightingsMapSteps : IDisposable
     [Then(@"I should be able to interact with the zoom controls")]
     public void ThenIShouldBeAbleToInteractWithTheZoomControls()
     {
+        // Close any modal that might be blocking the zoom controls
+        try
+        {
+            var closeButton = _driver.FindElement(By.CssSelector("#noSightingsModal .btn-close, #noSightingsModal button[data-bs-dismiss='modal']"));
+            closeButton.Click();
+            Thread.Sleep(500);
+        }
+        catch (NoSuchElementException)
+        {
+            // Modal not present, continue
+        }
+
         var zoomInButton = _driver.FindElement(By.CssSelector(".leaflet-control-zoom-in"));
         var zoomOutButton = _driver.FindElement(By.CssSelector(".leaflet-control-zoom-out"));
-        
+
         Assert.That(zoomInButton.Displayed, Is.True, "Zoom in button should be visible");
         Assert.That(zoomOutButton.Displayed, Is.True, "Zoom out button should be visible");
-        
+
         zoomInButton.Click();
         Thread.Sleep(500);
         zoomOutButton.Click();
