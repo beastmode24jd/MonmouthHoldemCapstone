@@ -17,12 +17,14 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 public class CSP42StepDefinitions
 {
     private readonly IWebDriver _driver;
+    private readonly ScenarioContext _scenarioContext;
 
     // CONST FIELD
-    private const string DefaultProfileImageUrl = "/imgs/profileDefault.jpg";
+    private const string ExpectedDefaultImagePath = "/imgs/profileDefault.jpg";
 
     public CSP42StepDefinitions(ScenarioContext scenarioContext)
     {
+        _scenarioContext = scenarioContext;
         // Retrieve the driver initialized in the Hook
         _driver = (IWebDriver)scenarioContext["WebDriver"];
     }
@@ -33,8 +35,6 @@ public class CSP42StepDefinitions
         // Log in user who has not submitted a custom profile image
         _driver.Navigate().GoToUrl("https://localhost:7147/account/login");
 
-        [cite_start]
-
         // Provide valid username and password params
         var emailInput = _driver.FindElement(By.Id("emailField"));
         var passwordInput = _driver.FindElement(By.Id("passwordField"));
@@ -44,8 +44,7 @@ public class CSP42StepDefinitions
         emailInput.SendKeys("alex@test.com");
         passwordInput.SendKeys("Capstone26!");
 
-        [cite_start] // Submit the form [cite: 205]
-
+        // Submit the form [cite: 205]
         loginButton.Click();
     }
 
@@ -53,12 +52,12 @@ public class CSP42StepDefinitions
     public void WhenILookAtTheMenuBarAtTheTopOfThePage()
     {
         // Check icon element while logged in.
-        // Should match default image in wwwroot folder.
-        [cite_start] // uses ID from _Layout.cshtml [cite: 142]
-        _driver.FindElement(By.Id("navProfile"));
+        // Uses ID from _Layout.cshtml [cite: 142]
+        // Assign result of FindElement to a variable
+        var navProfileImg = _driver.FindElement(By.Id("navProfile"));
 
-        // Store it in scenario context to pass to the 'Then' step
-        ScenarioContext.Current["NavProfileElement"] = navProfileImg;
+        // Store it in scenario context for "Then", using _scenarioContext
+        _scenarioContext["NavProfileElement"] = navProfileImg;
     }
 
     [Then("I should see a placeholder image")]
@@ -67,7 +66,7 @@ public class CSP42StepDefinitions
         // Retrieve the element from the context
         var navProfileImg = (IWebElement)ScenarioContext.Current["NavProfileElement"];
 
-        [cite_start] // Get the 'src' attribute [cite: 141]
+        // Get the 'src' attribute [cite: 141]
         string actualSrc = navProfileImg.GetAttribute("src");
 
         // Assert image source ends with default placeholder path

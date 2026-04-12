@@ -18,6 +18,13 @@ public class WebDriverHooks
     [BeforeScenario("@dashboard")]
     public void BeforeScenario()
     {
+        ChromeOptions options = new ChromeOptions();
+
+        // Headless browser flags
+        options.AddArgument("--headless=new"); // Modern headless mode
+        options.AddArgument("--disable-gpu");
+        options.AddArgument("--window-size=1920,1080");
+
         // Initialize Chrome (Selenium Manager handles the driver binary automatically)
         IWebDriver driver = new ChromeDriver();
         _scenarioContext["WebDriver"] = driver;
