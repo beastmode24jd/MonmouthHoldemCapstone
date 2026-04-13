@@ -57,12 +57,13 @@ jobs:
         run: echo '{"sdk":{"version":"9.0.312","rollForward":"latestPatch"}}' > global.json
 
       - name: Restore packages for publish
-        run: dotnet restore ./src/MH.Capstone.WebApp --no-dependencies --verbosity ${{ vars.DOTNET_VERBOSE_LVL }}
+        run: dotnet restore ./src --no-dependencies --verbosity ${{ vars.DOTNET_VERBOSE_LVL }}
 
       - name: Publish
         id: publish_app
         run: |
           dotnet publish ./src/MH.Capstone.WebApp --no-build --no-restore --configuration Release --verbosity ${{ vars.DOTNET_VERBOSE_LVL }} \
+            -p:Version=${{ steps.get_build_version.outputs.version }} \
             -o "${{ vars.PUBLISH_ROOT_DIR }}/${{ vars.WEBAPP_PUBLISH_DIR }}"
 
       - name: Copy EF Bundle Files to publish output
