@@ -16,16 +16,14 @@ Scenario: Alex is logged in and on the Dashboard
     When I navigate to the Profile Customization part of my Dashboard
     Then I can select a profile image to upload from my device
 
+@dashboard
+Scenario: Lily has selected a valid avatar image file she wishes to save.
+    Given I have selected a valid image under 2 MB
+    When I click the Upload Image button
+    Then the image is displayed as my new avatar
 
 # BELOW THIS LINE ARE UN-INCORPORATED GHERKIN TESTS.
 # JUST HERE FOR REFERENCE. NO TOUCHY
-
-# Scenario: Lily has selected a valid avatar image file she wishes to save.
-
-# Given I have selected an image (use Badge placeholder icon)
-# When I click the Save button
-# And the image is uploaded
-# Then the image is displayed as my new avatar
 
 # Scenario: Lily is trying to submit a profile image file larger than the
     # application maximum allows.
