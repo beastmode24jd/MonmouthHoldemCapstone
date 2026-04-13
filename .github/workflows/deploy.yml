@@ -47,11 +47,14 @@ jobs:
       - name: Set up .NET Core
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.x'
+          dotnet-version: '9.0.x'
 
       - name: Get build version number
         id: get_build_version
         run: echo "version=$(cat ${{ vars.VERSION_FILE }})" >> $GITHUB_OUTPUT
+
+      - name: Pin .NET SDK to 9.0.x
+        run: echo '{"sdk":{"version":"9.0.312","rollForward":"latestPatch"}}' > global.json
 
       - name: Publish
         id: publish_app
