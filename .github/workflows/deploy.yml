@@ -65,6 +65,15 @@ jobs:
           dotnet publish ./src/MH.Capstone.WebApp --no-build --no-restore --configuration Release --verbosity ${{ vars.DOTNET_VERBOSE_LVL }} \
           -o "${{ vars.PUBLISH_ROOT_DIR }}/${{ vars.WEBAPP_PUBLISH_DIR }}"
 
+      - name: Upload build artifact (binaries) for other jobs
+        id: artifact_upload
+        if: steps.check_artifact.outputs.skip_build != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ vars.FILEPATH_SAFE_APPNAME }}_v${{ steps.get_build_version.outputs.version }}
+          path: ./${{ vars.PUBLISH_ROOT_DIR }}
+          retention-days: 1 # Keep the big build file from eating storage usage limits
+
   config:
     if: github.repository == 'jmcshane22/MonmouthHoldemCapstone'
     runs-on: ubuntu-latest
