@@ -34,6 +34,7 @@ jobs:
     outputs:
       version: ${{ steps.get_build_version.outputs.version }}
       artifact_name: ${{ vars.FILEPATH_SAFE_APPNAME }}_v${{ steps.get_build_version.outputs.version }}
+      webapp_publish_path: ${{ steps.publish_app.outputs.webapp_publish_path }}
     steps:
       - name: Download artifact from build job
         id: artifact_download
@@ -61,9 +62,12 @@ jobs:
 
       - name: Publish
         id: publish_app
+        env:
+          publish_path: ${{ vars.PUBLISH_ROOT_DIR }}/${{ vars.WEBAPP_PUBLISH_DIR }}
         run: |
           dotnet publish ./src/MH.Capstone.WebApp --no-build --no-restore --configuration Release --verbosity ${{ vars.DOTNET_VERBOSE_LVL }} \
-          -o "${{ vars.PUBLISH_ROOT_DIR }}/${{ vars.WEBAPP_PUBLISH_DIR }}"
+            -o "${{ env.publish_path }}" &&
+          echo "webapp_publish_path=${{ env.publish_path }}" >> "$GITHUB_OUTPUT"
 
       - name: Copy EF Bundle Files to publish output
         run: |
@@ -175,7 +179,7 @@ jobs:
         with:
           app-name: ${{ vars.AZUREAPPSERVICE_APPNAME }}
           slot-name: 'Production'
-          package: .
+          package: ${{ needs.publish.outputs.webapp_publish_path }}
 
       - name: Deploy EF Core migration bundle - ApplicationDbContext
         id: deploy-application-db-ctx
