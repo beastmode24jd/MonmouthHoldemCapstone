@@ -247,7 +247,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
     await testRunner.ThenAsync("the system should show me a clear and informative error message", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
 #line 30
-    await testRunner.AndAsync("reject the file", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.AndAsync("the profile image should remain unchanged", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

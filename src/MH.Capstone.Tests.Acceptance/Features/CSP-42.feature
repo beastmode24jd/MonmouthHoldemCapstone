@@ -27,4 +27,4 @@ Scenario: Lily is trying to submit a profile image file larger than 2 MB.
     Given I have selected an image larger than 2 MB
     When I save the invalid image
     Then the system should show me a clear and informative error message
-    And reject the file
+    And the profile image should remain unchanged

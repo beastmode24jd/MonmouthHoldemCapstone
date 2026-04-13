@@ -214,6 +214,12 @@ public class CSP42StepDefinitions
 
         // Submit the form [cite: 205]
         loginButton.Click();
+
+        // Get the current profile image path/src, save to scenario context for later comparison
+        var navProfileImg = _driver.FindElement(By.Id("navProfile"));
+        string? initialSrc = navProfileImg.GetAttribute("src");
+
+        _scenarioContext["InitialProfileImage"] = initialSrc;
         
         // Get an invalid jpg file, > 2 MB
         string invalidImagePath = Path.GetFullPath("../../../../MH.Capstone.WebApp/wwwroot/imgs/ValleyPhoto1.jpg");
@@ -225,7 +231,7 @@ public class CSP42StepDefinitions
         fileInfo.Length.Should().BeGreaterThan(MAX_IMG_SIZE, 
             $"the test image should be over 2MB, but was {fileInfo.Length} bytes.");
 
-        // Store it in scenario context for "Then", using _scenarioContext
+        // Store it in scenario context for "When", using _scenarioContext
         _scenarioContext["InvalidIconUpload"] = invalidImagePath;
     }
 
@@ -263,15 +269,19 @@ public class CSP42StepDefinitions
     }
 
     // "And" in Gherkin test becomes the Step that came before it
-    [Then("reject the file")]
-    public void ThenRejectTheFile()
+    [Then("the profile image should remain unchanged")]
+    public void ThenTheProfileImageShouldRemainUnchanged()
     {
         // Verify the profile image in the nav bar is still the default 
         // and hasn't changed to the invalid upload
-        var navProfileImg = _driver.FindElement(By.Id("navProfile"));
-        string? actualSrc = navProfileImg.GetAttribute("src");
+        string initialSrc = (string)_scenarioContext["InitialProfileImage"];
 
-        actualSrc.Should().EndWith(ExpectedDefaultImagePath, 
-            "because the invalid file should not have replaced the user's profile image.");
+        // Get the profile image, post-upload attempt
+        var navProfileImg = _driver.FindElement(By.Id("navProfile"));
+        string? currentSrc = navProfileImg.GetAttribute("src");
+
+        // Image should be the same
+        currentSrc.Should().Be(initialSrc, 
+            "because an invalid upload should not modify the existing profile image.");
     }
 }
