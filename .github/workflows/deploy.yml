@@ -56,10 +56,13 @@ jobs:
       - name: Pin .NET SDK to 9.0.x
         run: echo '{"sdk":{"version":"9.0.312","rollForward":"latestPatch"}}' > global.json
 
+      - name: Restore packages for publish
+        run: dotnet restore ./src/MH.Capstone.WebApp --verbosity ${{ vars.DOTNET_VERBOSE_LVL }}
+
       - name: Publish
         id: publish_app
         run: |
-          dotnet publish ./src/MH.Capstone.WebApp --no-build --configuration Release --verbosity ${{ vars.DOTNET_VERBOSE_LVL }} \
+          dotnet publish ./src/MH.Capstone.WebApp --no-build --no-restore --configuration Release --verbosity ${{ vars.DOTNET_VERBOSE_LVL }} \
           -o "${{ vars.PUBLISH_ROOT_DIR }}/${{ vars.WEBAPP_PUBLISH_DIR }}"
 
   config:
