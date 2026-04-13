@@ -57,7 +57,7 @@ jobs:
         run: echo '{"sdk":{"version":"9.0.312","rollForward":"latestPatch"}}' > global.json
 
       - name: Restore packages for publish
-        run: dotnet restore ./src/MH.Capstone.WebApp --verbosity ${{ vars.DOTNET_VERBOSE_LVL }}
+        run: dotnet restore ./src/MH.Capstone.WebApp --no-dependencies --verbosity ${{ vars.DOTNET_VERBOSE_LVL }}
 
       - name: Publish
         id: publish_app
