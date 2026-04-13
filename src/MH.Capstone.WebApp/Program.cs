@@ -67,7 +67,7 @@ namespace MH.Capstone.WebApp
                 .UseSqlServer(appConnStr, sqlOptions => 
                     // Handle transient Azure SQL failures
                     sqlOptions.EnableRetryOnFailure()
-                        .MigrationsHistoryTable("__EFMigrationsHistory_ApplicationDbContext"))
+                        .MigrationsHistoryTable("__EFMigrationsHistory_CacheDbContext"))
             );
 
             // Configure Identity for authentication
