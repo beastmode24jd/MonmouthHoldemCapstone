@@ -107,7 +107,7 @@ namespace MH.Capstone.Tests.Acceptance.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/CSP-42.feature.ndjson", 5);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/CSP-42.feature.ndjson", 6);
         }
         
         [global::NUnit.Framework.TestAttribute()]
@@ -210,6 +210,44 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
 #line 23
     await testRunner.ThenAsync("the image is displayed as my new avatar", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::NUnit.Framework.TestAttribute()]
+        [global::NUnit.Framework.DescriptionAttribute("Lily is trying to submit a profile image file larger than 2 MB.")]
+        [global::NUnit.Framework.CategoryAttribute("dashboard")]
+        public async global::System.Threading.Tasks.Task LilyIsTryingToSubmitAProfileImageFileLargerThan2MB_()
+        {
+            string[] tagsOfScenario = new string[] {
+                    "dashboard"};
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "3";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Lily is trying to submit a profile image file larger than 2 MB.", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 26
+this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 27
+    await testRunner.GivenAsync("I have selected an image larger than 2 MB", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 28
+    await testRunner.WhenAsync("I save the invalid image", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 29
+    await testRunner.ThenAsync("the system should show me a clear and informative error message", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+#line 30
+    await testRunner.AndAsync("reject the file", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

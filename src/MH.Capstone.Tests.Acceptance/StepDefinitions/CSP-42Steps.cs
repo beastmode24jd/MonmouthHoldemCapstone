@@ -198,10 +198,80 @@ public class CSP42StepDefinitions
             "because the displayed image should match the bytes of the file we uploaded.");
     }
 
-    /* USEFUL FOR LATER TESTING
+    [Given("I have selected an image larger than 2 MB")]
+    public void GivenIHaveSelectedAnImageLargerThan2MB()
+    {
+        // Log in Lily
+        _driver.Navigate().GoToUrl("https://localhost:7147/account/login");
 
-        // Takes them to the dashboard
-        _driver.Navigate().GoToUrl("https://localhost:7147/dashboard");
+        var emailInput = _driver.FindElement(By.Id("emailField"));
+        var passwordInput = _driver.FindElement(By.Id("passwordField"));
+        var loginButton = _driver.FindElement(By.Id("submitBtn"));
 
-    */
+        // Enter credentials
+        emailInput.SendKeys("lily@test.com");
+        passwordInput.SendKeys("Capstone26!");
+
+        // Submit the form [cite: 205]
+        loginButton.Click();
+        
+        // Get an invalid jpg file, > 2 MB
+        string invalidImagePath = Path.GetFullPath("../../../../MH.Capstone.WebApp/wwwroot/imgs/ValleyPhoto1.jpg");
+
+        // Verify the file exists and check its size
+        FileInfo fileInfo = new FileInfo(invalidImagePath);
+        fileInfo.Exists.Should().BeTrue("the test image file must exist at the specified path.");
+
+        fileInfo.Length.Should().BeGreaterThan(MAX_IMG_SIZE, 
+            $"the test image should be over 2MB, but was {fileInfo.Length} bytes.");
+
+        // Store it in scenario context for "Then", using _scenarioContext
+        _scenarioContext["InvalidIconUpload"] = invalidImagePath;
+    }
+
+    [When("I save the invalid image")]
+    public void WhenISaveTheInvalidImage()
+    {
+        // Retrieve file path from the context
+        string invalidImgPath = (string)_scenarioContext["InvalidIconUpload"];
+
+        // Get file input and "send" the file path to it
+        // Populates the input field, bypasses OS file picker
+        var fileInput = _driver.FindElement(By.Id("fileInput"));
+        fileInput.SendKeys(invalidImgPath);
+
+        // Submit the form
+        var uploadForm = _driver.FindElement(By.Id("uploadForm"));
+        uploadForm.Submit(); 
+    }
+
+    [Then("the system should show me a clear and informative error message")]
+    public void ThenTheSystemShouldShowMeAClearAndInformativeErrorMessage()
+    {
+        // Find the alert.
+        IAlert alert = _driver.SwitchTo().Alert();
+
+        // Read the message.
+        string? alertText = alert.Text;
+
+        // Check that the message mentions the 2MB limit
+        alertText.Should().Contain("2MB", "because the alert should specify the file size limit.");
+        alertText.Should().Contain("exceeds", "because the alert should state the file is too large.");
+
+        // Click 'OK' on the alert for the next step
+        alert.Accept();
+    }
+
+    // "And" in Gherkin test becomes the Step that came before it
+    [Then("reject the file")]
+    public void ThenRejectTheFile()
+    {
+        // Verify the profile image in the nav bar is still the default 
+        // and hasn't changed to the invalid upload
+        var navProfileImg = _driver.FindElement(By.Id("navProfile"));
+        string? actualSrc = navProfileImg.GetAttribute("src");
+
+        actualSrc.Should().EndWith(ExpectedDefaultImagePath, 
+            "because the invalid file should not have replaced the user's profile image.");
+    }
 }

@@ -22,13 +22,9 @@ Scenario: Lily has selected a valid avatar image file she wishes to save.
     When I click the Upload Image button
     Then the image is displayed as my new avatar
 
-# BELOW THIS LINE ARE UN-INCORPORATED GHERKIN TESTS.
-# JUST HERE FOR REFERENCE. NO TOUCHY
-
-# Scenario: Lily is trying to submit a profile image file larger than the
-    # application maximum allows.
-
-# Given I have selected an image past the set file-size
-# When I click the Save button
-# The system must reject the file, larger than 2 MB, and show me a clear,
-    # concise, and informative error message
+@dashboard
+Scenario: Lily is trying to submit a profile image file larger than 2 MB.
+    Given I have selected an image larger than 2 MB
+    When I save the invalid image
+    Then the system should show me a clear and informative error message
+    And reject the file
