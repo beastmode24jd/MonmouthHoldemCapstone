@@ -40,13 +40,17 @@ public class AuthenticationDriver
         // If a different user is logged in, log them out first before logging in.
         LogoutUser();
 
+        TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Attempting User {username} log in.");
         var loginPage = new LoginPageObject(_webDriver, _baseUrl);
         loginPage.UsernameInput.SendKeys(username);
         loginPage.PasswordInput.SendKeys(password);
         loginPage.SubmitBtn.Click();
+        TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Confirming User {username} log in.");
 
         if (!IsUserLoggedIn(username))
             throw new Exception($"Failed to log in user '{username}'.");
+
+        TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] User {username} logged in.");
     }
 
     public void LogoutUser()
@@ -54,6 +58,7 @@ public class AuthenticationDriver
         if (!IsUserLoggedIn()) return;
         var logoutForm = _webDriver.FindElement(By.Id("logoutForm"));
         logoutForm.Submit();
+        TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] User logged out.");
     }
 
     public bool WasPageAccessDenied(string urlToTest)
