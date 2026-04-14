@@ -143,10 +143,6 @@ namespace MH.Capstone.WebApp.Controllers
                 userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
             }
 
-            // Convert the sightings to a ViewModel for display
-            // This handles byte[] to base64 conversion for images
-            var viewModel = new SightingGalleryViewModel(sightings);
-
             // Adjust the offset, and show each Sighting with the device's local display time
             foreach (var sighting in viewModel.Sightings)
             {

@@ -59,16 +59,16 @@
                     {
                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 sighting-card-wrapper"
                              data-user-id="@sighting.SubmittedByUserId">
-                        @* Determine badge display based on rarity score *@
-                        string rarityBadgeClass = sighting.Rarity switch
-                        {
-                            "Mythic" => "bg-purple",   // Custom Purple
-                            "Rare" => "bg-primary",    // Bootstrap Blue
-                            "Common" => "bg-success",  // Bootstrap Green
-                            _ => "bg-secondary"        // Fallback
-                        };
-
-                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                            @* Determine badge display based on rarity score *@
+                            @{
+                                string rarityBadgeClass = sighting.Rarity switch
+                                {
+                                    "Mythic" => "bg-purple",   // Custom Purple
+                                    "Rare" => "bg-primary",    // Bootstrap Blue
+                                    "Common" => "bg-success",  // Bootstrap Green
+                                    _ => "bg-secondary"        // Fallback
+                                };
+                            }
                             <div class="card h-100 shadow-sm sighting-card">
                                 @* Sighting Image *@
                                 <img src="@sighting.ImageDataUrl"
