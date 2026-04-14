@@ -10,19 +10,17 @@ Scenario: Alex is looking for the Forgot Password page on the Login page.
     Then I should see a Forgot Password link
     And it should change colors and my mouse cursor when I hover over it
 
+@forgotPassword
+Scenario: James has entered an account that does not exist in the database.
+    Given I am on the Forgot Password page
+    When I submit an account search for an account that does not exist
+    Then I should see an error message saying the account was not found
 
-#Scenario: James has entered an account identifier (email, username) that does not exist in the database.
-    #Given I am on the Forgot Password page
-    #When I submit an account search for an invalid account
-    #identifier (email, username) that does not exist within the current database
-    #Then I should see an error message saying it could not find that account
-
-#Scenario: Alex has entered correct account parameters, and is being shown the “Confirm New Password” part of the form.
-    #Given I am on the Forgot Password page
-    #When I submit an account search for a valid account
-    #that exists within the DB
-    #Then I should be shown a Confirm New Password prompt,
-    #with two password fields
+@forgotPassword
+Scenario: Alex has entered correct account parameters, and is being shown the “Confirm New Password” part of the form.
+    Given I am on the Forgot Password page
+    When I search for a valid account that exists
+    Then I should be shown the two password fields
 
 #Scenario: Alex is on the “Confirm New Password” page, but he has not written the same password twice for the password change.
     #Given I am on the Confirm New Password page

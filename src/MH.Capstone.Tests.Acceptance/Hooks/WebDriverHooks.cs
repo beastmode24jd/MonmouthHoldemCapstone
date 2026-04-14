@@ -15,7 +15,7 @@ public class WebDriverHooks
         _scenarioContext = scenarioContext;
     }
 
-    [BeforeScenario("@dashboard")]
+    [BeforeScenario]
     public void BeforeScenario()
     {
         ChromeOptions options = new ChromeOptions();
@@ -30,7 +30,7 @@ public class WebDriverHooks
         _scenarioContext["WebDriver"] = driver;
     }
 
-    [AfterScenario("@dashboard")]
+    [AfterScenario]
     public void AfterScenario()
     {
         if (_scenarioContext.TryGetValue("WebDriver", out IWebDriver driver))
