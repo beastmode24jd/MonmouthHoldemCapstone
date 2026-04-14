@@ -215,18 +215,17 @@ When implementing a Jira PBI (backlog item), **always** deliver both the feature
 
 Follow Red/Green/Refactor whenever feasible:
 
-1. **Red** — write a failing test that captures the requirement; commit
-2. **Green** — write the minimal implementation to make it pass; commit
-3. **Refactor** — clean up without breaking the test; commit
+1. **Red** — write a failing test that captures the requirement
+2. **Green** — write the minimal implementation to make it pass
+3. **Refactor** — clean up without breaking the test (skip if nothing needs cleaning)
+4. **Commit** — one commit at the end of the full cycle
 
-One commit per Red/Green/Refactor cycle. For BDD scenarios, implement **one scenario per commit** (write the feature step + step definition + implementation together as a single unit of work).
+For BDD scenarios, implement **one scenario per commit** (write the feature step + step definition + implementation together as a single unit of work).
 
 ### Commit message convention for TDD cycles
 
 ```
-[CSP-XXX] Red: <what the failing test asserts>
-[CSP-XXX] Green: <what was implemented to pass>
-[CSP-XXX] Refactor: <what was cleaned up>
+[CSP-XXX] <what was implemented> (TDD)
 [CSP-XXX] BDD: <scenario name from .feature file>
 ```
 
