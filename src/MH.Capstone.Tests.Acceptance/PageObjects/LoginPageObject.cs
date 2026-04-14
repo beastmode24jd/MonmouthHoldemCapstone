@@ -25,7 +25,7 @@ public class LoginPageObject
         if (!string.Equals(webDriver.Url, url, StringComparison.InvariantCultureIgnoreCase))
             webDriver.Navigate().GoToUrl(url);
 
-        _usernameInput  = new Lazy<IWebElement>(() => webDriver.FindElement(By.Id("Email")));
+        _usernameInput  = new Lazy<IWebElement>(() => webDriver.FindElement(By.Id("emailField")));
         _passwordInput  = new Lazy<IWebElement>(() => webDriver.FindElement(By.Id("passwordField")));
         _rememberMeCheck = new Lazy<IWebElement>(() => webDriver.FindElement(By.Id("RememberMe")));
         _submitBtn       = new Lazy<IWebElement>(() => webDriver.FindElement(By.Id("submitBtn")));
