@@ -56,8 +56,15 @@ public class SightingsDriver
     public void SetTimestamp(DateTimeOffset timestamp)
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
-        page.TimeInput.Clear();
-        page.TimeInput.SendKeys(timestamp.ToString("yyyy-MM-ddTHH:mm"));
+        // Chrome's datetime-local input is a segmented date-picker widget, not a plain
+        // text box. SendKeys on it after Clear() is unreliable — the value tends to stay
+        // empty because Chrome doesn't interpret ISO keystrokes as segment values.
+        // Setting the value via JavaScript bypasses the picker UI entirely and is the
+        // standard Selenium workaround for datetime-local inputs in Chrome.
+        ((IJavaScriptExecutor)_webDriver).ExecuteScript(
+            "arguments[0].value = arguments[1];",
+            page.TimeInput,
+            timestamp.ToString("yyyy-MM-ddTHH:mm"));
     }
 
     /// <summary>Sets the description input to the given value.</summary>
@@ -89,8 +96,29 @@ public class SightingsDriver
     /// visible and contains text.  ASP.NET MVC adds the <c>field-validation-error</c>
     /// CSS class to <c>asp-validation-for</c> spans when the ModelState has errors.
     /// </summary>
-    public bool HasVisibleValidationErrors() =>
-        _webDriver
+    public bool HasVisibleValidationErrors()
+    {
+        var result = _webDriver
             .FindElements(By.CssSelector(".field-validation-error"))
             .Any(e => e.Displayed && !string.IsNullOrWhiteSpace(e.Text));
+
+        if (result)
+        {
+            return true;
+        }
+
+        var errorSpans = _webDriver.FindElements(By.CssSelector(".field-validation-error"));
+
+        TestContext.Out.WriteLine($"[{nameof(HasVisibleValidationErrors)}] result: {result}");
+        TestContext.Out.WriteLine($"[{nameof(HasVisibleValidationErrors)}] result (again): {_webDriver
+            .FindElements(By.CssSelector(".field-validation-error"))
+            .Any(e => e.Displayed && !string.IsNullOrWhiteSpace(e.Text))}");
+        TestContext.Out.WriteLine($"[{nameof(HasVisibleValidationErrors)}] Span count: {errorSpans.Count}");
+        foreach (var span in errorSpans)
+        {
+            TestContext.Out.WriteLine($"[{nameof(HasVisibleValidationErrors)}] Span text: '{span.Text}', displayed: {span.Displayed}");
+        }
+
+        return false;
+    }
 }
