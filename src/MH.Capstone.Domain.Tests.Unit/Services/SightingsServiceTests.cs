@@ -508,7 +508,7 @@ public class SightingsServiceTests
             new() { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), Timestamp = DateTimeOffset.UtcNow.AddDays(-2), ImageBuffer = [0x01] }
         }.AsQueryable();
 
-        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, object>>[]>()))
+        _sightingsRepoMock.Setup(r => r.GetAllAsync())
             .ReturnsAsync(sightings);
 
         var sut = CreateSut();
