@@ -236,6 +236,18 @@ For BDD scenarios, implement **one scenario per commit** (write the feature step
 [CSP-XXX] BDD: <scenario name from .feature file>
 ```
 
+### Post-implementation: update this file
+
+After completing every PBI, update `docs/CLAUDE.md` as a final committed step:
+
+- Add any new page element IDs to the element ID table above
+- Update service/interface descriptions if methods were added or changed
+- Note new ViewModel properties or constructor signatures if they affect how tests are written
+- Document any new acceptance test infrastructure (Drivers, PageObjects)
+- Record any non-obvious patterns discovered (e.g., Moq quirks, EF eager-loading conventions)
+
+The goal is that any developer — human or AI — can pick up the next feature without scanning the codebase from scratch. This file is only as useful as it is current.
+
 ---
 
 ## CI/CD
