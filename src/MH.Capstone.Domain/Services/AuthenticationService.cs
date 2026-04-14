@@ -103,6 +103,21 @@ namespace MH.Capstone.Domain.Services
             var result = await _signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: false);
             return result.Succeeded;
         }
+        public async Task<string?> GenerateEmailConfirmationTokenAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null) return null;
+            return await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        }
+
+        public async Task<bool> ConfirmEmailAsync(string email, string token)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null) return false;
+            var result = await _userManager.ConfirmEmailAsync(user, token);
+            return result.Succeeded;
+        }
+
         public async Task<bool> ResetPasswordWithTokenAsync(string email, string token, string newPassword)
         {
             var user = await _userManager.FindByEmailAsync(email);

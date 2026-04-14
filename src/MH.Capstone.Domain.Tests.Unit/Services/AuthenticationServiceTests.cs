@@ -230,6 +230,115 @@ public class AuthenticationServiceTests
     }
 
     #endregion
+    #region GenerateEmailConfirmationTokenAsyncTests
+
+    [Test]
+    public async Task GenerateEmailConfirmationTokenAsync_WithExistingUser_ReturnsToken()
+    {
+        // Arrange
+        const string email = "confirm@example.com";
+        const string expectedToken = "email-confirm-token";
+        var user = new ApplicationUser { Email = email, UserName = email };
+
+        _userManagerMock.Setup(um => um.FindByEmailAsync(email))
+            .ReturnsAsync(user).Verifiable(Times.Once);
+        _userManagerMock.Setup(um => um.GenerateEmailConfirmationTokenAsync(user))
+            .ReturnsAsync(expectedToken).Verifiable(Times.Once);
+
+        // Act
+        var result = await _authService.GenerateEmailConfirmationTokenAsync(email);
+
+        // Assert
+        Assert.That(result, Is.EqualTo(expectedToken));
+        AssertAllMockVerifySetups();
+    }
+
+    [Test]
+    public async Task GenerateEmailConfirmationTokenAsync_WithNonExistentUser_ReturnsNull()
+    {
+        // Arrange
+        const string email = "nobody@example.com";
+
+        _userManagerMock.Setup(um => um.FindByEmailAsync(email))
+            .ReturnsAsync(value: null!).Verifiable(Times.Once);
+
+        // Act
+        var result = await _authService.GenerateEmailConfirmationTokenAsync(email);
+
+        // Assert
+        Assert.That(result, Is.Null);
+        AssertAllMockVerifySetups();
+        _userManagerMock.Verify(um =>
+            um.GenerateEmailConfirmationTokenAsync(It.IsAny<ApplicationUser>()), Times.Never);
+    }
+
+    #endregion
+    #region ConfirmEmailAsyncTests
+
+    [Test]
+    public async Task ConfirmEmailAsync_WithValidToken_ReturnsTrue()
+    {
+        // Arrange
+        const string email = "confirm@example.com";
+        const string token = "valid-confirm-token";
+        var user = new ApplicationUser { Email = email, UserName = email };
+
+        _userManagerMock.Setup(um => um.FindByEmailAsync(email))
+            .ReturnsAsync(user).Verifiable(Times.Once);
+        _userManagerMock.Setup(um => um.ConfirmEmailAsync(user, token))
+            .ReturnsAsync(IdentityResult.Success).Verifiable(Times.Once);
+
+        // Act
+        var result = await _authService.ConfirmEmailAsync(email, token);
+
+        // Assert
+        Assert.That(result, Is.True);
+        AssertAllMockVerifySetups();
+    }
+
+    [Test]
+    public async Task ConfirmEmailAsync_WithInvalidToken_ReturnsFalse()
+    {
+        // Arrange
+        const string email = "confirm@example.com";
+        const string badToken = "invalid-token";
+        var user = new ApplicationUser { Email = email, UserName = email };
+
+        _userManagerMock.Setup(um => um.FindByEmailAsync(email))
+            .ReturnsAsync(user).Verifiable(Times.Once);
+        _userManagerMock.Setup(um => um.ConfirmEmailAsync(user, badToken))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Invalid token." }))
+            .Verifiable(Times.Once);
+
+        // Act
+        var result = await _authService.ConfirmEmailAsync(email, badToken);
+
+        // Assert
+        Assert.That(result, Is.False);
+        AssertAllMockVerifySetups();
+    }
+
+    [Test]
+    public async Task ConfirmEmailAsync_WithNonExistentUser_ReturnsFalse()
+    {
+        // Arrange
+        const string email = "nobody@example.com";
+        const string token = "some-token";
+
+        _userManagerMock.Setup(um => um.FindByEmailAsync(email))
+            .ReturnsAsync(value: null!).Verifiable(Times.Once);
+
+        // Act
+        var result = await _authService.ConfirmEmailAsync(email, token);
+
+        // Assert
+        Assert.That(result, Is.False);
+        AssertAllMockVerifySetups();
+        _userManagerMock.Verify(um =>
+            um.ConfirmEmailAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
+    }
+
+    #endregion
     #region ResetPasswordWithTokenAsyncTests
 
     [Test]

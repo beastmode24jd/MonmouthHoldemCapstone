@@ -28,6 +28,10 @@ namespace MH.Capstone.Domain.Services.Abstraction
 
         Task<bool> ResetPasswordWithTokenAsync(string email, string token, string newPassword);
 
+        Task<string?> GenerateEmailConfirmationTokenAsync(string email);
+
+        Task<bool> ConfirmEmailAsync(string email, string token);
+
         bool IsPasswordValid(string password);
     }
 }
