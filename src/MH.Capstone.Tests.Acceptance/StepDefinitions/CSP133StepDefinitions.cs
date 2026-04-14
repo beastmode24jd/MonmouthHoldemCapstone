@@ -87,8 +87,16 @@ public class CSP133StepDefinitions
     {
         _authenticationDriver.PreformLoginForUser(email, password);
         _authenticationDriver.IsUserLoggedIn().Should().BeTrue(
-            $"the user should be able to log in with the new password");
+            "the user should be able to log in with the new password");
         _authenticationDriver.LogoutUser();
+    }
+
+    [Then("the acceptance database is restored to its original seed state")]
+    public async Task ThenTheAcceptanceDatabaseIsRestoredToItsOriginalSeedState()
+    {
+        // Re-seed to undo any password changes made by this scenario so
+        // subsequent scenarios start from a clean, known state.
+        await TestWebAppHost.ResetSeedDataAsync();
     }
 
     // ── Scenario 4: Invalid or Expired Reset Link ─────────────────────────────

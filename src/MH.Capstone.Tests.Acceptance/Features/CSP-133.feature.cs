@@ -132,7 +132,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
   await testRunner.GivenAsync("an anonymous user is on the Forgot Password page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 7
-  await testRunner.WhenAsync("they submit a password reset request with email \"alice@test.com\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+  await testRunner.WhenAsync("they submit a password reset request with email \"lily@test.com\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 8
   await testRunner.ThenAsync("they see a confirmation message that does not reveal whether the email is registe" +
@@ -163,7 +163,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             {
                 await this.ScenarioStartAsync();
 #line 11
-  await testRunner.GivenAsync("a valid password reset link has been generated for \"alice@test.com\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+  await testRunner.GivenAsync("a valid password reset link has been generated for \"lily@test.com\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 12
   await testRunner.WhenAsync("the user navigates to the reset link", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
@@ -196,7 +196,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             {
                 await this.ScenarioStartAsync();
 #line 16
-  await testRunner.GivenAsync("a valid password reset link has been generated for \"newuser@test.com\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+  await testRunner.GivenAsync("a valid password reset link has been generated for \"lily@test.com\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 17
   await testRunner.WhenAsync("the user navigates to the reset link", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
@@ -208,7 +208,10 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
   await testRunner.ThenAsync("the user is redirected to the login page with a password reset success message", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
 #line 20
-  await testRunner.AndAsync("the user can log in with email \"newuser@test.com\" and password \"CSP133Reset1!\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+  await testRunner.AndAsync("the user can log in with email \"lily@test.com\" and password \"CSP133Reset1!\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 21
+  await testRunner.AndAsync("the acceptance database is restored to its original seed state", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
@@ -224,7 +227,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Invalid or Expired Reset Link", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 22
+#line 23
 this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -234,13 +237,13 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 23
-  await testRunner.GivenAsync("the user navigates to a reset link with an invalid token for \"alice@test.com\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
-#line hidden
 #line 24
-  await testRunner.ThenAsync("the user sees an invalid reset link error message", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+  await testRunner.GivenAsync("the user navigates to a reset link with an invalid token for \"lily@test.com\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 25
+  await testRunner.ThenAsync("the user sees an invalid reset link error message", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+#line 26
   await testRunner.AndAsync("the user sees an option to request a new reset link", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
@@ -257,7 +260,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Multiple Reset Requests Invalidate Previous Tokens", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 27
+#line 28
 this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -267,17 +270,17 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 28
-  await testRunner.GivenAsync("a first password reset link has been generated for \"bob@test.com\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
-#line hidden
 #line 29
-  await testRunner.AndAsync("a second password reset link has been generated for \"bob@test.com\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+  await testRunner.GivenAsync("a first password reset link has been generated for \"alex@test.com\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 30
-  await testRunner.WhenAsync("the user navigates to the first reset link and submits password \"CSP133BobReset1!" +
-                        "\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+  await testRunner.AndAsync("a second password reset link has been generated for \"alex@test.com\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 31
+  await testRunner.WhenAsync("the user navigates to the first reset link and submits password \"CSP133AlexReset1" +
+                        "!\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 32
   await testRunner.ThenAsync("the user sees an invalid reset link error message", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
