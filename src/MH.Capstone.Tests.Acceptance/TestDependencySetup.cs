@@ -38,6 +38,7 @@ public static class TestDependencySetup
         services.AddTransient<AuthenticationDriver>();
         services.AddTransient<DashboardDriver>();
         services.AddTransient<SightingsDriver>();
+        services.AddTransient<WildlifeSearchDriver>();
 
         return services;
     }
