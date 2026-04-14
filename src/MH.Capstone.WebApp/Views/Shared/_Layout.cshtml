@@ -95,12 +95,12 @@
                                 <ul class="dropdown-menu" aria-labelledby="sightingsDropdown">
                                     <li>
                                         <a class="dropdown-item text-light" asp-action="Gallery" asp-controller="Sighting">
-                                            <i class="bi bi-images"></i> My Gallery
+                                            <i class="bi bi-images"></i> Gallery
                                         </a>
                                     </li>
                                     <li>
                                         <a class="dropdown-item text-light" asp-action="Index" asp-controller="Map">
-                                            <i class="bi bi-map"></i> View Map
+                                            <i class="bi bi-map"></i> Map
                                         </a>
                                     </li>
                                     <li>
@@ -123,6 +123,7 @@
                                         <img src="@user.GetProfileImageUrl()"
                                              alt="Profile Image"
                                              class="navProfile"
+                                             id="navProfile"
                                              role="img"/> @User.Identity.Name
                                         <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-danger d-none"
                                             id="pendingNotifBadge">

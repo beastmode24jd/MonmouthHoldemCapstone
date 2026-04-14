@@ -104,7 +104,7 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `IAuthenticationService` | `AuthenticationService` | Login, register, logout, password reset (token-based), email confirmation |
 | `IUserService` | `UserService` | Profile management, deactivation |
 | `IProfileImageService` | `ProfileImageService` | Upload/retrieve profile images |
-| `ISightingsService` | `SightingsService` | Submit and query wildlife sightings |
+| `ISightingsService` | `SightingsService` | Submit and query wildlife sightings. `GetAllSightingsAsync()` eager-loads `User` nav property for attribution; `GetUserSightingsAsync(Guid)` filters to one user (no include). |
 | `IScoringService` | `ScoringService` | Award points using rarity multiplier |
 | `IBadgeService` | `BadgeService` | Check and award badges |
 | `ILeaderboardService` | `LeaderboardService` | Ranked user standings |
@@ -224,8 +224,56 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `/Account/ResendVerification` | `resendVerificationEmail` | Email input on the resend form |
 | `/Account/ResendVerification` | `resendVerificationSubmitBtn` | Submit button on the resend form |
 | `/Account/ResendVerification` | `resendVerificationSentMessage` | "Check your email" success banner after resend |
+| `/Sighting/Gallery` | `filterAll` | "All Sightings" toggle button |
+| `/Sighting/Gallery` | `filterMine` | "My Sightings" toggle button |
+| `/Sighting/Gallery` | `emptyStateMine` | Empty-state div shown by JS when "My Sightings" has no results |
+| `/Sighting/Gallery` | `sightingsGrid` | Container `div` holding all card wrappers (when sightings exist) |
+| `/Sighting/Gallery` | `currentUserId` | Hidden `<span data-user-id="…">` carrying the logged-in user's identity string ID |
+| `/Sighting/Gallery` | `.sighting-card-wrapper[data-user-id]` | Per-card wrapper; `data-user-id` attribute used by JS to match against current user |
+| `/Sighting/Gallery` | `.sighting-attribution` | `<span>` inside each card showing the submitter's `UserName` |
 
 Access-denied detection: checks if `driver.Url` contains `/account/login` (case-insensitive redirect).
+
+---
+
+## PBI Implementation Workflow
+
+When implementing a Jira PBI (backlog item), **always** deliver both the feature code and its tests. "Done" means the story works and is tested.
+
+### Test requirements per PBI
+
+- **Unit tests** — cover all new/modified service methods and controller actions in isolation (NUnit + Moq + FluentAssertions)
+- **BDD/Acceptance tests** — at least one Reqnroll `.feature` scenario per acceptance criterion in the PBI (Selenium end-to-end)
+
+### Red / Green / Refactor
+
+Follow Red/Green/Refactor whenever feasible:
+
+1. **Red** — write a failing test that captures the requirement
+2. **Green** — write the minimal implementation to make it pass
+3. **Refactor** — clean up without breaking the test (skip if nothing needs cleaning)
+4. **Commit** — one commit at the end of the full cycle
+
+For BDD scenarios, implement **one scenario per commit** (write the feature step + step definition + implementation together as a single unit of work).
+
+### Commit message convention for TDD cycles
+
+```
+[CSP-XXX] <what was implemented> (TDD)
+[CSP-XXX] BDD: <scenario name from .feature file>
+```
+
+### Post-implementation: update this file
+
+After completing every PBI, update `docs/CLAUDE.md` as a final committed step:
+
+- Add any new page element IDs to the element ID table above
+- Update service/interface descriptions if methods were added or changed
+- Note new ViewModel properties or constructor signatures if they affect how tests are written
+- Document any new acceptance test infrastructure (Drivers, PageObjects)
+- Record any non-obvious patterns discovered (e.g., Moq quirks, EF eager-loading conventions)
+
+The goal is that any developer — human or AI — can pick up the next feature without scanning the codebase from scratch. This file is only as useful as it is current.
 
 ---
 
