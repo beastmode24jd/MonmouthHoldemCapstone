@@ -16,6 +16,15 @@ public class DashboardDriver
         _dashboardUrl = $"{settings.BaseUrl.TrimEnd('/')}/Dashboard";
     }
 
-    public bool IsOnDashboard() =>
-        string.Equals(_webDriver.Url, _dashboardUrl, StringComparison.InvariantCultureIgnoreCase);
+    public bool IsOnDashboard()
+    {
+        if (string.Equals(_webDriver.Url, _dashboardUrl, StringComparison.InvariantCultureIgnoreCase))
+        {
+            return true;
+        }
+
+        TestContext.Out.WriteLine($"[{nameof(DashboardDriver.IsOnDashboard)}] URL is not on the dashboard, but at {_webDriver.Url}.");
+        return false;
+    }
+        
 }
