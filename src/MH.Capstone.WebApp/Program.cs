@@ -122,8 +122,16 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<IReportService, ReportService>();
 
             // AI Companion (CSP-120) — Gemini-backed wildlife education chat
-            builder.Services.Configure<GeminiOptions>(builder.Configuration.GetSection(GeminiOptions.SectionName));
-            builder.Services.AddHttpClient<IAIService, GeminiAIService>();
+            if (featureFlags.IsEnabled("EnableGeminiAIService") && !EF.IsDesignTime)
+            {
+                entryLogger.LogInformation("EnableGeminiAIService flag is ON. Registering GeminiAIService.");
+                builder.Services.Configure<GeminiOptions>(builder.Configuration.GetSection(GeminiOptions.SectionName));
+                builder.Services.AddHttpClient<IAIService, GeminiAIService>();
+            }
+            else
+            {
+                entryLogger.LogInformation("EnableGeminiAIService flag is OFF. GeminiAIService will not be registered.");
+            }
 
             // Configure Azure Communication Services Email client depending on feature flag state and when EF is not in design-time
             var emailConnectionString = builder.Configuration.GetConnectionString("AzureCommunicationServices");
