@@ -40,6 +40,7 @@ public static class TestDependencySetup
         services.AddTransient<SightingsDriver>();
         services.AddTransient<WildlifeSearchDriver>();
         services.AddTransient<PasswordResetDriver>();
+        services.AddTransient<EmailVerificationDriver>();
 
         return services;
     }
