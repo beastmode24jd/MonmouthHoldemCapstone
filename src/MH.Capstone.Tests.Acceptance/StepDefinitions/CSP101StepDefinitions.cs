@@ -2,6 +2,7 @@ using System.IO;
 using System.Text.Json;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataModels;
+using MH.Capstone.Tests.Acceptance.Hooks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +20,7 @@ public class CSP101StepDefinitions
 {
     private IWebDriver _driver = null!;
     private WebDriverWait _wait = null!;
-    private const string BaseUrl = "https://localhost:7147";
+    private string BaseUrl => Startup.GetSettings().BaseUrl;
     private const string ReportablePath = "/Map";
     private const string DefaultReason = "Inappropriate content";
     private const string DefaultPassword = "Test@1234";
@@ -39,8 +40,8 @@ public class CSP101StepDefinitions
         if (_connectionString.Value is null)
         {
             Assert.Ignore(
-                "Skipping: could not locate MH.Capstone.WebApp/appsettings.Development.json. " +
-                "These BDD tests need the local dev connection string to seed/verify the database.");
+                "Skipping: could not locate MH.Capstone.WebApp/appsettings.Acceptance.json. " +
+                "These BDD tests need the acceptance connection string to seed/verify the database.");
         }
 
         var options = new ChromeOptions();
@@ -544,11 +545,11 @@ public class CSP101StepDefinitions
     private static string? FindWebAppDevSettings()
     {
         // Walk up from the test bin directory until we find a parent that contains
-        // MH.Capstone.WebApp/appsettings.Development.json (i.e. the src/ folder).
+        // MH.Capstone.WebApp/appsettings.Acceptance.json (i.e. the src/ folder).
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null)
         {
-            var candidate = Path.Combine(dir.FullName, "MH.Capstone.WebApp", "appsettings.Development.json");
+            var candidate = Path.Combine(dir.FullName, "MH.Capstone.WebApp", "appsettings.Acceptance.json");
             if (File.Exists(candidate))
             {
                 return candidate;

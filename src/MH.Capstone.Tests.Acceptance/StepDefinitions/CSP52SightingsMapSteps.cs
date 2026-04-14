@@ -1,3 +1,4 @@
+using MH.Capstone.Tests.Acceptance.Hooks;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
@@ -9,9 +10,9 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 public class CSP52SightingsMapSteps : IDisposable
 {
     private IWebDriver _driver = null!;
-    private readonly string _baseUrl = "https://localhost:7147";
-    private const string TestEmail = "test@gmail.com";
-    private const string TestPassword = "ZeroTwo002!";
+    private string _baseUrl => Startup.GetSettings().BaseUrl;
+    private const string TestEmail = "alex@test.com";
+    private const string TestPassword = "Capstone26!";
 
     [Given(@"I am using Chrome browser")]
     public void GivenIAmUsingChromeBrowser()

@@ -1,5 +1,6 @@
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataModels;
+using MH.Capstone.Tests.Acceptance.Hooks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -17,7 +18,7 @@ public class CSP97StepDefinitions
 {
     private IWebDriver _driver = null!;
     private WebDriverWait _wait = null!;
-    private const string BaseUrl = "https://localhost:7147";
+    private string BaseUrl => Startup.GetSettings().BaseUrl;
 
     // Test data tracking for cleanup
     private readonly List<string> _createdUserIds = new();
@@ -339,17 +340,20 @@ public class CSP97StepDefinitions
 
     private IServiceScope GetServiceScope()
     {
-        var webAppPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "..", "MH.Capstone.WebApp");
-        var configFile = Path.Combine(webAppPath, "appsettings.Development.json");
+        var webAppPath = Startup.GetSettings().WebAppContentRoot;
+        var configFile = Path.Combine(webAppPath, "appsettings.Acceptance.json");
 
         if (!File.Exists(configFile))
         {
-            Assert.Ignore("Skipped: appsettings.Development.json not found (CI environment).");
+            Assert.Ignore("Skipped: appsettings.Acceptance.json not found.");
         }
 
         var configuration = new ConfigurationBuilder()
             .SetBasePath(webAppPath)
-            .AddJsonFile("appsettings.Development.json", optional: false)
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddJsonFile("appsettings.Acceptance.json", optional: false)
+            .AddJsonFile("appsettings.Acceptance.Local.json", optional: true)
+            .AddEnvironmentVariables()
             .Build();
 
         var connectionString = configuration.GetConnectionString("DataDb")

@@ -1,4 +1,5 @@
-﻿using OpenQA.Selenium;
+﻿using MH.Capstone.Tests.Acceptance.Hooks;
+using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 using Reqnroll;
@@ -10,9 +11,9 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 public class CSP47AccountDeactivationSteps : IDisposable
 {
     private IWebDriver _driver = null!;
-    private const string BaseUrl = "https://localhost:7147";
-    private const string TestEmail = "test@gmail.com";
-    private const string TestPassword = "ZeroTwo002!";
+    private string BaseUrl => Startup.GetSettings().BaseUrl;
+    private const string TestEmail = "alex@test.com";
+    private const string TestPassword = "Capstone26!";
     
     private string _dynamicTestEmail = "";
     private string _dynamicTestPassword = "";
