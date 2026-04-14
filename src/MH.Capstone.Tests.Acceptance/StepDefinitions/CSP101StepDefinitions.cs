@@ -47,7 +47,7 @@ public class CSP101StepDefinitions
         _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(15));
     }
 
-    [AfterScenario]
+    [AfterScenario("report")]
     public void AfterScenarioUrlReset()
     {
         // Reset to a neutral page after each scenario to ensure a consistent starting point.
