@@ -66,7 +66,11 @@ namespace MH.Capstone.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Upload([FromForm] SightingUploadViewModel sightingUpload)
         {
-            if (!ModelState.IsValid || !_sightingsService.ValidateImage(sightingUpload.UploadedImage))
+            if (!_sightingsService.ValidateImage(sightingUpload.UploadedImage))
+                ModelState.AddModelError(nameof(sightingUpload.UploadedImage),
+                    "Image must be a valid JPG or PNG file under 2 MB.");
+
+            if (!ModelState.IsValid)
             {
                 _logger.LogInformation("Invalid sighting model was submitted and rejected.\n" +
                                        $"ModelState: {ModelState.IsValid}\n" +
@@ -126,12 +130,52 @@ namespace MH.Capstone.WebApp.Controllers
             // The service handles filtering by userId and ordering by timestamp
             var sightings = await _sightingsService.GetUserSightingsAsync(user.GuidId);
 
+            
+            // Get the timezone from global cookie, defaults to PST
+            string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
+            TimeZoneInfo userZone;
+            
+            try
+            {
+                userZone = TimeZoneInfo.FindSystemTimeZoneById(userTimeZoneId);
+            }
+            catch
+            {
+                // Fallback for Windows environment or invalid IANA IDs
+                userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+            }
+
             // Convert the sightings to a ViewModel for display
             // This handles byte[] to base64 conversion for images
             var viewModel = new SightingGalleryViewModel(sightings);
 
-            _logger.LogInformation("User {UserId} accessed gallery with {Count} sightings", 
-                user.Id, viewModel.SightingCount);
+            // Adjust the offset, and show each Sighting with the device's local display time
+            foreach (var sighting in viewModel.Sightings)
+            {
+                sighting.Timestamp = TimeZoneInfo.ConvertTime(sighting.Timestamp, userZone);
+                
+                // Correcting visual bugs for previous saved Sightings
+                if (sighting.PointValue < 10 && sighting.PointValue >= 0)
+                {
+                    // Assign the front-end display the default value.
+                    sighting.PointValue = 10;
+                }
+
+                if (sighting.RarityMultiplier == 0)
+                {
+                    // Invalid Rarity Multiplier, default to Common Rarity
+                    sighting.RarityMultiplier = 1.0;
+                }
+
+                if (sighting.Rarity != "Common" && sighting.Rarity != "Mythic" && sighting.Rarity != "Rare")
+                {
+                    // Invalid Rarity value. Default to Common.
+                    sighting.Rarity = "Common";
+                }
+            }
+
+            _logger.LogInformation("User {Email} accessed gallery with {Count} sightings", 
+                user.Email, viewModel.SightingCount);
 
             return View(viewModel);
         }

@@ -4,6 +4,7 @@ using MH.Capstone.Domain.Tools;
 
 namespace MH.Capstone.WebApp.Models
 {
+    [NotDefaultCoordinates]
     public class SightingUploadViewModel
     {
         public string DeviceTimezone { get; set; } = "America/Los_Angeles";
@@ -29,7 +30,7 @@ namespace MH.Capstone.WebApp.Models
         [DisplayFormat(DataFormatString = "{0:yyyy-MM-ddTHH:mm}", ApplyFormatInEditMode = true)]
         public DateTimeOffset Timestamp { get; set; } // Relies on Sighting Controller's input
 
-        public SightingUploadViewModel() {}
+        public SightingUploadViewModel() { }
 
         public SightingUploadViewModel(DateTimeOffset timestamp, decimal latitude, decimal longitude, string? description, string deviceTimezone = "America/Los_Angeles")
         {

@@ -27,7 +27,7 @@ namespace MH.Capstone.Tests.Acceptance.Features
         
         private static string[] featureTags = ((string[])(null));
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en-US"), "Features", "Account Password Reset", "    As a user of the Wildlife AID app\r\n    I want to be able to reset my password" +
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "Account Password Reset", "    As a user of the Wildlife AID app\r\n    I want to be able to reset my password" +
                 "\r\n    So that I can still log into my account, even if I forget my password", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
 #line 1 "CSP-26.feature"

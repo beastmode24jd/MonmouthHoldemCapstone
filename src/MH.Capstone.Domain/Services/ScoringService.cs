@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
 using MH.Capstone.Domain.DataAccess;
@@ -21,7 +22,7 @@ namespace MH.Capstone.Domain.Services
 
         // Set constants for base points and rarity multiplies
 
-        //Base points constatnt - ALL sightings start with 10 points before rarity multiplier is applied
+        //Base points constant - ALL sightings start with 10 points before rarity multiplier is applied
         private const int BasePoints = 10;
 
         // Rarity tier Thresholds - these will be used to determine which rarity multiplier to apply based on the global sightings count for the species
@@ -33,7 +34,17 @@ namespace MH.Capstone.Domain.Services
         private const double RareMultiplier = 2.0;
         private const double CommonMultiplier = 1.0;
 
-         public ScoringService(
+        private (double Multiplier, string Name) GetRarityMetadata(int globalSightingsCount)
+        {
+            return globalSightingsCount switch
+            {
+                <= MythicThreshold => (MythicMultiplier, "Mythic"),
+                <= RareThreshold => (RareMultiplier, "Rare"),
+                _ => (CommonMultiplier, "Common")
+            };
+        }
+
+        public ScoringService(
             ILogger<ScoringService> logger,
             IRepository<Sighting, ApplicationDbContext> sightingsRepo)
         {
@@ -53,12 +64,8 @@ namespace MH.Capstone.Domain.Services
             }
 
             // Determine rarity multiplier based on global count
-            double multiplier = globalSightingsCount switch
-            {
-                <= MythicThreshold => MythicMultiplier,   // ≤5 sightings: Mythic (5.0×)
-                <= RareThreshold => RareMultiplier,       // ≤50 sightings: Rare (2.0×)
-                _ => CommonMultiplier                      // >50 sightings: Common (1.0×)
-            };
+            // Uses private helper method, since metadata call uses this same code block
+            var (multiplier, _) = GetRarityMetadata(globalSightingsCount);
 
             // Calculate final points
             int points = (int)(BasePoints * multiplier);
@@ -90,6 +97,20 @@ namespace MH.Capstone.Domain.Services
             _logger.LogInformation("Global sighting count for species {SpeciesId}: {Count}", speciesId, count);
 
             return count;
+        }
+
+        public async Task<(double multipler, string name)> GetRarityMultiplierAndName(int globalSightingsCount)
+        {
+            if (globalSightingsCount < 0)
+            {
+                throw new ArgumentException("Global sighting count cannot be negative", nameof(globalSightingsCount));
+            }
+
+            // Use the private helper method to get the return values
+            var metadata = GetRarityMetadata(globalSightingsCount);
+
+            // Return the full tuple from this
+            return await Task.FromResult((metadata.Multiplier, metadata.Name));
         }
     }
 }
