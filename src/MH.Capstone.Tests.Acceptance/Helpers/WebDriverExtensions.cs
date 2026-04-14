@@ -1,9 +1,11 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
 
 namespace MH.Capstone.Tests.Acceptance.Helpers
 {
+    [ExcludeFromCodeCoverage]
     public static class WebDriverExtensions
     {
         /// <summary>
@@ -28,7 +30,7 @@ namespace MH.Capstone.Tests.Acceptance.Helpers
         /// A value is considered truthy if it is not null. If the value is a boolean it must be true.
         /// Returns an array containing the results of each condition in the same order as provided.
         /// </summary>
-        public static T[]? WaitUntilAll<T>(this IWebDriver driver, IEnumerable<Func<IWebDriver, T>> conditions,
+        public static T[] WaitUntilAll<T>(this IWebDriver driver, IEnumerable<Func<IWebDriver, T>> conditions,
             TimeSpan? timeout = null, TimeSpan? pollInterval = null)
         {
             var condList = conditions?.ToList() ?? new List<Func<IWebDriver, T>>();
@@ -40,7 +42,7 @@ namespace MH.Capstone.Tests.Acceptance.Helpers
                     var res = condList[i](d);
                     results[i] = res;
                     if (!IsTruthy(res))
-                        return null; // keep waiting
+                        return null!; // keep waiting
                 }
 
                 return results;
@@ -52,7 +54,7 @@ namespace MH.Capstone.Tests.Acceptance.Helpers
         /// A value is considered truthy if it is not null. If the value is a boolean it must be true.
         /// Returns a Tuple of (index, result) where index is the zero-based index of the satisfied condition.
         /// </summary>
-        public static Tuple<int, T>? WaitUntilAny<T>(this IWebDriver driver, IEnumerable<Func<IWebDriver, T>> conditions,
+        public static Tuple<int, T> WaitUntilAny<T>(this IWebDriver driver, IEnumerable<Func<IWebDriver, T>> conditions,
             TimeSpan? timeout = null, TimeSpan? pollInterval = null)
         {
             var condList = conditions?.ToList() ?? new List<Func<IWebDriver, T>>();
@@ -64,7 +66,7 @@ namespace MH.Capstone.Tests.Acceptance.Helpers
                     if (IsTruthy(res))
                         return Tuple.Create(i, res);
                 }
-                return null; // keep waiting
+                return null!; // keep waiting
             }, timeout, pollInterval);
         }
 

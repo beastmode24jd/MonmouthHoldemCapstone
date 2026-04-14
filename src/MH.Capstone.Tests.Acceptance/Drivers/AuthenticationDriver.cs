@@ -1,11 +1,13 @@
 using System.Diagnostics.CodeAnalysis;
 using System;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using MH.Capstone.Tests.Acceptance.Configuration;
 using MH.Capstone.Tests.Acceptance.PageObjects;
 using OpenQA.Selenium;
+using MH.Capstone.Tests.Acceptance.Helpers;
 
 namespace MH.Capstone.Tests.Acceptance.Drivers;
 
@@ -24,13 +26,19 @@ public class AuthenticationDriver
     public bool IsUserLoggedIn(string? username = null)
     {
         _webDriver.Navigate().GoToUrl(_baseUrl);
-
         try
         {
-            var userElement = _webDriver.FindElement(By.Id("userDropdownNavDisplay"));
-            return string.IsNullOrEmpty(username) || userElement.Text.Contains(username);
+            // Wait briefly for the user dropdown to appear. If it doesn't appear within the
+            // timeout, treat as not logged in.
+            var userElement = _webDriver.WaitUntil(d =>
+            {
+                var elems = d.FindElements(By.Id("userDropdownNavDisplay"));
+                return elems.Count > 0 ? elems[0] : null;
+            }, TimeSpan.FromSeconds(2));
+
+            return string.IsNullOrEmpty(username) || userElement?.Text.Contains(username) == true;
         }
-        catch (NoSuchElementException)
+        catch
         {
             return false;
         }
@@ -56,64 +64,43 @@ public class AuthenticationDriver
         // user dropdown (meaning sign in was successful).
         var loginUrl = $"{_baseUrl.TrimEnd('/')}/Account/Login";
         var timeout = TimeSpan.FromSeconds(10);
-        var sw = Stopwatch.StartNew();
-        var loginSuccess = false;
-        var errorDisplayed = false;
 
-        while (sw.Elapsed < timeout)
+        try
         {
-            try
+            _webDriver.WaitUntil(d =>
             {
-                // If we've been redirected away from the login URL, check for the user dropdown
-                // element which indicates a logged-in user.
-                if (!string.Equals(_webDriver.Url, loginUrl, StringComparison.InvariantCultureIgnoreCase))
+                // If we've been redirected away from the login URL,
+                // check for if the user shows logged in
+                if (!string.Equals(d.Url, loginUrl, StringComparison.InvariantCultureIgnoreCase)
+                    && IsUserLoggedIn(username))
                 {
-                    var userElems = _webDriver.FindElements(By.Id("userDropdownNavDisplay"));
-                    if (userElems.Count > 0)
-                    {
-                        var text = userElems.First().Text ?? string.Empty;
-                        if (string.IsNullOrEmpty(username) || text.Contains(username))
-                        {
-                            loginSuccess = true;
-                            break;
-                        }
-                    }
+                    return true;
                 }
 
                 // Check for server-side validation errors rendered on the login page
-                var errorElems = _webDriver.FindElements(By.CssSelector(".alert.alert-danger"));
+                    var errorElems = d.FindElements(By.CssSelector(".alert.alert-danger"));
                 if (errorElems.Count > 0)
-                {
-                    errorDisplayed = true;
-                    break;
-                }
-            }
-            catch (StaleElementReferenceException)
-            {
-                // Element references can become stale during navigation; ignore and retry.
-            }
+                    throw new ValidationException($"Failed to log in user '{username}': server returned validation errors.");
 
-            Thread.Sleep(250);
+                // keep waiting
+                return false;
+            }, timeout);
         }
-
-        sw.Stop();
-        TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Login attempt for user {username} completed after {sw.Elapsed.TotalSeconds:N2} seconds.");
-
-        if (!loginSuccess)
+        catch(Exception e)
         {
-            if (errorDisplayed)
-                throw new Exception($"Failed to log in user '{username}': server returned validation errors.");
-
-            throw new Exception($"Failed to log in user '{username}' (timeout waiting for login or error).");
+            // timeout or other waiting error -> treat as failed login
+            throw new Exception($"Failed to log in user '{username}' (timeout waiting for login or unhandled exception).",
+                e);
         }
 
+        TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Login attempt for user {username} completed.");
         TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] User {username} logged in.");
     }
 
     public void LogoutUser()
     {
         if (!IsUserLoggedIn()) return;
-        var logoutForm = _webDriver.FindElement(By.Id("logoutForm"));
+        var logoutForm = _webDriver.WaitForElement(By.Id("logoutForm"), TimeSpan.FromSeconds(5));
         logoutForm.Submit();
         TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] User logged out.");
     }
@@ -121,9 +108,29 @@ public class AuthenticationDriver
     public bool WasPageAccessDenied(string urlToTest)
     {
         _webDriver.Navigate().GoToUrl(urlToTest);
+        try
+        {
+            _webDriver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+        }
+        catch
+        {
+            // ignore
+        }
+
         return WasPageAccessDenied();
     }
 
-    public bool WasPageAccessDenied() =>
-        _webDriver.Url.Contains("/account/login", StringComparison.InvariantCultureIgnoreCase);
+    public bool WasPageAccessDenied()
+    {
+        try
+        {
+            return _webDriver.WaitUntil(d =>
+                d.Url.Contains("/account/login", StringComparison.InvariantCultureIgnoreCase),
+                TimeSpan.FromSeconds(5));
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }

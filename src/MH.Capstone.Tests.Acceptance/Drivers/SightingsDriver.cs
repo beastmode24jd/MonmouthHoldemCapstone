@@ -1,7 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using MH.Capstone.Tests.Acceptance.Configuration;
 using MH.Capstone.Tests.Acceptance.PageObjects;
 using OpenQA.Selenium;
+using MH.Capstone.Tests.Acceptance.Helpers;
 // ReSharper disable SpecifyACultureInStringConversionExplicitly
 
 namespace MH.Capstone.Tests.Acceptance.Drivers;
@@ -18,21 +20,34 @@ public class SightingsDriver
         _baseUrl = settings.BaseUrl.TrimEnd('/');
     }
 
-    public void NavigateToSightingsUpload() =>
+    public void NavigateToSightingsUpload()
+    {
         _webDriver.Navigate().GoToUrl($"{_baseUrl}/Sighting/Create");
+        try
+        {
+            _webDriver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+        }
+        catch
+        {
+            // ignore
+        }
+    }
 
     /// <summary>Sets the image file input to the given path without submitting the form.</summary>
     public void SetImageForUpload(string absoluteFilePath)
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
-        page.ImageUploadBtn.SendKeys(absoluteFilePath);
+        // ensure the input exists before sending keys
+        var input = _webDriver.WaitForElement(By.CssSelector("input[type='file']"), TimeSpan.FromSeconds(5));
+        input.SendKeys(absoluteFilePath);
     }
 
     /// <summary>Sets the image file input and then submits the form.</summary>
     public void UploadFileAndSubmit(string absoluteFilePath)
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
-        page.ImageUploadBtn.SendKeys(absoluteFilePath);
+        var input = _webDriver.WaitForElement(By.CssSelector("input[type='file']"), TimeSpan.FromSeconds(5));
+        input.SendKeys(absoluteFilePath);
         page.SubmitBtn.Click();
     }
 
@@ -40,39 +55,51 @@ public class SightingsDriver
     public void SetLatitude(double latitude)
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
-        page.LatInput.Clear();
-        page.LatInput.SendKeys(latitude.ToString());
+        var input = _webDriver.WaitForElement(By.CssSelector("input[name='Latitude']"), TimeSpan.FromSeconds(5));
+        input.Clear();
+        input.SendKeys(latitude.ToString());
     }
 
     /// <summary>Sets the longitude input to the given value.</summary>
     public void SetLongitude(double longitude)
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
-        page.LongInput.Clear();
-        page.LongInput.SendKeys(longitude.ToString());
+        var input = _webDriver.WaitForElement(By.CssSelector("input[name='Longitude']"), TimeSpan.FromSeconds(5));
+        input.Clear();
+        input.SendKeys(longitude.ToString());
     }
 
     /// <summary>Sets the timestamp input to the given value.</summary>
     public void SetTimestamp(DateTimeOffset timestamp)
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
-        // Chrome's datetime-local input is a segmented date-picker widget, not a plain
-        // text box. SendKeys on it after Clear() is unreliable — the value tends to stay
-        // empty because Chrome doesn't interpret ISO keystrokes as segment values.
-        // Setting the value via JavaScript bypasses the picker UI entirely and is the
-        // standard Selenium workaround for datetime-local inputs in Chrome.
-        ((IJavaScriptExecutor)_webDriver).ExecuteScript(
-            "arguments[0].value = arguments[1];",
-            page.TimeInput,
-            timestamp.ToString("yyyy-MM-ddTHH:mm"));
+        // Use WaitUntil to ensure the script is executed against an available element.
+        _webDriver.WaitUntil(d =>
+        {
+            try
+            {
+                ((IJavaScriptExecutor)d).ExecuteScript(
+                    "arguments[0].value = arguments[1];",
+                    page.TimeInput,
+                    timestamp.ToString("yyyy-MM-ddTHH:mm"));
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }, TimeSpan.FromSeconds(3));
     }
 
     /// <summary>Sets the description input to the given value.</summary>
     public void SetDescription(string description)
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
-        page.DescInput.Clear();
-        page.DescInput.SendKeys(description);
+        var input = _webDriver.WaitForElement(
+            By.CssSelector("textarea[name='Description'], input[name='Description']"), 
+            TimeSpan.FromSeconds(5));
+        input.Clear();
+        input.SendKeys(description);
     }
 
     /// <summary>Clicks the submit button on the currently displayed upload form.</summary>
@@ -80,6 +107,8 @@ public class SightingsDriver
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
         page.SubmitBtn.Click();
+        _webDriver.WaitUntil(d => !IsOnSightingsUploadPage()
+            || HasVisibleValidationErrors());
     }
 
     /// <summary>
@@ -87,9 +116,20 @@ public class SightingsDriver
     /// (/Sighting/Create or /Sighting/Upload), which indicates that the form
     /// submission was rejected rather than redirected to the dashboard.
     /// </summary>
-    public bool IsOnSightingsUploadPage() =>
-        _webDriver.Url.Contains("/Sighting/Upload", StringComparison.InvariantCultureIgnoreCase) ||
-        _webDriver.Url.Contains("/Sighting/Create", StringComparison.InvariantCultureIgnoreCase);
+    public bool IsOnSightingsUploadPage()
+    {
+        try
+        {
+            return _webDriver.WaitUntil(d =>
+                d.Url.Contains("/Sighting/Upload", StringComparison.InvariantCultureIgnoreCase) ||
+                d.Url.Contains("/Sighting/Create", StringComparison.InvariantCultureIgnoreCase),
+                TimeSpan.FromSeconds(3));
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     /// <summary>
     /// Returns true when at least one ASP.NET model-validation error span is both
@@ -98,21 +138,24 @@ public class SightingsDriver
     /// </summary>
     public bool HasVisibleValidationErrors()
     {
-        var result = _webDriver
-            .FindElements(By.CssSelector(".field-validation-error"))
-            .Any(e => e.Displayed && !string.IsNullOrWhiteSpace(e.Text));
-
-        if (result)
+        try
         {
-            return true;
+            var result = _webDriver.WaitUntil(d =>
+            {
+                var elements = d.FindElements(By.CssSelector(".field-validation-error"));
+                return elements.Any(e => e.Displayed && !string.IsNullOrWhiteSpace(e.Text));
+            }, TimeSpan.FromSeconds(1));
+
+            if (result)
+                return true;
+        }
+        catch
+        {
+            // timed out waiting for visible errors; fall through to logging below
         }
 
         var errorSpans = _webDriver.FindElements(By.CssSelector(".field-validation-error"));
 
-        TestContext.Out.WriteLine($"[{nameof(HasVisibleValidationErrors)}] result: {result}");
-        TestContext.Out.WriteLine($"[{nameof(HasVisibleValidationErrors)}] result (again): {_webDriver
-            .FindElements(By.CssSelector(".field-validation-error"))
-            .Any(e => e.Displayed && !string.IsNullOrWhiteSpace(e.Text))}");
         TestContext.Out.WriteLine($"[{nameof(HasVisibleValidationErrors)}] Span count: {errorSpans.Count}");
         foreach (var span in errorSpans)
         {
