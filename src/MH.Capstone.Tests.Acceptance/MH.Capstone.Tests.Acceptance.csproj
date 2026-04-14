@@ -20,6 +20,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="FluentAssertions" Version="8.9.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.13" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
     <PackageReference Include="Moq" Version="4.20.72" />
@@ -29,10 +30,18 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="NUnit3TestAdapter" Version="6.1.0" />
-    <PackageReference Include="Reqnroll.NUnit" Version="3.3.3" />
+    <PackageReference Include="Reqnroll.Microsoft.Extensions.DependencyInjection" Version="3.3.4" />
+    <PackageReference Include="Reqnroll.NUnit" Version="3.3.4" />
+    <PackageReference Include="Selenium.WebDriver" Version="4.41.0" />
+    <PackageReference Include="Selenium.WebDriver.ChromeDriver" Version="147.0.7727.5600" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- This gives you access to WebApplication and WebApplicationBuilder -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MH.Capstone.Domain\MH.Capstone.Domain.csproj" />
+    <ProjectReference Include="..\MH.Capstone.WebApp\MH.Capstone.WebApp.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="NUnit.Framework" />
