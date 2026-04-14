@@ -20,3 +20,9 @@ Scenario: Searching with an unrecognised term shows a polite no-results message
   And user is on the species search page
   When user searches for "xyznotananimal9999"
   Then user sees a polite no-results message
+
+Scenario: The result counter updates to reflect a successful search
+  Given user Alex is logged in
+  And user is on the species search page
+  When user searches for "eagle"
+  Then the result counter shows at least one result

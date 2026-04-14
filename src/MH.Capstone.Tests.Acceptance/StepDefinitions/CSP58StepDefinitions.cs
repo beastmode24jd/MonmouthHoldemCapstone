@@ -73,4 +73,13 @@ public class CSP58StepDefinitions
         _searchDriver.HasNoResultsMessage().Should().BeTrue(
             because: "a search that yields no API matches must display a no-results message to the user");
     }
+
+    // ── Scenario 4: The result counter updates to reflect a successful search ──
+
+    [Then("the result counter shows at least one result")]
+    public void ThenTheResultCounterShowsAtLeastOneResult()
+    {
+        _searchDriver.CounterShowsAtLeastOneResult().Should().BeTrue(
+            because: "the result counter must update from '0 / 0' to show the number of results returned");
+    }
 }
