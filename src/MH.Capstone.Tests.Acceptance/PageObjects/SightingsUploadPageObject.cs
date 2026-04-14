@@ -28,6 +28,13 @@ public class SightingsUploadPageObject
     {
         var url = $"{baseUrl.TrimEnd('/')}/Sighting/Create";
 
+        // Intentional "if not already there" guard: SightingsDriver creates a new
+        // instance of this page object for every individual field-setter call
+        // (SetLatitude, SetLongitude, SetDescription, etc.) within the same
+        // scenario. Re-navigating on each construction would wipe the values
+        // that were set by earlier calls. The [BeforeScenario] hook in Startup.cs
+        // guarantees the browser starts on "about:blank", so the very first
+        // construction within a scenario will always navigate fresh.
         if (!string.Equals(webDriver.Url, url, StringComparison.InvariantCultureIgnoreCase))
             webDriver.Navigate().GoToUrl(url);
 

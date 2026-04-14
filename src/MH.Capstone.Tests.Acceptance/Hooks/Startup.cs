@@ -40,6 +40,20 @@ public sealed class Startup
         _webDriver = null;
     }
 
+    /// <summary>
+    /// Runs before every individual scenario.
+    /// Navigates the shared browser to a neutral blank page so that every
+    /// scenario begins with a clean browser state — no leftover form values,
+    /// no stale JavaScript variables, and no URL that would accidentally
+    /// satisfy a page-object "if not already there" guard inherited from a
+    /// prior scenario.
+    /// </summary>
+    [BeforeScenario]
+    public static void BeforeScenario()
+    {
+        _webDriver?.Navigate().GoToUrl("about:blank");
+    }
+
     /// <summary>Returns the loaded test settings. Throws if called before BeforeTestRun.</summary>
     public static AcceptanceTestSettings GetSettings() =>
         _settings ?? throw new InvalidOperationException(

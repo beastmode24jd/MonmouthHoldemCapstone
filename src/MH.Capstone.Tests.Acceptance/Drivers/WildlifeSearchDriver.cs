@@ -61,9 +61,15 @@ public class WildlifeSearchDriver
     /// <summary>
     /// Types <paramref name="name"/> into the search input, clicks Search, and
     /// blocks until the AJAX fetch has completed (status indicator clears).
+    /// Always performs a full page navigation before interacting so that the
+    /// JavaScript state (results array, counter, input value) is guaranteed
+    /// to be fresh, regardless of what a prior scenario may have left behind.
     /// </summary>
     public void SearchFor(string name)
     {
+        // Force a full reload so JS state is never inherited from a prior scenario.
+        NavigateToSearchPage();
+
         var page = new WildlifeSearchPageObject(_webDriver, _baseUrl);
         page.NameInput.Clear();
         page.NameInput.SendKeys(name);
