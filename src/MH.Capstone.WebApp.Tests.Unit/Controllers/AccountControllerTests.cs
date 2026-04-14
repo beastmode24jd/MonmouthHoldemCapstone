@@ -142,7 +142,7 @@ public class AccountControllerTests
     }
 
     [Test]
-    public async Task Register_Post_WithValidData_RedirectsToDashboard()
+    public async Task Register_Post_WithValidData_RedirectsToConfirmation()
     {
         var registerModel = new RegisterViewModel
         {
@@ -158,8 +158,8 @@ public class AccountControllerTests
 
         var redirectResult = result as RedirectToActionResult;
         Assert.That(redirectResult, Is.Not.Null);
-        Assert.That(redirectResult.ActionName, Is.EqualTo("Index"));
-        Assert.That(redirectResult.ControllerName, Is.EqualTo("Dashboard"));
+        Assert.That(redirectResult.ActionName, Is.EqualTo("RegisterConfirmation"));
+        Assert.That(redirectResult.ControllerName, Is.EqualTo("Account"));
         _mockAuthService.Verify(s => s.RegisterUserAsync(registerModel.Email, registerModel.Password), Times.Once);
         _mockAuthService.Verify(s => s.SignInUserAsync(It.IsAny<HttpContext>(), registerModel.Email, false), Times.Once);
     }

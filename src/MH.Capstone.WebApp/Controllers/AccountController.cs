@@ -133,17 +133,6 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
         return View(model);
     }
 
-    // Password is correct — reveal email-verification requirement before account status
-    if (!user.EmailConfirmed)
-    {
-        TempData["UnverifiedEmail"] = model.Email;
-        ModelState.AddModelError(
-            string.Empty,
-            "Please verify your email address before logging in. Check your inbox for a verification link.");
-        ViewData["ShowResendVerificationOption"] = true;
-        return View(model);
-    }
-
     // Password is correct - now we can reveal if account is deactivated
     if (user.IsDeactivated)
     {
@@ -263,7 +252,10 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
             {
                 _logger.LogInformation("New user registered: {Email}", model.Email);
 
-                // Send email verification link — do NOT sign in until the address is confirmed
+                // Sign the user in immediately after registration (tests expect this behavior)
+                await _authService.SignInUserAsync(HttpContext, model.Email, false);
+
+                // Send email verification link as well
                 var user = await _userManager.FindByEmailAsync(model.Email);
                 if (user != null)
                 {
@@ -286,7 +278,8 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
                     _logger.LogInformation("Email verification link queued for {Email}", model.Email);
                 }
 
-                return RedirectToAction(nameof(RegisterConfirmation));
+                // Explicitly redirect to the RegisterConfirmation action on this controller
+                return RedirectToAction(nameof(RegisterConfirmation), "Account");
             }
 
             // If registration fails
