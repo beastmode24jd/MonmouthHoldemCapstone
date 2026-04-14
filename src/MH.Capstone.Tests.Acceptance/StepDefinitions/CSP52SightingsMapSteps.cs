@@ -1,31 +1,28 @@
 using MH.Capstone.Tests.Acceptance.Hooks;
 using OpenQA.Selenium;
-using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 using Reqnroll;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
 [Binding]
-public class CSP52SightingsMapSteps : IDisposable
+[Scope(Tag = "map")]
+public class CSP52SightingsMapSteps
 {
-    private IWebDriver _driver = null!;
+    private readonly IWebDriver _driver;
     private string _baseUrl => Startup.GetSettings().BaseUrl;
-    private const string TestEmail = "alex@test.com";
+    private const string TestEmail = "alpha@test.com";
     private const string TestPassword = "Capstone26!";
+
+    public CSP52SightingsMapSteps(IWebDriver driver)
+    {
+        _driver = driver;
+    }
 
     [Given(@"I am using Chrome browser")]
     public void GivenIAmUsingChromeBrowser()
     {
-        var options = new ChromeOptions();
-        options.AddArgument("--headless");
-        options.AddArgument("--no-sandbox");
-        options.AddArgument("--disable-dev-shm-usage");
-        options.AddArgument("--ignore-certificate-errors");
-
-        // Let Selenium Manager handle the driver automatically
-        _driver = new ChromeDriver(options);
-        _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+        // No-op: the shared ChromeDriver is created once in BeforeTestRun (Startup.cs).
     }
 
     [Given(@"the application is running")]
@@ -130,11 +127,5 @@ public class CSP52SightingsMapSteps : IDisposable
         zoomInButton.Click();
         Thread.Sleep(500);
         zoomOutButton.Click();
-    }
-
-    public void Dispose()
-    {
-        _driver?.Quit();
-        _driver?.Dispose();
     }
 }

@@ -1,33 +1,30 @@
-﻿using MH.Capstone.Tests.Acceptance.Hooks;
+using MH.Capstone.Tests.Acceptance.Hooks;
 using OpenQA.Selenium;
-using OpenQA.Selenium.Chrome;
-using OpenQA.Selenium.Support.UI;
 using Reqnroll;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
 [Binding]
 [Scope(Tag = "deactivation")]
-public class CSP47AccountDeactivationSteps : IDisposable
+public class CSP47AccountDeactivationSteps
 {
-    private IWebDriver _driver = null!;
+    private readonly IWebDriver _driver;
     private string BaseUrl => Startup.GetSettings().BaseUrl;
-    private const string TestEmail = "alex@test.com";
+    private const string TestEmail = "alpha@test.com";
     private const string TestPassword = "Capstone26!";
-    
+
     private string _dynamicTestEmail = "";
     private string _dynamicTestPassword = "";
+
+    public CSP47AccountDeactivationSteps(IWebDriver driver)
+    {
+        _driver = driver;
+    }
 
     [Given(@"I am using Chrome browser")]
     public void GivenIAmUsingChromeBrowser()
     {
-        var options = new ChromeOptions();
-        options.AddArgument("--headless");
-        options.AddArgument("--no-sandbox");
-        options.AddArgument("--disable-dev-shm-usage");
-        options.AddArgument("--ignore-certificate-errors");
-        _driver = new ChromeDriver(options);
-        _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+        // No-op: the shared ChromeDriver is created once in BeforeTestRun (Startup.cs).
     }
 
     [Given(@"the application is running")]
@@ -40,15 +37,15 @@ public class CSP47AccountDeactivationSteps : IDisposable
     public void GivenIAmLoggedInAsARegisteredUser()
     {
         _driver.Navigate().GoToUrl(BaseUrl + "/Account/Login");
-        
+
         var emailField = _driver.FindElement(By.Id("Email"));
         var passwordField = _driver.FindElement(By.Id("passwordField"));
         var submitBtn = _driver.FindElement(By.Id("submitBtn"));
-        
+
         emailField.SendKeys(TestEmail);
         passwordField.SendKeys(TestPassword);
         submitBtn.Click();
-        
+
         Thread.Sleep(1000);
     }
 
@@ -57,23 +54,23 @@ public class CSP47AccountDeactivationSteps : IDisposable
     {
         _dynamicTestEmail = "testdeactivate" + Guid.NewGuid().ToString("N").Substring(0, 8) + "@test.com";
         _dynamicTestPassword = "TestDeactivate123!";
-        
+
         _driver.Navigate().GoToUrl(BaseUrl + "/Account/Register");
         Thread.Sleep(500);
-        
+
         var emailField = _driver.FindElement(By.Id("Email"));
         var passwordField = _driver.FindElement(By.Id("passwordField"));
         var confirmPasswordField = _driver.FindElement(By.Id("confirmPasswordField"));
-        
+
         emailField.SendKeys(_dynamicTestEmail);
         passwordField.SendKeys(_dynamicTestPassword);
         confirmPasswordField.SendKeys(_dynamicTestPassword);
-        
+
         Thread.Sleep(1000);
         var submitBtn = _driver.FindElement(By.Id("submitBtn"));
         ((OpenQA.Selenium.IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].disabled = false;", submitBtn);
         ((OpenQA.Selenium.IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", submitBtn);
-        
+
         Thread.Sleep(2000);
     }
 
@@ -166,17 +163,4 @@ public class CSP47AccountDeactivationSteps : IDisposable
         // Verify we are on the login page (already confirmed in previous step)
         Assert.That(_driver.Url.ToLower(), Does.Contain("/account/login"));
     }
-
-    public void Dispose()
-    {
-        _driver?.Quit();
-        _driver?.Dispose();
-    }
 }
-
-
-
-
-
-
-
