@@ -43,4 +43,25 @@ public class CSP58StepDefinitions
     {
         _searchDriver.IsClearButtonVisible().Should().BeTrue();
     }
+
+    // ── Scenario 2: Searching by a known animal name displays a result card ───
+
+    [Given("user is on the species search page")]
+    public void GivenUserIsOnTheSpeciesSearchPage()
+    {
+        _searchDriver.NavigateToSearchPage();
+    }
+
+    [When("user searches for {string}")]
+    public void WhenUserSearchesFor(string animalName)
+    {
+        _searchDriver.SearchFor(animalName);
+    }
+
+    [Then("a result card is displayed with an animal name")]
+    public void ThenAResultCardIsDisplayedWithAnAnimalName()
+    {
+        _searchDriver.HasResultWithAnimalName().Should().BeTrue(
+            because: "searching for a known species should return at least one result from the Ninjas API");
+    }
 }
