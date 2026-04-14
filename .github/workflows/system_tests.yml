@@ -67,6 +67,7 @@ jobs:
           ConnectionStrings__DataDb: ${{ secrets.SYSTEST_AZUREAPPSERVICE_DBCONNSTR }}
           ConnectionStrings__AzureCommunicationServices: ${{ secrets.SYSTEST_AZURECOMMSERVICE_CONNSTR }}
           Api__External__Ninjas__ApiKey: ${{ secrets.SYSTEST_NINJASAPI_APIKEY }}
+          Gemini__ApiKey: ${{ secrets.GEMINI_APIKEY }}
         run: |
           ls -a ./src ;
           dotnet test ./src/MH.Capstone.Tests.Integration --no-restore --no-build --configuration Release --verbosity ${{ vars.DOTNET_VERBOSE_LVL }} ;

@@ -296,7 +296,11 @@ internal static class AcceptanceTestSeeder
                 longitude:  -123.234300m,
                 timestamp:   DateTimeOffset.UtcNow.AddDays(-10),
                 description: "Great blue heron standing motionless at the WOU campus pond.",
-                imageBuffer: img),
+                imageBuffer: img,
+                pointValue: 10,
+                loginStreak: true,
+                rarity: "Common",
+                rarityMultiplier: 1.7),
 
             new Sighting(
                 id:          new Guid("a1000000-0000-0000-0000-000000000002"),
@@ -305,7 +309,11 @@ internal static class AcceptanceTestSeeder
                 longitude:  -123.035100m,
                 timestamp:   DateTimeOffset.UtcNow.AddDays(-25),
                 description: "Bald eagle circling above the Willamette River near Salem.",
-                imageBuffer: img),
+                imageBuffer: img,
+                pointValue: 10,
+                loginStreak: true,
+                rarity: "Common",
+                rarityMultiplier: 1.7),
 
             // null description — exercises optional-field rendering
             new Sighting(
@@ -315,7 +323,11 @@ internal static class AcceptanceTestSeeder
                 longitude:  -123.229000m,
                 timestamp:   DateTimeOffset.UtcNow.AddDays(-45),
                 description: null,
-                imageBuffer: img),
+                imageBuffer: img,
+                pointValue: 10,
+                loginStreak: true,
+                rarity: "Common",
+                rarityMultiplier: 1.7),
 
             // ── Lily ──────────────────────────────────────────────────────────
 
@@ -327,7 +339,11 @@ internal static class AcceptanceTestSeeder
                 longitude:  -122.109000m,
                 timestamp:   DateTimeOffset.UtcNow.AddDays(-5),
                 description: "Wolverine spotted at the Crater Lake rim — extremely rare in Oregon.",
-                imageBuffer: img),
+                imageBuffer: img,
+                pointValue: 10,
+                loginStreak: true,
+                rarity: "Common",
+                rarityMultiplier: 1.7),
 
             // Portland — within typical Oregon map bounds
             new Sighting(
@@ -337,7 +353,11 @@ internal static class AcceptanceTestSeeder
                 longitude:  -122.676200m,
                 timestamp:   DateTimeOffset.UtcNow.AddDays(-20),
                 description: "Peregrine falcon nesting atop a downtown Portland high-rise.",
-                imageBuffer: img),
+                imageBuffer: img,
+                pointValue: 10,
+                loginStreak: true,
+                rarity: "Common",
+                rarityMultiplier: 1.7),
 
             // Eugene
             new Sighting(
@@ -347,7 +367,11 @@ internal static class AcceptanceTestSeeder
                 longitude:  -123.086800m,
                 timestamp:   DateTimeOffset.UtcNow.AddDays(-40),
                 description: "River otter family playing along the Willamette near Eugene.",
-                imageBuffer: img),
+                imageBuffer: img,
+                pointValue: 10,
+                loginStreak: true,
+                rarity: "Common",
+                rarityMultiplier: 1.7),
 
             // Silver Falls
             new Sighting(
@@ -357,7 +381,11 @@ internal static class AcceptanceTestSeeder
                 longitude:  -122.654000m,
                 timestamp:   DateTimeOffset.UtcNow.AddDays(-60),
                 description: "Roosevelt elk herd of ~30 animals crossing near Silver Falls State Park.",
-                imageBuffer: img),
+                imageBuffer: img,
+                pointValue: 10,
+                loginStreak: true,
+                rarity: "Common",
+                rarityMultiplier: 1.7),
 
             // Los Angeles — deliberately outside any Oregon bounding box so
             // map-bounds filtering tests can verify that out-of-range sightings
@@ -369,7 +397,11 @@ internal static class AcceptanceTestSeeder
                 longitude:  -118.243700m,
                 timestamp:   DateTimeOffset.UtcNow.AddDays(-15),
                 description: "Coyote spotted at dusk in Griffith Park, Los Angeles.",
-                imageBuffer: img)
+                imageBuffer: img,
+                pointValue: 10,
+                loginStreak: true,
+                rarity: "Common",
+                rarityMultiplier: 1.7)
         );
 
         await db.SaveChangesAsync(token);

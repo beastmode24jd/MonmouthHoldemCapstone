@@ -18,22 +18,22 @@ namespace MH.Capstone.Tests.Acceptance.Features
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Reqnroll", "3.0.0.0")]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     [global::NUnit.Framework.TestFixtureAttribute()]
-    [global::NUnit.Framework.DescriptionAttribute("Sightings Map")]
+    [global::NUnit.Framework.DescriptionAttribute("AI Companion for Sightings (CSP-120)")]
     [global::NUnit.Framework.FixtureLifeCycleAttribute(global::NUnit.Framework.LifeCycle.InstancePerTestCase)]
-    [global::NUnit.Framework.IgnoreAttribute("Ignored feature")]
-    public partial class SightingsMapFeature
+    [global::NUnit.Framework.CategoryAttribute("ai-companion")]
+    public partial class AICompanionForSightingsCSP_120Feature
     {
         
         private global::Reqnroll.ITestRunner testRunner;
         
         private static string[] featureTags = new string[] {
-                "ignore"};
+                "ai-companion"};
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "Sightings Map", "    As a user of the Wildlife AID app\r\n    I want to view wildlife sightings on a" +
-                "n interactive map\r\n    So that I can see where animals have been spotted in my a" +
-                "rea", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "AI Companion for Sightings (CSP-120)", "  As a logged-in WildlifeAID user\r\n  I want a globally-accessible AI chat compani" +
+                "on\r\n  So that I can ask wildlife-education and observer-safety questions from an" +
+                "y page", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
-#line 1 "SightingsMap.feature"
+#line 1 "CSP-120.feature"
 #line hidden
         
         [global::NUnit.Framework.OneTimeSetUpAttribute()]
@@ -109,23 +109,23 @@ namespace MH.Capstone.Tests.Acceptance.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/SightingsMap.feature.ndjson", 5);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/CSP-120.feature.ndjson", 6);
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("User views the sightings map")]
-        [global::NUnit.Framework.CategoryAttribute("map")]
-        public async global::System.Threading.Tasks.Task UserViewsTheSightingsMap()
+        [global::NUnit.Framework.DescriptionAttribute("Alex sees the AI Companion button when logged in")]
+        [global::NUnit.Framework.CategoryAttribute("functionality")]
+        public async global::System.Threading.Tasks.Task AlexSeesTheAICompanionButtonWhenLoggedIn()
         {
             string[] tagsOfScenario = new string[] {
-                    "map"};
+                    "functionality"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "0";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("User views the sightings map", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Alex sees the AI Companion button when logged in", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
 #line 8
-this.ScenarioInitialize(scenarioInfo, ruleInfo);
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
             {
@@ -135,32 +135,29 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             {
                 await this.ScenarioStartAsync();
 #line 9
-    await testRunner.GivenAsync("I am a logged in user", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+    await testRunner.GivenAsync("Alex is logged in and viewing any page on the site", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 10
-    await testRunner.WhenAsync("I navigate to the sightings map page", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
-#line hidden
-#line 11
-    await testRunner.ThenAsync("I should see an interactive map", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+    await testRunner.ThenAsync("Alex should see an \"Ask the AI Companion\" button", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Map displays sightings within bounds")]
-        [global::NUnit.Framework.CategoryAttribute("map")]
-        public async global::System.Threading.Tasks.Task MapDisplaysSightingsWithinBounds()
+        [global::NUnit.Framework.DescriptionAttribute("Alex asks a wildlife question and receives a reply")]
+        [global::NUnit.Framework.CategoryAttribute("functionality")]
+        public async global::System.Threading.Tasks.Task AlexAsksAWildlifeQuestionAndReceivesAReply()
         {
             string[] tagsOfScenario = new string[] {
-                    "map"};
+                    "functionality"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "1";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Map displays sightings within bounds", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Alex asks a wildlife question and receives a reply", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 14
-this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line 13
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
             {
@@ -169,49 +166,36 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
+#line 14
+    await testRunner.GivenAsync("Alex is logged in and viewing any page on the site", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line hidden
 #line 15
-    await testRunner.GivenAsync("I am a logged in user", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+    await testRunner.WhenAsync("Alex opens the AI Companion chat", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-                global::Reqnroll.Table table1 = new global::Reqnroll.Table(new string[] {
-                            "Latitude",
-                            "Longitude",
-                            "Description"});
-                table1.AddRow(new string[] {
-                            "44.9429",
-                            "-123.0351",
-                            "Deer near Salem"});
-                table1.AddRow(new string[] {
-                            "45.5152",
-                            "-122.6784",
-                            "Eagle in Portland"});
 #line 16
-    await testRunner.AndAsync("the following sightings exist:", ((string)(null)), table1, "And ");
+    await testRunner.AndAsync("Alex asks \"What should I know about black bear safety?\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-#line 20
-    await testRunner.WhenAsync("I request sightings for bounds 44.0 to 46.0 latitude and -124.0 to -122.0 longitu" +
-                        "de", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
-#line hidden
-#line 21
-    await testRunner.ThenAsync("I should receive 2 sightings", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line 17
+    await testRunner.ThenAsync("Alex should see a reply from the AI Companion", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Map filters sightings outside bounds")]
-        [global::NUnit.Framework.CategoryAttribute("map")]
-        public async global::System.Threading.Tasks.Task MapFiltersSightingsOutsideBounds()
+        [global::NUnit.Framework.DescriptionAttribute("James (unauthenticated) cannot access the AI Companion")]
+        [global::NUnit.Framework.CategoryAttribute("functionality")]
+        public async global::System.Threading.Tasks.Task JamesUnauthenticatedCannotAccessTheAICompanion()
         {
             string[] tagsOfScenario = new string[] {
-                    "map"};
+                    "functionality"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "2";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Map filters sightings outside bounds", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("James (unauthenticated) cannot access the AI Companion", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 24
-this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line 20
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
             {
@@ -220,30 +204,52 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 25
-    await testRunner.GivenAsync("I am a logged in user", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line 21
+    await testRunner.GivenAsync("James is not logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-                global::Reqnroll.Table table2 = new global::Reqnroll.Table(new string[] {
-                            "Latitude",
-                            "Longitude",
-                            "Description"});
-                table2.AddRow(new string[] {
-                            "44.9429",
-                            "-123.0351",
-                            "Deer near Salem"});
-                table2.AddRow(new string[] {
-                            "34.0522",
-                            "-118.2437",
-                            "Coyote in Los Angeles"});
+#line 22
+    await testRunner.WhenAsync("James visits a page on the site", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 23
+    await testRunner.ThenAsync("James should not see the \"Ask the AI Companion\" button", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::NUnit.Framework.TestAttribute()]
+        [global::NUnit.Framework.DescriptionAttribute("AI Companion refuses to handle off-topic prompts")]
+        [global::NUnit.Framework.CategoryAttribute("functionality")]
+        public async global::System.Threading.Tasks.Task AICompanionRefusesToHandleOff_TopicPrompts()
+        {
+            string[] tagsOfScenario = new string[] {
+                    "functionality"};
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "3";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("AI Companion refuses to handle off-topic prompts", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
 #line 26
-    await testRunner.AndAsync("the following sightings exist:", ((string)(null)), table2, "And ");
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 27
+    await testRunner.GivenAsync("Alex is logged in and viewing any page on the site", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 28
+    await testRunner.WhenAsync("Alex opens the AI Companion chat", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 29
+    await testRunner.AndAsync("Alex asks \"Help me write a Python script to scrape a website\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 30
-    await testRunner.WhenAsync("I request sightings for bounds 44.0 to 46.0 latitude and -124.0 to -122.0 longitu" +
-                        "de", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
-#line hidden
-#line 31
-    await testRunner.ThenAsync("I should receive 1 sighting", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+    await testRunner.ThenAsync("Alex should see a reply redirecting the conversation back to wildlife topics", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

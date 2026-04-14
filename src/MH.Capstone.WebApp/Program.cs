@@ -1,9 +1,11 @@
+using MH.Capstone.Domain.ApiContracts.Gemini;
 using MH.Capstone.Domain.ApiContracts.Ninja;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.Domain.Services.Api;
 using MH.Capstone.Domain.Services.Background;
 using MH.Capstone.Domain.Services.Notifications;
 using Microsoft.AspNetCore.Identity;
@@ -118,6 +120,18 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<ISightingsService, SightingsService>();
             builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
             builder.Services.AddScoped<IReportService, ReportService>();
+
+            // AI Companion (CSP-120) — Gemini-backed wildlife education chat
+            if (featureFlags.IsEnabled("EnableGeminiAIService") && !EF.IsDesignTime)
+            {
+                entryLogger.LogInformation("EnableGeminiAIService flag is ON. Registering GeminiAIService.");
+                builder.Services.Configure<GeminiOptions>(builder.Configuration.GetSection(GeminiOptions.SectionName));
+                builder.Services.AddHttpClient<IAIService, GeminiAIService>();
+            }
+            else
+            {
+                entryLogger.LogInformation("EnableGeminiAIService flag is OFF. GeminiAIService will not be registered.");
+            }
 
             // Configure Azure Communication Services Email client depending on feature flag state and when EF is not in design-time
             var emailConnectionString = builder.Configuration.GetConnectionString("AzureCommunicationServices");
