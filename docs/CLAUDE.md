@@ -202,6 +202,36 @@ Access-denied detection: checks if `driver.Url` contains `/account/login` (case-
 
 ---
 
+## PBI Implementation Workflow
+
+When implementing a Jira PBI (backlog item), **always** deliver both the feature code and its tests. "Done" means the story works and is tested.
+
+### Test requirements per PBI
+
+- **Unit tests** — cover all new/modified service methods and controller actions in isolation (NUnit + Moq + FluentAssertions)
+- **BDD/Acceptance tests** — at least one Reqnroll `.feature` scenario per acceptance criterion in the PBI (Selenium end-to-end)
+
+### Red / Green / Refactor
+
+Follow Red/Green/Refactor whenever feasible:
+
+1. **Red** — write a failing test that captures the requirement; commit
+2. **Green** — write the minimal implementation to make it pass; commit
+3. **Refactor** — clean up without breaking the test; commit
+
+One commit per Red/Green/Refactor cycle. For BDD scenarios, implement **one scenario per commit** (write the feature step + step definition + implementation together as a single unit of work).
+
+### Commit message convention for TDD cycles
+
+```
+[CSP-XXX] Red: <what the failing test asserts>
+[CSP-XXX] Green: <what was implemented to pass>
+[CSP-XXX] Refactor: <what was cleaned up>
+[CSP-XXX] BDD: <scenario name from .feature file>
+```
+
+---
+
 ## CI/CD
 
 Two GitHub Actions workflows in `.github/workflows/`:
