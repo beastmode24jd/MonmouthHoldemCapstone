@@ -1,5 +1,6 @@
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.Domain.Tools;
 using MH.Capstone.WebApp.Controllers;
 using MH.Capstone.WebApp.Models;
 using Microsoft.AspNetCore.Http;
@@ -18,6 +19,7 @@ public class AccountControllerTests
     private Mock<IAuthenticationService> _mockAuthService;
     private Mock<IUserService> _mockUserService;
     private Mock<ILogger<AccountController>> _mockLogger;
+    private Mock<IEmailService> _mockEmailService;
     private AccountController _controller;
     private Mock<UserManager<ApplicationUser>> _mockUserManager;
     private Mock<IUrlHelper> _mockUrlHelper;
@@ -28,6 +30,7 @@ public class AccountControllerTests
         _mockAuthService = new Mock<IAuthenticationService>();
         _mockUserService = new Mock<IUserService>();
         _mockLogger = new Mock<ILogger<AccountController>>();
+        _mockEmailService = new Mock<IEmailService>();
         _mockUrlHelper = new Mock<IUrlHelper>();
 
         // Mock UserManager (requires a Mock UserStore)
@@ -39,6 +42,8 @@ public class AccountControllerTests
             _mockAuthService.Object,
             _mockUserService.Object,
             _mockUserManager.Object,
+            _mockEmailService.Object,
+            new FeatureFlags(),
             _mockLogger.Object);
 
         // Setup the Mock URL Helper to return a dummy string
