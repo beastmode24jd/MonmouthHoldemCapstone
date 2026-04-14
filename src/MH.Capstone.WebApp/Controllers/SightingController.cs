@@ -128,6 +128,52 @@ namespace MH.Capstone.WebApp.Controllers
 
             _logger.LogInformation("User {UserId} accessed community gallery with {Count} total sightings",
                 user.Id, viewModel.SightingCount);
+            
+            // Get the timezone from global cookie, defaults to PST
+            string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
+            TimeZoneInfo userZone;
+            
+            try
+            {
+                userZone = TimeZoneInfo.FindSystemTimeZoneById(userTimeZoneId);
+            }
+            catch
+            {
+                // Fallback for Windows environment or invalid IANA IDs
+                userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+            }
+
+            // Convert the sightings to a ViewModel for display
+            // This handles byte[] to base64 conversion for images
+            var viewModel = new SightingGalleryViewModel(sightings);
+
+            // Adjust the offset, and show each Sighting with the device's local display time
+            foreach (var sighting in viewModel.Sightings)
+            {
+                sighting.Timestamp = TimeZoneInfo.ConvertTime(sighting.Timestamp, userZone);
+                
+                // Correcting visual bugs for previous saved Sightings
+                if (sighting.PointValue < 10 && sighting.PointValue >= 0)
+                {
+                    // Assign the front-end display the default value.
+                    sighting.PointValue = 10;
+                }
+
+                if (sighting.RarityMultiplier == 0)
+                {
+                    // Invalid Rarity Multiplier, default to Common Rarity
+                    sighting.RarityMultiplier = 1.0;
+                }
+
+                if (sighting.Rarity != "Common" && sighting.Rarity != "Mythic" && sighting.Rarity != "Rare")
+                {
+                    // Invalid Rarity value. Default to Common.
+                    sighting.Rarity = "Common";
+                }
+            }
+
+            _logger.LogInformation("User {Email} accessed gallery with {Count} sightings", 
+                user.Email, viewModel.SightingCount);
 
             return View(viewModel);
         }

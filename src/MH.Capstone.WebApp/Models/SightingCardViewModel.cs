@@ -19,6 +19,19 @@ namespace MH.Capstone.WebApp.Models
         // CSP-96: Attribution — the display username of the submitting user
         public string SubmittedByUsername { get; set; } = string.Empty;
 
+        // New metadata fields, added from Sighting data model
+
+        public int PointValue { get; set; } = 10;
+
+        public bool LoginStreak { get; set; }
+
+        public string Rarity { get; set; } = "Common";
+
+        public double RarityMultiplier { get; set; } = 1.0;
+
+        public DateTimeOffset Timestamp { get; set; }
+
+       
         public SightingCardViewModel() { }
 
         public SightingCardViewModel(Sighting sighting)
@@ -27,9 +40,16 @@ namespace MH.Capstone.WebApp.Models
             Description = sighting.Description;
             SubmittedByUserId = sighting.UserIdentityId;
             SubmittedByUsername = sighting.User?.UserName ?? "Unknown";
+            PointValue = sighting.PointValue;
+            LoginStreak = sighting.LoginStreak;
+            Rarity = sighting.Rarity;
+            RarityMultiplier = sighting.RarityMultiplier;
+            Timestamp = sighting.Timestamp;
 
             var base64 = Convert.ToBase64String(sighting.ImageBuffer);
             ImageDataUrl = $"data:image/jpeg;base64,{base64}";
+
+
         }
     }
 }
