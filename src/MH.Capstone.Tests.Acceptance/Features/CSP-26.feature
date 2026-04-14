@@ -4,38 +4,34 @@ Feature: Account Password Reset
     So that I can still log into my account, even if I forget my password
 
 @login
-Scenario: User is looking for the Forgot Password page on the Login page.
+Scenario: Alex is looking for the Forgot Password page on the Login page.
     Given I am on the Login Page
     When I look at the Login input form
     Then I should see a Forgot Password link
-    And it should change colors and my mouse cursor when I
-    hover over it
+    And it should change colors and my mouse cursor when I hover over it
 
 
-#Scenario: User has entered an account identifier (email, username) that does not exist in the database.
+#Scenario: James has entered an account identifier (email, username) that does not exist in the database.
     #Given I am on the Forgot Password page
     #When I submit an account search for an invalid account
     #identifier (email, username) that does not exist within the current database
     #Then I should see an error message saying it could not find that account
 
-#Scenario: User has entered a correct account identifier, and is being shown the “Confirm New Password” part of the form.
+#Scenario: Alex has entered correct account parameters, and is being shown the “Confirm New Password” part of the form.
     #Given I am on the Forgot Password page
     #When I submit an account search for a valid account
     #that exists within the DB
     #Then I should be shown a Confirm New Password prompt,
     #with two password fields
 
-
-#Scenario: The User is on the “Confirm New Password” page, but they have not
-    #written the same password twice for the password change.
+#Scenario: Alex is on the “Confirm New Password” page, but he has not written the same password twice for the password change.
     #Given I am on the Confirm New Password page
     #When I submit text in the new password boxes that do not match
     #And I click Save
     #Then I should see an error message telling me the inputs do not match
 
 
-#Scenario: The User is on the “Confirm New Password” page,
-    #and has properly submitted the same password twice.
+#Scenario: Alex is on the “Confirm New Password” page, and has submitted the same password twice.
     #Given I am on the Confirm New Password page
     #When I submit two matching text inputs in the new password boxes
     #And I click Save

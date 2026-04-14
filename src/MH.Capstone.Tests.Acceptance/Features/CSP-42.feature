@@ -1,8 +1,7 @@
-Feature: Profile Customization
+Feature: Profile Icon Upload
     As a user of the Wildlife AID app
-    I want to be able to customize my profile
-    So that I can showcase my unique style and experience in the Dashboard
-        when I log in
+    I want to be able to change my icon image
+    So that I can customize my account and stand out from other players
 
 @dashboard
 Scenario: Alex has not submitted a custom profile image
