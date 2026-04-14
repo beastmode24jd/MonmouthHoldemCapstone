@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using MH.Capstone.Tests.Acceptance.Configuration;
 using MH.Capstone.Tests.Acceptance.PageObjects;
 using OpenQA.Selenium;
+// ReSharper disable SpecifyACultureInStringConversionExplicitly
 
 namespace MH.Capstone.Tests.Acceptance.Drivers;
 
@@ -33,6 +34,38 @@ public class SightingsDriver
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
         page.ImageUploadBtn.SendKeys(absoluteFilePath);
         page.SubmitBtn.Click();
+    }
+
+    /// <summary>Sets the latitude input to the given value.</summary>
+    public void SetLatitude(double latitude)
+    {
+        var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
+        page.LatInput.Clear();
+        page.LatInput.SendKeys(latitude.ToString());
+    }
+
+    /// <summary>Sets the longitude input to the given value.</summary>
+    public void SetLongitude(double longitude)
+    {
+        var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
+        page.LongInput.Clear();
+        page.LongInput.SendKeys(longitude.ToString());
+    }
+
+    /// <summary>Sets the timestamp input to the given value.</summary>
+    public void SetTimestamp(DateTimeOffset timestamp)
+    {
+        var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
+        page.TimeInput.Clear();
+        page.TimeInput.SendKeys(timestamp.ToString("yyyy-MM-ddTHH:mm"));
+    }
+
+    /// <summary>Sets the description input to the given value.</summary>
+    public void SetDescription(string description)
+    {
+        var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
+        page.DescInput.Clear();
+        page.DescInput.SendKeys(description);
     }
 
     /// <summary>Clicks the submit button on the currently displayed upload form.</summary>
