@@ -53,10 +53,13 @@ public class CSP42StepDefinitions
     [When("I look at the menu bar at the top of the page")]
     public void WhenILookAtTheMenuBarAtTheTopOfThePage()
     {
+        // Wait for the dashboard to load
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
+
         // Check icon element while logged in.
-        // Uses ID from _Layout.cshtml [cite: 142]
-        // Assign result of FindElement to a variable
-        var navProfileImg = _driver.FindElement(By.Id("navProfile"));
+        // Uses ID from _Layout.cshtml
+        var navProfileImg = wait.Until(d => d.FindElement(By.Id("navProfile")));
+        navProfileImg.Displayed.Should().BeTrue();
 
         // Store it in scenario context for "Then", using _scenarioContext
         _scenarioContext["NavProfileElement"] = navProfileImg;
@@ -222,7 +225,12 @@ public class CSP42StepDefinitions
         loginButton.Click();
 
         // Get the current profile image path/src, save to scenario context for later comparison
-        var navProfileImg = _driver.FindElement(By.Id("navProfile"));
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
+
+        // Uses ID from _Layout.cshtml
+        var navProfileImg = wait.Until(d => d.FindElement(By.Id("navProfile")));
+        navProfileImg.Displayed.Should().BeTrue();
+
         string? initialSrc = navProfileImg.GetAttribute("src");
 
         _scenarioContext["InitialProfileImage"] = initialSrc;
