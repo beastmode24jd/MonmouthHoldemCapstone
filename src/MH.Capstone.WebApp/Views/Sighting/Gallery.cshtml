@@ -1,61 +1,80 @@
 @model SightingGalleryViewModel
 @{
-    ViewData["Title"] = "My Sightings Gallery";
+    ViewData["Title"] = "Sightings Gallery";
 }
 
 <div class="container mt-4">
     <div class="card shadow">
         <div class="card-body">
             <h1 class="card-title">
-                <i class="bi bi-camera-fill text-primary"></i> My Sightings Gallery
+                <i class="bi bi-camera-fill text-primary"></i> Sightings Gallery
             </h1>
             <hr />
 
-            @* Display sighting count when user has sightings *@
-            @if (Model.HasSightings)
-            {
-                <p class="text-muted mb-4">
-                    <i class="bi bi-images"></i> 
-                    You have <strong>@Model.SightingCount</strong> @(Model.SightingCount == 1 ? "sighting" : "sightings")
-                </p>
-            }
+            @* Filter Controls — CSP-96 *@
+            <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+                <div class="btn-group" role="group" aria-label="Gallery filter">
+                    <button id="filterAll" type="button" class="btn btn-primary active">
+                        <i class="bi bi-globe"></i> All Sightings
+                    </button>
+                    <button id="filterMine" type="button" class="btn btn-outline-primary">
+                        <i class="bi bi-person-fill"></i> My Sightings
+                    </button>
+                </div>
+                <span id="galleryCountLabel" class="text-muted small"></span>
+            </div>
 
-            @* Empty State - shown when user has no sightings *@
+            @* All-Sightings empty state — shown when DB has no sightings at all *@
             @if (!Model.HasSightings)
             {
-                <div class="text-center py-5">
+                <div id="emptyStateAll" class="text-center py-5">
                     <i class="bi bi-binoculars display-1 text-muted mb-3"></i>
-                    <h3 class="text-muted">Your Gallery is Empty</h3>
+                    <h3 class="text-muted">No Sightings Yet</h3>
                     <p class="lead text-muted mb-4">
-                        Start exploring and upload your first wildlife sighting to earn points and badges!
+                        Be the first to explore and upload a wildlife sighting!
                     </p>
                     <a asp-controller="Sighting" asp-action="Upload" class="btn btn-primary btn-lg">
                         <i class="bi bi-camera-fill"></i> Upload Your First Sighting
                     </a>
                 </div>
             }
-            else
+
+            @* My-Sightings empty state — shown by JS when filter is "mine" and user has no sightings *@
+            <div id="emptyStateMine" class="text-center py-5" style="display:none">
+                <i class="bi bi-binoculars display-1 text-muted mb-3"></i>
+                <h3 class="text-muted">Your Gallery is Empty</h3>
+                <p class="lead text-muted mb-4">
+                    Start exploring and upload your first wildlife sighting to earn points and badges!
+                </p>
+                <a asp-controller="Sighting" asp-action="Upload" class="btn btn-primary btn-lg">
+                    <i class="bi bi-camera-fill"></i> Upload Your First Sighting
+                </a>
+            </div>
+
+            @* Responsive Gallery Grid *@
+            @if (Model.HasSightings)
             {
-                @* Responsive Gallery Grid *@
-                <div class="row g-4">
+                <div id="sightingsGrid" class="row g-4">
                     @foreach (var sighting in Model.Sightings)
                     {
-                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 sighting-card-wrapper"
+                             data-user-id="@sighting.SubmittedByUserId">
                             <div class="card h-100 shadow-sm sighting-card">
                                 @* Sighting Image *@
-                                <img src="@sighting.ImageDataUrl" 
-                                     class="card-img-top sighting-image" 
+                                <img src="@sighting.ImageDataUrl"
+                                     class="card-img-top sighting-image"
                                      alt="Sighting image"
                                      loading="lazy" />
-                                
-                                @* Card Body with Description and Timestamp *@
+
+                                @* Card Body *@
                                 <div class="card-body d-flex flex-column">
-                                    @* Timestamp with icon *@
-                                    <p class="card-text text-muted small mb-2">
-                                        <!-- Timestamp removed for gallery feature -->
+                                    @* Attribution — CSP-96 *@
+                                    <p class="card-text text-muted small mb-1">
+                                        <i class="bi bi-person-circle"></i>
+                                        <span class="sighting-attribution">@sighting.SubmittedByUsername</span>
                                     </p>
-                                    
-                                    @* Description - show if exists, otherwise placeholder *@
+
+                                    @* Description *@
                                     @if (!string.IsNullOrWhiteSpace(sighting.Description))
                                     {
                                         <p class="card-text flex-grow-1">
@@ -78,29 +97,98 @@
     </div>
 </div>
 
+@* Hidden element carrying the current user's ID for client-side filtering *@
+<span id="currentUserId" data-user-id="@Model.CurrentUserId" style="display:none"></span>
+
+@* Gallery filter + sessionStorage persistence — CSP-96 *@
+<script>
+    (function () {
+        const STORAGE_KEY = 'galleryFilter';
+        const currentUserId = document.getElementById('currentUserId')?.dataset.userId ?? '';
+
+        const filterAllBtn = document.getElementById('filterAll');
+        const filterMineBtn = document.getElementById('filterMine');
+        const emptyStateMine = document.getElementById('emptyStateMine');
+        const countLabel = document.getElementById('galleryCountLabel');
+
+        function applyFilter(filter) {
+            sessionStorage.setItem(STORAGE_KEY, filter);
+
+            const cards = document.querySelectorAll('.sighting-card-wrapper');
+            let visibleCount = 0;
+
+            if (filter === 'mine') {
+                filterAllBtn.classList.remove('btn-primary', 'active');
+                filterAllBtn.classList.add('btn-outline-primary');
+                filterMineBtn.classList.remove('btn-outline-primary');
+                filterMineBtn.classList.add('btn-primary', 'active');
+
+                cards.forEach(function (card) {
+                    if (card.dataset.userId === currentUserId) {
+                        card.style.display = '';
+                        visibleCount++;
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+
+                if (emptyStateMine) {
+                    emptyStateMine.style.display = visibleCount === 0 ? '' : 'none';
+                }
+                if (countLabel) {
+                    countLabel.textContent = visibleCount === 0
+                        ? ''
+                        : visibleCount + ' ' + (visibleCount === 1 ? 'sighting' : 'sightings');
+                }
+            } else {
+                filterAllBtn.classList.add('btn-primary', 'active');
+                filterAllBtn.classList.remove('btn-outline-primary');
+                filterMineBtn.classList.add('btn-outline-primary');
+                filterMineBtn.classList.remove('btn-primary', 'active');
+
+                cards.forEach(function (card) {
+                    card.style.display = '';
+                    visibleCount++;
+                });
+
+                if (emptyStateMine) {
+                    emptyStateMine.style.display = 'none';
+                }
+                if (countLabel) {
+                    countLabel.textContent = visibleCount + ' ' + (visibleCount === 1 ? 'sighting' : 'sightings');
+                }
+            }
+        }
+
+        if (filterAllBtn) {
+            filterAllBtn.addEventListener('click', function () { applyFilter('all'); });
+        }
+        if (filterMineBtn) {
+            filterMineBtn.addEventListener('click', function () { applyFilter('mine'); });
+        }
+
+        // Restore persisted filter on page load
+        const saved = sessionStorage.getItem(STORAGE_KEY) || 'all';
+        applyFilter(saved);
+    })();
+</script>
+
 @* Custom CSS for gallery cards *@
 <style>
-    /* Sighting card hover effect */
     .sighting-card {
         transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
         cursor: pointer;
     }
-    
+
     .sighting-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
     }
-    
-    /* Image styling - maintain aspect ratio and cover */
+
     .sighting-image {
         width: 100%;
         height: 200px;
         object-fit: cover;
         object-position: center;
-    }
-    
-    /* Ensure cards in the same row have equal height */
-    .sighting-card {
-        height: 100%;
     }
 </style>
