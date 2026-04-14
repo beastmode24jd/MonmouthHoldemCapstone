@@ -1,0 +1,93 @@
+name: EF Core Tests
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+
+  validate_ef:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read  # Required to download artifact from the source run
+    env:
+      # For color output from the dotnet commands. ENVs are scoped to all steps in the job
+      DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION: true
+      TERM: xterm-256color
+
+    steps:
+      - name: Download artifact from build job
+        id: artifact_download
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ github.sha }}
+          run-id: ${{ needs.build.outputs.source_run_id }}
+          github-token: ${{ github.token }}
+          path: ./src
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.x'
+
+      - name: Install dotnet-ef tool
+        run: dotnet tool install --global dotnet-ef --version ${{ vars.DOTNET_EF_VERSION }}
+
+      - name: Ensure no missing EF Migrations - ApplicationDbContext
+        run: |
+          MIGRATION_NAME="__AutoCheck"
+          MIGRATION_STARTUP="./src/MH.Capstone.WebApp"
+          MIGRATION_PROJ="./src/MH.Capstone.Domain"
+          MIGRATION_CONTEXT="ApplicationDbContext"
+          MIGRATIONS_FOLDER="./src/MH.Capstone.Domain/Migrations"
+          EXIT_CODE=0
+          # Run the add migration command. Specify the startup project and context if needed.
+          dotnet ef migrations add $MIGRATION_NAME --no-build --configuration Release -p $MIGRATION_PROJ -s $MIGRATION_STARTUP -c $MIGRATION_CONTEXT
+          echo "Running migration file check on path: '${MIGRATIONS_FOLDER}/*_${MIGRATION_NAME}.cs' (excluding '*.Designer.cs')"
+
+          # Check if the generated file contains any operations (e.g., migrationBuilder.)
+          if grep -q "migrationBuilder\." ${MIGRATIONS_FOLDER}/*_${MIGRATION_NAME}.cs --exclude=*.Designer.cs; then
+            echo "⚠️ Uncommitted model changes detected. A migration file is missing."
+            EXIT_CODE=1
+          else
+            echo "✅ Your model matches the last migration snapshot. No missing migrations."
+          fi
+
+          # Clean up the temporary file
+          dotnet ef migrations remove --force --no-build --configuration Release -p $MIGRATION_PROJ -s $MIGRATION_STARTUP -c $MIGRATION_CONTEXT
+          # Restore all modified files from EF Core check, including new, untracked files (clean)
+          git restore . && git clean -fd
+          exit $EXIT_CODE
+
+      - name: Ensure no missing EF Migrations - CacheDbContext
+        run: |
+          MIGRATION_NAME="__AutoCheck"
+          MIGRATION_STARTUP="./src/MH.Capstone.WebApp"
+          MIGRATION_PROJ="./src/MH.Capstone.Domain"
+          MIGRATION_CONTEXT="CacheDbContext"
+          MIGRATIONS_FOLDER="./src/MH.Capstone.Domain/Migrations"
+          EXIT_CODE=0
+          # Run the add migration command. Specify the startup project and context if needed.
+          dotnet ef migrations add $MIGRATION_NAME --no-build --configuration Release -p $MIGRATION_PROJ -s $MIGRATION_STARTUP -c $MIGRATION_CONTEXT
+          echo "Running migration file check on path: '${MIGRATIONS_FOLDER}/*_${MIGRATION_NAME}.cs' (excluding '*.Designer.cs')"
+
+          # Check if the generated file contains any operations (e.g., migrationBuilder.)
+          if grep -q "migrationBuilder\." ${MIGRATIONS_FOLDER}/*_${MIGRATION_NAME}.cs --exclude=*.Designer.cs; then
+            echo "⚠️ Uncommitted model changes detected. A migration file is missing."
+            EXIT_CODE=1
+          else
+            echo "✅ Your model matches the last migration snapshot. No missing migrations."
+          fi
+
+          # Clean up the temporary file
+          dotnet ef migrations remove --force --no-build --configuration Release -p $MIGRATION_PROJ -s $MIGRATION_STARTUP -c $MIGRATION_CONTEXT
+          # Restore all modified files from EF Core check, including new, untracked files (clean)
+          git restore . && git clean -fd
+          exit $EXIT_CODE

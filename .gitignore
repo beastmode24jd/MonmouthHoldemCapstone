@@ -3,6 +3,9 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+# Local Claude Code instructions (personal/machine-specific; see docs/CLAUDE.md for shared team instructions)
+/CLAUDE.md
+
 # User-specific files
 *.rsuser
 *.suo
@@ -11,8 +14,8 @@
 *.sln.docstates
 *.env
 uploads/
-# Hide Development Enviornment settings from Git
-appsettings.Development.json
+# Hide all Enviornment-specific settings from Git
+appsettings.*.json
 testsettings.json
 
 # User-specific files (MonoDevelop/Xamarin Studio)
@@ -420,6 +423,9 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Claude Code
+**/.claude/
 
 # Team-Added additional ignores
 # JD GitHib CLI PR Helper Files

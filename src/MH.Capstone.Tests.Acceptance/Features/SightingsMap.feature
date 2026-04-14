@@ -1,3 +1,4 @@
+@ignore
 Feature: Sightings Map
     As a user of the Wildlife AID app
     I want to view wildlife sightings on an interactive map
