@@ -1,7 +1,6 @@
-using System.IO;
-using System.Text.Json;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataModels;
+using MH.Capstone.Tests.Acceptance.Configuration;
 using MH.Capstone.Tests.Acceptance.Support;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
@@ -11,6 +10,8 @@ using NUnit.Framework;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
 using Reqnroll;
+using System.IO;
+using System.Text.Json;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
@@ -20,6 +21,7 @@ public class CSP120StepDefinitions
 {
     private readonly IWebDriver _driver;
     private readonly WebDriverWait _wait;
+    private readonly AcceptanceTestSettings _settings;
 
     private const string DefaultPassword = "Test@1234";
     private static readonly Lazy<string?> _connectionString = new(LoadConnectionString);
@@ -27,10 +29,11 @@ public class CSP120StepDefinitions
     private readonly List<string> _createdUserIds = new();
     private readonly Dictionary<string, ApplicationUser> _personaUsers = new();
 
-    public CSP120StepDefinitions(IWebDriver driver, WebDriverWait wait)
+    public CSP120StepDefinitions(IWebDriver driver, WebDriverWait wait, AcceptanceTestSettings settings)
     {
         _driver = driver;
         _wait = wait;
+        _settings = settings;
     }
 
     #region Given
@@ -46,7 +49,7 @@ public class CSP120StepDefinitions
         var user = EnsurePersona(name);
         LoginUser(user.Email!, DefaultPassword);
 
-        _driver.Navigate().GoToUrl(Hooks.BaseUrl);
+        _driver.Navigate().GoToUrl(_settings.BaseUrl);
         _wait.Until(d => d.FindElement(By.TagName("body")));
     }
 
@@ -63,7 +66,7 @@ public class CSP120StepDefinitions
     [When("James visits a page on the site")]
     public void WhenJamesVisitsAPageOnTheSite()
     {
-        _driver.Navigate().GoToUrl(Hooks.BaseUrl);
+        _driver.Navigate().GoToUrl(_settings.BaseUrl);
         _wait.Until(d => d.FindElement(By.TagName("body")));
     }
 
@@ -236,7 +239,7 @@ public class CSP120StepDefinitions
 
     private void LoginUser(string email, string password)
     {
-        _driver.Navigate().GoToUrl($"{Hooks.BaseUrl}/Account/Login");
+        _driver.Navigate().GoToUrl($"{_settings.BaseUrl}/Account/Login");
         _wait.Until(d => d.FindElement(By.Id("Email")));
 
         _driver.FindElement(By.Id("Email")).SendKeys(email);
