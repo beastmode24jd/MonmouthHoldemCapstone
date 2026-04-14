@@ -1,254 +1,454 @@
-# Codebase Audit - Monmouth Hold'em Capstone (WildlifeAID)
+# CLAUDE.md — Project Context for AI Assistants
 
-## Project Summary
+This file provides a structured overview of the **Competitive Wildlife Scavenger App (CWSA)** capstone project for use by AI coding assistants. It covers purpose, architecture, conventions, and how to navigate the codebase effectively.
 
-**What it is:** A gamified wildlife observation web app built for Western Oregon University's Academic Excellence Showcase (May 28, 2026). Users log wildlife sightings, earn points based on rarity, collect badges, and compete on a leaderboard.
+---
 
-**Team:** Monmouth Hold'em (Marquis Bowles, JD McShane, Arin Porter, Pedro Govea)
-**Repository:** jmcshane22/MonmouthHoldemCapstone
-**Current Phase:** Sprint 4 of 8 (March 31 - April 14, 2026)
+## Project Purpose
+
+**CWSA** is a WOU Computer Science senior capstone project (team: "Monmouth Hold'em", class of 2026). The concept is "Pokemon GO meets iNaturalist with real competition."
+
+Users go into nature, submit wildlife sightings (GPS + photo), earn points based on species rarity, climb a leaderboard, and earn achievement badges. Admins moderate content via a reports system. An Anidex species catalog (backed by the API-Ninjas Animals API) enriches sighting data.
+
+---
+
+## Solution Structure
+
+```
+/src
+  MH.Capstone.Domain/               # Business logic, EF Core, services, repositories
+  MH.Capstone.WebApp/               # ASP.NET Core MVC presentation layer
+  MH.Capstone.Domain.Tests.Unit/    # Unit tests for domain services
+  MH.Capstone.WebApp.Tests.Unit/    # Unit tests for controllers and view models
+  MH.Capstone.Tests.Integration/    # Full HTTP pipeline integration tests
+  MH.Capstone.Tests.Acceptance/     # BDD acceptance tests (Reqnroll + Selenium)
+  MH.Capstone.Tests.SharedInternals/# Shared test fixtures and helpers
+/docs                               # Project documentation
+/.github/workflows                  # CI/CD GitHub Actions
+```
 
 ---
 
 ## Technology Stack
 
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| Runtime | .NET | 9.0 |
-| Framework | ASP.NET Core MVC | 9.0.x |
-| ORM | Entity Framework Core | 9.0.13 |
-| Database | Azure SQL Server | - |
-| Auth | ASP.NET Core Identity | 9.0.12 |
-| Frontend CSS | Bootstrap | 5.3 |
-| Frontend JS | Vanilla JS (planned: Leaflet.js for maps) |
-| Testing | NUnit 4.4, Moq 4.20, Reqnroll 3.3.4, Selenium 4.41 |
-| Cloud | Microsoft Azure (App Service, SQL, Communication Services) |
+| Category | Technology |
+|---|---|
+| Runtime | .NET 9 (SDK 9.0.309) |
+| Web Framework | ASP.NET Core MVC |
+| ORM | Entity Framework Core 9 + SQL Server |
+| Authentication | ASP.NET Core Identity |
+| Frontend | Bootstrap 5.3, Vanilla JS, Leaflet.js (maps via OpenStreetMap) |
+| Email | Azure Communication Services (`AzureCommunicationEmailService`); `NoOpEmailService` in dev/staging |
+| External API | API-Ninjas Animals API — wrapped by `ExternalApiCaller` with SQL-backed cache |
+| Cloud Hosting | Azure App Service + Azure SQL |
+| Unit Tests | NUnit 4, Moq, FluentAssertions, coverlet |
+| Acceptance/BDD | Reqnroll (SpecFlow successor) + NUnit + Selenium ChromeDriver |
+| Integration Tests | `Microsoft.AspNetCore.Mvc.Testing` + EF Core In-Memory |
 | CI/CD | GitHub Actions |
-| External API | API Ninjas (Animals endpoint) |
 
 ---
 
 ## Architecture
 
-### Pattern: Layered MVC with Repository Pattern
+The solution is a **monolithic ASP.NET Core MVC application** split into two source projects:
+
+- **`MH.Capstone.Domain`** — all business logic: EF Core entities, two `DbContext`s, generic repository, service layer, migrations, constants, and tools.
+- **`MH.Capstone.WebApp`** — presentation only: controllers, Razor views, view models, tag helpers. Wires up DI in `Program.cs`.
+
+### Layering
 
 ```
-MH.Capstone.WebApp (Presentation)
-  ├── Controllers (9 controllers)
-  ├── Views (Razor, organized by feature)
-  ├── Models (ViewModels for data binding)
-  ├── wwwroot (static assets: CSS, JS, images)
-  └── Program.cs (DI registration, middleware)
-
-MH.Capstone.Domain (Business Logic + Data Access)
-  ├── DataModels (EF Core entities)
-  ├── DataAccess (DbContexts, generic Repository<T>)
-  ├── Services (business logic, interfaces in /Abstraction)
-  ├── ApiContracts (external API DTOs)
-  ├── Constants (BadgeIds, feature flags)
-  ├── Migrations (20+ EF Core migrations)
-  └── Tools (validators, extensions)
+Controller (WebApp)
+    ↓ injects
+Service Interface (Domain/Services/Abstraction/)
+    ↓ implemented by
+Service (Domain/Services/)
+    ↓ injects
+IRepository<T, TContext> (Domain/DataAccess/Repositories/)
+    ↓
+EF Core DbContext → SQL Server
 ```
 
-### Test Projects
-- **WebApp.Tests.Unit** - Controller + ViewModel tests (NUnit)
-- **Domain.Tests.Unit** - Service layer tests (NUnit + Moq)
-- **Tests.Integration** - Leaderboard, Reports, Gallery integration tests
-- **Tests.Acceptance** - BDD with Reqnroll (Leaderboard, SightingsMap features)
-- **Tests.SharedInternals** - Shared test utilities (fake images, random data, SQL exception builder)
+### DbContexts
+
+Two separate EF Core DbContexts sharing the same database connection string (`DataDb`), with separate migrations history tables:
+
+- **`ApplicationDbContext`** (`__EFMigrationsHistory_ApplicationDbContext`) — all app data + Identity. Uses lazy loading proxies. Seeded via `ApplicationDbContextSeeding`.
+- **`CacheDbContext`** — API response cache entities (`ApiCallerCacheEntity`, `NinjaAnimalCacheEntity`).
 
 ---
 
-## Core Data Models
+## Key Domain Entities
 
-| Entity | Key Fields | Notes |
-|--------|-----------|-------|
-| **ApplicationUser** | ProfileImage (byte[]), IsDeactivated, Points, Bio, LoginStreak, LastLogin | Extends IdentityUser |
-| **Sighting** | Lat/Lng (decimal 9,6), Timestamp (DateTimeOffset), ImageBuffer (byte[]), Description | JPG/PNG only, max 2MB, 7-day map window |
-| **Badge** | Title, Description, PointValue, BadgeIcon | 3 seeded badges with fixed GUIDs |
-| **UserBadge** | UserId, BadgeId, BadgeEarned | Join table |
-| **Notification** | Title (50), Message (250), IsRead, SentAt | In-app notifications |
-| **Report** | ReportedPageUrl, Reason, Description, IsResolved | Unique constraint: (UserId, Url) per unresolved |
-| **EmailQueue** | Recipient, Subject, HtmlBody, IsSent, Attempts | Background dispatch with retry |
+All in `src/MH.Capstone.Domain/DataModels/`:
 
----
-
-## Scoring System
-
-- **Base points:** 10 per sighting
-- **Rarity multipliers** (based on global sighting count):
-  - Mythic (<=5 sightings): 5.0x = 50 pts
-  - Rare (<=50 sightings): 2.0x = 20 pts
-  - Common (>50 sightings): 1.0x = 10 pts
-- **Login streak bonus:** 1.5x multiplier if streak active (within 30 days)
-- **Badges:**
-  - Profile Image Badge: 10 pts
-  - Custom Bio Badge: 10 pts
-  - First Sighting Badge: 25 pts
+| Entity | Key Fields |
+|---|---|
+| `ApplicationUser` | Extends `IdentityUser`. Custom: `Points`, `Bio`, `ProfileImage` (byte[]), `IsDeactivated`, `LastLogin`, `LoginStreak`, `IsStreakActive` |
+| `Sighting` | `Latitude`/`Longitude` (DECIMAL 9,6), `Timestamp` (DateTimeOffset), `Description`, `ImageBuffer` (byte[], ≤2 MB), FK to `ApplicationUser` |
+| `Badge` | `Title`, `Description`, `PointValue` (default 10), `BadgeIcon` (byte[]) |
+| `UserBadge` | Join table: user ↔ badge + `AwardedAt` timestamp |
+| `Notification` | `Title`, `Message`, `SentAt`, `IsRead`, `IsPostdated` (future-dated delivery support) |
+| `Report` | `ReportedPageUrl`, `Reason`, `Description`, `IsResolved`. Filtered unique index: no duplicate open reports per user+URL |
+| `EmailQueue` | Outbox pattern: `Recipient`, `Subject`, `HtmlBody`, `ScheduledAt`, `IsSent`, `Attempts`, `Processing` |
+| `ApiCallerCacheEntity` / `NinjaAnimalCacheEntity` | SQL-backed cache for external API responses |
 
 ---
 
-## API Routes
+## Services
 
-| Route | Controller | Auth | Purpose |
-|-------|-----------|------|---------|
-| `/` | Home | No | Landing page |
-| `/about`, `/privacy` | Home | No | Info pages |
-| `/account/login` | Account | No | Login |
-| `/account/register` | Account | No | Registration |
-| `/account/{guid}` | Account | No | Public profile |
-| `/account/deactivate` | Account | Yes | Self-deactivate |
-| `/account/reactivate` | Account | No | Reactivate |
-| `/account/forgot-password` | Account | No | Password reset |
-| `/dashboard` | Dashboard | Yes | User dashboard, badges, stats |
-| `/dashboard/UploadImage` | Dashboard | Yes | Profile image upload |
-| `/dashboard/UpdateBio` | Dashboard | Yes | Update bio |
-| `/notifications` | Dashboard | Yes | View notifications |
-| `/notifications/pending-count` | Dashboard | Yes | Unread count (JSON) |
-| `/Sighting/Upload` | Sighting | Yes | Log a sighting |
-| `/Sighting/Gallery` | Sighting | Yes | User's sightings |
-| `/Map` | Map | Yes | Interactive sightings map |
-| `/Map/Sightings` | Map | Yes | Sightings within bounds (JSON) |
-| `/Map/SightingImage/{id}` | Map | Yes | Sighting image |
-| `/leaderboard` | Leaderboard | No | Rankings (paginated, 30/page) |
-| `/animal/search` | Species | No | Animal search (Ninjas API) |
-| `/Report/Submit` | Report | Yes | Submit abuse report |
-| `/admin/manage` | Admin | Admin | User management |
-| `/uat/emailer` | Home | Feature-flagged | Email test endpoint |
+All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
+
+| Interface | Implementation | Purpose |
+|---|---|---|
+| `IAuthenticationService` | `AuthenticationService` | Login, register, logout |
+| `IUserService` | `UserService` | Profile management, deactivation |
+| `IProfileImageService` | `ProfileImageService` | Upload/retrieve profile images |
+| `ISightingsService` | `SightingsService` | Submit and query wildlife sightings |
+| `IScoringService` | `ScoringService` | Award points using rarity multiplier |
+| `IBadgeService` | `BadgeService` | Check and award badges |
+| `ILeaderboardService` | `LeaderboardService` | Ranked user standings |
+| `IReportService` | `ReportService` | Submit and resolve content reports |
+| `INotificationService` | `InAppNotificationService` | Create and deliver in-app notifications |
+| `IEmailService` | `AzureCommunicationEmailService` / `NoOpEmailService` | Send emails (toggled by `UseRealEmailerService` feature flag) |
+| `IApiCaller` | `ExternalApiCaller` | HTTP calls to external APIs with SQL caching |
+
+**Background service:** `EmailDispatcherService` (hosted service) processes the `EmailQueue` outbox.
 
 ---
 
-## Data Flow: Sighting Upload
+## Scoring Logic
 
-1. User visits `/Sighting/Upload` (GET) - controller reads timezone from cookie
-2. User submits form with coordinates, timestamp, description, image
-3. **SightingController.Upload()** validates ModelState, image type (JPG/PNG), size (<=2MB)
-4. **SightingsService.CreateSightingAsync()** saves to DB
-5. **ScoringService** counts global sightings, calculates rarity multiplier, checks login streak
-6. User points updated in database
-7. **NotificationService** sends in-app notification
-8. **BadgeService** awards FirstSightingBadge (if first time) with streak multiplier
-9. Redirect to Dashboard with success TempData message
+`ScoringService` awards points per sighting submission:
+
+- **Base:** 10 points
+- **Multiplier** based on total global sightings of that species:
+  - Mythic (≤5 sightings): **5×**
+  - Rare (≤50 sightings): **2×**
+  - Common (>50 sightings): **1×**
 
 ---
 
-## Key Architectural Patterns
+## Controllers (WebApp)
 
-- **Repository Pattern:** Generic `Repository<TEntity, TDbContext>` with async CRUD + predicate filtering
-- **Dependency Injection:** All services registered as Scoped in Program.cs
-- **Service Abstraction:** Every service has an interface in `/Services/Abstraction/`
-- **Caching Proxy:** `ApiCallerCachingProxy` wraps `ExternalApiCaller` for transparent response caching
-- **Background Service:** `EmailDispatcherService` runs continuously for async email dispatch with retry
-- **Feature Flags:** `UseRealEmailerService`, `EnableEmailTestEndpoint`, `ExposeDetailedApiCacheOnUi`
-- **CSRF Protection:** `[ValidateAntiForgeryToken]` on POST endpoints
-- **Role-Based Auth:** Admin role for user management
-
----
-
-## CI/CD Pipeline
-
-### build_test_ci.yml (PR + manual trigger)
-1. **validate-ef:** Checks for missing EF Core migrations
-2. **buildtest:** Restore -> Build (Release) -> Test -> Publish -> Create migration bundle -> Upload artifacts
-
-### deploy.yml (push to main/dev)
-1. Calls build_test_ci with deploy=true
-2. Sets environment (main=azure_prod, dev=azure_staging)
-3. Creates GitHub Release (prerelease for dev)
-4. Deploys to Azure App Service via OIDC
-5. Runs EF Core migration bundle against Azure SQL
-
-**Versioning:** YYYY.M.{run_number}.{run_attempt}
+| Controller | Responsibility |
+|---|---|
+| `AccountController` | Register, login, logout, profile |
+| `AdminController` | Admin-only views |
+| `DashboardController` | User dashboard (points, badges, recent activity) |
+| `HomeController` | Landing / marketing pages |
+| `LeaderboardController` | Global rankings |
+| `MapController` | GPS sighting map (Leaflet.js) |
+| `ReportControllers` | Submit and view content reports |
+| `SightingController` | Submit and view wildlife sightings |
+| `SpeciesController` | Anidex species catalog (Ninja API backed) |
 
 ---
 
-## CRITICAL SECURITY VULNERABILITIES
+## Feature Flags
 
-### 1. HARDCODED DATABASE CREDENTIALS (CRITICAL)
+`FeatureFlags` is registered as a singleton from `appsettings.json` configuration. Current flags:
 
-**Files affected:**
-- `src/MH.Capstone.WebApp/appsettings.Development.json` (line ~8-10)
-- `src/MH.Capstone.Tests.Acceptance/StepDefinitions/LeaderboardSteps.cs` (line ~367)
-
-**Exposed:** Azure SQL Server hostname, database name, username (`mbowles23`), and password in plaintext.
-
-**Action Required:**
-1. **Immediately rotate** the database password in Azure SQL
-2. Remove hardcoded credentials from acceptance tests - use environment variables or user secrets
-3. Verify `appsettings.Development.json` is properly gitignored (it's in .gitignore but may have been committed previously)
-4. Consider running `git filter-repo` or BFG to scrub credentials from git history
-5. Add a pre-commit hook or CI check to scan for secrets (e.g., TruffleHog, GitLeaks)
-
-### 2. Images Stored as byte[] in Database
-
-Storing images directly in the database (profile images, sighting images) as `byte[]` columns is a scalability concern. As the user base grows, database size and query performance will degrade. Consider Azure Blob Storage for image storage with URL references in the DB.
-
-### 3. AllowedHosts Set to Wildcard
-
-`appsettings.json` has `"AllowedHosts": "*"` which allows requests from any host. In production, this should be restricted to the actual domain.
+- `UseRealEmailerService` — when `true`, uses `AzureCommunicationEmailService`; otherwise `NoOpEmailService`
 
 ---
 
-## Technical Debt
+## Testing Strategy
 
-### High Priority
-- **Hardcoded connection strings** in test code (security + maintainability)
-- **Images in database** instead of blob storage (scalability bottleneck)
-- **No pagination on notifications** - could grow unbounded
-- **Mixed authentication package versions** - Domain layer references `Microsoft.AspNetCore.Authentication 2.3.9` alongside `.NET 9.0` packages
+### Unit Tests
 
-### Medium Priority
-- **No rate limiting** on API endpoints (login, sighting upload, report submission)
-- **No input sanitization** documented for user-generated content (descriptions, bios) beyond model validation
-- **Timezone handling complexity** - IANA to Windows timezone ID conversion with fallback; could cause edge cases
-- **No health check endpoint** for Azure monitoring
-- **Leaderboard queries all active users** - will need indexing/caching as user count grows
+- **`Domain.Tests.Unit`** — tests each service in isolation using Moq for all dependencies. Covers: `AuthenticationService`, `BadgeService`, `LeaderboardService`, `ScoringService`, `SightingsService`, `UserService`, `ReportService`, `NotificationService`, `ExternalApiCaller`.
+- **`WebApp.Tests.Unit`** — tests controllers and view models in isolation.
 
-### Low Priority
-- **jQuery included but not used** for development (only Bootstrap dependency)
-- **No client-side JS framework** - vanilla JS may become hard to maintain as features grow
-- **No API versioning** for the JSON endpoints
-- **Email sender address** is a raw Azure Communication Services GUID domain
+### Integration Tests
+
+- **`Tests.Integration`** — uses `Microsoft.AspNetCore.Mvc.Testing` with EF Core In-Memory to test the full HTTP pipeline. Covers leaderboard, reports, and sightings gallery endpoints.
+
+### Acceptance Tests (BDD)
+
+- **`Tests.Acceptance`** — Reqnroll feature files in `Features/`, step definitions in `StepDefinitions/`, Selenium page objects in `PageObjects/`, and browser drivers in `Drivers/`. A `TestWebAppHost.cs` auto-starts the web application when tests run. Uses `GlobalHooks` (must be static) for Reqnroll lifecycle management.
+
+#### Acceptance test infrastructure details
+
+- **Environment:** `ASPNETCORE_ENVIRONMENT = "Acceptance"`. The in-process `TestWebAppHost` starts a real Kestrel listener using `appsettings.Acceptance.json` (default port `https://localhost:5001`).
+- **Database:** Real SQL Server LocalDB (`WAID_AppDataDb`) — **not** InMemory. Migrations and seeding run normally on startup, same as production.
+- **Config load order:** `appsettings.json` → `appsettings.Acceptance.json` → `appsettings.Acceptance.Local.json` (gitignored, per-developer overrides) → environment variables.
+- **Browser:** One shared `ChromeDriver` instance for the entire test run (`BeforeTestRun` / `AfterTestRun`). No browser restart between scenarios.
+- **Scenario isolation:** `TestWebAppHost.ResetSeedData()` exists as a `TODO` stub. Until implemented, scenarios must be written to tolerate persistent database state across the run — or must clean up after themselves.
+- **DI in steps:** Reqnroll's per-scenario DI container (via `[ScenarioDependencies]` in `TestDependencySetup`) provides `IWebDriver` and `AcceptanceTestSettings` as singletons. Drivers and page objects are resolved automatically as transient.
+
+#### Seed user already referenced in step definitions
+
+`CSP53StepDefinitions` hard-codes: **`alpha@test.com` / `Capstone26!`** as "user Alpha". This user must exist in the `WAID_AppDataDb` database with the `User` role for any CSP-53 scenarios to pass.
+
+#### Page element IDs used by existing PageObjects/Drivers
+
+| Page | Element ID | Purpose |
+|---|---|---|
+| Any page | `userDropdownNavDisplay` | Detect logged-in user (nav bar) |
+| Any page | `logoutBtn` | Logout button |
+| `/Account/Login` | `Email` | Username input |
+| `/Account/Login` | `passwordField` | Password input |
+| `/Account/Login` | `RememberMe` | Remember me checkbox |
+| `/Account/Login` | `submitBtn` | Login submit button |
+| `/Sighting/Create` | `Latitude` | Latitude input |
+| `/Sighting/Create` | `Longitude` | Longitude input |
+| `/Sighting/Create` | `Timestamp` | Timestamp input |
+| `/Sighting/Create` | `Description` | Description textarea |
+| `/Sighting/Create` | `UploadedImage` | Image file upload |
+| `/Sighting/Create` | `SubmitBtn` | Form submit button |
+
+Access-denied detection: checks if `driver.Url` contains `/account/login` (case-insensitive redirect).
 
 ---
 
-## Critical Knowledge for Maintenance
+## CI/CD
 
-### To Run Locally
-1. Install .NET 9.0 SDK (v9.0.309)
-2. Set up `appsettings.Development.json` with local/dev connection strings (DO NOT commit)
-3. Run EF Core migrations: `dotnet ef database update`
-4. Run: `dotnet run --project src/MH.Capstone.WebApp`
+Two GitHub Actions workflows in `.github/workflows/`:
 
-### To Add a New Feature
-1. Create feature branch named after Jira ticket (e.g., `CSP-XXX`)
-2. Add data models in `MH.Capstone.Domain/DataModels/`
-3. Add migration: `dotnet ef migrations add MigrationName`
-4. Add service interface in `/Services/Abstraction/` and implementation in `/Services/`
-5. Register service in `Program.cs` (or `ProgramEntryExtensions.cs`)
-6. Add controller actions and views
-7. Write unit tests (NUnit + Moq)
-8. PR with template from `/docs/pr-templates/`
+**`build_test_ci.yml`** (runs on every PR):
+1. `validate-ef` job — checks both DbContexts have no pending migrations
+2. `buildtest` job — restore, build (Release), `dotnet test` all projects, publish WebApp
+3. When called with `deploy: true`: bundles EF migration executables for both contexts and uploads as artifact
 
-### To Add a New Badge
-1. Add GUID constant in `Constants/BadgeId.cs`
-2. Add seed data in `ApplicationDbContextSeeding.cs`
-3. Create migration for the seed
-4. Add award logic in `BadgeService.cs`
-5. Trigger award from relevant controller/service action
+**`deploy.yml`** (triggered on push to `main` or `dev`):
+- Calls `build_test_ci.yml` with `deploy: true`
+- `main` → production Azure App Service + non-prerelease GitHub Release
+- `dev` → staging Azure App Service + prerelease GitHub Release
+- After deploy: runs EF migration bundles against Azure SQL using OIDC passwordless auth
+- Build versioning: `YYYY.M.<run_number>.<run_attempt>`
 
-### Key Configuration
-- **Feature flags** are in `appsettings.json` and read via `IConfiguration`
-- **Connection strings** should come from Azure App Settings in production (GitHub Secret: `AZUREAPPSERVICE_DBCONNSTR`)
-- **Ninjas API key** configured under `Api:External:Ninjas:ApiKey`
+---
 
-### Database
-- **Two DbContexts:** `ApplicationDbContext` (main data + Identity) and `CacheDbContext` (API response cache)
-- **Lazy loading** is enabled via EF Core Proxies - navigation properties must be `virtual`
-- **All timestamps** stored as UTC `DateTimeOffset`, converted to local for display
+## Configuration Notes
 
-### Team Schedule
-- Mon/Wed/Fri: Standup meetings
-- Tuesday: Tech advisor meeting
-- Sprint cycle: 2 weeks
-- Showcase deadline: May 28, 2026
+- Connection string name: `DataDb` (used for both `ApplicationDbContext` and `CacheDbContext`)
+- Azure Communication Services string: `ConnectionStrings:AzureCommunicationServices`
+- Email sender address: `Email:SenderAddress`
+- Password policy: min 8 chars, requires digit, upper, lower, non-alphanumeric
+- Email confirmation: disabled for MVP (`RequireConfirmedEmail = false`)
+- Cookie login path: `/Account/Login`; access denied: `/Account/AccessDenied`
+
+---
+
+## Key File Locations
+
+| What | Where |
+|---|---|
+| DI registration / app bootstrap | `src/MH.Capstone.WebApp/Program.cs` |
+| EF seeding | `src/MH.Capstone.Domain/DataAccess/ApplicationDbContextSeeding.cs` |
+| EF migrations (app) | `src/MH.Capstone.Domain/Migrations/` |
+| Badge GUIDs / constants | `src/MH.Capstone.Domain/Constants/BadgeId.cs` |
+| Feature flags | `src/MH.Capstone.Domain/Tools/FeatureFlags.cs` |
+| API Ninja contract | `src/MH.Capstone.Domain/ApiContracts/Ninja/` |
+| Acceptance test features | `src/MH.Capstone.Tests.Acceptance/Features/` |
+| Architectural guidelines | `docs/architectural_guidelines.md` |
+
+---
+
+## Detailed Database Schema
+
+Two EF Core DbContexts, both using the `DataDb` connection string.
+
+### ApplicationDbContext tables
+
+#### `AspNetUsers` (`ApplicationUser : IdentityUser`)
+
+| Column | Type | Notes |
+|---|---|---|
+| `Id` | nvarchar(450) | PK, GUID stored as string |
+| `Email` | nvarchar(256) | |
+| `NormalizedEmail` | nvarchar(256) | Indexed |
+| `UserName` | nvarchar(256) | |
+| `NormalizedUserName` | nvarchar(256) | Unique index (nullable-filtered) |
+| `PasswordHash` | nvarchar(max) | |
+| `EmailConfirmed` | bit | |
+| `ProfileImage` | varbinary(max) | nullable; null = use default avatar |
+| `ProfileImageType` | nvarchar(50) | nullable; e.g. `"image/png"` |
+| `IsDeactivated` | bit | soft-delete flag |
+| `Points` | int | total accumulated points |
+| `Bio` | nvarchar(250) | nullable |
+| `LastLogin` | datetimeoffset | nullable |
+| `LoginStreak` | int | days in current streak |
+| Standard Identity columns | — | `SecurityStamp`, `ConcurrencyStamp`, `LockoutEnabled`, `LockoutEnd`, `AccessFailedCount`, `TwoFactorEnabled`, `PhoneNumber`, `PhoneNumberConfirmed` |
+
+`IsStreakActive` (not mapped): true when `(UtcNow − LastLogin) ≤ 30 days`.
+
+#### `Sighting`
+
+| Column | Type | Constraints |
+|---|---|---|
+| `Id` | uniqueidentifier | PK, identity |
+| `UserId` | nvarchar(450) | FK → AspNetUsers (cascade delete), indexed |
+| `Lat` | decimal(9,6) | -90 to 90 |
+| `Long` | decimal(9,6) | -180 to 180 |
+| `Timestamp` | datetimeoffset | must be in the past (`[PastDateTime]`) |
+| `Description` | nvarchar(500) | nullable |
+| `ImageBuffer` | varbinary(max) | required; 1 byte – 2 MB |
+
+#### `Badge`
+
+| Column | Type | Constraints |
+|---|---|---|
+| `BadgeID` | uniqueidentifier | PK |
+| `Title` | nvarchar(50) | 1–50 chars |
+| `Description` | nvarchar(150) | max 150 |
+| `PointValue` | int | default 10 |
+| `BadgeIcon` | varbinary(max) | nullable |
+
+Three badges are always seeded (idempotent upsert in `ApplicationDbContextSeeding`):
+
+| Constant | GUID | Title | Points |
+|---|---|---|---|
+| `BadgeId.ProfileBadgeGUID` | `A1B2C3D4-E5F6-4789-8A9B-0C1D2E3F4A5B` | Custom Profile Badge | 10 |
+| `BadgeId.CustomBioBadgeGUID` | `91E7773E-F6D7-457E-911E-8246891D65A2` | Custom Bio Badge | 10 |
+| `BadgeId.FirstSightingBadgeGUID` | `B2C3D4E5-F6A7-4890-9B0C-1D2E3F4B5A6F` | First Sighting Badge | 25 |
+
+#### `PersonalBadges` (`UserBadge`)
+
+| Column | Type | Notes |
+|---|---|---|
+| `UserBadgeId` | uniqueidentifier | PK |
+| `User ID` | nvarchar(450) | FK → AspNetUsers (cascade), indexed |
+| `Badge ID` | uniqueidentifier | FK → Badge (cascade), indexed |
+| `BadgeEarned` | datetimeoffset | nullable |
+
+#### `Notification`
+
+| Column | Type | Constraints |
+|---|---|---|
+| `Id` | uniqueidentifier | PK, identity |
+| `RecipientId` | nvarchar(450) | FK → AspNetUsers (cascade), indexed |
+| `Title` | nvarchar(50) | 1–50 chars |
+| `Message` | nvarchar(250) | 1–250 chars |
+| `SentAt` | datetimeoffset | required |
+| `IsRead` | bit | default false |
+
+`IsPostdated` (not mapped): true when `SentAt > UtcNow` — future-dated delivery is supported.
+
+#### `Report`
+
+| Column | Type | Constraints |
+|---|---|---|
+| `Id` | uniqueidentifier | PK, identity |
+| `ReportingUserId` | nvarchar(450) | FK → AspNetUsers (cascade) |
+| `ReportedPageUrl` | nvarchar(2048) | required |
+| `Reason` | nvarchar(100) | required |
+| `Description` | nvarchar(1000) | nullable |
+| `SubmittedAt` | datetime2 | defaults to `DateTime.UtcNow` |
+| `IsResolved` | bit | default false |
+
+Unique filtered index on `(ReportingUserId, ReportedPageUrl)` where `IsResolved = 0` — prevents duplicate open reports, but allows re-reporting after resolution.
+
+#### `EmailQueue`
+
+| Column | Type | Notes |
+|---|---|---|
+| `Id` | uniqueidentifier | PK, identity |
+| `Recipient` | nvarchar(450) | email address |
+| `Subject` | nvarchar(250) | |
+| `HtmlBody` | nvarchar(max) | required |
+| `PlainTextBody` | nvarchar(max) | nullable |
+| `CreatedAt` | datetimeoffset | defaults to `UtcNow` |
+| `ScheduledAt` | datetimeoffset | nullable; null = send immediately |
+| `IsSent` | bit | |
+| `SentAt` | datetimeoffset | nullable |
+| `Attempts` | int | retry count |
+| `LastAttemptAt` | datetimeoffset | nullable |
+| `LastError` | nvarchar(max) | nullable |
+| `Processing` | bit | dispatcher lock flag |
+
+Composite index on `(IsSent, ScheduledAt)` for dispatcher queries.
+
+### Standard ASP.NET Identity tables (auto-managed)
+
+`AspNetRoles`, `AspNetUserRoles`, `AspNetUserClaims`, `AspNetUserLogins`, `AspNetUserTokens`, `AspNetRoleClaims`.
+
+Seeded roles: `User`, `Admin`.
+
+### CacheDbContext tables
+
+`ApiCallerCacheEntity` / `NinjaAnimalCacheEntity` — SQL-backed cache for API-Ninjas Animals API responses. Managed separately; migrations in `src/MH.Capstone.Domain/Migrations/Cache/`.
+
+### FK dependency order for seeding
+
+```
+AspNetRoles
+  ↓
+AspNetUsers (ApplicationUser)
+  ↓
+Badge          (no FK dependencies)
+  ↓
+Sighting       (FK → AspNetUsers)
+PersonalBadges (FK → AspNetUsers + Badge)
+Notification   (FK → AspNetUsers)
+Report         (FK → AspNetUsers)
+EmailQueue     (no FK; standalone outbox)
+```
+
+---
+
+## Test Seed Data Guidance
+
+### Constraints to remember when constructing test data
+
+- `Sighting.ImageBuffer` is **required and non-empty** — use a 1-byte placeholder `new byte[] { 0x01 }` (matches existing `SightingValidValuesSource.DefaultValidSighting` pattern)
+- `Sighting.Timestamp` must be **in the past** (`[PastDateTime]` attribute validates this) — use `DateTimeOffset.UtcNow.AddDays(-N)`
+- `Report` unique filtered index: a user cannot have two **unresolved** reports for the same URL — stagger `IsResolved` values or use different URLs when seeding multiple reports per user
+- `UserBadge` requires the `Badge` row to exist first — always seed badges before `PersonalBadges` (the three standard badges are always seeded by `ApplicationDbContextSeeding`)
+- `ApplicationUser.Id` is a GUID stored as a string — use fixed GUIDs (not `Guid.NewGuid()`) in seed data so foreign keys remain stable across re-seeds
+- Passwords must satisfy Identity policy: min 8 chars, requires digit, uppercase, lowercase, non-alphanumeric — e.g. `Capstone26!`
+- Users need `NormalizedEmail` and `NormalizedUserName` set (`.ToUpper()`) and a hashed password via `PasswordHasher<ApplicationUser>`
+- Assign users to the `User` or `Admin` role via `AspNetUserRoles` (role rows are seeded by `ApplicationDbContextSeeding`)
+
+### Acceptance test seed personas
+
+These users must exist in `WAID_AppDataDb` for acceptance tests to pass. The password for all test users is `Capstone26!`.
+
+| Email | Role | Points | Badges | Sightings | Purpose |
+|---|---|---|---|---|---|
+| `alpha@test.com` | User | 75 | FirstSighting | 3 sightings | **Required** — hard-coded in `CSP53StepDefinitions` as "user Alpha"; used for all sighting upload scenarios |
+| `alice@test.com` | User | 200 | Profile + FirstSighting | 5 sightings | Leaderboard top-ranked user; exercises badge + scoring paths |
+| `bob@test.com` | User | 20 | (none) | 1 sighting | Mid-ranked user; no badges yet |
+| `newuser@test.com` | User | 0 | (none) | 0 sightings | Baseline new account; exercises empty-state views |
+| `admin@test.com` | Admin | 0 | (none) | 0 sightings | Admin-role user for moderation/report scenarios; also satisfies `AdminAccount:Hidden` config if set to this address |
+
+### Suggested sighting locations (Pacific Northwest theme)
+
+| Label | Latitude | Longitude | User | Notes |
+|---|---|---|---|---|
+| WOU Campus | 44.847600 | -123.234300 | alpha | Within Salem-area bounds |
+| Silver Falls | 44.877000 | -122.654000 | alpha | Common — many global sightings |
+| Crater Lake | 42.944600 | -122.109000 | alice | Rare/mythic — few global sightings |
+| Portland | 45.523100 | -122.676200 | alice | Urban sighting |
+| Eugene | 44.052100 | -123.086800 | alice | Mid-range sighting |
+| Outside Oregon | 34.052200 | -118.243700 | bob | LA — useful for map bounds filtering tests |
+
+### Scoring tier thresholds to seed around
+
+Per `ScoringService`:
+- **Mythic** (≤5 global sightings of a species): 10 pts × 5 = **50 pts**
+- **Rare** (6–50 global sightings): 10 pts × 2 = **20 pts**
+- **Common** (>50 global sightings): 10 pts × 1 = **10 pts**
+
+Seed at least one sighting per tier to exercise all scoring branches.
+
+### Notification scenarios to seed
+
+- At least one **unread** notification for `alpha` — so the notification bell/badge has something to display
+- At least one **read** notification — to verify read-state rendering
+- Optionally one **postdated** notification (`SentAt > UtcNow`) to test `IsPostdated` path
+
+### LoginStreak scenarios to seed
+
+| User | `LastLogin` | `LoginStreak` | `IsStreakActive` |
+|---|---|---|---|
+| `alpha` | `UtcNow - 1 day` | 5 | true |
+| `bob` | `UtcNow - 31 days` | 3 | false (expired) |
+| `newuser` | null | 0 | false (never logged in) |
+
+### Where to add acceptance seed data
+
+The acceptance-specific seed users should be added to `ApplicationDbContextSeeding.SeedDataAsync` gated on an environment check, **or** in a dedicated acceptance-only seeding method called from `TestWebAppHost.StartAsync`. The latter is preferred so production/staging seeding remains unaffected.
+
+`TestWebAppHost.ResetSeedData()` is currently a `NotImplementedException` stub — implementing it to truncate non-badge rows and re-run seed will be required for true scenario isolation once test count grows.

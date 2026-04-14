@@ -1,3 +1,4 @@
+@using Microsoft.IdentityModel.Tokens
 @model RegisterViewModel
 @{
     ViewData["Title"] = "Register";
@@ -9,7 +10,22 @@
             <div class="card-body">
                 <h2 class="card-title text-center mb-4">Create Account</h2>
 
-                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    @* Get "ModelOnly" errors (empty string key) *@
+                    var modelErrors = ViewData.ModelState[string.Empty]?.Errors;
+
+                    if (modelErrors != null && modelErrors.Any())
+                    {
+                        @* Use Html.Raw to render the redirect link to Login page *@
+                        <div class="alert alert-danger" role="alert">
+                            @foreach (var error in modelErrors)
+                            {
+                                <div>@Html.Raw(error.ErrorMessage)</div>
+                            }
+                        </div>
+                    }
+                }
 
                 <form asp-action="Register" asp-controller="Account" method="post" id="registerForm">
                     <div class="mb-3">
@@ -22,23 +38,29 @@
                         <label asp-for="Password" class="form-label">Password</label>
                         <div class="input-group">
                             <input asp-for="Password" class="form-control" type="password" id="passwordField" placeholder="Enter your password" required />
-                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                            <button class="btn btn-outline-secondary" type="button" 
+                                data-password-toggle
+                                data-target-input="passwordField"
+                                data-target-icon="toggleIcon">
                                 <i class="bi bi-eye" id="toggleIcon"></i>
                             </button>
                         </div>
-                        <span asp-validation-for="Password" class="text-danger"></span>
                         <div class="form-text">Password must be at least 8 characters with uppercase, lowercase, number, and special character.</div>
+                        <span asp-validation-for="Password" class="form-text d-block text-danger"></span>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="ConfirmPassword" class="form-label">Confirm Password</label>
                         <div class="input-group">
                             <input asp-for="ConfirmPassword" class="form-control" type="password" id="confirmPasswordField" placeholder="Confirm your password" required />
-                            <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword">
+                            <button class="btn btn-outline-secondary" type="button"
+                                data-password-toggle
+                                data-target-input="confirmPasswordField"
+                                data-target-icon="toggleConfirmIcon">
                                 <i class="bi bi-eye" id="toggleConfirmIcon"></i>
                             </button>
                         </div>
-                        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                        <span asp-validation-for="ConfirmPassword" class="form-text d-block text-danger"></span>
                     </div>
 
                     <div class="d-grid gap-2">
@@ -60,38 +82,6 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        // Password visibility toggle
-        document.getElementById('togglePassword').addEventListener('click', function() {
-            const passwordField = document.getElementById('passwordField');
-            const toggleIcon = document.getElementById('toggleIcon');
-            
-            if (passwordField.type === 'password') {
-                passwordField.type = 'text';
-                toggleIcon.classList.remove('bi-eye');
-                toggleIcon.classList.add('bi-eye-slash');
-            } else {
-                passwordField.type = 'password';
-                toggleIcon.classList.remove('bi-eye-slash');
-                toggleIcon.classList.add('bi-eye');
-            }
-        });
-
-        // Confirm password visibility toggle
-        document.getElementById('toggleConfirmPassword').addEventListener('click', function() {
-            const confirmPasswordField = document.getElementById('confirmPasswordField');
-            const toggleConfirmIcon = document.getElementById('toggleConfirmIcon');
-            
-            if (confirmPasswordField.type === 'password') {
-                confirmPasswordField.type = 'text';
-                toggleConfirmIcon.classList.remove('bi-eye');
-                toggleConfirmIcon.classList.add('bi-eye-slash');
-            } else {
-                confirmPasswordField.type = 'password';
-                toggleConfirmIcon.classList.remove('bi-eye-slash');
-                toggleConfirmIcon.classList.add('bi-eye');
-            }
-        });
-
         // Form validation and button state
         const form = document.getElementById('registerForm');
         const emailInput = document.querySelector('input[name="Email"]');

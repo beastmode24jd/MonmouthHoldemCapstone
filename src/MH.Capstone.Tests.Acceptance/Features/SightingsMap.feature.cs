@@ -20,12 +20,14 @@ namespace MH.Capstone.Tests.Acceptance.Features
     [global::NUnit.Framework.TestFixtureAttribute()]
     [global::NUnit.Framework.DescriptionAttribute("Sightings Map")]
     [global::NUnit.Framework.FixtureLifeCycleAttribute(global::NUnit.Framework.LifeCycle.InstancePerTestCase)]
+    [global::NUnit.Framework.IgnoreAttribute("Ignored feature")]
     public partial class SightingsMapFeature
     {
         
         private global::Reqnroll.ITestRunner testRunner;
         
-        private static string[] featureTags = ((string[])(null));
+        private static string[] featureTags = new string[] {
+                "ignore"};
         
         private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "Sightings Map", "    As a user of the Wildlife AID app\r\n    I want to view wildlife sightings on a" +
                 "n interactive map\r\n    So that I can see where animals have been spotted in my a" +
@@ -122,7 +124,7 @@ namespace MH.Capstone.Tests.Acceptance.Features
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("User views the sightings map", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 7
+#line 8
 this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -132,13 +134,13 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 8
+#line 9
     await testRunner.GivenAsync("I am a logged in user", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 9
+#line 10
     await testRunner.WhenAsync("I navigate to the sightings map page", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 10
+#line 11
     await testRunner.ThenAsync("I should see an interactive map", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
@@ -157,7 +159,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Map displays sightings within bounds", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 13
+#line 14
 this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -167,7 +169,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 14
+#line 15
     await testRunner.GivenAsync("I am a logged in user", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
                 global::Reqnroll.Table table1 = new global::Reqnroll.Table(new string[] {
@@ -182,14 +184,14 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
                             "45.5152",
                             "-122.6784",
                             "Eagle in Portland"});
-#line 15
+#line 16
     await testRunner.AndAsync("the following sightings exist:", ((string)(null)), table1, "And ");
 #line hidden
-#line 19
+#line 20
     await testRunner.WhenAsync("I request sightings for bounds 44.0 to 46.0 latitude and -124.0 to -122.0 longitu" +
                         "de", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 20
+#line 21
     await testRunner.ThenAsync("I should receive 2 sightings", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
@@ -208,7 +210,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Map filters sightings outside bounds", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 23
+#line 24
 this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -218,7 +220,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 24
+#line 25
     await testRunner.GivenAsync("I am a logged in user", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
                 global::Reqnroll.Table table2 = new global::Reqnroll.Table(new string[] {
@@ -233,14 +235,14 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
                             "34.0522",
                             "-118.2437",
                             "Coyote in Los Angeles"});
-#line 25
+#line 26
     await testRunner.AndAsync("the following sightings exist:", ((string)(null)), table2, "And ");
 #line hidden
-#line 29
+#line 30
     await testRunner.WhenAsync("I request sightings for bounds 44.0 to 46.0 latitude and -124.0 to -122.0 longitu" +
                         "de", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 30
+#line 31
     await testRunner.ThenAsync("I should receive 1 sighting", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
