@@ -175,15 +175,18 @@ public class CSP42StepDefinitions
         var uploadForm = _driver.FindElement(By.Id("uploadForm"));
         uploadForm.Submit(); 
 
-        // Add for time buffer, so page is guaranteed to load for next step
-        _driver.Navigate().Refresh();
     }
 
     [Then("the image is displayed as my new avatar")]
     public void ThenTheImageIsDisplayedAsMyNewAvatar()
     {
-        // Retrieve the user icon from the dashboard
-        var navProfileImg = _driver.FindElement(By.Id("navProfile"));
+        // Wait for the dashboard to load
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
+
+        // Check icon element while logged in.
+        // Uses ID from _Layout.cshtml
+        var navProfileImg = wait.Until(d => d.FindElement(By.Id("navProfile")));
+        navProfileImg.Displayed.Should().BeTrue();
 
         // Get the 'src' attribute [cite: 141]
         string? actualSrc = navProfileImg.GetAttribute("src");
