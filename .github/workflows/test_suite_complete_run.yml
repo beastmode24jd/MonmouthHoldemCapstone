@@ -24,6 +24,9 @@ jobs:
 
   system_tests:
     needs: build
-    if: github.repository == 'jmcshane22/MonmouthHoldemCapstone' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false)
+    if: > 
+      github.repository == 'jmcshane22/MonmouthHoldemCapstone' && 
+      vars.SKIP_SYSTEM_TESTS != 'true' &&
+      (github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false)
     uses: ./.github/workflows/system_tests.yml
     secrets: inherit  # so the system_tests workflow can access secrets

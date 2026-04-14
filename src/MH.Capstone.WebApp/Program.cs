@@ -1,9 +1,11 @@
+using MH.Capstone.Domain.ApiContracts.Gemini;
 using MH.Capstone.Domain.ApiContracts.Ninja;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.Domain.Services.Api;
 using MH.Capstone.Domain.Services.Background;
 using MH.Capstone.Domain.Services.Notifications;
 using Microsoft.AspNetCore.Identity;
@@ -18,10 +20,15 @@ namespace MH.Capstone.WebApp
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+            var app = Configure(builder);
+            app.Run();
+        }
 
+        public static WebApplication Configure(WebApplicationBuilder builder, ILoggerFactory? startupLoggerFactory = null)
+        {
             // Configure logging based on environment first so that it is available during app startup and for all services.
             builder.Logging.ConfigureLogging(builder.Environment);
-            var entryLogger = CreateProgramEntryLogger();
+            var entryLogger = startupLoggerFactory?.CreateLogger("ProgramEntry") ?? CreateProgramEntryLogger();
 
             // Register FeatureFlags from configuration so features can be checked through DI
             var featureFlags = new FeatureFlags(builder.Configuration);
@@ -114,6 +121,18 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
             builder.Services.AddScoped<IReportService, ReportService>();
 
+            // AI Companion (CSP-120) — Gemini-backed wildlife education chat
+            if (featureFlags.IsEnabled("EnableGeminiAIService") && !EF.IsDesignTime)
+            {
+                entryLogger.LogInformation("EnableGeminiAIService flag is ON. Registering GeminiAIService.");
+                builder.Services.Configure<GeminiOptions>(builder.Configuration.GetSection(GeminiOptions.SectionName));
+                builder.Services.AddHttpClient<IAIService, GeminiAIService>();
+            }
+            else
+            {
+                entryLogger.LogInformation("EnableGeminiAIService flag is OFF. GeminiAIService will not be registered.");
+            }
+
             // Configure Azure Communication Services Email client depending on feature flag state and when EF is not in design-time
             var emailConnectionString = builder.Configuration.GetConnectionString("AzureCommunicationServices");
             var emailSender = builder.Configuration.GetValue<string>("Email:SenderAddress");
@@ -186,7 +205,7 @@ namespace MH.Capstone.WebApp
                 pattern: "{controller=Home}/{action=Index}/{id?}")
                 .WithStaticAssets();
 
-            app.Run();
+            return app;
         }
 
         public static ILogger CreateProgramEntryLogger()
