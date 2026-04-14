@@ -1,0 +1,29 @@
+# WARNING: This workflow/action can only be run on the main repo (jmcshane22/MonmouthHoldemCapstone)
+name: Run Complete Test Suite (All Tests) 
+
+on:
+  pull_request:
+    types: [synchronize, ready_for_review, opened, reopened]
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+  actions: read
+  id-token: write  # Required transitively for Azure OIDC login in system_tests
+
+jobs:
+  build:
+    if: github.repository == 'jmcshane22/MonmouthHoldemCapstone' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false)
+    uses: ./.github/workflows/build.yml
+
+  limited_test_suite_run:
+    needs: build
+    if: github.repository == 'jmcshane22/MonmouthHoldemCapstone' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false)
+    uses: ./.github/workflows/test_suite_limited_run.yml
+
+  system_tests:
+    needs: build
+    if: github.repository == 'jmcshane22/MonmouthHoldemCapstone' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false)
+    uses: ./.github/workflows/system_tests.yml
+    secrets: inherit  # so the system_tests workflow can access secrets
