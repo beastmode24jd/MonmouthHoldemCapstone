@@ -10,7 +10,7 @@ public class CSP47AccountDeactivationSteps
 {
     private readonly IWebDriver _driver;
     private string BaseUrl => Startup.GetSettings().BaseUrl;
-    private const string TestEmail = "alpha@test.com";
+    private const string TestEmail = "alex@test.com";
     private const string TestPassword = "Capstone26!";
 
     private string _dynamicTestEmail = "";
