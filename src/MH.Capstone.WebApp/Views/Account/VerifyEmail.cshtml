@@ -1,0 +1,41 @@
+@{
+    ViewData["Title"] = "Email Verification";
+    bool success = ViewBag.Success == true;
+}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-7 col-lg-5">
+        <div class="card shadow">
+            <div class="card-body text-center">
+                @if (success)
+                {
+                    <h2 class="card-title mb-4">Email Verified!</h2>
+                    <div class="alert alert-success" role="alert" id="emailVerifiedSuccessMessage">
+                        Your email address has been verified. You can now log in to your account.
+                    </div>
+                    <a asp-action="Login" asp-controller="Account" class="btn btn-primary mt-2"
+                       id="loginAfterVerificationBtn">
+                        Log In
+                    </a>
+                }
+                else
+                {
+                    <h2 class="card-title mb-4">Verification Failed</h2>
+                    <div class="alert alert-danger" role="alert" id="emailVerificationErrorMessage">
+                        This verification link is invalid or has expired. Verification links can
+                        only be used once and expire after a period of time.
+                    </div>
+                    <a asp-action="ResendVerification" asp-controller="Account"
+                       class="btn btn-primary mt-2" id="requestNewVerificationBtn">
+                        Request a New Verification Link
+                    </a>
+                    <div class="mt-3">
+                        <a asp-action="Login" asp-controller="Account"
+                           class="link-primary text-decoration-underline">
+                            Back to Login
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

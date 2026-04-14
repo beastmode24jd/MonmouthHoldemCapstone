@@ -14,6 +14,16 @@
                         @resetMsg
                     </div>
                 }
+                @if (ViewData["ShowResendVerificationOption"] is bool showResend && showResend)
+                {
+                    <div class="alert alert-warning" role="alert" id="emailNotVerifiedMessage">
+                        <p class="mb-2">Your email address has not been verified.</p>
+                        <a asp-action="ResendVerification" asp-controller="Account"
+                           class="btn btn-warning btn-sm" id="resendVerificationBtn">
+                            Resend Verification Email
+                        </a>
+                    </div>
+                }
                 @if (ViewData["ShowReactivateOption"] is bool showReactivate && showReactivate)
                 {
                     <div class="alert alert-warning" role="alert">

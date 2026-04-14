@@ -133,6 +133,17 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
         return View(model);
     }
 
+    // Password is correct — reveal email-verification requirement before account status
+    if (!user.EmailConfirmed)
+    {
+        TempData["UnverifiedEmail"] = model.Email;
+        ModelState.AddModelError(
+            string.Empty,
+            "Please verify your email address before logging in. Check your inbox for a verification link.");
+        ViewData["ShowResendVerificationOption"] = true;
+        return View(model);
+    }
+
     // Password is correct - now we can reveal if account is deactivated
     if (user.IsDeactivated)
     {
@@ -248,19 +259,34 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
                 model.Email,
                 model.Password);
 
-            // If registration succeeds, sign the user in
             if (success)
             {
-                _logger.LogInformation(
-                    "New user registered: {Email}",
-                    model.Email);
+                _logger.LogInformation("New user registered: {Email}", model.Email);
 
-                await _authService.SignInUserAsync(
-                    HttpContext,
-                    model.Email,
-                    rememberMe: false);
+                // Send email verification link — do NOT sign in until the address is confirmed
+                var user = await _userManager.FindByEmailAsync(model.Email);
+                if (user != null)
+                {
+                    var rawToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                    var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
+                    var confirmLink = Url.Action(
+                        "VerifyEmail", "Account",
+                        new { email = model.Email, token = encodedToken },
+                        Request.Scheme);
 
-                return RedirectToAction("Index", "Dashboard");
+                    await _emailService.SendAsync(
+                        model.Email,
+                        "Verify your WildlifeAID email address",
+                        $"<p>Thanks for registering! Please verify your email to activate your account.</p>" +
+                        $"<p><a href='{confirmLink}'>Verify Email Address</a></p>" +
+                        $"<p>If you did not register for WildlifeAID, ignore this email.</p>",
+                        $"Verify your WildlifeAID account: {confirmLink}",
+                        HttpContext.RequestAborted);
+
+                    _logger.LogInformation("Email verification link queued for {Email}", model.Email);
+                }
+
+                return RedirectToAction(nameof(RegisterConfirmation));
             }
 
             // If registration fails
@@ -379,6 +405,102 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
 
             var link = Url.Action(
                 "ResetPassword", "Account",
+                new { email, token = encodedToken },
+                Request.Scheme);
+
+            return Content(link!, "text/plain");
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("RegisterConfirmation")]
+        public IActionResult RegisterConfirmation()
+        {
+            return View();
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("VerifyEmail")]
+        public async Task<IActionResult> VerifyEmail(string? email, string? token)
+        {
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(token))
+                return RedirectToAction(nameof(Register));
+
+            var rawToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
+            var ok = await _authService.ConfirmEmailAsync(email, rawToken);
+
+            ViewBag.Success = ok;
+            ViewBag.Email   = email;
+            return View();
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("ResendVerification")]
+        public IActionResult ResendVerification()
+        {
+            var model = new ResendVerificationViewModel();
+            if (TempData["UnverifiedEmail"] is string email)
+                model.Email = email;
+            return View(model);
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        [Route("ResendVerification")]
+        public async Task<IActionResult> ResendVerification(ResendVerificationViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user != null && !user.EmailConfirmed)
+            {
+                var rawToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
+                var confirmLink = Url.Action(
+                    "VerifyEmail", "Account",
+                    new { email = model.Email, token = encodedToken },
+                    Request.Scheme);
+
+                await _emailService.SendAsync(
+                    model.Email,
+                    "Verify your WildlifeAID email address",
+                    $"<p>Here is your new verification link:</p>" +
+                    $"<p><a href='{confirmLink}'>Verify Email Address</a></p>",
+                    $"Verify your WildlifeAID account: {confirmLink}",
+                    HttpContext.RequestAborted);
+
+                _logger.LogInformation("Verification email re-sent for {Email}", model.Email);
+            }
+
+            // Always show the same response — no account enumeration
+            model.EmailSent = true;
+            return View(model);
+        }
+
+        /// <summary>
+        /// Test-only endpoint: generates a fresh email-confirmation link for the given address
+        /// and returns it as plain text. Gated by EnableEmailTestEndpoint feature flag.
+        /// </summary>
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("GenerateEmailConfirmationLink")]
+        public async Task<IActionResult> GenerateEmailConfirmationLink(string email)
+        {
+            if (!_featureFlags.IsEnabled("EnableEmailTestEndpoint"))
+                return NotFound();
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found.");
+
+            var rawToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
+            var link = Url.Action(
+                "VerifyEmail", "Account",
                 new { email, token = encodedToken },
                 Request.Scheme);
 

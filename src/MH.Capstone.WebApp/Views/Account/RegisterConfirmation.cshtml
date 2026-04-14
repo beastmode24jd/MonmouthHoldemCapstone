@@ -1,0 +1,26 @@
+@{
+    ViewData["Title"] = "Check Your Email";
+}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-7 col-lg-5">
+        <div class="card shadow">
+            <div class="card-body text-center">
+                <h2 class="card-title mb-4">Almost There!</h2>
+                <div class="alert alert-success" role="alert" id="registrationConfirmationMessage">
+                    <strong>Your account has been created.</strong><br />
+                    We sent a verification link to your email address. Click the link in that email
+                    to activate your account before logging in.
+                </div>
+                <p class="text-muted">Didn't receive the email? Check your spam folder or
+                    <a asp-action="ResendVerification" asp-controller="Account"
+                       class="link-primary" id="resendFromConfirmationLink">
+                        request a new verification link
+                    </a>.
+                </p>
+                <a asp-action="Login" asp-controller="Account" class="btn btn-outline-primary mt-2">
+                    Go to Login
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
