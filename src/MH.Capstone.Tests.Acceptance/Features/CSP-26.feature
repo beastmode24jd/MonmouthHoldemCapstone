@@ -3,7 +3,7 @@ Feature: Account Password Reset
     I want to be able to reset my password
     So that I can still log into my account, even if I forget my password
 
-@login
+@forgotPassword
 Scenario: Alex is looking for the Forgot Password page on the Login page.
     Given I am on the Login Page
     When I look at the Login input form
