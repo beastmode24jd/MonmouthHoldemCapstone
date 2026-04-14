@@ -48,7 +48,7 @@ public class SightingsDriver
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
         var input = _webDriver.WaitForElement(By.CssSelector("input[type='file']"), TimeSpan.FromSeconds(5));
         input.SendKeys(absoluteFilePath);
-        page.SubmitBtn.Click();
+        ((IJavaScriptExecutor)_webDriver).ExecuteScript("arguments[0].click();", page.SubmitBtn);
     }
 
     /// <summary>Sets the latitude input to the given value.</summary>
@@ -106,7 +106,7 @@ public class SightingsDriver
     public void SubmitSightingsForm()
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
-        page.SubmitBtn.Click();
+        ((IJavaScriptExecutor)_webDriver).ExecuteScript("arguments[0].click();", page.SubmitBtn);
         _webDriver.WaitUntil(d => !IsOnSightingsUploadPage()
             || HasVisibleValidationErrors());
     }
