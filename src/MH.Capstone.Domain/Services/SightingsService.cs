@@ -155,6 +155,19 @@ namespace MH.Capstone.Domain.Services
             return true;
         }
 
+        #region CSP-96: Community Gallery
+
+        public async Task<IEnumerable<Sighting>> GetAllSightingsAsync()
+        {
+            _logger.LogInformation("Fetching all sightings for community gallery");
+            var sightings = await _sightingsRepo.GetAllAsync(s => s.User);
+            var result = sightings.OrderByDescending(s => s.Timestamp).ToList();
+            _logger.LogInformation("Retrieved {Count} sightings for community gallery", result.Count);
+            return result;
+        }
+
+        #endregion
+
         #region CSP-145: Sighting Gallery Feature
 
         public async Task<IEnumerable<Sighting>> GetUserSightingsAsync(Guid userId)
