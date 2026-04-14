@@ -1,9 +1,12 @@
+using System.Text;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.Domain.Tools;
 using MH.Capstone.WebApp.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace MH.Capstone.WebApp.Controllers
 {
@@ -14,6 +17,8 @@ namespace MH.Capstone.WebApp.Controllers
         private readonly IAuthenticationService _authService;
         private readonly IUserService _userService;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IEmailService _emailService;
+        private readonly FeatureFlags _featureFlags;
 
         // Logger for tracking authentication-related events
         private readonly ILogger<AccountController> _logger;
@@ -23,11 +28,15 @@ namespace MH.Capstone.WebApp.Controllers
             IAuthenticationService authService,
             IUserService userService,
             UserManager<ApplicationUser> userManager,
+            IEmailService emailService,
+            FeatureFlags featureFlags,
             ILogger<AccountController> logger)
         {
             _authService = authService;
             _userService = userService;
             _userManager = userManager;
+            _emailService = emailService;
+            _featureFlags = featureFlags;
             _logger = logger;
         }
 
@@ -276,55 +285,104 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
         [Route("ForgotPassword")]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
         {
-            model.Identifier = (model.Identifier ?? string.Empty).Trim();
+            if (!ModelState.IsValid)
+                return View(model);
 
-            if (string.IsNullOrWhiteSpace(model.Identifier))
+            // Look up user — intentionally do not reveal whether the email exists
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user != null && !user.IsDeactivated)
             {
-                ModelState.AddModelError(nameof(model.Identifier), "Email is required.");
+                var rawToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
+
+                var resetLink = Url.Action(
+                    "ResetPassword", "Account",
+                    new { email = model.Email, token = encodedToken },
+                    Request.Scheme);
+
+                await _emailService.SendAsync(
+                    model.Email,
+                    "Reset your WildlifeAID password",
+                    $"<p>We received a request to reset the password for your WildlifeAID account.</p>" +
+                    $"<p><a href='{resetLink}'>Click here to reset your password</a></p>" +
+                    $"<p>This link expires shortly. If you did not request a reset, ignore this email.</p>",
+                    $"Reset your password: {resetLink}",
+                    HttpContext.RequestAborted);
+
+                _logger.LogInformation("Password reset email queued for {Email}", model.Email);
+            }
+
+            // Always show the same response to prevent account enumeration
+            model.EmailSent = true;
+            return View(model);
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("ResetPassword")]
+        public async Task<IActionResult> ResetPassword(string? email, string? token)
+        {
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(token))
+                return RedirectToAction(nameof(ForgotPassword));
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return View("ResetPasswordInvalid");
+
+            var vm = new ResetPasswordViewModel { Email = email, Token = token };
+            return View(vm);
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        [Route("ResetPassword")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var rawToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(model.Token));
+            var ok = await _authService.ResetPasswordWithTokenAsync(model.Email, rawToken, model.NewPassword);
+
+            if (!ok)
+            {
+                ModelState.AddModelError(string.Empty,
+                    "The reset link is invalid or has expired. Please request a new one.");
                 return View(model);
             }
 
-            var exists = await _userService.UserExistsAsync(model.Identifier);
-
-            if (!exists)
-            {
-                ModelState.AddModelError(string.Empty, "We could not find that account. Please try again.");
-                model.ShowPasswordResetFields = false;
-                return View(model);
-            }
-
-            model.ShowPasswordResetFields = true;
-
-            var newPass = model.NewPassword ?? string.Empty;
-            var confirm = model.ConfirmNewPassword ?? string.Empty;
-
-            if (string.IsNullOrWhiteSpace(newPass) || string.IsNullOrWhiteSpace(confirm))
-            {
-                return View(model);
-            }
-
-            if (!_authService.IsPasswordValid(newPass))
-            {
-                ModelState.AddModelError(nameof(model.NewPassword), "Password must be at least 8 characters and include an uppercase letter, lowercase letter, number, and symbol.");
-                return View(model);
-            }
-
-            if (!string.Equals(newPass, confirm, StringComparison.Ordinal))
-            {
-                ModelState.AddModelError(nameof(model.ConfirmNewPassword), "The two passwords do not match.");
-                return View(model);
-            }
-
-            var resetOk = await _authService.ResetPasswordAsync(model.Identifier, newPass);
-
-            if (!resetOk)
-            {
-                ModelState.AddModelError(string.Empty, "We could not reset your password. Please try again.");
-                return View(model);
-            }
-
-            TempData["PasswordResetSuccess"] = "Your password was changed. Please log in.";
+            _logger.LogInformation("Password successfully reset for {Email}", model.Email);
+            TempData["PasswordResetSuccess"] = "Your password has been reset. Please log in with your new password.";
             return RedirectToAction(nameof(Login));
+        }
+
+        /// <summary>
+        /// Test-only endpoint: generates a fresh password reset link for the given email and
+        /// returns it as plain text. Only available when the EnableEmailTestEndpoint feature
+        /// flag is true.
+        /// </summary>
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("GeneratePasswordResetLink")]
+        public async Task<IActionResult> GeneratePasswordResetLink(string email)
+        {
+            if (!_featureFlags.IsEnabled("EnableEmailTestEndpoint"))
+                return NotFound();
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found.");
+
+            var rawToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
+
+            var link = Url.Action(
+                "ResetPassword", "Account",
+                new { email, token = encodedToken },
+                Request.Scheme);
+
+            return Content(link!, "text/plain");
         }
 
         [HttpGet]
