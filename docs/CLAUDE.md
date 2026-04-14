@@ -104,7 +104,7 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `IAuthenticationService` | `AuthenticationService` | Login, register, logout |
 | `IUserService` | `UserService` | Profile management, deactivation |
 | `IProfileImageService` | `ProfileImageService` | Upload/retrieve profile images |
-| `ISightingsService` | `SightingsService` | Submit and query wildlife sightings |
+| `ISightingsService` | `SightingsService` | Submit and query wildlife sightings. `GetAllSightingsAsync()` eager-loads `User` nav property for attribution; `GetUserSightingsAsync(Guid)` filters to one user (no include). |
 | `IScoringService` | `ScoringService` | Award points using rarity multiplier |
 | `IBadgeService` | `BadgeService` | Check and award badges |
 | `ILeaderboardService` | `LeaderboardService` | Ranked user standings |
@@ -197,6 +197,13 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `/Sighting/Create` | `Description` | Description textarea |
 | `/Sighting/Create` | `UploadedImage` | Image file upload |
 | `/Sighting/Create` | `SubmitBtn` | Form submit button |
+| `/Sighting/Gallery` | `filterAll` | "All Sightings" toggle button |
+| `/Sighting/Gallery` | `filterMine` | "My Sightings" toggle button |
+| `/Sighting/Gallery` | `emptyStateMine` | Empty-state div shown by JS when "My Sightings" has no results |
+| `/Sighting/Gallery` | `sightingsGrid` | Container `div` holding all card wrappers (when sightings exist) |
+| `/Sighting/Gallery` | `currentUserId` | Hidden `<span data-user-id="…">` carrying the logged-in user's identity string ID |
+| `/Sighting/Gallery` | `.sighting-card-wrapper[data-user-id]` | Per-card wrapper; `data-user-id` attribute used by JS to match against current user |
+| `/Sighting/Gallery` | `.sighting-attribution` | `<span>` inside each card showing the submitter's `UserName` |
 
 Access-denied detection: checks if `driver.Url` contains `/account/login` (case-insensitive redirect).
 
