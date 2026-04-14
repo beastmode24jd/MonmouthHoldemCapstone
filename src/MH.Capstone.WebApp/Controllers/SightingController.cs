@@ -66,7 +66,11 @@ namespace MH.Capstone.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Upload([FromForm] SightingUploadViewModel sightingUpload)
         {
-            if (!ModelState.IsValid || !_sightingsService.ValidateImage(sightingUpload.UploadedImage))
+            if (!_sightingsService.ValidateImage(sightingUpload.UploadedImage))
+                ModelState.AddModelError(nameof(sightingUpload.UploadedImage),
+                    "Image must be a valid JPG or PNG file under 2 MB.");
+
+            if (!ModelState.IsValid)
             {
                 _logger.LogInformation("Invalid sighting model was submitted and rejected.\n" +
                                        $"ModelState: {ModelState.IsValid}\n" +

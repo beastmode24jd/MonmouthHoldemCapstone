@@ -1,0 +1,21 @@
+name: Run Limited Test Suite
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    
+  validate_ef:
+    needs: build
+    uses: ./.github/workflows/ef_core_tests.yml
+
+  unit_tests:
+    needs: build
+    uses: ./.github/workflows/unit_tests.yml
