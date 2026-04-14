@@ -18,12 +18,6 @@ public class CSP96StepDefinitions
         _authDriver = authDriver;
     }
 
-    [Given("user Alex is logged in")]
-    public void GivenUserAlexIsLoggedIn()
-    {
-        _authDriver.PreformLoginForUser("alex@test.com", "Capstone26!");
-    }
-
     [Given("user Patricia is logged in")]
     public void GivenUserPatriciaIsLoggedIn()
     {

@@ -144,6 +144,7 @@
         const filterAllBtn = document.getElementById('filterAll');
         const filterMineBtn = document.getElementById('filterMine');
         const emptyStateMine = document.getElementById('emptyStateMine');
+        const emptyStateAll = document.getElementById('emptyStateAll');
         const countLabel = document.getElementById('galleryCountLabel');
 
         function applyFilter(filter) {
@@ -167,6 +168,9 @@
                     }
                 });
 
+                if (emptyStateAll) {
+                    emptyStateAll.style.display = 'none';
+                }
                 if (emptyStateMine) {
                     emptyStateMine.style.display = visibleCount === 0 ? '' : 'none';
                 }
@@ -186,6 +190,9 @@
                     visibleCount++;
                 });
 
+                if (emptyStateAll) {
+                    emptyStateAll.style.display = visibleCount === 0 ? '' : 'none';
+                }
                 if (emptyStateMine) {
                     emptyStateMine.style.display = 'none';
                 }
