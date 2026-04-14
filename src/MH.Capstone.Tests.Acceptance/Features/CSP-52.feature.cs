@@ -18,22 +18,19 @@ namespace MH.Capstone.Tests.Acceptance.Features
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Reqnroll", "3.0.0.0")]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     [global::NUnit.Framework.TestFixtureAttribute()]
-    [global::NUnit.Framework.DescriptionAttribute("Sightings Map")]
+    [global::NUnit.Framework.DescriptionAttribute("CSP-52 Sightings Map")]
     [global::NUnit.Framework.FixtureLifeCycleAttribute(global::NUnit.Framework.LifeCycle.InstancePerTestCase)]
-    [global::NUnit.Framework.IgnoreAttribute("Ignored feature")]
-    public partial class SightingsMapFeature
+    public partial class CSP_52SightingsMapFeature
     {
         
         private global::Reqnroll.ITestRunner testRunner;
         
-        private static string[] featureTags = new string[] {
-                "ignore"};
+        private static string[] featureTags = ((string[])(null));
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "Sightings Map", "    As a user of the Wildlife AID app\r\n    I want to view wildlife sightings on a" +
-                "n interactive map\r\n    So that I can see where animals have been spotted in my a" +
-                "rea", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en-US"), "Features", "CSP-52 Sightings Map", "    As a user of the Wildlife AID app\r\n    I want a dedicated map page I can view" +
+                "\r\n    So that I can check if there are any nearby sightings", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
-#line 1 "SightingsMap.feature"
+#line 1 "CSP-52.feature"
 #line hidden
         
         [global::NUnit.Framework.OneTimeSetUpAttribute()]
@@ -107,24 +104,38 @@ namespace MH.Capstone.Tests.Acceptance.Features
             await testRunner.CollectScenarioErrorsAsync();
         }
         
+        public virtual async global::System.Threading.Tasks.Task FeatureBackgroundAsync()
+        {
+#line 6
+#line hidden
+#line 7
+    await testRunner.GivenAsync("I am using Chrome browser", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 8
+    await testRunner.AndAsync("the application is running", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+        }
+        
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/SightingsMap.feature.ndjson", 5);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/CSP-52.feature.ndjson", 6);
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("User views the sightings map")]
+        [global::NUnit.Framework.DescriptionAttribute("Map page requires authentication")]
         [global::NUnit.Framework.CategoryAttribute("map")]
-        public async global::System.Threading.Tasks.Task UserViewsTheSightingsMap()
+        [global::NUnit.Framework.CategoryAttribute("selenium")]
+        public async global::System.Threading.Tasks.Task MapPageRequiresAuthentication()
         {
             string[] tagsOfScenario = new string[] {
-                    "map"};
+                    "map",
+                    "selenium"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "0";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("User views the sightings map", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Map page requires authentication", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 8
+#line 11
 this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -134,32 +145,34 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 9
-    await testRunner.GivenAsync("I am a logged in user", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line 6
+await this.FeatureBackgroundAsync();
 #line hidden
-#line 10
-    await testRunner.WhenAsync("I navigate to the sightings map page", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line 12
+    await testRunner.WhenAsync("I navigate to the map page without logging in", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 11
-    await testRunner.ThenAsync("I should see an interactive map", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line 13
+    await testRunner.ThenAsync("I should be redirected to the login page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Map displays sightings within bounds")]
+        [global::NUnit.Framework.DescriptionAttribute("Map page displays for authenticated user")]
         [global::NUnit.Framework.CategoryAttribute("map")]
-        public async global::System.Threading.Tasks.Task MapDisplaysSightingsWithinBounds()
+        [global::NUnit.Framework.CategoryAttribute("selenium")]
+        public async global::System.Threading.Tasks.Task MapPageDisplaysForAuthenticatedUser()
         {
             string[] tagsOfScenario = new string[] {
-                    "map"};
+                    "map",
+                    "selenium"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "1";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Map displays sightings within bounds", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Map page displays for authenticated user", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 14
+#line 16
 this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -169,48 +182,37 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 15
-    await testRunner.GivenAsync("I am a logged in user", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line 6
+await this.FeatureBackgroundAsync();
 #line hidden
-                global::Reqnroll.Table table1 = new global::Reqnroll.Table(new string[] {
-                            "Latitude",
-                            "Longitude",
-                            "Description"});
-                table1.AddRow(new string[] {
-                            "44.9429",
-                            "-123.0351",
-                            "Deer near Salem"});
-                table1.AddRow(new string[] {
-                            "45.5152",
-                            "-122.6784",
-                            "Eagle in Portland"});
-#line 16
-    await testRunner.AndAsync("the following sightings exist:", ((string)(null)), table1, "And ");
+#line 17
+    await testRunner.GivenAsync("I am logged in as a registered user", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 20
-    await testRunner.WhenAsync("I request sightings for bounds 44.0 to 46.0 latitude and -124.0 to -122.0 longitu" +
-                        "de", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line 18
+    await testRunner.WhenAsync("I navigate to the map page", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 21
-    await testRunner.ThenAsync("I should receive 2 sightings", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line 19
+    await testRunner.ThenAsync("I should see the map container element", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Map filters sightings outside bounds")]
+        [global::NUnit.Framework.DescriptionAttribute("Map shows no sightings popup when area is empty")]
         [global::NUnit.Framework.CategoryAttribute("map")]
-        public async global::System.Threading.Tasks.Task MapFiltersSightingsOutsideBounds()
+        [global::NUnit.Framework.CategoryAttribute("selenium")]
+        public async global::System.Threading.Tasks.Task MapShowsNoSightingsPopupWhenAreaIsEmpty()
         {
             string[] tagsOfScenario = new string[] {
-                    "map"};
+                    "map",
+                    "selenium"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "2";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Map filters sightings outside bounds", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Map shows no sightings popup when area is empty", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 24
+#line 22
 this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -220,30 +222,60 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 25
-    await testRunner.GivenAsync("I am a logged in user", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line 6
+await this.FeatureBackgroundAsync();
 #line hidden
-                global::Reqnroll.Table table2 = new global::Reqnroll.Table(new string[] {
-                            "Latitude",
-                            "Longitude",
-                            "Description"});
-                table2.AddRow(new string[] {
-                            "44.9429",
-                            "-123.0351",
-                            "Deer near Salem"});
-                table2.AddRow(new string[] {
-                            "34.0522",
-                            "-118.2437",
-                            "Coyote in Los Angeles"});
+#line 23
+    await testRunner.GivenAsync("I am logged in as a registered user", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 24
+    await testRunner.WhenAsync("I navigate to the map page", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 25
+    await testRunner.AndAsync("there are no sightings in the current view", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
 #line 26
-    await testRunner.AndAsync("the following sightings exist:", ((string)(null)), table2, "And ");
+    await testRunner.ThenAsync("I should see a popup indicating no sightings in the area", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::NUnit.Framework.TestAttribute()]
+        [global::NUnit.Framework.DescriptionAttribute("Map can be zoomed")]
+        [global::NUnit.Framework.CategoryAttribute("map")]
+        [global::NUnit.Framework.CategoryAttribute("selenium")]
+        public async global::System.Threading.Tasks.Task MapCanBeZoomed()
+        {
+            string[] tagsOfScenario = new string[] {
+                    "map",
+                    "selenium"};
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "3";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Map can be zoomed", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 29
+this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 6
+await this.FeatureBackgroundAsync();
 #line hidden
 #line 30
-    await testRunner.WhenAsync("I request sightings for bounds 44.0 to 46.0 latitude and -124.0 to -122.0 longitu" +
-                        "de", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+    await testRunner.GivenAsync("I am logged in as a registered user", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 31
-    await testRunner.ThenAsync("I should receive 1 sighting", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+    await testRunner.WhenAsync("I navigate to the map page", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 32
+    await testRunner.ThenAsync("I should be able to interact with the zoom controls", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
