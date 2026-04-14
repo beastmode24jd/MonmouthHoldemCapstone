@@ -1,0 +1,45 @@
+#TODO - Add Jest testing once implemented
+name: Run Unit Tests
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+
+  unit_tests:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read  # Required to download artifact from the source run
+    env:
+      # For color output from the dotnet commands. ENVs are scoped to all steps in the job
+      DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION: true
+      TERM: xterm-256color
+
+    steps:
+      - name: Download artifact from build job
+        id: artifact_download
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ github.sha }}
+          run-id: ${{ needs.build.outputs.source_run_id }}
+          github-token: ${{ github.token }}
+          path: ./src
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Unit Test with dotnet
+        run: |
+          ls -a ./src ;
+          dotnet test ./src/MH.Capstone.WebApp.Tests.Unit --no-restore --no-build --configuration Release --verbosity ${{ vars.DOTNET_VERBOSE_LVL }} ;
+          dotnet test ./src/MH.Capstone.Domain.Tests.Unit --no-restore --no-build --configuration Release --verbosity ${{ vars.DOTNET_VERBOSE_LVL }}

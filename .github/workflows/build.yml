@@ -1,0 +1,101 @@
+name: Build Solution
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    outputs:
+      source_run_id:
+        description: "The workflow run ID where the build artifact was uploaded"
+        value: ${{ jobs.build.outputs.source_run_id }}
+
+permissions:
+  contents: read  # Required for actions/checkout
+  actions: read   # Required for querying artifacts across runs
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      source_run_id: ${{ steps.check_artifact.outputs.source_run_id }}
+    env:
+      # For color output from the dotnet commands. ENVs are scoped to all steps in the job
+      DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION: true
+      TERM: xterm-256color
+
+    steps:
+      - name: Check for existing build artifact for commit
+        id: check_artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SOURCE_RUN_ID=$(gh api \
+            "repos/${{ github.repository }}/actions/artifacts?name=${{ github.sha }}&per_page=10" \
+            --jq '[.artifacts[] | select(.expired == false)] | sort_by(.created_at) | reverse | .[0].workflow_run.id // empty')
+
+          if [ -z "$SOURCE_RUN_ID" ]; then
+            # No non-expired artifact found — build fresh and upload to this run
+            echo "skip_build=false" >> "$GITHUB_OUTPUT"
+            echo "source_run_id=${{ github.run_id }}" >> "$GITHUB_OUTPUT"
+            echo "::notice::No existing artifact for ${{ github.sha }}, running full build."
+          else
+            # Artifact found in run $SOURCE_RUN_ID — downstream jobs will download from there directly
+            echo "skip_build=true" >> "$GITHUB_OUTPUT"
+            echo "source_run_id=$SOURCE_RUN_ID" >> "$GITHUB_OUTPUT"
+            if [ "$SOURCE_RUN_ID" = "${{ github.run_id }}" ]; then
+              echo "::notice::Artifact already present in current run, skipping build."
+            else
+              echo "::notice::Artifact found in previous run $SOURCE_RUN_ID, skipping build."
+            fi
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.check_artifact.outputs.skip_build != 'true'
+
+      - name: Get & store version number
+        id: release_version
+        if: steps.check_artifact.outputs.skip_build != 'true'
+        run: |
+          version="$(date +%Y).$(date +%-m).${{ github.run_number }}.${{ github.run_attempt }}"
+          echo "$version" > ${{ vars.VERSION_FILE }}
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Set up .NET Core
+        if: steps.check_artifact.outputs.skip_build != 'true'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Install dotnet-ef tool
+        if: steps.check_artifact.outputs.skip_build != 'true'
+        run: dotnet tool install --global dotnet-ef --version ${{ vars.DOTNET_EF_VERSION }}
+
+      - name: Restore with dotnet
+        if: steps.check_artifact.outputs.skip_build != 'true'
+        run: dotnet restore ./src --verbosity ${{ vars.DOTNET_VERBOSE_LVL }}
+
+      - name: Build with dotnet
+        if: steps.check_artifact.outputs.skip_build != 'true'
+        run: dotnet build ./src --no-restore --configuration Release --verbosity ${{ vars.DOTNET_VERBOSE_LVL }} -p:Version=${{ steps.release_version.outputs.version }}
+
+      - name: Create EF Core bundle - ApplicationDbContext
+        if: steps.check_artifact.outputs.skip_build != 'true'
+        run: |
+          dotnet ef migrations bundle --self-contained --configuration Release --no-build \
+          -o "./src/${{ vars.DOTNET_EF_BUNDLE_DIR }}/${{ vars.DOTNET_EF_BUNDLE_NAME_APPDBCTX }}" \
+          -p ./src/MH.Capstone.Domain -s ./src/MH.Capstone.WebApp -c ApplicationDbContext
+
+      - name: Create EF Core bundle - CacheDbContext
+        if: steps.check_artifact.outputs.skip_build != 'true'
+        run: |
+          dotnet ef migrations bundle --self-contained --configuration Release \
+          --no-build -o "./src/${{ vars.DOTNET_EF_BUNDLE_DIR }}/${{ vars.DOTNET_EF_BUNDLE_NAME_CACHEDBCTX }}" \
+          -p ./src/MH.Capstone.Domain -s ./src/MH.Capstone.WebApp -c CacheDbContext
+      
+      - name: Upload build artifact (binaries) for other jobs
+        id: artifact_upload
+        if: steps.check_artifact.outputs.skip_build != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.sha }}
+          path: ./src
+          retention-days: 1 # Keep the big build file from eating storage usage limits

@@ -18,22 +18,18 @@ namespace MH.Capstone.Tests.Acceptance.Features
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Reqnroll", "3.0.0.0")]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     [global::NUnit.Framework.TestFixtureAttribute()]
-    [global::NUnit.Framework.DescriptionAttribute("Sightings Map")]
+    [global::NUnit.Framework.DescriptionAttribute("CSP-53")]
     [global::NUnit.Framework.FixtureLifeCycleAttribute(global::NUnit.Framework.LifeCycle.InstancePerTestCase)]
-    [global::NUnit.Framework.IgnoreAttribute("Ignored feature")]
-    public partial class SightingsMapFeature
+    public partial class CSP_53Feature
     {
         
         private global::Reqnroll.ITestRunner testRunner;
         
-        private static string[] featureTags = new string[] {
-                "ignore"};
+        private static string[] featureTags = ((string[])(null));
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "Sightings Map", "    As a user of the Wildlife AID app\r\n    I want to view wildlife sightings on a" +
-                "n interactive map\r\n    So that I can see where animals have been spotted in my a" +
-                "rea", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en-US"), "Features", "CSP-53", "Sightings Upload", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
-#line 1 "SightingsMap.feature"
+#line 1 "CSP-53.feature"
 #line hidden
         
         [global::NUnit.Framework.OneTimeSetUpAttribute()]
@@ -109,22 +105,20 @@ namespace MH.Capstone.Tests.Acceptance.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/SightingsMap.feature.ndjson", 5);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/CSP-53.feature.ndjson", 6);
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("User views the sightings map")]
-        [global::NUnit.Framework.CategoryAttribute("map")]
-        public async global::System.Threading.Tasks.Task UserViewsTheSightingsMap()
+        [global::NUnit.Framework.DescriptionAttribute("Cannot upload invalid image file")]
+        public async global::System.Threading.Tasks.Task CannotUploadInvalidImageFile()
         {
-            string[] tagsOfScenario = new string[] {
-                    "map"};
+            string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "0";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("User views the sightings map", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Cannot upload invalid image file", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 8
+#line 5
 this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -134,32 +128,36 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
+#line 6
+  await testRunner.GivenAsync("user Alex is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 7
+  await testRunner.AndAsync("user is on the sightings upload page", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 8
+  await testRunner.AndAsync("user has an invalid image file", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
 #line 9
-    await testRunner.GivenAsync("I am a logged in user", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+  await testRunner.WhenAsync("user attempts to upload the image file", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 10
-    await testRunner.WhenAsync("I navigate to the sightings map page", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
-#line hidden
-#line 11
-    await testRunner.ThenAsync("I should see an interactive map", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+  await testRunner.ThenAsync("user should see a error/failure message.", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Map displays sightings within bounds")]
-        [global::NUnit.Framework.CategoryAttribute("map")]
-        public async global::System.Threading.Tasks.Task MapDisplaysSightingsWithinBounds()
+        [global::NUnit.Framework.DescriptionAttribute("Cannot upload without all fields validated")]
+        public async global::System.Threading.Tasks.Task CannotUploadWithoutAllFieldsValidated()
         {
-            string[] tagsOfScenario = new string[] {
-                    "map"};
+            string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "1";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Map displays sightings within bounds", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Cannot upload without all fields validated", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 14
+#line 12
 this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -169,48 +167,36 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
+#line 13
+  await testRunner.GivenAsync("user Alex is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 14
+  await testRunner.AndAsync("user is on the sightings upload page", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
 #line 15
-    await testRunner.GivenAsync("I am a logged in user", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+  await testRunner.AndAsync("user has not completed all the required fields", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-                global::Reqnroll.Table table1 = new global::Reqnroll.Table(new string[] {
-                            "Latitude",
-                            "Longitude",
-                            "Description"});
-                table1.AddRow(new string[] {
-                            "44.9429",
-                            "-123.0351",
-                            "Deer near Salem"});
-                table1.AddRow(new string[] {
-                            "45.5152",
-                            "-122.6784",
-                            "Eagle in Portland"});
 #line 16
-    await testRunner.AndAsync("the following sightings exist:", ((string)(null)), table1, "And ");
+  await testRunner.WhenAsync("user attempts to submit the sightings upload form", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 20
-    await testRunner.WhenAsync("I request sightings for bounds 44.0 to 46.0 latitude and -124.0 to -122.0 longitu" +
-                        "de", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
-#line hidden
-#line 21
-    await testRunner.ThenAsync("I should receive 2 sightings", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line 17
+  await testRunner.ThenAsync("user should see a error/failure message.", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Map filters sightings outside bounds")]
-        [global::NUnit.Framework.CategoryAttribute("map")]
-        public async global::System.Threading.Tasks.Task MapFiltersSightingsOutsideBounds()
+        [global::NUnit.Framework.DescriptionAttribute("A valid upload completes and confirms")]
+        public async global::System.Threading.Tasks.Task AValidUploadCompletesAndConfirms()
         {
-            string[] tagsOfScenario = new string[] {
-                    "map"};
+            string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "2";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Map filters sightings outside bounds", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("A valid upload completes and confirms", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 24
+#line 19
 this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -220,30 +206,53 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 25
-    await testRunner.GivenAsync("I am a logged in user", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line 20
+  await testRunner.GivenAsync("user Alex is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-                global::Reqnroll.Table table2 = new global::Reqnroll.Table(new string[] {
-                            "Latitude",
-                            "Longitude",
-                            "Description"});
-                table2.AddRow(new string[] {
-                            "44.9429",
-                            "-123.0351",
-                            "Deer near Salem"});
-                table2.AddRow(new string[] {
-                            "34.0522",
-                            "-118.2437",
-                            "Coyote in Los Angeles"});
+#line 21
+  await testRunner.AndAsync("user is on the sightings upload page", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 22
+  await testRunner.AndAsync("user has entered all valid and required information", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 23
+  await testRunner.WhenAsync("user attempts to submit the sightings upload form", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 24
+  await testRunner.ThenAsync("user should be redirected to their dashboard.", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::NUnit.Framework.TestAttribute()]
+        [global::NUnit.Framework.DescriptionAttribute("Non-Logged-in user cannot access page")]
+        public async global::System.Threading.Tasks.Task Non_Logged_InUserCannotAccessPage()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "3";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Non-Logged-in user cannot access page", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
 #line 26
-    await testRunner.AndAsync("the following sightings exist:", ((string)(null)), table2, "And ");
+this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
-#line 30
-    await testRunner.WhenAsync("I request sightings for bounds 44.0 to 46.0 latitude and -124.0 to -122.0 longitu" +
-                        "de", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 27
+  await testRunner.GivenAsync("user James is access the application", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 31
-    await testRunner.ThenAsync("I should receive 1 sighting", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line 28
+  await testRunner.WhenAsync("user attempts to access the sightings upload page", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 29
+  await testRunner.ThenAsync("user is denied access to the page.", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
