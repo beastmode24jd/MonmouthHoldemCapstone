@@ -223,9 +223,13 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
                     "Registration attempt with already registered email: {Email}",
                     model.Email);
 
+                // Get the URL for the Login page redirect
+                var loginUrl = Url.Action("Login", "Account");
+
+                // Provide the direct message with the Login page link
                 ModelState.AddModelError(
                     string.Empty,
-                    "Registration failed. Please try again.");
+                    $"Registration failed. If you think you have an account, try the <a href='{loginUrl}' class='alert-link'>Login page</a>.");
 
                 return View(model);
             }
