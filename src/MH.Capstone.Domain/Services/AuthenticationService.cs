@@ -103,6 +103,15 @@ namespace MH.Capstone.Domain.Services
             var result = await _signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: false);
             return result.Succeeded;
         }
+        public async Task<bool> ResetPasswordWithTokenAsync(string email, string token, string newPassword)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null) return false;
+
+            var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+            return result.Succeeded;
+        }
+
         public async Task<bool> ResetPasswordAsync(string identifier, string newPassword)
         {
             // First validate the new password against the policy

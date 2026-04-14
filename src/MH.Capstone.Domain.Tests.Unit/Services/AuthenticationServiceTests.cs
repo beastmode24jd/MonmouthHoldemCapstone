@@ -230,6 +230,81 @@ public class AuthenticationServiceTests
     }
 
     #endregion
+    #region ResetPasswordWithTokenAsyncTests
+
+    [Test]
+    public async Task ResetPasswordWithTokenAsync_WithValidToken_ReturnsTrue()
+    {
+        // Arrange
+        const string email = "tokenreset@example.com";
+        const string token = "valid-reset-token";
+        const string newPassword = "NewPass@456!";
+
+        var user = new ApplicationUser { Email = email, UserName = email };
+
+        _userManagerMock.Setup(um => um.FindByEmailAsync(email))
+            .ReturnsAsync(user).Verifiable(Times.Once);
+
+        _userManagerMock.Setup(um => um.ResetPasswordAsync(user, token, newPassword))
+            .ReturnsAsync(IdentityResult.Success).Verifiable(Times.Once);
+
+        // Act
+        var result = await _authService.ResetPasswordWithTokenAsync(email, token, newPassword);
+
+        // Assert
+        Assert.That(result, Is.True);
+        AssertAllMockVerifySetups();
+    }
+
+    [Test]
+    public async Task ResetPasswordWithTokenAsync_WithInvalidToken_ReturnsFalse()
+    {
+        // Arrange
+        const string email = "tokenreset@example.com";
+        const string badToken = "expired-or-invalid-token";
+        const string newPassword = "NewPass@456!";
+
+        var user = new ApplicationUser { Email = email, UserName = email };
+
+        _userManagerMock.Setup(um => um.FindByEmailAsync(email))
+            .ReturnsAsync(user).Verifiable(Times.Once);
+
+        _userManagerMock.Setup(um => um.ResetPasswordAsync(user, badToken, newPassword))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Invalid token." }))
+            .Verifiable(Times.Once);
+
+        // Act
+        var result = await _authService.ResetPasswordWithTokenAsync(email, badToken, newPassword);
+
+        // Assert
+        Assert.That(result, Is.False);
+        AssertAllMockVerifySetups();
+    }
+
+    [Test]
+    public async Task ResetPasswordWithTokenAsync_WithNonExistentUser_ReturnsFalse()
+    {
+        // Arrange
+        const string email = "nobody@example.com";
+        const string token = "some-token";
+        const string newPassword = "NewPass@456!";
+
+        _userManagerMock.Setup(um => um.FindByEmailAsync(email))
+            .ReturnsAsync(value: null!).Verifiable(Times.Once);
+
+        // Act
+        var result = await _authService.ResetPasswordWithTokenAsync(email, token, newPassword);
+
+        // Assert
+        Assert.That(result, Is.False);
+        AssertAllMockVerifySetups();
+
+        _userManagerMock.Verify(um =>
+            um.ResetPasswordAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
+    }
+
+    #endregion
     #region ResetPasswordAsyncTests
 
     [Test]
