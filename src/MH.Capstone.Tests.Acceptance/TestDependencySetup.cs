@@ -37,6 +37,7 @@ public static class TestDependencySetup
         // auto-discovered the way step-definition bindings are.
         services.AddTransient<AuthenticationDriver>();
         services.AddTransient<DashboardDriver>();
+        services.AddTransient<SightingGalleryDriver>();
         services.AddTransient<SightingsDriver>();
         services.AddTransient<WildlifeSearchDriver>();
 

@@ -176,6 +176,7 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 - **Browser:** One shared `ChromeDriver` instance for the entire test run (`BeforeTestRun` / `AfterTestRun`). No browser restart between scenarios.
 - **Scenario isolation:** `TestWebAppHost.ResetSeedData()` exists as a `TODO` stub. Until implemented, scenarios must be written to tolerate persistent database state across the run — or must clean up after themselves.
 - **DI in steps:** Reqnroll's per-scenario DI container (via `[ScenarioDependencies]` in `TestDependencySetup`) provides `IWebDriver` and `AcceptanceTestSettings` as singletons. Drivers and page objects are resolved automatically as transient.
+- **Registering new drivers:** Every new Driver class **must** be added to `TestDependencySetup.CreateServices()` as `services.AddTransient<TDriver>()`. Reqnroll's DI container does not auto-discover drivers the way it does step-definition bindings — omitting this registration causes a runtime `ObjectCreationException` when the driver is first injected.
 
 #### Seed user already referenced in step definitions
 
