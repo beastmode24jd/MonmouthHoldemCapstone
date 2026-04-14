@@ -129,7 +129,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             {
                 await this.ScenarioStartAsync();
 #line 4
-    await testRunner.GivenAsync("user alpha is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+    await testRunner.GivenAsync("user alice is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 5
     await testRunner.WhenAsync("the user navigates to the gallery page", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
@@ -165,7 +165,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             {
                 await this.ScenarioStartAsync();
 #line 10
-    await testRunner.GivenAsync("user alpha is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+    await testRunner.GivenAsync("user alice is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 11
     await testRunner.AndAsync("the user navigates to the gallery page", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
@@ -204,7 +204,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             {
                 await this.ScenarioStartAsync();
 #line 17
-    await testRunner.GivenAsync("user alpha is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+    await testRunner.GivenAsync("user alice is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 18
     await testRunner.AndAsync("the user navigates to the gallery page", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
@@ -246,7 +246,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             {
                 await this.ScenarioStartAsync();
 #line 25
-    await testRunner.GivenAsync("user newuser is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+    await testRunner.GivenAsync("user admin is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 26
     await testRunner.AndAsync("the user navigates to the gallery page", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
@@ -285,7 +285,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             {
                 await this.ScenarioStartAsync();
 #line 32
-    await testRunner.GivenAsync("user alpha is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+    await testRunner.GivenAsync("user alice is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 33
     await testRunner.AndAsync("the user navigates to the gallery page", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");

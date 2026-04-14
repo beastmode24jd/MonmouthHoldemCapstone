@@ -18,16 +18,16 @@ public class CSP96StepDefinitions
         _authDriver = authDriver;
     }
 
-    [Given("user alpha is logged in")]
-    public void GivenUserAlphaIsLoggedIn()
+    [Given("user alice is logged in")]
+    public void GivenUserAliceIsLoggedIn()
     {
-        _authDriver.PreformLoginForUser("alpha@test.com", "Capstone26!");
+        _authDriver.PreformLoginForUser("alice@test.com", "Capstone26!");
     }
 
-    [Given("user newuser is logged in")]
-    public void GivenUserNewuserIsLoggedIn()
+    [Given("user admin is logged in")]
+    public void GivenUserAdminIsLoggedIn()
     {
-        _authDriver.PreformLoginForUser("newuser@test.com", "Capstone26!");
+        _authDriver.PreformLoginForUser("admin@test.com", "Capstone26!");
     }
 
     [When("the user navigates to the gallery page")]
@@ -67,7 +67,7 @@ public class CSP96StepDefinitions
     [Then("only sightings submitted by the authenticated user are displayed")]
     public void ThenOnlyAuthenticatedUserSightingsAreDisplayed()
     {
-        // After filtering, all visible attributions must belong to the same user (alpha)
+        // After filtering, all visible attributions must belong to the same user
         var usernames = _galleryDriver.GetVisibleAttributionUsernames();
         usernames.Count.Should().BeLessThanOrEqualTo(1,
             "My Sightings filter should show cards from only one user");
