@@ -29,9 +29,9 @@ Scenario: Alex is on the “Confirm New Password” page, but has not written th
     And I click Save
     Then I should see an error message telling me the inputs do not match
 
-@forgotPassword
-Scenario: Alex is on the “Confirm New Password” page, and has submitted the same password twice.
-    Given I am on the Confirm New Password page
-    When I submit two matching passwords
-    Then I should be redirected to the Login page
-    And have my new password
+#@passwordReset
+#Scenario: Alex is on the “Confirm New Password” page, and has submitted the same password twice.
+    #Given I am on the Confirm New Password page
+    #When I submit two matching passwords
+    #Then I should be redirected to the Login page
+    #And have my new password

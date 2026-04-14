@@ -241,13 +241,4 @@ public class CSP26StepDefinitions
         // Submit the form
         loginButton.Click();
     }
-
-    // Gets the ForgotPassword page.
-    // _driver.Navigate().GoToUrl("https://localhost:7147/account/ForgotPassword");
-
-    // Gets the Forgot Password form from the page.
-    //var forgotPasswordForm = _driver.FindElement(By.Id("forgotPasswordForm"));
-
-    // Need to submit email and click search button, then write the new password twice.
-    // Redirects to Login page if successful.
 }

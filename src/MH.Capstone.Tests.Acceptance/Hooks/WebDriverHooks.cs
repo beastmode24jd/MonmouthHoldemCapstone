@@ -1,5 +1,8 @@
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
+using MH.Capstone.Domain.Services.Abstraction;
+using Microsoft.AspNetCore.Identity;
+using MH.Capstone.Domain.DataModels;
 using Reqnroll;
 
 namespace MH.Capstone.Tests.Acceptance.Support;

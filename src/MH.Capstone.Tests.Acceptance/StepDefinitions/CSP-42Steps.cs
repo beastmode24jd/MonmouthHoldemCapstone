@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using System.Linq.Expressions;
 using Moq;
 using OpenQA.Selenium;
+using OpenQA.Selenium.Support.UI;
 using Reqnroll;
 using FluentAssertions;
 
@@ -65,7 +66,7 @@ public class CSP42StepDefinitions
     public void ThenIShouldSeeAPlaceholderImage()
     {
         // Retrieve the element from the context
-        var navProfileImg = (IWebElement)ScenarioContext.Current["NavProfileElement"];
+        var navProfileImg = (IWebElement)_scenarioContext["NavProfileElement"];
 
         // Get the 'src' attribute [cite: 141]
         string? actualSrc = navProfileImg.GetAttribute("src");
@@ -98,8 +99,13 @@ public class CSP42StepDefinitions
     [When("I navigate to the Profile Customization part of my Dashboard")]
     public void WhenINavigateToTheProfileCustomizationPartOfMyDashboard()
     {
+        // Locate the validation summary alert (wait 5 seconds)
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
+
         // Make sure the profile customization form exists on the Dashboard
-        var customProfileForm = _driver.FindElement(By.Id("uploadForm"));
+        var customProfileForm = wait.Until(d => d.FindElement(By.Id("uploadForm")));
+
+        customProfileForm.Displayed.Should().BeTrue();
     }
 
     [Then("I can select a profile image to upload from my device")]
