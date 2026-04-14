@@ -64,4 +64,13 @@ public class CSP58StepDefinitions
         _searchDriver.HasResultWithAnimalName().Should().BeTrue(
             because: "searching for a known species should return at least one result from the Ninjas API");
     }
+
+    // ── Scenario 3: Unrecognised search term shows a polite no-results message ─
+
+    [Then("user sees a polite no-results message")]
+    public void ThenUserSeesAPoliteNoResultsMessage()
+    {
+        _searchDriver.HasNoResultsMessage().Should().BeTrue(
+            because: "a search that yields no API matches must display a no-results message to the user");
+    }
 }

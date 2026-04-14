@@ -14,3 +14,9 @@ Scenario: Searching by a known animal name displays a result card
   And user is on the species search page
   When user searches for "eagle"
   Then a result card is displayed with an animal name
+
+Scenario: Searching with an unrecognised term shows a polite no-results message
+  Given user Alex is logged in
+  And user is on the species search page
+  When user searches for "xyznotananimal9999"
+  Then user sees a polite no-results message
