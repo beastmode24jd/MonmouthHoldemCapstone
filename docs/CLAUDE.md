@@ -110,7 +110,7 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `ILeaderboardService` | `LeaderboardService` | Ranked user standings |
 | `IReportService` | `ReportService` | Submit and resolve content reports |
 | `INotificationService` | `InAppNotificationService` | Create and deliver in-app notifications |
-| `IEmailService` | `AzureCommunicationEmailService` / `NoOpEmailService` | Send emails (toggled by `UseRealEmailerService` feature flag) |
+| `IEmailService` | `AzureCommunicationEmailService` / `NoOpEmailService` | Send emails (toggled by `UseRealEmailerService` feature flag). Used by `AccountController.ForgotPassword` to deliver password-reset links. |
 | `IApiCaller` | `ExternalApiCaller` | HTTP calls to external APIs with SQL caching |
 
 **Background service:** `EmailDispatcherService` (hosted service) processes the `EmailQueue` outbox.
@@ -150,6 +150,7 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 `FeatureFlags` is registered as a singleton from `appsettings.json` configuration. Current flags:
 
 - `UseRealEmailerService` — when `true`, uses `AzureCommunicationEmailService`; otherwise `NoOpEmailService`
+- `EnableEmailTestEndpoint` — when `true`, exposes `GET /Account/GeneratePasswordResetLink?email=xxx` which returns a fresh reset URL as plain text. Used by acceptance tests to mimic clicking a password-reset email link. Always forced `true` by `TestWebAppHost` regardless of appsettings.
 
 ---
 
@@ -175,7 +176,8 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 - **Config load order:** `appsettings.json` → `appsettings.Acceptance.json` → `appsettings.Acceptance.Local.json` (gitignored, per-developer overrides) → environment variables.
 - **Browser:** One shared `ChromeDriver` instance for the entire test run (`BeforeTestRun` / `AfterTestRun`). No browser restart between scenarios.
 - **Scenario isolation:** `TestWebAppHost.ResetSeedData()` exists as a `TODO` stub. Until implemented, scenarios must be written to tolerate persistent database state across the run — or must clean up after themselves.
-- **DI in steps:** Reqnroll's per-scenario DI container (via `[ScenarioDependencies]` in `TestDependencySetup`) provides `IWebDriver` and `AcceptanceTestSettings` as singletons. Drivers and page objects are resolved automatically as transient.
+- **DI in steps:** Reqnroll's per-scenario DI container (via `[ScenarioDependencies]` in `TestDependencySetup`) provides `IWebDriver` and `AcceptanceTestSettings` as singletons. Drivers and page objects are resolved automatically as transient. Every new Driver must be registered in `TestDependencySetup.CreateServices()` as `services.AddTransient<TDriver>()` — Reqnroll does not auto-discover drivers.
+- **Password reset test pattern:** For scenarios that require a user to receive and click a reset link, call `PasswordResetDriver.GetPasswordResetLink(email)` (hits `GET /Account/GeneratePasswordResetLink`) to get the URL, then navigate to it. This mimics clicking the emailed link without a real inbox. `TestWebAppHost` always forces `EnableEmailTestEndpoint = true` via in-memory config override so this works in any environment without appsettings changes.
 
 #### Seed user already referenced in step definitions
 
@@ -197,6 +199,16 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `/Sighting/Create` | `Description` | Description textarea |
 | `/Sighting/Create` | `UploadedImage` | Image file upload |
 | `/Sighting/Create` | `SubmitBtn` | Form submit button |
+| `/Account/ForgotPassword` | `forgotPasswordEmail` | Email input |
+| `/Account/ForgotPassword` | `sendResetEmailBtn` | Submit button |
+| `/Account/ForgotPassword` | `resetEmailSentMessage` | "Check your email" success banner (shown after submit, regardless of whether email exists) |
+| `/Account/ResetPassword` | `newPasswordField` | New password input |
+| `/Account/ResetPassword` | `confirmPasswordField` | Confirm password input |
+| `/Account/ResetPassword` | `resetPasswordBtn` | Submit button |
+| `/Account/ResetPassword` | `resetPasswordError` | Inline validation-summary div (visible when token is invalid/expired) |
+| `/Account/ResetPasswordInvalid` | `invalidResetLinkMessage` | Error div on the dedicated invalid-link page |
+| `/Account/ResetPasswordInvalid` | `requestNewResetLinkBtn` | Link to request a new reset link |
+| `/Account/Login` | `passwordResetSuccessMessage` | Success banner shown after a completed password reset |
 
 Access-denied detection: checks if `driver.Url` contains `/account/login` (case-insensitive redirect).
 
