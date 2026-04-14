@@ -87,7 +87,7 @@ public class CSP42StepDefinitions
         var passwordInput = _driver.FindElement(By.Id("passwordField"));
         var loginButton = _driver.FindElement(By.Id("submitBtn"));
 
-        // Enter Lily's credentials
+        // Enter Alex's credentials
         emailInput.SendKeys("alex@test.com");
         passwordInput.SendKeys("Capstone26!");
 

@@ -22,16 +22,16 @@ Scenario: Alex has entered correct account parameters, and is being shown the �
     When I search for a valid account that exists
     Then I should be shown the two password fields
 
-#Scenario: Alex is on the “Confirm New Password” page, but he has not written the same password twice for the password change.
-    #Given I am on the Confirm New Password page
-    #When I submit text in the new password boxes that do not match
-    #And I click Save
-    #Then I should see an error message telling me the inputs do not match
+@forgotPassword
+Scenario: Alex is on the “Confirm New Password” page, but has not written the same password twice.
+    Given I am on the Confirm New Password page
+    When I submit passwords that do not match
+    And I click Save
+    Then I should see an error message telling me the inputs do not match
 
-
-#Scenario: Alex is on the “Confirm New Password” page, and has submitted the same password twice.
-    #Given I am on the Confirm New Password page
-    #When I submit two matching text inputs in the new password boxes
-    #And I click Save
-    #Then I should see a confirmation message telling me my password was changed
-    #And be redirected to the Login page
+@forgotPassword
+Scenario: Alex is on the “Confirm New Password” page, and has submitted the same password twice.
+    Given I am on the Confirm New Password page
+    When I submit two matching passwords
+    Then I should be redirected to the Login page
+    And have my new password
