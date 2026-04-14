@@ -4,6 +4,7 @@ using MH.Capstone.Tests.Acceptance.Drivers;
 using MH.Capstone.Tests.Acceptance.Hooks;
 using Microsoft.Extensions.DependencyInjection;
 using OpenQA.Selenium;
+using OpenQA.Selenium.Support.UI;
 using Reqnroll.Microsoft.Extensions.DependencyInjection;
 
 namespace MH.Capstone.Tests.Acceptance;
@@ -32,11 +33,15 @@ public static class TestDependencySetup
         // launch per scenario). Drivers and page objects reuse this instance.
         services.AddSingleton<IWebDriver>(Startup.GetWebDriver());
 
+        // One shared WebDriverWait for step definitions that need explicit waits.
+        services.AddSingleton(new WebDriverWait(Startup.GetWebDriver(), TimeSpan.FromSeconds(15)));
+
         // Driver classes must be explicitly registered when using
         // Reqnroll.Microsoft.Extensions.DependencyInjection — they are not
         // auto-discovered the way step-definition bindings are.
         services.AddTransient<AuthenticationDriver>();
         services.AddTransient<DashboardDriver>();
+        services.AddTransient<SightingGalleryDriver>();
         services.AddTransient<SightingsDriver>();
         services.AddTransient<WildlifeSearchDriver>();
 

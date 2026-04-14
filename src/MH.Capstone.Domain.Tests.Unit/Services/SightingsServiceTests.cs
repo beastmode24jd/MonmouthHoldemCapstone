@@ -495,7 +495,52 @@ public class SightingsServiceTests
 
     #endregion
 
-        [Test]
+    #region CSP-96: GetAllSightingsAsync Tests
+
+    [Test]
+    public async Task GetAllSightingsAsync_ReturnsSightingsFromAllUsersOrderedByTimestampDescending()
+    {
+        // Arrange
+        var sightings = new List<Sighting>
+        {
+            new() { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), Timestamp = DateTimeOffset.UtcNow.AddDays(-3), ImageBuffer = [0x01] },
+            new() { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), Timestamp = DateTimeOffset.UtcNow.AddDays(-1), ImageBuffer = [0x01] },
+            new() { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), Timestamp = DateTimeOffset.UtcNow.AddDays(-2), ImageBuffer = [0x01] }
+        }.AsQueryable();
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(sightings);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = (await sut.GetAllSightingsAsync()).ToList();
+
+        // Assert
+        Assert.That(result.Count, Is.EqualTo(3));
+        Assert.That(result[0].Timestamp, Is.GreaterThan(result[1].Timestamp));
+        Assert.That(result[1].Timestamp, Is.GreaterThan(result[2].Timestamp));
+    }
+
+    [Test]
+    public async Task GetAllSightingsAsync_NoSightings_ReturnsEmpty()
+    {
+        // Arrange
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, object>>[]>()))
+            .ReturnsAsync(Enumerable.Empty<Sighting>().AsQueryable());
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetAllSightingsAsync();
+
+        // Assert
+        Assert.That(result, Is.Empty);
+    }
+
+    #endregion
+
+    [Test]
     public async Task CreateSightingAsync_UserHasActiveStreak_Applies1Point5Multiplier()
     {
         // Arrange

@@ -33,19 +33,26 @@ public class AuthenticationDriver
             var userElement = _webDriver.WaitUntil(d =>
             {
                 var elems = d.FindElements(By.Id("userDropdownNavDisplay"));
+                TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] User dropdown elements found: {elems.Count}");
                 return elems.Count > 0 ? elems[0] : null;
             }, TimeSpan.FromSeconds(2));
 
+            TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] User Auth status: " +
+                                      $"{string.IsNullOrEmpty(username) || userElement?.Text.Contains(username) == true}.");
             return string.IsNullOrEmpty(username) || userElement?.Text.Contains(username) == true;
         }
         catch
         {
+            TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] User Auth status: false.");
             return false;
         }
     }
 
     public void PreformLoginForUser(string username, string password)
     {
+        var loginUrl = $"{_baseUrl.TrimEnd('/')}/Account/Login";
+        var timeout = TimeSpan.FromSeconds(10);
+
         if (IsUserLoggedIn(username))
             return;
 
@@ -53,6 +60,9 @@ public class AuthenticationDriver
         LogoutUser();
 
         TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Attempting User {username} log in.");
+        _webDriver.Navigate().GoToUrl(loginUrl);
+        _webDriver.WaitForDocumentReady(timeout);
+
         var loginPage = new LoginPageObject(_webDriver, _baseUrl);
         loginPage.UsernameInput.SendKeys(username);
         loginPage.PasswordInput.SendKeys(password);
@@ -62,9 +72,6 @@ public class AuthenticationDriver
         // After submitting the form, wait for either a validation error to appear on the login
         // page (server returned model errors) or for the page to redirect/refresh and show the
         // user dropdown (meaning sign in was successful).
-        var loginUrl = $"{_baseUrl.TrimEnd('/')}/Account/Login";
-        var timeout = TimeSpan.FromSeconds(10);
-
         try
         {
             _webDriver.WaitUntil(d =>

@@ -1,7 +1,6 @@
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Tests.Acceptance.Configuration;
-using MH.Capstone.Tests.Acceptance.Support;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;

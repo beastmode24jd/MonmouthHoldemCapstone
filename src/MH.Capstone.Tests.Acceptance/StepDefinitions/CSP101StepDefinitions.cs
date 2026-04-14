@@ -1,7 +1,7 @@
-using System.IO;
-using System.Text.Json;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataModels;
+using MH.Capstone.Tests.Acceptance.Configuration;
+using MH.Capstone.Tests.Acceptance.Hooks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -11,16 +11,21 @@ using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 using Reqnroll;
+using System.IO;
+using System.Text.Json;
+using MH.Capstone.Tests.Acceptance.Drivers;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
 [Binding]
 public class CSP101StepDefinitions
 {
-    private IWebDriver _driver = null!;
-    private WebDriverWait _wait = null!;
-    private const string BaseUrl = "https://localhost:7147";
-    private const string ReportablePath = "/Map";
+    private readonly IWebDriver _driver;
+    private readonly WebDriverWait _wait;
+    private readonly AuthenticationDriver _authDriver;
+
+    private readonly string BaseUrl;
+    private const string ReportablePath = "/About";
     private const string DefaultReason = "Inappropriate content";
     private const string DefaultPassword = "Test@1234";
 
@@ -32,67 +37,85 @@ public class CSP101StepDefinitions
 
     #region Setup and Teardown
 
-    [BeforeScenario]
-    public void SetupBrowser()
+    public CSP101StepDefinitions(IWebDriver webDriver, AcceptanceTestSettings settings,
+        AuthenticationDriver authDriver)
     {
-        // Skip cleanly in CI (or anywhere the dev settings file isn't present) instead of hard-failing.
-        if (_connectionString.Value is null)
-        {
-            Assert.Ignore(
-                "Skipping: could not locate MH.Capstone.WebApp/appsettings.Development.json. " +
-                "These BDD tests need the local dev connection string to seed/verify the database.");
-        }
-
-        var options = new ChromeOptions();
-        options.AddArgument("--headless=new");
-        options.AddArgument("--no-sandbox");
-        options.AddArgument("--disable-dev-shm-usage");
-        options.AddArgument("--ignore-certificate-errors");
-        options.AddArgument("--disable-gpu");
-        options.AddArgument("--window-size=1920,1080");
-
-        _driver = new ChromeDriver(options);
+        BaseUrl = settings.BaseUrl;
+        _authDriver = authDriver;
+        _driver = webDriver;
         _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
         _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(15));
     }
 
-    [AfterScenario]
-    public void Cleanup()
+    [AfterScenario("report")]
+    public void AfterScenarioUrlReset()
     {
-        if (_createdUserIds.Any())
-        {
-            using var scope = GetServiceScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-
-            // Reports FK ReportingUserId -> AspNetUsers.Id; delete reports first to avoid FK violation.
-            var reportsToDelete = dbContext.Reports
-                .Where(r => _createdUserIds.Contains(r.ReportingUserIdentityId))
-                .ToList();
-            dbContext.Reports.RemoveRange(reportsToDelete);
-
-            var notificationsToDelete = dbContext.Notifications
-                .Where(n => _createdUserIds.Contains(n.LinkedUserIdentityId))
-                .ToList();
-            dbContext.Notifications.RemoveRange(notificationsToDelete);
-
-            dbContext.SaveChanges();
-
-            foreach (var userId in _createdUserIds)
-            {
-                var user = dbContext.Users.Find(userId);
-                if (user != null)
-                {
-                    userManager.DeleteAsync(user).GetAwaiter().GetResult();
-                }
-            }
-
-            dbContext.SaveChanges();
-        }
-
-        _driver?.Quit();
-        _driver?.Dispose();
+        // Reset to a neutral page after each scenario to ensure a consistent starting point.
+        _driver.Navigate().GoToUrl("pre-post:test");
+        _authDriver.LogoutUser();
     }
+
+    //[BeforeScenario]
+    //public void SetupBrowser()
+    //{
+    //    // Skip cleanly in CI (or anywhere the dev settings file isn't present) instead of hard-failing.
+    //    if (_connectionString.Value is null)
+    //    {
+    //        Assert.Ignore(
+    //            "Skipping: could not locate MH.Capstone.WebApp/appsettings.Acceptance.json. " +
+    //            "These BDD tests need the acceptance connection string to seed/verify the database.");
+    //    }
+
+    //    var options = new ChromeOptions();
+    //    options.AddArgument("--headless=new");
+    //    options.AddArgument("--no-sandbox");
+    //    options.AddArgument("--disable-dev-shm-usage");
+    //    options.AddArgument("--ignore-certificate-errors");
+    //    options.AddArgument("--disable-gpu");
+    //    options.AddArgument("--window-size=1920,1080");
+
+    //    _driver = new ChromeDriver(options);
+    //    _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+    //    _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(15));
+    //}
+
+    //[AfterScenario]
+    //public void Cleanup()
+    //{
+    //    if (_createdUserIds.Any())
+    //    {
+    //        using var scope = GetServiceScope();
+    //        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    //        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+    //        // Reports FK ReportingUserId -> AspNetUsers.Id; delete reports first to avoid FK violation.
+    //        var reportsToDelete = dbContext.Reports
+    //            .Where(r => _createdUserIds.Contains(r.ReportingUserIdentityId))
+    //            .ToList();
+    //        dbContext.Reports.RemoveRange(reportsToDelete);
+
+    //        var notificationsToDelete = dbContext.Notifications
+    //            .Where(n => _createdUserIds.Contains(n.LinkedUserIdentityId))
+    //            .ToList();
+    //        dbContext.Notifications.RemoveRange(notificationsToDelete);
+
+    //        dbContext.SaveChanges();
+
+    //        foreach (var userId in _createdUserIds)
+    //        {
+    //            var user = dbContext.Users.Find(userId);
+    //            if (user != null)
+    //            {
+    //                userManager.DeleteAsync(user).GetAwaiter().GetResult();
+    //            }
+    //        }
+
+    //        dbContext.SaveChanges();
+    //    }
+
+    //    _driver?.Quit();
+    //    _driver?.Dispose();
+    //}
 
     #endregion
 
@@ -399,12 +422,14 @@ public class CSP101StepDefinitions
         // JS click sidesteps overlay interception from the Leaflet map tiles and tooltips.
         ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", openButton!);
 
+
         // Wait for Bootstrap modal to be fully shown (fade animation complete).
         _wait.Until(d =>
         {
             var modal = d.FindElement(By.Id("reportModal"));
             var classes = modal.GetAttribute("class") ?? string.Empty;
             var ariaHidden = modal.GetAttribute("aria-hidden");
+            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Modal classes: {classes}, aria-hidden: {ariaHidden}");
             return classes.Contains("show") && ariaHidden != "true";
         });
 
@@ -544,11 +569,11 @@ public class CSP101StepDefinitions
     private static string? FindWebAppDevSettings()
     {
         // Walk up from the test bin directory until we find a parent that contains
-        // MH.Capstone.WebApp/appsettings.Development.json (i.e. the src/ folder).
+        // MH.Capstone.WebApp/appsettings.Acceptance.json (i.e. the src/ folder).
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null)
         {
-            var candidate = Path.Combine(dir.FullName, "MH.Capstone.WebApp", "appsettings.Development.json");
+            var candidate = Path.Combine(dir.FullName, "MH.Capstone.WebApp", "appsettings.Acceptance.json");
             if (File.Exists(candidate))
             {
                 return candidate;

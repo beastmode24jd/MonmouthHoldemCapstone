@@ -16,6 +16,11 @@ public class DashboardDriver
         _dashboardUrl = $"{settings.BaseUrl.TrimEnd('/')}/Dashboard";
     }
 
+    public void NavigateToDashboard()
+    {
+        _webDriver.Navigate().GoToUrl(_dashboardUrl);
+    }
+
     public bool IsOnDashboard()
     {
         if (string.Equals(_webDriver.Url, _dashboardUrl, StringComparison.InvariantCultureIgnoreCase))
