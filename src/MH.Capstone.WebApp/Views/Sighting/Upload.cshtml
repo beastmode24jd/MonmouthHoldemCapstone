@@ -2,19 +2,17 @@
 @{
     ViewData["Title"] = "Upload Sighting";
 }
-
 <h1 class="mt-2">Upload Sighting</h1>
-
 <form asp-action="Upload" asp-controller="Sighting" method="post" enctype="multipart/form-data">
     <div class="row">
         <div class="form-group col-md-4 col-12">
             <label asp-for="Latitude"></label>
-            <input asp-for="Latitude" class="form-control" data-js-numericOnly />
+            <input asp-for="Latitude" class="form-control" id="latitudeInput" data-js-numericOnly />
             <span asp-validation-for="Latitude" class="text-danger"></span>
         </div>
         <div class="form-group col-md-4 col-12">
             <label asp-for="Longitude"></label>
-            <input asp-for="Longitude" class="form-control" data-js-numericOnly />
+            <input asp-for="Longitude" class="form-control" id="longitudeInput" data-js-numericOnly />
             <span asp-validation-for="Longitude" class="text-danger"></span>
         </div>
         <div class="form-group col-md-4 col-12">
@@ -27,6 +25,23 @@
         </div>
         <input type="hidden" asp-for="DeviceTimezone" />
     </div>
+    
+    <!-- Location status message -->
+    <div class="row mt-2">
+        <div class="col-12">
+            <div id="locationStatus" class="alert d-none" role="alert"></div>
+        </div>
+    </div>
+    
+    <!-- Use Current Location button -->
+    <div class="row mb-2">
+        <div class="col-12">
+            <button type="button" id="useCurrentLocationBtn" class="btn btn-outline-secondary">
+                <i class="bi bi-geo-alt"></i> Use Current Location
+            </button>
+        </div>
+    </div>
+    
     <div class="row mb-md-3 mb-2">
         <div class="form-group col-lg-8 col-12">
             <label asp-for="Description"></label>
@@ -35,13 +50,17 @@
         </div>
         <div class="form-group col-lg-4 col-12">
             <label asp-for="UploadedImage">Upload Image</label><br />
-            <input asp-for="UploadedImage" type="file" accept=".png,.jpeg,.jpg" class="form-control-file" />
+            <input asp-for="UploadedImage" type="file" accept=".png,.jpeg,.jpg" class="form-control-file" id="imageUploadInput" />
             <span asp-validation-for="UploadedImage" class="text-danger d-block"></span>
-            <!--TODO Later - make the uploaded image async show here on upload via JavaScript -->
-            <img src="" width="100px" height="100px" alt="Uploaded Image" class="d-none"/>
+            <!-- Image preview -->
+            <img id="imagePreview" src="" alt="Uploaded Image Preview" class="d-none mt-2" style="max-width: 200px; max-height: 200px;"/>
         </div>
     </div>
-
     @Html.AntiForgeryToken()
-    <button type="submit" id="SubmitBtn" class="btn btn-primary">Submit</button>
+    <button type="submit" class="btn btn-primary">Submit</button>
 </form>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.min.js"></script>
+    <script src="~/js/sighting-upload.js" asp-append-version="true"></script>
+}
