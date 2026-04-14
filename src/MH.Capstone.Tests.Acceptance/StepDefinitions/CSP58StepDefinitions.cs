@@ -82,4 +82,32 @@ public class CSP58StepDefinitions
         _searchDriver.CounterShowsAtLeastOneResult().Should().BeTrue(
             because: "the result counter must update from '0 / 0' to show the number of results returned");
     }
+
+    // ── Scenario 5: The clear button resets the search state ──────────────────
+
+    [Given("user has searched for {string}")]
+    public void GivenUserHasSearchedFor(string animalName)
+    {
+        _searchDriver.SearchFor(animalName);
+    }
+
+    [When("user clicks the clear button")]
+    public void WhenUserClicksTheClearButton()
+    {
+        _searchDriver.ClickClear();
+    }
+
+    [Then("the search input is empty")]
+    public void ThenTheSearchInputIsEmpty()
+    {
+        _searchDriver.GetSearchInputValue().Should().BeEmpty(
+            because: "clicking Clear must wipe the search input field");
+    }
+
+    [Then("the result card shows no results")]
+    public void ThenTheResultCardShowsNoResults()
+    {
+        _searchDriver.HasNoResultsMessage().Should().BeTrue(
+            because: "clicking Clear must reset the result card back to the no-results placeholder");
+    }
 }

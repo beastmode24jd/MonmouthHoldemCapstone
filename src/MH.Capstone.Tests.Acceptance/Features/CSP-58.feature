@@ -26,3 +26,11 @@ Scenario: The result counter updates to reflect a successful search
   And user is on the species search page
   When user searches for "eagle"
   Then the result counter shows at least one result
+
+Scenario: The clear button resets the search state
+  Given user Alex is logged in
+  And user is on the species search page
+  And user has searched for "eagle"
+  When user clicks the clear button
+  Then the search input is empty
+  And the result card shows no results
