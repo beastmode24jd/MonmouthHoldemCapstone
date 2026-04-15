@@ -39,7 +39,13 @@ public class EmailVerificationDriver
         }, TimeSpan.FromSeconds(5));
 
         _driver.FindElement(By.Id("submitBtn")).Click();
-        _driver.WaitForDocumentReady(TimeSpan.FromSeconds(10));
+        // Wait explicitly for the RegisterConfirmation page element rather than just
+        // document.readyState — the latter can fire on the Register page before the
+        // 302 redirect to RegisterConfirmation has started, causing a race condition
+        // where subsequent GoToUrl calls fight with the pending redirect.
+        _driver.WaitUntil(d =>
+            d.FindElements(By.Id("registrationConfirmationMessage")).Count > 0,
+            TimeSpan.FromSeconds(10));
     }
 
     /// <summary>Returns true when the "check your email" registration confirmation page is shown.</summary>
