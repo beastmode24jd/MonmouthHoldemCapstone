@@ -125,11 +125,19 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
 
     // Verify password using SignInManager (works even for deactivated accounts)
     var passwordValid = await _authService.CheckPasswordAsync(model.Email, model.Password);
-    
+
     // If password is wrong, show generic error (don't reveal account status)
     if (!passwordValid)
     {
         ModelState.AddModelError(string.Empty, "Invalid email or password.");
+        return View(model);
+    }
+
+    // Password is correct - block unverified accounts before revealing deactivation status
+    if (!user.EmailConfirmed)
+    {
+        ViewData["ShowResendVerificationOption"] = true;
+        TempData["UnverifiedEmail"] = model.Email;
         return View(model);
     }
 
@@ -252,10 +260,7 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
             {
                 _logger.LogInformation("New user registered: {Email}", model.Email);
 
-                // Sign the user in immediately after registration (tests expect this behavior)
-                await _authService.SignInUserAsync(HttpContext, model.Email, false);
-
-                // Send email verification link as well
+                // Send email verification link — user must verify before logging in
                 var user = await _userManager.FindByEmailAsync(model.Email);
                 if (user != null)
                 {
@@ -311,6 +316,9 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
             var user = await _userManager.FindByEmailAsync(model.Email);
             if (user != null && !user.IsDeactivated)
             {
+                // Rotate the security stamp so any previously issued reset tokens are invalidated
+                await _userManager.UpdateSecurityStampAsync(user);
+
                 var rawToken = await _userManager.GeneratePasswordResetTokenAsync(user);
                 var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
 
@@ -347,6 +355,24 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null)
                 return View("ResetPasswordInvalid");
+
+            // Validate the token eagerly so users see an error immediately rather than
+            // filling in the form only to get rejected on POST.
+            try
+            {
+                var rawToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
+                var isValid = await _userManager.VerifyUserTokenAsync(
+                    user,
+                    _userManager.Options.Tokens.PasswordResetTokenProvider,
+                    "ResetPassword",
+                    rawToken);
+                if (!isValid)
+                    return View("ResetPasswordInvalid");
+            }
+            catch
+            {
+                return View("ResetPasswordInvalid");
+            }
 
             var vm = new ResetPasswordViewModel { Email = email, Token = token };
             return View(vm);
@@ -392,6 +418,9 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null)
                 return NotFound("User not found.");
+
+            // Rotate the security stamp so any previously issued reset tokens are invalidated
+            await _userManager.UpdateSecurityStampAsync(user);
 
             var rawToken = await _userManager.GeneratePasswordResetTokenAsync(user);
             var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));

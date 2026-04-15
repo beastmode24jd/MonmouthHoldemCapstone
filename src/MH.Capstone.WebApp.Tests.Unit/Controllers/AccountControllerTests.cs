@@ -87,8 +87,8 @@ public class AccountControllerTests
             RememberMe = false
         };
 
-        // Mock user exists and is not deactivated
-        var user = new ApplicationUser { Email = loginModel.Email, IsDeactivated = false };
+        // Mock user exists, is not deactivated, and has confirmed their email
+        var user = new ApplicationUser { Email = loginModel.Email, IsDeactivated = false, EmailConfirmed = true };
         _mockUserService.Setup(s => s.GetUserByEmailAsync(loginModel.Email)).ReturnsAsync(user);
 
         // Mock password check passes
@@ -152,7 +152,10 @@ public class AccountControllerTests
         };
 
         _mockAuthService.Setup(s => s.RegisterUserAsync(registerModel.Email, registerModel.Password)).ReturnsAsync(true);
-        _mockAuthService.Setup(s => s.SignInUserAsync(It.IsAny<HttpContext>(), registerModel.Email, false)).Returns(Task.CompletedTask);
+
+        // FindByEmailAsync returns null → email-sending block is skipped (no email service in unit tests)
+        _mockUserManager.Setup(m => m.FindByEmailAsync(registerModel.Email))
+            .ReturnsAsync((ApplicationUser?)null);
 
         var result = await _controller.Register(registerModel);
 
@@ -161,7 +164,8 @@ public class AccountControllerTests
         Assert.That(redirectResult.ActionName, Is.EqualTo("RegisterConfirmation"));
         Assert.That(redirectResult.ControllerName, Is.EqualTo("Account"));
         _mockAuthService.Verify(s => s.RegisterUserAsync(registerModel.Email, registerModel.Password), Times.Once);
-        _mockAuthService.Verify(s => s.SignInUserAsync(It.IsAny<HttpContext>(), registerModel.Email, false), Times.Once);
+        // Registration no longer auto-signs in — user must verify email first
+        _mockAuthService.Verify(s => s.SignInUserAsync(It.IsAny<HttpContext>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
     }
 
     [Test]

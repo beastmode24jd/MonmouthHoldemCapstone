@@ -65,11 +65,17 @@ public class PasswordResetDriver
 
     /// <summary>
     /// Navigates to a reset link and fills in + submits the new password form.
+    /// If the token is already invalid the browser lands on the error page; in that
+    /// case this method returns without attempting to interact with a non-existent form.
     /// </summary>
     public void NavigateToResetLinkAndSubmit(string resetLink, string newPassword, string confirmPassword)
     {
         _driver.Navigate().GoToUrl(resetLink);
         _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+
+        // If the token was already invalidated we land on the error page — no form to fill.
+        if (_driver.FindElements(By.Id("invalidResetLinkMessage")).Count > 0)
+            return;
 
         var page = new ResetPasswordPageObject(_driver);
         page.NewPasswordInput.Clear();

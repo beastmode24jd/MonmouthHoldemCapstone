@@ -125,7 +125,7 @@ public class EmailVerificationDriver
         _driver.Navigate().GoToUrl($"{_baseUrl}/Account/Login");
         _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
 
-        _driver.FindElement(By.Id("Email")).SendKeys(email);
+        _driver.FindElement(By.Id("emailField")).SendKeys(email);
         _driver.FindElement(By.Id("passwordField")).SendKeys(password);
 
         // Wait for the submit button to be enabled by JS
