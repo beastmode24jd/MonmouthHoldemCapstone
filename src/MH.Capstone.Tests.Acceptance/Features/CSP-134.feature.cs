@@ -18,19 +18,18 @@ namespace MH.Capstone.Tests.Acceptance.Features
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Reqnroll", "3.0.0.0")]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     [global::NUnit.Framework.TestFixtureAttribute()]
-    [global::NUnit.Framework.DescriptionAttribute("Account Password Reset")]
+    [global::NUnit.Framework.DescriptionAttribute("CSP-134")]
     [global::NUnit.Framework.FixtureLifeCycleAttribute(global::NUnit.Framework.LifeCycle.InstancePerTestCase)]
-    public partial class AccountPasswordResetFeature
+    public partial class CSP_134Feature
     {
         
         private global::Reqnroll.ITestRunner testRunner;
         
         private static string[] featureTags = ((string[])(null));
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "Account Password Reset", "    As a user of the Wildlife AID app\n    I want to be able to reset my password\n" +
-                "    So that I can still log into my account, even if I forget my password", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "CSP-134", "Email Verification on Registration", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
-#line 1 "CSP-26.feature"
+#line 1 "CSP-134.feature"
 #line hidden
         
         [global::NUnit.Framework.OneTimeSetUpAttribute()]
@@ -106,22 +105,20 @@ namespace MH.Capstone.Tests.Acceptance.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/CSP-26.feature.ndjson", 6);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/CSP-134.feature.ndjson", 7);
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Alex is looking for the Forgot Password page on the Login page.")]
-        [global::NUnit.Framework.CategoryAttribute("forgotPassword")]
-        public async global::System.Threading.Tasks.Task AlexIsLookingForTheForgotPasswordPageOnTheLoginPage_()
+        [global::NUnit.Framework.DescriptionAttribute("Email Sent on Registration")]
+        public async global::System.Threading.Tasks.Task EmailSentOnRegistration()
         {
-            string[] tagsOfScenario = new string[] {
-                    "forgotPassword"};
+            string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "0";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Alex is looking for the Forgot Password page on the Login page.", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Email Sent on Registration", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 7
+#line 5
 this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -131,35 +128,27 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 8
-    await testRunner.GivenAsync("I am on the Login Page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line 6
+  await testRunner.GivenAsync("a new user registers with a unique test email and password \"Capstone26!\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 9
-    await testRunner.WhenAsync("I look at the Login input form", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
-#line hidden
-#line 10
-    await testRunner.ThenAsync("I should see a Forgot Password link", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
-#line hidden
-#line 11
-    await testRunner.AndAsync("it should change colors and my mouse cursor when I hover over it", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line 7
+  await testRunner.ThenAsync("they are shown a registration confirmation page asking them to check their email", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("James has entered an account that does not exist in the database.")]
-        [global::NUnit.Framework.CategoryAttribute("forgotPassword")]
-        public async global::System.Threading.Tasks.Task JamesHasEnteredAnAccountThatDoesNotExistInTheDatabase_()
+        [global::NUnit.Framework.DescriptionAttribute("Verification Link Works")]
+        public async global::System.Threading.Tasks.Task VerificationLinkWorks()
         {
-            string[] tagsOfScenario = new string[] {
-                    "forgotPassword"};
+            string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "1";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("James has entered an account that does not exist in the database.", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Verification Link Works", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 14
+#line 9
 this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -169,34 +158,36 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 15
-    await testRunner.GivenAsync("I am on the Forgot Password page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line 10
+  await testRunner.GivenAsync("a new user registers with a unique test email and password \"Capstone26!\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 16
-    await testRunner.WhenAsync("I submit an account search for an account that does not exist", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line 11
+  await testRunner.AndAsync("an email confirmation link has been generated for the registered email", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-#line 17
-    await testRunner.ThenAsync("I should see an error message saying the account was not found", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line 12
+  await testRunner.WhenAsync("the user navigates to the email confirmation link", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 13
+  await testRunner.ThenAsync("the user sees a successful email verification message", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+#line 14
+  await testRunner.AndAsync("the user can log in with their registered email and password \"Capstone26!\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Alex has entered correct account parameters, and is being shown the “Confirm New " +
-            "Password” part of the form.")]
-        [global::NUnit.Framework.CategoryAttribute("forgotPassword")]
-        public async global::System.Threading.Tasks.Task AlexHasEnteredCorrectAccountParametersAndIsBeingShownTheConfirmNewPasswordPartOfTheForm_()
+        [global::NUnit.Framework.DescriptionAttribute("Invalid or Expired Verification Link")]
+        public async global::System.Threading.Tasks.Task InvalidOrExpiredVerificationLink()
         {
-            string[] tagsOfScenario = new string[] {
-                    "forgotPassword"};
+            string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "2";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Alex has entered correct account parameters, and is being shown the “Confirm New " +
-                    "Password” part of the form.", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Invalid or Expired Verification Link", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 20
+#line 16
 this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -206,34 +197,33 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 21
-    await testRunner.GivenAsync("I am on the Forgot Password page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line 17
+  await testRunner.GivenAsync("a new user registers with a unique test email and password \"Capstone26!\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 22
-    await testRunner.WhenAsync("I search for a valid account that exists", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line 18
+  await testRunner.WhenAsync("the user navigates to a verification link with an invalid token", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 23
-    await testRunner.ThenAsync("I should be shown the two password fields", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line 19
+  await testRunner.ThenAsync("the user sees a verification error message", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+#line 20
+  await testRunner.AndAsync("the user sees an option to request a new verification link", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Alex is on the “Confirm New Password” page, but has not written the same password" +
-            " twice.")]
-        [global::NUnit.Framework.CategoryAttribute("forgotPassword")]
-        public async global::System.Threading.Tasks.Task AlexIsOnTheConfirmNewPasswordPageButHasNotWrittenTheSamePasswordTwice_()
+        [global::NUnit.Framework.DescriptionAttribute("Restricted Access Before Verification")]
+        public async global::System.Threading.Tasks.Task RestrictedAccessBeforeVerification()
         {
-            string[] tagsOfScenario = new string[] {
-                    "forgotPassword"};
+            string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "3";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Alex is on the “Confirm New Password” page, but has not written the same password" +
-                    " twice.", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Restricted Access Before Verification", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 26
+#line 22
 this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -243,17 +233,51 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 27
-    await testRunner.GivenAsync("I am on the Confirm New Password page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line 23
+  await testRunner.GivenAsync("a new user registers with a unique test email and password \"Capstone26!\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
+#line 24
+  await testRunner.WhenAsync("the unverified user tries to log in with their registered email and password \"Cap" +
+                        "stone26!\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 25
+  await testRunner.ThenAsync("the user sees an email verification required message", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+#line 26
+  await testRunner.AndAsync("the user sees an option to resend the verification email", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::NUnit.Framework.TestAttribute()]
+        [global::NUnit.Framework.DescriptionAttribute("Resend Verification Email")]
+        public async global::System.Threading.Tasks.Task ResendVerificationEmail()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "4";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Resend Verification Email", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
 #line 28
-    await testRunner.WhenAsync("I submit passwords that do not match", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
 #line 29
-    await testRunner.AndAsync("I click Save", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+  await testRunner.GivenAsync("a new user registers with a unique test email and password \"Capstone26!\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 30
-    await testRunner.ThenAsync("I should see an error message telling me the inputs do not match", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+  await testRunner.WhenAsync("the user submits a resend verification request for their registered email", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 31
+  await testRunner.ThenAsync("they see a resend confirmation message", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

@@ -72,7 +72,14 @@ internal static class TestWebAppHost
             .AddJsonFile(
                 Path.Combine(settings.WebAppContentRoot, "appsettings.Acceptance.Local.json"),
                 optional: true)
-            .AddEnvironmentVariables();
+            .AddEnvironmentVariables()
+            // Always enable the password-reset test endpoint so acceptance scenarios can
+            // obtain reset links without a real email inbox.  This overrides any value set
+            // in appsettings files and is safe because this host only runs during testing.
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["FeatureFlags:EnableEmailTestEndpoint"] = "true"
+            });
 
         // MapStaticAssets() resolves the static-web-assets manifest by looking for
         // "{EntryAssemblyName}.staticwebassets.endpoints.json" next to the test binary.

@@ -101,7 +101,7 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 
 | Interface | Implementation | Purpose |
 |---|---|---|
-| `IAuthenticationService` | `AuthenticationService` | Login, register, logout |
+| `IAuthenticationService` | `AuthenticationService` | Login, register, logout, password reset (token-based), email confirmation |
 | `IUserService` | `UserService` | Profile management, deactivation |
 | `IProfileImageService` | `ProfileImageService` | Upload/retrieve profile images |
 | `ISightingsService` | `SightingsService` | Submit and query wildlife sightings. `GetAllSightingsAsync()` eager-loads `User` nav property for attribution; `GetUserSightingsAsync(Guid)` filters to one user (no include). |
@@ -110,7 +110,7 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `ILeaderboardService` | `LeaderboardService` | Ranked user standings |
 | `IReportService` | `ReportService` | Submit and resolve content reports |
 | `INotificationService` | `InAppNotificationService` | Create and deliver in-app notifications |
-| `IEmailService` | `AzureCommunicationEmailService` / `NoOpEmailService` | Send emails (toggled by `UseRealEmailerService` feature flag) |
+| `IEmailService` | `AzureCommunicationEmailService` / `NoOpEmailService` | Send emails (toggled by `UseRealEmailerService` feature flag). Used by `AccountController.ForgotPassword` to deliver password-reset links. |
 | `IApiCaller` | `ExternalApiCaller` | HTTP calls to external APIs with SQL caching |
 
 **Background service:** `EmailDispatcherService` (hosted service) processes the `EmailQueue` outbox.
@@ -150,6 +150,9 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 `FeatureFlags` is registered as a singleton from `appsettings.json` configuration. Current flags:
 
 - `UseRealEmailerService` — when `true`, uses `AzureCommunicationEmailService`; otherwise `NoOpEmailService`
+- `EnableEmailTestEndpoint` — when `true`, exposes two test-only endpoints that return token links as plain text (gated, safe for test environments only). Always forced `true` by `TestWebAppHost` via in-memory config override:
+  - `GET /Account/GeneratePasswordResetLink?email=xxx` — fresh password-reset URL
+  - `GET /Account/GenerateEmailConfirmationLink?email=xxx` — fresh email-confirmation URL
 
 ---
 
@@ -175,8 +178,10 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 - **Config load order:** `appsettings.json` → `appsettings.Acceptance.json` → `appsettings.Acceptance.Local.json` (gitignored, per-developer overrides) → environment variables.
 - **Browser:** One shared `ChromeDriver` instance for the entire test run (`BeforeTestRun` / `AfterTestRun`). No browser restart between scenarios.
 - **Scenario isolation:** `TestWebAppHost.ResetSeedData()` exists as a `TODO` stub. Until implemented, scenarios must be written to tolerate persistent database state across the run — or must clean up after themselves.
-- **DI in steps:** Reqnroll's per-scenario DI container (via `[ScenarioDependencies]` in `TestDependencySetup`) provides `IWebDriver` and `AcceptanceTestSettings` as singletons. Drivers and page objects are resolved automatically as transient.
-- **Registering new drivers:** Every new Driver class **must** be added to `TestDependencySetup.CreateServices()` as `services.AddTransient<TDriver>()`. Reqnroll's DI container does not auto-discover drivers the way it does step-definition bindings — omitting this registration causes a runtime `ObjectCreationException` when the driver is first injected.
+- **DI in steps:** Reqnroll's per-scenario DI container (via `[ScenarioDependencies]` in `TestDependencySetup`) provides `IWebDriver` and `AcceptanceTestSettings` as singletons. Drivers and page objects are resolved automatically as transient. Every new Driver must be registered in `TestDependencySetup.CreateServices()` as `services.AddTransient<TDriver>()` — Reqnroll does not auto-discover drivers.
+- **Password reset test pattern:** For scenarios that require a user to receive and click a reset link, call `PasswordResetDriver.GetPasswordResetLink(email)` (hits `GET /Account/GeneratePasswordResetLink`) to get the URL, then navigate to it. This mimics clicking the emailed link without a real inbox. `TestWebAppHost` always forces `EnableEmailTestEndpoint = true` via in-memory config override so this works in any environment without appsettings changes.
+- **Email confirmation test pattern:** Same approach — call `EmailVerificationDriver.GetEmailConfirmationLink(email)` (hits `GET /Account/GenerateEmailConfirmationLink`) to get the verification URL, then navigate to it. Acceptance test scenarios that need a fresh unverified user register with a unique `csp134_{guid}@test.com` email so they remain isolated without a DB reset between scenarios.
+- **Registration UX change (CSP-134):** Registration no longer auto-signs the user in. It sends a verification email and redirects to `/Account/RegisterConfirmation`. Users must click the verification link before they can log in. All seeded personas in `AcceptanceTestSeeder` have `EmailConfirmed = true` and are not affected.
 
 #### Seed user already referenced in step definitions
 
@@ -198,6 +203,27 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `/Sighting/Create` | `Description` | Description textarea |
 | `/Sighting/Create` | `UploadedImage` | Image file upload |
 | `/Sighting/Create` | `SubmitBtn` | Form submit button |
+| `/Account/ForgotPassword` | `forgotPasswordEmail` | Email input |
+| `/Account/ForgotPassword` | `sendResetEmailBtn` | Submit button |
+| `/Account/ForgotPassword` | `resetEmailSentMessage` | "Check your email" success banner (shown after submit, regardless of whether email exists) |
+| `/Account/ResetPassword` | `newPasswordField` | New password input |
+| `/Account/ResetPassword` | `confirmPasswordField` | Confirm password input |
+| `/Account/ResetPassword` | `resetPasswordBtn` | Submit button |
+| `/Account/ResetPassword` | `resetPasswordError` | Inline validation-summary div (visible when token is invalid/expired) |
+| `/Account/ResetPasswordInvalid` | `invalidResetLinkMessage` | Error div on the dedicated invalid-link page |
+| `/Account/ResetPasswordInvalid` | `requestNewResetLinkBtn` | Link to request a new reset link |
+| `/Account/Login` | `passwordResetSuccessMessage` | Success banner shown after a completed password reset |
+| `/Account/Login` | `emailNotVerifiedMessage` | Warning banner + resend button shown when unverified user tries to log in |
+| `/Account/Login` | `resendVerificationBtn` | "Resend Verification Email" button in the unverified-user warning |
+| `/Account/RegisterConfirmation` | `registrationConfirmationMessage` | "Check your email" success message shown after registration |
+| `/Account/RegisterConfirmation` | `resendFromConfirmationLink` | Link to resend verification from the confirmation page |
+| `/Account/VerifyEmail` | `emailVerifiedSuccessMessage` | Success message shown after a valid confirmation link is clicked |
+| `/Account/VerifyEmail` | `loginAfterVerificationBtn` | "Log In" button on the success page |
+| `/Account/VerifyEmail` | `emailVerificationErrorMessage` | Error shown when the confirmation token is invalid or expired |
+| `/Account/VerifyEmail` | `requestNewVerificationBtn` | Link to request a new verification link from the error page |
+| `/Account/ResendVerification` | `resendVerificationEmail` | Email input on the resend form |
+| `/Account/ResendVerification` | `resendVerificationSubmitBtn` | Submit button on the resend form |
+| `/Account/ResendVerification` | `resendVerificationSentMessage` | "Check your email" success banner after resend |
 | `/Sighting/Gallery` | `filterAll` | "All Sightings" toggle button |
 | `/Sighting/Gallery` | `filterMine` | "My Sightings" toggle button |
 | `/Sighting/Gallery` | `emptyStateMine` | Empty-state div shown by JS when "My Sightings" has no results |
