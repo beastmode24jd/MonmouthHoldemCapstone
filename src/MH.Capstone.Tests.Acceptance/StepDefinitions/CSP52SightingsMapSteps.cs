@@ -1,4 +1,8 @@
-using MH.Capstone.Tests.Acceptance.Hooks;
+using System.Diagnostics.CodeAnalysis;
+using FluentAssertions;
+using MH.Capstone.Tests.Acceptance.Configuration;
+using MH.Capstone.Tests.Acceptance.Drivers;
+using MH.Capstone.Tests.Acceptance.Helpers;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
 using Reqnroll;
@@ -7,16 +11,22 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
 [Binding]
 [Scope(Tag = "map")]
+[ExcludeFromCodeCoverage]
 public class CSP52SightingsMapSteps
 {
     private readonly IWebDriver _driver;
-    private string _baseUrl => Startup.GetSettings().BaseUrl;
-    private const string TestEmail = "alpha@test.com";
+    private readonly string _baseUrl;
+    private readonly AuthenticationDriver _authDriver;
+
+    private const string TestEmail    = "alex@test.com";
     private const string TestPassword = "Capstone26!";
 
-    public CSP52SightingsMapSteps(IWebDriver driver)
+    public CSP52SightingsMapSteps(IWebDriver driver, AcceptanceTestSettings settings,
+        AuthenticationDriver authDriver)
     {
-        _driver = driver;
+        _driver   = driver;
+        _baseUrl  = settings.BaseUrl.TrimEnd('/');
+        _authDriver = authDriver;
     }
 
     [Given(@"I am using Chrome browser")]
@@ -34,23 +44,7 @@ public class CSP52SightingsMapSteps
     [Given(@"I am logged in as a registered user")]
     public void GivenIAmLoggedInAsARegisteredUser()
     {
-        _driver.Navigate().GoToUrl($"{_baseUrl}/Account/Login");
-
-        var emailField = _driver.FindElement(By.Id("Email"));
-        var passwordField = _driver.FindElement(By.Id("passwordField"));
-
-        emailField.SendKeys(TestEmail);
-        passwordField.SendKeys(TestPassword);
-
-        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
-        var submitButton = wait.Until(d =>
-        {
-            var btn = d.FindElement(By.Id("submitBtn"));
-            return btn.Enabled ? btn : null;
-        });
-        submitButton?.Click();
-
-        wait.Until(d => !d.Url.Contains("/Account/Login"));
+        _authDriver.PreformLoginForUser(TestEmail, TestPassword);
     }
 
     [When(@"I navigate to the map page without logging in")]
@@ -63,28 +57,28 @@ public class CSP52SightingsMapSteps
     public void WhenINavigateToTheMapPage()
     {
         _driver.Navigate().GoToUrl($"{_baseUrl}/Map");
-        Thread.Sleep(2000);
+        _driver.WaitForElement(By.Id("map"), TimeSpan.FromSeconds(10));
     }
 
     [When(@"there are no sightings in the current view")]
     public void WhenThereAreNoSightingsInTheCurrentView()
     {
-        Thread.Sleep(1000);
+        // No-op: modal presence is checked in the Then step with its own explicit wait.
     }
 
     [Then(@"I should be redirected to the login page")]
     public void ThenIShouldBeRedirectedToTheLoginPage()
     {
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
-        wait.Until(d => d.Url.Contains("/Account/Login"));
-        Assert.That(_driver.Url, Does.Contain("/Account/Login"));
+        wait.Until(d => d.Url.Contains("/Account/Login", StringComparison.OrdinalIgnoreCase));
+        _driver.Url.Should().ContainEquivalentOf("/Account/Login");
     }
 
     [Then(@"I should see the map container element")]
     public void ThenIShouldSeeTheMapContainerElement()
     {
         var mapElement = _driver.FindElement(By.Id("map"));
-        Assert.That(mapElement.Displayed, Is.True);
+        mapElement.Displayed.Should().BeTrue("the map container element should be visible");
     }
 
     [Then(@"I should see a popup indicating no sightings in the area")]
@@ -95,37 +89,37 @@ public class CSP52SightingsMapSteps
         {
             var modal = wait.Until(d => d.FindElement(By.Id("noSightingsModal")));
             var isVisible = modal.GetDomAttribute("class")?.Contains("show") ?? false;
-            Assert.That(isVisible || modal.Displayed, Is.True, "No sightings modal should be visible");
+            (isVisible || modal.Displayed).Should().BeTrue("the no-sightings modal should be visible");
         }
         catch (WebDriverTimeoutException)
         {
-            Assert.Pass("No modal appeared - there may be sightings in the area");
+            // No modal appeared — there may be sightings in the area; pass gracefully.
         }
     }
 
     [Then(@"I should be able to interact with the zoom controls")]
     public void ThenIShouldBeAbleToInteractWithTheZoomControls()
     {
-        // Close any modal that might be blocking the zoom controls
+        // Close any modal that might be blocking the zoom controls.
         try
         {
-            var closeButton = _driver.FindElement(By.CssSelector("#noSightingsModal .btn-close, #noSightingsModal button[data-bs-dismiss='modal']"));
+            var closeButton = _driver.FindElement(
+                By.CssSelector("#noSightingsModal .btn-close, #noSightingsModal button[data-bs-dismiss='modal']"));
             closeButton.Click();
-            Thread.Sleep(500);
+            _driver.WaitForDocumentReady(TimeSpan.FromSeconds(3));
         }
         catch (NoSuchElementException)
         {
-            // Modal not present, continue
+            // Modal not present; continue.
         }
 
-        var zoomInButton = _driver.FindElement(By.CssSelector(".leaflet-control-zoom-in"));
+        var zoomInButton  = _driver.FindElement(By.CssSelector(".leaflet-control-zoom-in"));
         var zoomOutButton = _driver.FindElement(By.CssSelector(".leaflet-control-zoom-out"));
 
-        Assert.That(zoomInButton.Displayed, Is.True, "Zoom in button should be visible");
-        Assert.That(zoomOutButton.Displayed, Is.True, "Zoom out button should be visible");
+        zoomInButton.Displayed.Should().BeTrue("zoom-in button should be visible");
+        zoomOutButton.Displayed.Should().BeTrue("zoom-out button should be visible");
 
         zoomInButton.Click();
-        Thread.Sleep(500);
         zoomOutButton.Click();
     }
 }

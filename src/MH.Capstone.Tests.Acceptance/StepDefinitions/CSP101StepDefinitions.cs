@@ -1,23 +1,22 @@
+using FluentAssertions;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Tests.Acceptance.Configuration;
-using MH.Capstone.Tests.Acceptance.Hooks;
+using MH.Capstone.Tests.Acceptance.Drivers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using OpenQA.Selenium;
-using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 using Reqnroll;
-using System.IO;
 using System.Text.Json;
-using MH.Capstone.Tests.Acceptance.Drivers;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
 [Binding]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public class CSP101StepDefinitions
 {
     private readonly IWebDriver _driver;
@@ -50,72 +49,9 @@ public class CSP101StepDefinitions
     [AfterScenario("report")]
     public void AfterScenarioUrlReset()
     {
-        // Reset to a neutral page after each scenario to ensure a consistent starting point.
-        _driver.Navigate().GoToUrl("pre-post:test");
+        _driver.Navigate().GoToUrl("about:blank");
         _authDriver.LogoutUser();
     }
-
-    //[BeforeScenario]
-    //public void SetupBrowser()
-    //{
-    //    // Skip cleanly in CI (or anywhere the dev settings file isn't present) instead of hard-failing.
-    //    if (_connectionString.Value is null)
-    //    {
-    //        Assert.Ignore(
-    //            "Skipping: could not locate MH.Capstone.WebApp/appsettings.Acceptance.json. " +
-    //            "These BDD tests need the acceptance connection string to seed/verify the database.");
-    //    }
-
-    //    var options = new ChromeOptions();
-    //    options.AddArgument("--headless=new");
-    //    options.AddArgument("--no-sandbox");
-    //    options.AddArgument("--disable-dev-shm-usage");
-    //    options.AddArgument("--ignore-certificate-errors");
-    //    options.AddArgument("--disable-gpu");
-    //    options.AddArgument("--window-size=1920,1080");
-
-    //    _driver = new ChromeDriver(options);
-    //    _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
-    //    _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(15));
-    //}
-
-    //[AfterScenario]
-    //public void Cleanup()
-    //{
-    //    if (_createdUserIds.Any())
-    //    {
-    //        using var scope = GetServiceScope();
-    //        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    //        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-
-    //        // Reports FK ReportingUserId -> AspNetUsers.Id; delete reports first to avoid FK violation.
-    //        var reportsToDelete = dbContext.Reports
-    //            .Where(r => _createdUserIds.Contains(r.ReportingUserIdentityId))
-    //            .ToList();
-    //        dbContext.Reports.RemoveRange(reportsToDelete);
-
-    //        var notificationsToDelete = dbContext.Notifications
-    //            .Where(n => _createdUserIds.Contains(n.LinkedUserIdentityId))
-    //            .ToList();
-    //        dbContext.Notifications.RemoveRange(notificationsToDelete);
-
-    //        dbContext.SaveChanges();
-
-    //        foreach (var userId in _createdUserIds)
-    //        {
-    //            var user = dbContext.Users.Find(userId);
-    //            if (user != null)
-    //            {
-    //                userManager.DeleteAsync(user).GetAwaiter().GetResult();
-    //            }
-    //        }
-
-    //        dbContext.SaveChanges();
-    //    }
-
-    //    _driver?.Quit();
-    //    _driver?.Dispose();
-    //}
 
     #endregion
 
@@ -167,8 +103,8 @@ public class CSP101StepDefinitions
     [When("{word} clicks {string}")]
     public void WhenPersonaClicksButton(string name, string buttonLabel)
     {
-        Assert.That(_currentPersona, Is.EqualTo(name), "Scenario persona mismatch");
-        Assert.That(buttonLabel, Is.EqualTo("Report this page"));
+        _currentPersona.Should().Be(name, "scenario persona mismatch");
+        buttonLabel.Should().Be("Report this page");
         OpenReportModal();
     }
 
@@ -233,7 +169,7 @@ public class CSP101StepDefinitions
                 r.ReportingUserIdentityId == user.Id &&
                 r.ReportedPageUrl == ReportablePath);
 
-        Assert.That(report, Is.Not.Null, $"Report for {_currentPersona} on {ReportablePath} should be persisted");
+        report.Should().NotBeNull($"report for {_currentPersona} on {ReportablePath} should be persisted");
     }
 
     [Then("{word} should receive an in-app notification confirming the report was received")]
@@ -250,8 +186,8 @@ public class CSP101StepDefinitions
             .OrderByDescending(n => n.SentAt)
             .FirstOrDefault();
 
-        Assert.That(notification, Is.Not.Null, $"{name} should have a 'Report Received' notification");
-        Assert.That(notification!.Message, Does.Contain("has been received"));
+        notification.Should().NotBeNull($"{name} should have a 'Report Received' notification");
+        notification!.Message.Should().Contain("has been received");
     }
 
     [Then("it should contain {word}'s UserId, the page URL, the selected reason, and a SubmittedAt timestamp")]
@@ -268,13 +204,13 @@ public class CSP101StepDefinitions
                 r.ReportingUserIdentityId == user.Id &&
                 r.ReportedPageUrl == ReportablePath);
 
-        Assert.That(report, Is.Not.Null, "Report should exist in the database");
-        Assert.That(report!.ReportingUserIdentityId, Is.EqualTo(user.Id), $"Should have {name}'s UserId");
-        Assert.That(report.ReportedPageUrl, Is.EqualTo(ReportablePath), "Should have correct page URL");
-        Assert.That(report.Reason, Is.EqualTo(DefaultReason), "Should have correct reason");
-        Assert.That(report.SubmittedAt, Is.Not.EqualTo(default(DateTime)), "Should have SubmittedAt timestamp");
-        Assert.That(report.SubmittedAt, Is.LessThanOrEqualTo(DateTime.UtcNow.AddMinutes(1)),
-            "Timestamp should not be meaningfully in the future");
+        report.Should().NotBeNull("the report should exist in the database");
+        report!.ReportingUserIdentityId.Should().Be(user.Id, $"should have {name}'s UserId");
+        report.ReportedPageUrl.Should().Be(ReportablePath, "should have the correct page URL");
+        report.Reason.Should().Be(DefaultReason, "should have the correct reason");
+        report.SubmittedAt.Should().NotBe(default, "should have a SubmittedAt timestamp");
+        report.SubmittedAt.Should().BeBefore(DateTime.UtcNow.AddMinutes(1),
+            "the timestamp should not be in the future");
     }
 
     [Then("the system should reject the duplicate")]
@@ -292,8 +228,8 @@ public class CSP101StepDefinitions
                 r.ReportedPageUrl == ReportablePath &&
                 !r.IsResolved);
 
-        Assert.That(reportCount, Is.EqualTo(1),
-            $"Only one unresolved report should exist for {_currentPersona} on {ReportablePath}");
+        reportCount.Should().Be(1,
+            $"only one unresolved report should exist for {_currentPersona} on {ReportablePath}");
     }
 
     [Then("{word} should see a message saying she has already reported this content")]
@@ -303,8 +239,8 @@ public class CSP101StepDefinitions
         var messageClass = messageDiv.GetAttribute("class") ?? string.Empty;
         var messageText = messageDiv.Text ?? string.Empty;
 
-        Assert.That(messageClass, Does.Contain("alert-danger"),
-            "Duplicate submission should show an error alert");
+        messageClass.Should().Contain("alert-danger",
+            "a duplicate submission should show an error alert");
 
         // The modal JS renders duplicates through one of two branches:
         //   else  -> "You have already reported this page." (from 409 JSON body)
@@ -314,7 +250,7 @@ public class CSP101StepDefinitions
             messageText.Contains("already reported", StringComparison.OrdinalIgnoreCase) ||
             messageText.Contains("previous report", StringComparison.OrdinalIgnoreCase);
 
-        Assert.That(indicatesDuplicate, Is.True,
+        indicatesDuplicate.Should().BeTrue(
             $"{name} should see an error indicating the report is a duplicate. Actual: '{messageText}'");
     }
 
@@ -322,14 +258,13 @@ public class CSP101StepDefinitions
     public void ThenJamesShouldNotSeeTheReportThisPageButton(string buttonLabel)
     {
         var reportButtons = _driver.FindElements(By.CssSelector("button[data-bs-target='#reportModal']"));
-        Assert.That(reportButtons, Is.Empty,
-            "Anonymous users should not see the Report this page button");
+        reportButtons.Should().BeEmpty("anonymous users should not see the 'Report this page' button");
     }
 
     [Then("Alex's report should appear with status {string}")]
     public void ThenAlexsReportShouldAppearWithStatus(string status)
     {
-        Assert.That(status, Is.EqualTo("Unresolved"), "Only Unresolved status is implemented");
+        status.Should().Be("Unresolved", "only Unresolved status is currently implemented");
         var alex = _personaUsers["Alex"];
 
         using var scope = GetServiceScope();
@@ -340,7 +275,7 @@ public class CSP101StepDefinitions
             .Where(r => r.ReportingUserIdentityId == alex.Id && !r.IsResolved)
             .ToList();
 
-        Assert.That(unresolved, Is.Not.Empty, "Alex should have at least one unresolved report");
+        unresolved.Should().NotBeEmpty("Alex should have at least one unresolved report");
     }
 
     #endregion
@@ -387,9 +322,9 @@ public class CSP101StepDefinitions
     private void LoginUser(string email, string password)
     {
         _driver.Navigate().GoToUrl($"{BaseUrl}/Account/Login");
-        _wait.Until(d => d.FindElement(By.Id("Email")));
+        _wait.Until(d => d.FindElement(By.Id("emailField")));
 
-        var emailInput = _driver.FindElement(By.Id("Email"));
+        var emailInput = _driver.FindElement(By.Id("emailField"));
         var passwordInput = _driver.FindElement(By.Id("passwordField"));
         var submitButton = _driver.FindElement(By.Id("submitBtn"));
 
