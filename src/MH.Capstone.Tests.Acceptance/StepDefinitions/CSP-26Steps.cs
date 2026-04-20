@@ -40,7 +40,7 @@ public class CSP26StepDefinitions
         form.Displayed.Should().BeTrue("the login form should be visible on the login page");
     }
 
-    [Then(@"a ""Forgot Password\?"" link is visible")]
+    [Then(@"a ""Forgot Password?"" link is visible")]
     public void ThenAForgotPasswordLinkIsVisible()
     {
         var link = _driver.FindElement(By.LinkText("Forgot Password?"));
