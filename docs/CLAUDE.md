@@ -527,3 +527,159 @@ Seed at least one sighting per tier to exercise all scoring branches.
 The acceptance-specific seed users should be added to `ApplicationDbContextSeeding.SeedDataAsync` gated on an environment check, **or** in a dedicated acceptance-only seeding method called from `TestWebAppHost.StartAsync`. The latter is preferred so production/staging seeding remains unaffected.
 
 `TestWebAppHost.ResetSeedData()` is currently a `NotImplementedException` stub — implementing it to truncate non-badge rows and re-run seed will be required for true scenario isolation once test count grows.
+
+---
+
+## Jira PBI / User Story Guidelines
+
+> The human-readable version of these guidelines lives at `docs/pbi_guidelines.md`.
+
+This section governs how AI assistants (and developers) should create or update Jira issues in the CSP project. All user stories must conform to the **INVEST** principles and follow the established story structure below.
+
+---
+
+### INVEST Principles (required for every story)
+
+Every user story written for this project must satisfy all six INVEST criteria before being submitted to Jira:
+
+| Principle | Requirement |
+|---|---|
+| **Independent** | The story must be self-contained with no inherent dependency on another story. |
+| **Negotiable** | Until a story enters an active sprint, it can always be rewritten or changed. |
+| **Valuable** | The story must deliver clear value to the end user. |
+| **Estimable** | The story must be scoped clearly enough that the team can estimate its size. |
+| **Small** | The story must be small enough to plan, task, and prioritize with certainty. |
+| **Testable** | The story must provide enough detail for test development to be possible. |
+
+---
+
+### User Story Structure
+
+Every Jira issue must include the following sections. Use the template below exactly — do not omit sections.
+
+#### Story Case (Summary / Title field)
+
+Write in the standard user story format:
+
+```
+As a <role>, when <context>, I want <goal> so that <benefit>.
+```
+
+#### Description
+
+Provide 2–4 sentences of background explaining the current state and what this story changes. Follow with a bulleted list of specific behavioral requirements the implementation must satisfy.
+
+#### Assumptions / Preconditions
+
+Organize assumptions into four subsections:
+
+- **Functional Assumptions** — what the system already provides that this story depends on
+- **Security Assumptions** — authentication, authorization, and data visibility rules
+- **User Experience Assumptions** — UI behavior, empty states, transitions, labeling
+- **System Behavior Assumptions** — backend/data layer behavior, performance, pagination
+
+#### Acceptance Criteria
+
+Write all acceptance criteria as Gherkin scenarios using `Given / When / Then` format, wrapped in a fenced Gherkin code block:
+
+````
+```Gherkin
+Scenario: <scenario name>
+    Given <precondition>
+    When <action>
+    Then <expected outcome>
+    And <additional assertion>
+```
+````
+
+Each acceptance criterion from the description must map to at least one scenario. Cover: happy path, alternative paths, empty states, and any security/visibility rules.
+
+---
+
+### Example Story (reference)
+
+The following is a canonical example of a well-formed story for this project:
+
+**Story Case:**
+> As a User, when I visit the gallery page, I want to view sightings submitted by all users so that I can explore the broader community's observations, while still being able to filter the gallery to show only my own sightings when I choose.
+
+**Description:**
+Currently, the gallery page displays only the authenticated user's own sightings. This story expands the gallery to show sightings from all users by default, turning it into a community-wide feed. Users retain the ability to filter the gallery down to only their own submissions at any time.
+
+Requirements:
+- Display all sightings from all users by default, sorted by most recent
+- Show relevant attribution on each sighting card (e.g., submitted by username or display name)
+- Provide a filter control (toggle or dropdown) allowing the user to switch between "All Sightings" and "My Sightings"
+- Persist the selected filter for the duration of the session (or until changed)
+- Respect existing visibility/privacy rules — private sightings must not appear in the community view
+
+**Acceptance Criteria (Gherkin):**
+```Gherkin
+Scenario: Default gallery shows all community sightings
+    Given an authenticated user navigates to the gallery page
+    When the page loads with no filter selected
+    Then sightings from all users are displayed
+    And each sighting card shows the submitting user's attribution
+
+Scenario: User filters gallery to their own sightings
+    Given an authenticated user is on the gallery page
+    When the user selects the "My Sightings" filter
+    Then only sightings submitted by the authenticated user are displayed
+    And the filter control reflects the active "My Sightings" state
+
+Scenario: User clears the filter to return to community view
+    Given an authenticated user has the "My Sightings" filter active
+    When the user selects the "All Sightings" filter
+    Then sightings from all users are displayed again
+    And the filter control reflects the active "All Sightings" state
+
+Scenario: Private sightings are excluded from community view
+    Given a user has submitted a sighting marked as private
+    When any other user views the gallery in "All Sightings" mode
+    Then the private sighting is not visible to them
+
+Scenario: Empty state when user has no sightings
+    Given an authenticated user has not submitted any sightings
+    When the user selects the "My Sightings" filter
+    Then an empty state message is displayed
+    And the user is prompted to submit their first sighting
+
+Scenario: Filter persists within the session
+    Given an authenticated user has selected the "My Sightings" filter
+    When the user navigates away and returns to the gallery page within the same session
+    Then the "My Sightings" filter remains active
+```
+
+---
+
+### Required Jira Fields
+
+In addition to the story content, every Jira issue must have the following fields set:
+
+#### Team
+Always assign the team **"MH Development Team"** unless explicitly told otherwise.
+
+#### Story Point Estimate (SPE)
+Use powers of 2 only: **1, 2, 4, 8, …**. Target ≤ 4 points per story — if a story feels larger, consider splitting it.
+
+| Points | When to use |
+|---|---|
+| **1** | Minor bug fix; UI-only update; no new testing or back-end code, or only minimal/routine changes to existing tests and back-end. |
+| **2** | Larger full-stack bug fix; larger UI-only or back-end-only update or new design; little to moderate testing updates or implementation. |
+| **4** | New full-stack feature; heavy back-end work; requires new or large overhauls of all test types (unit, acceptance, etc.). |
+
+> Estimates may vary depending on whether existing infrastructure or prior experience is available to support the story's implementation. Use the table as a guide, not a rule — the same work can reasonably land at a different point value given context.
+
+---
+
+### Checklist before creating or updating a Jira issue
+
+- [ ] Story case follows `As a / when / I want / so that` format
+- [ ] All six INVEST criteria are satisfied
+- [ ] Description includes background context and a bulleted requirements list
+- [ ] Assumptions are organized into the four subsections
+- [ ] Every requirement maps to at least one Gherkin scenario
+- [ ] Gherkin scenarios cover happy path, alternative paths, empty states, and security rules
+- [ ] Story is small enough to be completed within a single sprint
+- [ ] Team is set to **MH Development Team**
+- [ ] Story point estimate is set (1, 2, or 4) using the SPE guidelines above
