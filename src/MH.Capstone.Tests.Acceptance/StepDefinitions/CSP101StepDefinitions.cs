@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using FluentAssertions;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataModels;
@@ -6,44 +7,42 @@ using MH.Capstone.Tests.Acceptance.Drivers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
 using Reqnroll;
-using System.Text.Json;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
 [Binding]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[ExcludeFromCodeCoverage]
 public class CSP101StepDefinitions
 {
     private readonly IWebDriver _driver;
     private readonly WebDriverWait _wait;
+    private readonly AcceptanceTestSettings _settings;
     private readonly AuthenticationDriver _authDriver;
 
-    private readonly string BaseUrl;
+    private string BaseUrl => _settings.BaseUrl.TrimEnd('/');
     private const string ReportablePath = "/About";
     private const string DefaultReason = "Inappropriate content";
-    private const string DefaultPassword = "Test@1234";
+    private const string DefaultPassword = "Capstone26!";
 
     private readonly List<string> _createdUserIds = new();
     private readonly Dictionary<string, ApplicationUser> _personaUsers = new();
     private string _currentPersona = string.Empty;
 
-    private static readonly Lazy<string?> _connectionString = new(LoadConnectionString);
-
     #region Setup and Teardown
 
-    public CSP101StepDefinitions(IWebDriver webDriver, AcceptanceTestSettings settings,
-        AuthenticationDriver authDriver)
+    public CSP101StepDefinitions(IWebDriver driver, WebDriverWait wait,
+        AcceptanceTestSettings settings, AuthenticationDriver authDriver)
     {
-        BaseUrl = settings.BaseUrl;
+        _driver   = driver;
+        _wait     = wait;
+        _settings = settings;
         _authDriver = authDriver;
-        _driver = webDriver;
-        _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
-        _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(15));
     }
 
     [AfterScenario("report")]
@@ -61,7 +60,7 @@ public class CSP101StepDefinitions
     public void GivenPersonaIsLoggedInAndViewingASightingPage(string name)
     {
         var user = EnsurePersona(name);
-        LoginUser(user.Email!, DefaultPassword);
+        _authDriver.PreformLoginForUser(user.Email!, DefaultPassword);
         NavigateToReportablePage();
     }
 
@@ -293,48 +292,28 @@ public class CSP101StepDefinitions
         using var scope = GetServiceScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var suffix   = Guid.NewGuid().ToString("N")[..8];
         var username = $"Test{name}{suffix}";
-        var email = $"{username}@test.com";
+        var email    = $"{username}@test.com";
 
         var user = new ApplicationUser
         {
-            UserName = email,
-            Email = email,
+            UserName      = email,
+            Email         = email,
             EmailConfirmed = true,
-            Points = 0,
+            Points        = 0,
             IsDeactivated = false
         };
 
         var result = userManager.CreateAsync(user, DefaultPassword).GetAwaiter().GetResult();
         if (!result.Succeeded)
-        {
             throw new Exception(
                 $"Failed to create test user {email}: {string.Join(", ", result.Errors.Select(e => e.Description))}");
-        }
 
         _createdUserIds.Add(user.Id);
         _personaUsers[name] = user;
         _currentPersona = name;
         return user;
-    }
-
-    private void LoginUser(string email, string password)
-    {
-        _driver.Navigate().GoToUrl($"{BaseUrl}/Account/Login");
-        _wait.Until(d => d.FindElement(By.Id("emailField")));
-
-        var emailInput = _driver.FindElement(By.Id("emailField"));
-        var passwordInput = _driver.FindElement(By.Id("passwordField"));
-        var submitButton = _driver.FindElement(By.Id("submitBtn"));
-
-        emailInput.SendKeys(email);
-        passwordInput.SendKeys(password);
-
-        _wait.Until(d => submitButton.Enabled);
-        submitButton.Click();
-
-        _wait.Until(d => !d.Url.Contains("/Account/Login", StringComparison.OrdinalIgnoreCase));
     }
 
     private void NavigateToReportablePage()
@@ -357,12 +336,11 @@ public class CSP101StepDefinitions
         // JS click sidesteps overlay interception from the Leaflet map tiles and tooltips.
         ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", openButton!);
 
-
         // Wait for Bootstrap modal to be fully shown (fade animation complete).
         _wait.Until(d =>
         {
-            var modal = d.FindElement(By.Id("reportModal"));
-            var classes = modal.GetAttribute("class") ?? string.Empty;
+            var modal     = d.FindElement(By.Id("reportModal"));
+            var classes   = modal.GetAttribute("class") ?? string.Empty;
             var ariaHidden = modal.GetAttribute("aria-hidden");
             TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Modal classes: {classes}, aria-hidden: {ariaHidden}");
             return classes.Contains("show") && ariaHidden != "true";
@@ -422,7 +400,7 @@ public class CSP101StepDefinitions
         var longerWait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
         longerWait.Until(d =>
         {
-            var modal = d.FindElement(By.Id("reportModal"));
+            var modal   = d.FindElement(By.Id("reportModal"));
             var classes = modal.GetAttribute("class") ?? string.Empty;
             return !classes.Contains("show");
         });
@@ -430,16 +408,26 @@ public class CSP101StepDefinitions
 
     private IServiceScope GetServiceScope()
     {
-        var connectionString = _connectionString.Value
-                               ?? throw new InvalidOperationException(
-                                   "Connection string unavailable. BeforeScenario should have skipped this test.");
+        var webAppPath = _settings.WebAppContentRoot;
+        var configFile = Path.Combine(webAppPath, "appsettings.Acceptance.json");
 
-        // Azure SQL serverless tiers can take ~30s to wake from pause. Give the first
+        if (!File.Exists(configFile))
+            Assert.Ignore("Skipped: appsettings.Acceptance.json not found.");
+
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(webAppPath)
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddJsonFile("appsettings.Acceptance.json", optional: false)
+            .AddJsonFile("appsettings.Acceptance.Local.json", optional: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+        var connectionString = configuration.GetConnectionString("DataDb")
+            ?? throw new InvalidOperationException("Connection string 'DataDb' not found.");
+
+        // Azure SQL serverless tiers can take ~30s to wake from pause — give the first
         // connection plenty of headroom and retry transient failures automatically.
-        var builder = new SqlConnectionStringBuilder(connectionString)
-        {
-            ConnectTimeout = 120
-        };
+        var builder = new SqlConnectionStringBuilder(connectionString) { ConnectTimeout = 120 };
         connectionString = builder.ConnectionString;
 
         var services = new ServiceCollection();
@@ -448,20 +436,14 @@ public class CSP101StepDefinitions
             options.UseSqlServer(connectionString, sql =>
             {
                 sql.CommandTimeout(120);
-                sql.EnableRetryOnFailure(
-                    maxRetryCount: 5,
-                    maxRetryDelay: TimeSpan.FromSeconds(15),
-                    errorNumbersToAdd: null);
+                sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(15), null);
             }));
 
         services.AddDbContext<CacheDbContext>(options =>
             options.UseSqlServer(connectionString, sql =>
             {
                 sql.CommandTimeout(120);
-                sql.EnableRetryOnFailure(
-                    maxRetryCount: 5,
-                    maxRetryDelay: TimeSpan.FromSeconds(15),
-                    errorNumbersToAdd: null);
+                sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(15), null);
             }));
 
         services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -478,46 +460,6 @@ public class CSP101StepDefinitions
         services.AddLogging();
 
         return services.BuildServiceProvider().CreateScope();
-    }
-
-    private static string? LoadConnectionString()
-    {
-        var settingsPath = FindWebAppDevSettings();
-        if (settingsPath is null)
-        {
-            return null;
-        }
-
-        using var stream = File.OpenRead(settingsPath);
-        using var doc = JsonDocument.Parse(stream);
-
-        if (doc.RootElement.TryGetProperty("ConnectionStrings", out var connectionStrings) &&
-            connectionStrings.TryGetProperty("DataDb", out var dataDb) &&
-            dataDb.ValueKind == JsonValueKind.String)
-        {
-            return dataDb.GetString();
-        }
-
-        return null;
-    }
-
-    private static string? FindWebAppDevSettings()
-    {
-        // Walk up from the test bin directory until we find a parent that contains
-        // MH.Capstone.WebApp/appsettings.Acceptance.json (i.e. the src/ folder).
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            var candidate = Path.Combine(dir.FullName, "MH.Capstone.WebApp", "appsettings.Acceptance.json");
-            if (File.Exists(candidate))
-            {
-                return candidate;
-            }
-
-            dir = dir.Parent;
-        }
-
-        return null;
     }
 
     #endregion
