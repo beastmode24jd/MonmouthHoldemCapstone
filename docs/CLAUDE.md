@@ -193,7 +193,7 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 |---|---|---|
 | Any page | `userDropdownNavDisplay` | Detect logged-in user (nav bar) |
 | Any page | `logoutBtn` | Logout button |
-| `/Account/Login` | `Email` | Username input |
+| `/Account/Login` | `emailField` | Username input |
 | `/Account/Login` | `passwordField` | Password input |
 | `/Account/Login` | `RememberMe` | Remember me checkbox |
 | `/Account/Login` | `submitBtn` | Login submit button |
@@ -317,6 +317,7 @@ Two GitHub Actions workflows in `.github/workflows/`:
 | Feature flags | `src/MH.Capstone.Domain/Tools/FeatureFlags.cs` |
 | API Ninja contract | `src/MH.Capstone.Domain/ApiContracts/Ninja/` |
 | Acceptance test features | `src/MH.Capstone.Tests.Acceptance/Features/` |
+| Acceptance testing guide | `docs/acceptance_testing.md` |
 | Architectural guidelines | `docs/architectural_guidelines.md` |
 
 ---
