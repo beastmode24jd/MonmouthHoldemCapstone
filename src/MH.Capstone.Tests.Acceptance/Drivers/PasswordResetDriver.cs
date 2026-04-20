@@ -170,6 +170,44 @@ public class PasswordResetDriver
     }
 
     /// <summary>
+    /// Fills and submits the reset password form on the current page without navigating first.
+    /// </summary>
+    public void FillAndSubmitResetForm(string newPassword, string confirmPassword)
+    {
+        var page = new ResetPasswordPageObject(_driver);
+        page.NewPasswordInput.Clear();
+        page.NewPasswordInput.SendKeys(newPassword);
+        page.ConfirmPasswordInput.Clear();
+        page.ConfirmPasswordInput.SendKeys(confirmPassword);
+        page.ResetPasswordBtn.Click();
+        _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+    }
+
+    /// <summary>
+    /// Returns true when a confirm-password mismatch validation error is visible on the reset form.
+    /// Checks both the client-side validation span and the server-side validation summary.
+    /// </summary>
+    public bool HasConfirmPasswordMismatchError()
+    {
+        try
+        {
+            return _driver.WaitUntil(d =>
+            {
+                var spans = d.FindElements(By.CssSelector("[data-valmsg-for='ConfirmNewPassword']"));
+                if (spans.Count > 0 && !string.IsNullOrWhiteSpace(spans[0].Text))
+                    return true;
+
+                var errorDiv = d.FindElements(By.Id("resetPasswordError"));
+                return errorDiv.Count > 0 && !string.IsNullOrWhiteSpace(errorDiv[0].Text);
+            }, TimeSpan.FromSeconds(5));
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Returns true when the login page shows the password-reset success banner.
     /// </summary>
     public bool IsPasswordResetSuccessBannerOnLoginPage()

@@ -18,17 +18,16 @@ namespace MH.Capstone.Tests.Acceptance.Features
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Reqnroll", "3.0.0.0")]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     [global::NUnit.Framework.TestFixtureAttribute()]
-    [global::NUnit.Framework.DescriptionAttribute("Account Password Reset")]
+    [global::NUnit.Framework.DescriptionAttribute("CSP-26 Account Password Reset — UI Checks")]
     [global::NUnit.Framework.FixtureLifeCycleAttribute(global::NUnit.Framework.LifeCycle.InstancePerTestCase)]
-    public partial class AccountPasswordResetFeature
+    public partial class CSP_26AccountPasswordResetUIChecksFeature
     {
         
         private global::Reqnroll.ITestRunner testRunner;
         
         private static string[] featureTags = ((string[])(null));
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "Account Password Reset", "    As a user of the Wildlife AID app\n    I want to be able to reset my password\n" +
-                "    So that I can still log into my account, even if I forget my password", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "CSP-26 Account Password Reset — UI Checks", null, global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
 #line 1 "CSP-26.feature"
 #line hidden
@@ -106,22 +105,22 @@ namespace MH.Capstone.Tests.Acceptance.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/CSP-26.feature.ndjson", 6);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/CSP-26.feature.ndjson", 4);
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Alex is looking for the Forgot Password page on the Login page.")]
+        [global::NUnit.Framework.DescriptionAttribute("Forgot Password link is visible and hoverable on the Login page")]
         [global::NUnit.Framework.CategoryAttribute("forgotPassword")]
-        public async global::System.Threading.Tasks.Task AlexIsLookingForTheForgotPasswordPageOnTheLoginPage_()
+        public async global::System.Threading.Tasks.Task ForgotPasswordLinkIsVisibleAndHoverableOnTheLoginPage()
         {
             string[] tagsOfScenario = new string[] {
                     "forgotPassword"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "0";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Alex is looking for the Forgot Password page on the Login page.", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Forgot Password link is visible and hoverable on the Login page", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 7
+#line 4
 this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -131,129 +130,55 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
+#line 5
+    await testRunner.GivenAsync("an anonymous user navigates to the login page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 6
+    await testRunner.WhenAsync("the user views the login form", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 7
+    await testRunner.ThenAsync("a \"Forgot Password?\" link is visible", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
 #line 8
-    await testRunner.GivenAsync("I am on the Login Page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
-#line hidden
-#line 9
-    await testRunner.WhenAsync("I look at the Login input form", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
-#line hidden
-#line 10
-    await testRunner.ThenAsync("I should see a Forgot Password link", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
-#line hidden
-#line 11
-    await testRunner.AndAsync("it should change colors and my mouse cursor when I hover over it", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.AndAsync("the link changes appearance on hover", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("James has entered an account that does not exist in the database.")]
+        [global::NUnit.Framework.DescriptionAttribute("Password mismatch shows a validation error on the reset form")]
         [global::NUnit.Framework.CategoryAttribute("forgotPassword")]
-        public async global::System.Threading.Tasks.Task JamesHasEnteredAnAccountThatDoesNotExistInTheDatabase_()
+        public async global::System.Threading.Tasks.Task PasswordMismatchShowsAValidationErrorOnTheResetForm()
         {
             string[] tagsOfScenario = new string[] {
                     "forgotPassword"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "1";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("James has entered an account that does not exist in the database.", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Password mismatch shows a validation error on the reset form", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
+#line 11
+this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 12
+    await testRunner.GivenAsync("the user is on the reset password form for \"alex@test.com\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 13
+    await testRunner.WhenAsync("the user enters new password \"NewPass1!\" and confirmation \"DifferentPass1!\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
 #line 14
-this.ScenarioInitialize(scenarioInfo, ruleInfo);
+    await testRunner.AndAsync("the user submits the reset form", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
-            {
-                await testRunner.SkipScenarioAsync();
-            }
-            else
-            {
-                await this.ScenarioStartAsync();
 #line 15
-    await testRunner.GivenAsync("I am on the Forgot Password page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
-#line hidden
-#line 16
-    await testRunner.WhenAsync("I submit an account search for an account that does not exist", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
-#line hidden
-#line 17
-    await testRunner.ThenAsync("I should see an error message saying the account was not found", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
-#line hidden
-            }
-            await this.ScenarioCleanupAsync();
-        }
-        
-        [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Alex has entered correct account parameters, and is being shown the “Confirm New " +
-            "Password” part of the form.")]
-        [global::NUnit.Framework.CategoryAttribute("forgotPassword")]
-        public async global::System.Threading.Tasks.Task AlexHasEnteredCorrectAccountParametersAndIsBeingShownTheConfirmNewPasswordPartOfTheForm_()
-        {
-            string[] tagsOfScenario = new string[] {
-                    "forgotPassword"};
-            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
-            string pickleIndex = "2";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Alex has entered correct account parameters, and is being shown the “Confirm New " +
-                    "Password” part of the form.", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
-            string[] tagsOfRule = ((string[])(null));
-            global::Reqnroll.RuleInfo ruleInfo = null;
-#line 20
-this.ScenarioInitialize(scenarioInfo, ruleInfo);
-#line hidden
-            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
-            {
-                await testRunner.SkipScenarioAsync();
-            }
-            else
-            {
-                await this.ScenarioStartAsync();
-#line 21
-    await testRunner.GivenAsync("I am on the Forgot Password page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
-#line hidden
-#line 22
-    await testRunner.WhenAsync("I search for a valid account that exists", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
-#line hidden
-#line 23
-    await testRunner.ThenAsync("I should be shown the two password fields", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
-#line hidden
-            }
-            await this.ScenarioCleanupAsync();
-        }
-        
-        [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Alex is on the “Confirm New Password” page, but has not written the same password" +
-            " twice.")]
-        [global::NUnit.Framework.CategoryAttribute("forgotPassword")]
-        public async global::System.Threading.Tasks.Task AlexIsOnTheConfirmNewPasswordPageButHasNotWrittenTheSamePasswordTwice_()
-        {
-            string[] tagsOfScenario = new string[] {
-                    "forgotPassword"};
-            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
-            string pickleIndex = "3";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Alex is on the “Confirm New Password” page, but has not written the same password" +
-                    " twice.", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
-            string[] tagsOfRule = ((string[])(null));
-            global::Reqnroll.RuleInfo ruleInfo = null;
-#line 26
-this.ScenarioInitialize(scenarioInfo, ruleInfo);
-#line hidden
-            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
-            {
-                await testRunner.SkipScenarioAsync();
-            }
-            else
-            {
-                await this.ScenarioStartAsync();
-#line 27
-    await testRunner.GivenAsync("I am on the Confirm New Password page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
-#line hidden
-#line 28
-    await testRunner.WhenAsync("I submit passwords that do not match", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
-#line hidden
-#line 29
-    await testRunner.AndAsync("I click Save", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
-#line hidden
-#line 30
-    await testRunner.ThenAsync("I should see an error message telling me the inputs do not match", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+    await testRunner.ThenAsync("a password confirmation mismatch error is visible", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
