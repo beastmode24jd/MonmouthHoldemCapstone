@@ -174,6 +174,19 @@ Scenario: Filter persists within the session
 
 ---
 
+## AI Agent Attribution
+
+When an AI agent creates or modifies a Jira PBI description, it must append the following note at the very bottom of the description field:
+
+```
+---
+AI Agent <Agent Name> assisted in the creation and/or modification of this PBI.
+```
+
+Replace `<Agent Name>` with the name of the AI agent or model used (e.g., `Claude Sonnet 4.6`).
+
+---
+
 ## Pre-Submission Checklist
 
 Before creating or updating a Jira issue, confirm all of the following:
@@ -187,3 +200,4 @@ Before creating or updating a Jira issue, confirm all of the following:
 - [ ] Story is small enough to be completed within a single sprint
 - [ ] Team is set to **MH Development Team**
 - [ ] Story point estimate is set (1, 2, or 4) using the SPE guidelines above
+- [ ] AI agent attribution note appended to the bottom of the description (if created or modified by an AI agent)

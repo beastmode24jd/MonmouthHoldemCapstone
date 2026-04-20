@@ -672,6 +672,19 @@ Use powers of 2 only: **1, 2, 4, 8, …**. Target ≤ 4 points per story — if 
 
 ---
 
+### AI Agent Attribution
+
+When an AI agent creates or modifies a Jira PBI description, it must append the following note at the very bottom of the description field:
+
+```
+---
+AI Agent <Agent Name> assisted in the creation and/or modification of this PBI.
+```
+
+Replace `<Agent Name>` with the name of the AI agent or model used (e.g., `Claude Sonnet 4.6`).
+
+---
+
 ### Checklist before creating or updating a Jira issue
 
 - [ ] Story case follows `As a / when / I want / so that` format
@@ -683,3 +696,4 @@ Use powers of 2 only: **1, 2, 4, 8, …**. Target ≤ 4 points per story — if 
 - [ ] Story is small enough to be completed within a single sprint
 - [ ] Team is set to **MH Development Team**
 - [ ] Story point estimate is set (1, 2, or 4) using the SPE guidelines above
+- [ ] AI agent attribution note appended to the bottom of the description (if created or modified by an AI agent)
