@@ -5,7 +5,7 @@ using OpenQA.Selenium;
 
 namespace MH.Capstone.Tests.Acceptance.Support;
 
-public class RobustWebDriver : IWebDriver, IJavaScriptExecutor, IWrapsDriver
+public class RobustWebDriver : IWebDriver, IWrapsDriver
 {
     private readonly IWebDriver _raw;
     private readonly TimeSpan _timeout;
@@ -38,18 +38,6 @@ public class RobustWebDriver : IWebDriver, IJavaScriptExecutor, IWrapsDriver
         return new ReadOnlyCollection<IWebElement>(list);
     }
 
-    // IJavaScriptExecutor
-    public object ExecuteScript(string script, params object[] args)
-    {
-        if (_raw is IJavaScriptExecutor js) return js.ExecuteScript(script, args);
-        throw new NotSupportedException("Underlying driver does not support JavaScript execution.");
-    }
-
-    public object ExecuteAsyncScript(string script, params object[] args)
-    {
-        if (_raw is IJavaScriptExecutor js) return js.ExecuteAsyncScript(script, args);
-        throw new NotSupportedException("Underlying driver does not support JavaScript execution.");
-    }
 
     // IWrapsDriver
     public IWebDriver WrappedDriver => _raw;
