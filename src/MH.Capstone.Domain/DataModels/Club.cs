@@ -49,5 +49,12 @@ namespace MH.Capstone.Domain.DataModels
             Description = description;
             CreatedAt = createdAt;
         }
+
+        /* IMPORTANT FUTURE CLUB SERVICE FILE NOTE!!!
+
+            "Deleting a user will now throw if they still have club memberships or messages.
+            Your service layer will need to clean those up before deleting a user."
+
+        */
     }
 }
