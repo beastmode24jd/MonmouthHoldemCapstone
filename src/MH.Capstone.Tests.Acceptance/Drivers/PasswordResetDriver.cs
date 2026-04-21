@@ -1,8 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using MH.Capstone.Tests.Acceptance.Configuration;
-using MH.Capstone.Tests.Acceptance.Helpers;
 using MH.Capstone.Tests.Acceptance.PageObjects;
 using OpenQA.Selenium;
+using OpenQA.Selenium.Support.UI;
 
 namespace MH.Capstone.Tests.Acceptance.Drivers;
 
@@ -10,12 +10,14 @@ namespace MH.Capstone.Tests.Acceptance.Drivers;
 public class PasswordResetDriver
 {
     private readonly IWebDriver _driver;
+    private readonly WebDriverWait _wait;
     private readonly string _baseUrl;
 
-    public PasswordResetDriver(IWebDriver driver, AcceptanceTestSettings settings)
+    public PasswordResetDriver(IWebDriver driver, AcceptanceTestSettings settings, WebDriverWait wait)
     {
         _driver = driver;
         _baseUrl = settings.BaseUrl.TrimEnd('/');
+        _wait = wait;
     }
 
     /// <summary>
@@ -27,7 +29,15 @@ public class PasswordResetDriver
         page.EmailInput.Clear();
         page.EmailInput.SendKeys(email);
         page.SendResetBtn.Click();
-        _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
     }
 
     /// <summary>
@@ -37,11 +47,11 @@ public class PasswordResetDriver
     {
         try
         {
-            return _driver.WaitUntil(d =>
+            return _wait.Until(d =>
             {
                 var elems = d.FindElements(By.Id("resetEmailSentMessage"));
                 return elems.Count > 0 && elems[0].Displayed;
-            }, TimeSpan.FromSeconds(5));
+            });
         }
         catch
         {
@@ -57,8 +67,16 @@ public class PasswordResetDriver
     {
         var testUrl = $"{_baseUrl}/Account/GeneratePasswordResetLink?email={Uri.EscapeDataString(email)}";
         _driver.Navigate().GoToUrl(testUrl);
-        _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
-        var link = _driver.WaitForElement(By.TagName("body"), TimeSpan.FromSeconds(5)).Text.Trim();
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
+        var link = _wait.Until(d => d.FindElement(By.TagName("body"))).Text.Trim();
         TestContext.Out.WriteLine($"[{nameof(PasswordResetDriver)}] Reset link for {email}: {link}");
         return link;
     }
@@ -71,7 +89,15 @@ public class PasswordResetDriver
     public void NavigateToResetLinkAndSubmit(string resetLink, string newPassword, string confirmPassword)
     {
         _driver.Navigate().GoToUrl(resetLink);
-        _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
 
         // If the token was already invalidated we land on the error page — no form to fill.
         if (_driver.FindElements(By.Id("invalidResetLinkMessage")).Count > 0)
@@ -83,7 +109,15 @@ public class PasswordResetDriver
         page.ConfirmPasswordInput.Clear();
         page.ConfirmPasswordInput.SendKeys(confirmPassword);
         page.ResetPasswordBtn.Click();
-        _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
     }
 
     /// <summary>
@@ -92,7 +126,15 @@ public class PasswordResetDriver
     public void NavigateToResetLink(string resetLink)
     {
         _driver.Navigate().GoToUrl(resetLink);
-        _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
     }
 
     /// <summary>
@@ -102,7 +144,15 @@ public class PasswordResetDriver
     {
         var url = $"{_baseUrl}/{relativePath.TrimStart('/')}";
         _driver.Navigate().GoToUrl(url);
-        _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
     }
 
     /// <summary>
@@ -112,9 +162,8 @@ public class PasswordResetDriver
     {
         try
         {
-            return _driver.WaitUntil(d =>
-                d.FindElements(By.Id("resetPasswordBtn")).Count > 0,
-                TimeSpan.FromSeconds(5));
+            return _wait.Until(d =>
+                d.FindElements(By.Id("resetPasswordBtn")).Count > 0);
         }
         catch
         {
@@ -129,9 +178,8 @@ public class PasswordResetDriver
     {
         try
         {
-            return _driver.WaitUntil(d =>
-                d.FindElements(By.Id("invalidResetLinkMessage")).Count > 0,
-                TimeSpan.FromSeconds(5));
+            return _wait.Until(d =>
+                d.FindElements(By.Id("invalidResetLinkMessage")).Count > 0);
         }
         catch
         {
@@ -146,11 +194,11 @@ public class PasswordResetDriver
     {
         try
         {
-            return _driver.WaitUntil(d =>
+            return _wait.Until(d =>
             {
                 var errDiv = d.FindElements(By.Id("resetPasswordError"));
                 return errDiv.Count > 0 && !string.IsNullOrWhiteSpace(errDiv[0].Text);
-            }, TimeSpan.FromSeconds(5));
+            });
         }
         catch
         {
@@ -180,7 +228,15 @@ public class PasswordResetDriver
         page.ConfirmPasswordInput.Clear();
         page.ConfirmPasswordInput.SendKeys(confirmPassword);
         page.ResetPasswordBtn.Click();
-        _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
     }
 
     /// <summary>
@@ -191,7 +247,7 @@ public class PasswordResetDriver
     {
         try
         {
-            return _driver.WaitUntil(d =>
+            return _wait.Until(d =>
             {
                 var spans = d.FindElements(By.CssSelector("[data-valmsg-for='ConfirmNewPassword']"));
                 if (spans.Count > 0 && !string.IsNullOrWhiteSpace(spans[0].Text))
@@ -199,7 +255,7 @@ public class PasswordResetDriver
 
                 var errorDiv = d.FindElements(By.Id("resetPasswordError"));
                 return errorDiv.Count > 0 && !string.IsNullOrWhiteSpace(errorDiv[0].Text);
-            }, TimeSpan.FromSeconds(5));
+            });
         }
         catch
         {
@@ -214,12 +270,12 @@ public class PasswordResetDriver
     {
         try
         {
-            return _driver.WaitUntil(d =>
+            return _wait.Until(d =>
             {
                 var isLogin = d.Url.Contains("/Account/Login", StringComparison.InvariantCultureIgnoreCase);
                 var hasBanner = d.FindElements(By.Id("passwordResetSuccessMessage")).Count > 0;
                 return isLogin && hasBanner;
-            }, TimeSpan.FromSeconds(5));
+            });
         }
         catch
         {

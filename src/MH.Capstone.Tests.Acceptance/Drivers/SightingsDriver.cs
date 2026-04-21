@@ -3,7 +3,7 @@ using System.Linq;
 using MH.Capstone.Tests.Acceptance.Configuration;
 using MH.Capstone.Tests.Acceptance.PageObjects;
 using OpenQA.Selenium;
-using MH.Capstone.Tests.Acceptance.Helpers;
+using OpenQA.Selenium.Support.UI;
 // ReSharper disable SpecifyACultureInStringConversionExplicitly
 
 namespace MH.Capstone.Tests.Acceptance.Drivers;
@@ -12,12 +12,14 @@ namespace MH.Capstone.Tests.Acceptance.Drivers;
 public class SightingsDriver
 {
     private readonly IWebDriver _webDriver;
+    private readonly WebDriverWait _wait;
     private readonly string _baseUrl;
 
-    public SightingsDriver(IWebDriver webDriver, AcceptanceTestSettings settings)
+    public SightingsDriver(IWebDriver webDriver, AcceptanceTestSettings settings, WebDriverWait wait)
     {
         _webDriver = webDriver;
         _baseUrl = settings.BaseUrl.TrimEnd('/');
+        _wait = wait;
     }
 
     public void NavigateToSightingsUpload()
@@ -25,7 +27,15 @@ public class SightingsDriver
         _webDriver.Navigate().GoToUrl($"{_baseUrl}/Sighting/Create");
         try
         {
-            _webDriver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+            _wait.Until(d =>
+            {
+                try
+                {
+                    var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                    return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+                }
+                catch { return false; }
+            });
         }
         catch
         {
@@ -38,7 +48,7 @@ public class SightingsDriver
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
         // ensure the input exists before sending keys
-        var input = _webDriver.WaitForElement(By.CssSelector("input[type='file']"), TimeSpan.FromSeconds(5));
+        var input = _wait.Until(d => d.FindElement(By.CssSelector("input[type='file']")));
         input.SendKeys(absoluteFilePath);
     }
 
@@ -46,7 +56,7 @@ public class SightingsDriver
     public void UploadFileAndSubmit(string absoluteFilePath)
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
-        var input = _webDriver.WaitForElement(By.CssSelector("input[type='file']"), TimeSpan.FromSeconds(5));
+        var input = _wait.Until(d => d.FindElement(By.CssSelector("input[type='file']")));
         input.SendKeys(absoluteFilePath);
         ((IJavaScriptExecutor)_webDriver).ExecuteScript("arguments[0].click();", page.SubmitBtn);
     }
@@ -55,7 +65,7 @@ public class SightingsDriver
     public void SetLatitude(double latitude)
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
-        var input = _webDriver.WaitForElement(By.CssSelector("input[name='Latitude']"), TimeSpan.FromSeconds(5));
+        var input = _wait.Until(d => d.FindElement(By.CssSelector("input[name='Latitude']")));
         input.Clear();
         input.SendKeys(latitude.ToString());
     }
@@ -64,7 +74,7 @@ public class SightingsDriver
     public void SetLongitude(double longitude)
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
-        var input = _webDriver.WaitForElement(By.CssSelector("input[name='Longitude']"), TimeSpan.FromSeconds(5));
+        var input = _wait.Until(d => d.FindElement(By.CssSelector("input[name='Longitude']")));
         input.Clear();
         input.SendKeys(longitude.ToString());
     }
@@ -73,8 +83,8 @@ public class SightingsDriver
     public void SetTimestamp(DateTimeOffset timestamp)
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
-        // Use WaitUntil to ensure the script is executed against an available element.
-        _webDriver.WaitUntil(d =>
+        // Use a short wait to ensure the script is executed against an available element.
+        new WebDriverWait(_webDriver, TimeSpan.FromSeconds(3)).Until(d =>
         {
             try
             {
@@ -88,16 +98,15 @@ public class SightingsDriver
             {
                 return false;
             }
-        }, TimeSpan.FromSeconds(3));
+        });
     }
 
     /// <summary>Sets the description input to the given value.</summary>
     public void SetDescription(string description)
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
-        var input = _webDriver.WaitForElement(
-            By.CssSelector("textarea[name='Description'], input[name='Description']"), 
-            TimeSpan.FromSeconds(5));
+        var input = _wait.Until(d =>
+            d.FindElement(By.CssSelector("textarea[name='Description'], input[name='Description']")));
         input.Clear();
         input.SendKeys(description);
     }
@@ -107,7 +116,7 @@ public class SightingsDriver
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
         ((IJavaScriptExecutor)_webDriver).ExecuteScript("arguments[0].click();", page.SubmitBtn);
-        _webDriver.WaitUntil(d => !IsOnSightingsUploadPage()
+        _wait.Until(d => !IsOnSightingsUploadPage()
             || HasVisibleValidationErrors());
     }
 
@@ -120,10 +129,9 @@ public class SightingsDriver
     {
         try
         {
-            return _webDriver.WaitUntil(d =>
+            return new WebDriverWait(_webDriver, TimeSpan.FromSeconds(3)).Until(d =>
                 d.Url.Contains("/Sighting/Upload", StringComparison.InvariantCultureIgnoreCase) ||
-                d.Url.Contains("/Sighting/Create", StringComparison.InvariantCultureIgnoreCase),
-                TimeSpan.FromSeconds(3));
+                d.Url.Contains("/Sighting/Create", StringComparison.InvariantCultureIgnoreCase));
         }
         catch
         {
@@ -140,11 +148,11 @@ public class SightingsDriver
     {
         try
         {
-            var result = _webDriver.WaitUntil(d =>
+            var result = new WebDriverWait(_webDriver, TimeSpan.FromSeconds(1)).Until(d =>
             {
                 var elements = d.FindElements(By.CssSelector(".field-validation-error"));
                 return elements.Any(e => e.Displayed && !string.IsNullOrWhiteSpace(e.Text));
-            }, TimeSpan.FromSeconds(1));
+            });
 
             if (result)
                 return true;

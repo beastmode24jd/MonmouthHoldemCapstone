@@ -2,7 +2,6 @@ using System.Diagnostics.CodeAnalysis;
 using FluentAssertions;
 using MH.Capstone.Tests.Acceptance.Configuration;
 using MH.Capstone.Tests.Acceptance.Drivers;
-using MH.Capstone.Tests.Acceptance.Helpers;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
 using Reqnroll;
@@ -59,7 +58,7 @@ public class CSP52SightingsMapSteps
     public void WhenINavigateToTheMapPage()
     {
         _driver.Navigate().GoToUrl($"{_baseUrl}/Map");
-        _driver.WaitForElement(By.Id("map"), TimeSpan.FromSeconds(10));
+        _wait.Until(d => d.FindElement(By.Id("map")));
     }
 
     [When(@"there are no sightings in the current view")]
@@ -106,7 +105,15 @@ public class CSP52SightingsMapSteps
         if (closeButtons.Count > 0)
         {
             closeButtons[0].Click();
-            _driver.WaitForDocumentReady(TimeSpan.FromSeconds(3));
+            new WebDriverWait(_driver, TimeSpan.FromSeconds(3)).Until(d =>
+            {
+                try
+                {
+                    var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                    return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+                }
+                catch { return false; }
+            });
         }
 
         var zoomInButton  = _wait.Until(d => d.FindElement(By.CssSelector(".leaflet-control-zoom-in")));

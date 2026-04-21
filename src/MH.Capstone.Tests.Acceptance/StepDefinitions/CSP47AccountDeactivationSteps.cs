@@ -2,7 +2,6 @@ using System.Diagnostics.CodeAnalysis;
 using FluentAssertions;
 using MH.Capstone.Tests.Acceptance.Configuration;
 using MH.Capstone.Tests.Acceptance.Drivers;
-using MH.Capstone.Tests.Acceptance.Helpers;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
 using Reqnroll;
@@ -79,14 +78,30 @@ public class CSP47AccountDeactivationSteps
     public void WhenINavigateToTheDeactivatePageWithoutLoggingIn()
     {
         _driver.Navigate().GoToUrl($"{_baseUrl}/Account/Deactivate");
-        _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
     }
 
     [When(@"I navigate to the deactivate page")]
     public void WhenINavigateToTheDeactivatePage()
     {
         _driver.Navigate().GoToUrl($"{_baseUrl}/Account/Deactivate");
-        _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
     }
 
     [When(@"I enter an incorrect password ""(.*)""")]
@@ -110,7 +125,15 @@ public class CSP47AccountDeactivationSteps
     {
         var deactivateBtn = _wait.Until(d => d.FindElement(By.CssSelector("button.btn-danger[type='submit']")));
         deactivateBtn.Click();
-        _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
     }
 
     [Then(@"I should be redirected to the login page")]
@@ -138,7 +161,15 @@ public class CSP47AccountDeactivationSteps
     [Then(@"I should see an error message about incorrect password")]
     public void ThenIShouldSeeAnErrorMessageAboutIncorrectPassword()
     {
-        _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
         _driver.PageSource.ToLower().Should().Contain("incorrect",
             "an error about the incorrect password should appear");
     }

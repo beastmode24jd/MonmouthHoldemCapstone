@@ -2,7 +2,6 @@ using System.Diagnostics.CodeAnalysis;
 using FluentAssertions;
 using MH.Capstone.Tests.Acceptance.Configuration;
 using MH.Capstone.Tests.Acceptance.Drivers;
-using MH.Capstone.Tests.Acceptance.Helpers;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Interactions;
 using OpenQA.Selenium.Support.UI;
@@ -33,7 +32,15 @@ public class CSP26StepDefinitions
     public void GivenAnAnonymousUserNavigatesToTheLoginPage()
     {
         _driver.Navigate().GoToUrl($"{_baseUrl}/Account/Login");
-        _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
     }
 
     [When(@"the user views the login form")]
@@ -83,7 +90,15 @@ public class CSP26StepDefinitions
     public void WhenTheUserSubmitsTheResetForm()
     {
         _wait.Until(d => d.FindElement(By.Id("resetPasswordBtn"))).Click();
-        _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
     }
 
     [Then(@"a password confirmation mismatch error is visible")]

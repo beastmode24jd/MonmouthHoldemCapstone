@@ -7,7 +7,7 @@ using System.Threading;
 using MH.Capstone.Tests.Acceptance.Configuration;
 using MH.Capstone.Tests.Acceptance.PageObjects;
 using OpenQA.Selenium;
-using MH.Capstone.Tests.Acceptance.Helpers;
+using OpenQA.Selenium.Support.UI;
 
 namespace MH.Capstone.Tests.Acceptance.Drivers;
 
@@ -15,12 +15,14 @@ namespace MH.Capstone.Tests.Acceptance.Drivers;
 public class AuthenticationDriver
 {
     private readonly IWebDriver _webDriver;
+    private readonly WebDriverWait _wait;
     private readonly string _baseUrl;
 
-    public AuthenticationDriver(IWebDriver webDriver, AcceptanceTestSettings settings)
+    public AuthenticationDriver(IWebDriver webDriver, AcceptanceTestSettings settings, WebDriverWait wait)
     {
         _webDriver = webDriver;
         _baseUrl = settings.BaseUrl.TrimEnd('/');
+        _wait = wait;
     }
 
     public bool IsUserLoggedIn(string? username = null)
@@ -30,12 +32,12 @@ public class AuthenticationDriver
         {
             // Wait briefly for the user dropdown to appear. If it doesn't appear within the
             // timeout, treat as not logged in.
-            var userElement = _webDriver.WaitUntil(d =>
+            var userElement = new WebDriverWait(_webDriver, TimeSpan.FromSeconds(2)).Until(d =>
             {
                 var elems = d.FindElements(By.Id("userDropdownNavDisplay"));
                 TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] User dropdown elements found: {elems.Count}");
                 return elems.Count > 0 ? elems[0] : null;
-            }, TimeSpan.FromSeconds(2));
+            });
 
             TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] User Auth status: " +
                                       $"{string.IsNullOrEmpty(username) || userElement?.Text.Contains(username) == true}.");
@@ -51,7 +53,6 @@ public class AuthenticationDriver
     public void PreformLoginForUser(string username, string password)
     {
         var loginUrl = $"{_baseUrl.TrimEnd('/')}/Account/Login";
-        var timeout = TimeSpan.FromSeconds(10);
 
         if (IsUserLoggedIn(username))
             return;
@@ -61,7 +62,15 @@ public class AuthenticationDriver
 
         TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Attempting User {username} log in.");
         _webDriver.Navigate().GoToUrl(loginUrl);
-        _webDriver.WaitForDocumentReady(timeout);
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
 
         var loginPage = new LoginPageObject(_webDriver, _baseUrl);
         loginPage.UsernameInput.SendKeys(username);
@@ -74,7 +83,7 @@ public class AuthenticationDriver
         // user dropdown (meaning sign in was successful).
         try
         {
-            _webDriver.WaitUntil(d =>
+            _wait.Until(d =>
             {
                 // If we've been redirected away from the login URL,
                 // check for if the user shows logged in
@@ -91,7 +100,7 @@ public class AuthenticationDriver
 
                 // keep waiting
                 return false;
-            }, timeout);
+            });
         }
         catch(Exception e)
         {
@@ -107,7 +116,7 @@ public class AuthenticationDriver
     public void LogoutUser()
     {
         if (!IsUserLoggedIn()) return;
-        var logoutForm = _webDriver.WaitForElement(By.Id("logoutForm"), TimeSpan.FromSeconds(5));
+        var logoutForm = _wait.Until(d => d.FindElement(By.Id("logoutForm")));
         logoutForm.Submit();
         TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] User logged out.");
     }
@@ -117,7 +126,15 @@ public class AuthenticationDriver
         _webDriver.Navigate().GoToUrl(urlToTest);
         try
         {
-            _webDriver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+            _wait.Until(d =>
+            {
+                try
+                {
+                    var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                    return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+                }
+                catch { return false; }
+            });
         }
         catch
         {
@@ -131,9 +148,8 @@ public class AuthenticationDriver
     {
         try
         {
-            return _webDriver.WaitUntil(d =>
-                d.Url.Contains("/account/login", StringComparison.InvariantCultureIgnoreCase),
-                TimeSpan.FromSeconds(5));
+            return _wait.Until(d =>
+                d.Url.Contains("/account/login", StringComparison.InvariantCultureIgnoreCase));
         }
         catch
         {

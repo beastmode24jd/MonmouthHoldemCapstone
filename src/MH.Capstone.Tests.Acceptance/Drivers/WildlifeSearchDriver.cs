@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using MH.Capstone.Tests.Acceptance.Configuration;
-using MH.Capstone.Tests.Acceptance.Helpers;
 using MH.Capstone.Tests.Acceptance.PageObjects;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
@@ -11,23 +10,33 @@ namespace MH.Capstone.Tests.Acceptance.Drivers;
 public class WildlifeSearchDriver
 {
     private readonly IWebDriver _webDriver;
+    private readonly WebDriverWait _wait;
     private readonly string _baseUrl;
 
     // The external Ninjas API can take a few seconds to respond; 20 s is generous
     // but keeps tests from hanging indefinitely.
     private static readonly TimeSpan SearchTimeout = TimeSpan.FromSeconds(20);
 
-    public WildlifeSearchDriver(IWebDriver webDriver, AcceptanceTestSettings settings)
+    public WildlifeSearchDriver(IWebDriver webDriver, AcceptanceTestSettings settings, WebDriverWait wait)
     {
         _webDriver = webDriver;
         _baseUrl = settings.BaseUrl.TrimEnd('/');
+        _wait = wait;
     }
 
     /// <summary>Navigates to the species search page.</summary>
     public void NavigateToSearchPage()
     {
         _webDriver.Navigate().GoToUrl($"{_baseUrl}/Species/Search");
-        _webDriver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
     }
 
     /// <summary>Returns true when the browser is on the species search page.</summary>
@@ -137,7 +146,7 @@ public class WildlifeSearchDriver
     /// <summary>Clicks the Clear button and waits for the result card to reset.</summary>
     public void ClickClear()
     {
-        _webDriver.WaitForElement(By.Id("clearBtn"), TimeSpan.FromSeconds(3)).Click();
+        _wait.Until(d => d.FindElement(By.Id("clearBtn"))).Click();
 
         // The clear handler is synchronous (no fetch involved), so the DOM updates
         // immediately. A short poll confirms the counter has reset to "0 / 0".
