@@ -24,23 +24,22 @@ public class CSP42StepDefinitions
         _settings = settings;
     }
 
+    private void LoginAs(string email, string password)
+    {
+        // Navigate to the app domain first so DeleteAllCookies operates on the
+        // correct domain context (about:blank has no domain, so cookies would not be cleared).
+        _driver.Navigate().GoToUrl(_settings.BaseUrl);
+        _driver.Manage().Cookies.DeleteAllCookies();
+        _driver.Navigate().GoToUrl($"{_settings.BaseUrl}/account/login");
+        _driver.FindElement(By.Id("emailField")).SendKeys(email);
+        _driver.FindElement(By.Id("passwordField")).SendKeys(password);
+        _driver.FindElement(By.Id("submitBtn")).Click();
+    }
+
     [Given("I have not submitted a custom profile image")]
     public void GivenIHaveNotSubmittedACustomProfileImage()
     {
-        // Log in user who has not submitted a custom profile image
-        _driver.Navigate().GoToUrl($"{_settings.BaseUrl}/account/login");
-
-        // Provide valid username and password params
-        var emailInput = _driver.FindElement(By.Id("emailField"));
-        var passwordInput = _driver.FindElement(By.Id("passwordField"));
-        var loginButton = _driver.FindElement(By.Id("submitBtn"));
-
-        // Enter Alex's credentials
-        emailInput.SendKeys("alex@test.com");
-        passwordInput.SendKeys("Capstone26!");
-
-        // Submit the form [cite: 205]
-        loginButton.Click();
+        LoginAs("alex@test.com", "Capstone26!");
     }
 
     [When("I look at the menu bar at the top of the page")]
@@ -76,20 +75,7 @@ public class CSP42StepDefinitions
     [Given("I am logged in")]
     public void GivenIAmLoggedIn()
     {
-        // Log in user who has not submitted a custom profile image
-        _driver.Navigate().GoToUrl($"{_settings.BaseUrl}/account/login");
-
-        // Provide valid username and password params
-        var emailInput = _driver.FindElement(By.Id("emailField"));
-        var passwordInput = _driver.FindElement(By.Id("passwordField"));
-        var loginButton = _driver.FindElement(By.Id("submitBtn"));
-
-        // Enter Alex's credentials
-        emailInput.SendKeys("alex@test.com");
-        passwordInput.SendKeys("Capstone26!");
-
-        // Submit the form [cite: 205]
-        loginButton.Click();
+        LoginAs("alex@test.com", "Capstone26!");
     }
 
     [When("I navigate to the Profile Customization part of my Dashboard")]
@@ -124,20 +110,7 @@ public class CSP42StepDefinitions
     [Given("I have selected a valid image under 2 MB")]
     public void GivenIHaveSelectedAValidImageUnder2MB()
     {
-        // Log in Lily, who we will use for upload testing
-        _driver.Navigate().GoToUrl($"{_settings.BaseUrl}/account/login");
-
-        // Provide valid username and password params
-        var emailInput = _driver.FindElement(By.Id("emailField"));
-        var passwordInput = _driver.FindElement(By.Id("passwordField"));
-        var loginButton = _driver.FindElement(By.Id("submitBtn"));
-
-        // Enter Lily's credentials
-        emailInput.SendKeys("lily@test.com");
-        passwordInput.SendKeys("Capstone26!");
-
-        // Submit the form [cite: 205]
-        loginButton.Click();
+        LoginAs("lily@test.com", "Capstone26!");
         
         // Get a valid jpg file, <= 2 MB
         string validImagePath = Path.GetFullPath("../../../../MH.Capstone.WebApp/wwwroot/imgs/badge/BadgeIcon1.jpg");
@@ -206,19 +179,7 @@ public class CSP42StepDefinitions
     [Given("I have selected an image larger than 2 MB")]
     public void GivenIHaveSelectedAnImageLargerThan2MB()
     {
-        // Log in Lily
-        _driver.Navigate().GoToUrl($"{_settings.BaseUrl}/account/login");
-
-        var emailInput = _driver.FindElement(By.Id("emailField"));
-        var passwordInput = _driver.FindElement(By.Id("passwordField"));
-        var loginButton = _driver.FindElement(By.Id("submitBtn"));
-
-        // Enter credentials
-        emailInput.SendKeys("lily@test.com");
-        passwordInput.SendKeys("Capstone26!");
-
-        // Submit the form [cite: 205]
-        loginButton.Click();
+        LoginAs("lily@test.com", "Capstone26!");
 
         // Get the current profile image path/src, save to scenario context for later comparison
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
