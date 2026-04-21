@@ -1,5 +1,7 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using MH.Capstone.Tests.Acceptance.Configuration;
+using MH.Capstone.Tests.Acceptance.Support;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using Reqnroll;
@@ -78,6 +80,7 @@ public sealed class Startup
         // Suppress TLS errors for the local dev certificate used by Kestrel
         options.AddArgument("--allow-insecure-localhost");
 
-        return new ChromeDriver(options);
+        var raw = new ChromeDriver(options);
+        return new RobustWebDriver(raw, TimeSpan.FromSeconds(10));
     }
 }
