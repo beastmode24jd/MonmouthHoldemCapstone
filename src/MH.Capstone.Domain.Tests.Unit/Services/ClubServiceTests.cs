@@ -16,11 +16,17 @@ public class ClubServiceTests
     private Mock<IRepository<Club, ApplicationDbContext>> _clubRepoMock;
     private IClubService _clubService;
 
+    private Mock<IRepository<ClubMembership, ApplicationDbContext>> _clubMembershipRepoMock;
+
     [SetUp]
     public void Setup()
     {
         _clubRepoMock = new Mock<IRepository<Club, ApplicationDbContext>>();
-        _clubService = new ClubService(_clubRepoMock.Object);
+        _clubMembershipRepoMock = new Mock<IRepository<ClubMembership, ApplicationDbContext>>();
+
+        _clubService = new ClubService(
+            _clubRepoMock.Object, 
+            _clubMembershipRepoMock.Object);
     }
 
     [Test]

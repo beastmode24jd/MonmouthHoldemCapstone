@@ -9,20 +9,20 @@ namespace MH.Capstone.WebApp.Models
     public class ClubListViewModel
     {
         public List<Club> PublicClubs { get; set; } = new();
-        public List<Club> PrivateClubs { get; set; } = new();
+        public List<Club> UserClubs { get; set; } = new();
         public string CurrentUserId { get; set; } = string.Empty;
 
         public bool HasPublicClubs => PublicClubs.Any();
-        public bool HasPrivateClubs => PrivateClubs.Any();
+        public bool HasPersonalClubs => UserClubs.Any();
         public int PublicClubCount => PublicClubs.Count;
-        public int PrivateClubCount => PrivateClubs.Count;
+        public int UserClubCount => UserClubs.Count;
 
         public ClubListViewModel() { }
 
-        public ClubListViewModel(IEnumerable<Club> publicClubs, IEnumerable<Club> privateClubs, string currentUserId = "")
+        public ClubListViewModel(IEnumerable<Club> publicClubs, IEnumerable<Club> userClubs, string currentUserId = "")
         {
             PublicClubs = publicClubs.ToList();
-            PrivateClubs = privateClubs.ToList();
+            UserClubs = userClubs.ToList();
             CurrentUserId = currentUserId;
         }
     }
