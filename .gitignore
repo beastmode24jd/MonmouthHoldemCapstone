@@ -440,3 +440,12 @@ newpr
 /MH.Capstone.WebApp/watch.err
 **/watch.log
 **/watch.err.watchlogs/*
+.copilot/jira.env
+.copilot/*.env
+plugins/copilot-jira-mcp/node_modules
+
+# Ignore AI & MCP related things
+**/.claudeignore
+**/.mcp.json
+plugins/*
+scripts/*
