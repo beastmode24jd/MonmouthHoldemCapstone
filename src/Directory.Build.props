@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- TRX filename: ProjectName_YYYYMMDD-HHMMSS.trx -->
+    <VSTestLogger>trx;LogFileName=$(MSBuildProjectName)_$([System.DateTime]::Now.ToString('yyyyMMdd-HHmmss')).trx</VSTestLogger>
+  </PropertyGroup>
+</Project>
