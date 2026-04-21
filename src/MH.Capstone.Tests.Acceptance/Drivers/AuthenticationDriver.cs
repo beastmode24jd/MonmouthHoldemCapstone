@@ -40,8 +40,8 @@ public class AuthenticationDriver
             });
 
             TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] User Auth status: " +
-                                      $"{string.IsNullOrEmpty(username) || userElement?.Text.Contains(username) == true}.");
-            return string.IsNullOrEmpty(username) || userElement?.Text.Contains(username) == true;
+                                      $"{string.IsNullOrEmpty(username) || userElement.Text.Contains(username)}.");
+            return string.IsNullOrEmpty(username) || userElement.Text.Contains(username);
         }
         catch
         {
