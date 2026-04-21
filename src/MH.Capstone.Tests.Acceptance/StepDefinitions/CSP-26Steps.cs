@@ -1,17 +1,9 @@
-using System.Runtime.CompilerServices;
-using MH.Capstone.Domain.DataAccess;
-using MH.Capstone.Domain.DataAccess.Repositories;
-using MH.Capstone.Domain.DataModels;
-using MH.Capstone.Domain.Services;
-using MH.Capstone.Domain.Services.Abstraction;
-using Microsoft.Extensions.Logging.Abstractions;
-using System.Linq.Expressions;
-using Moq;
-using OpenQA.Selenium.Interactions; // Required for Hover
-using OpenQA.Selenium.Support.UI; // Required for WebDriverWait
-using OpenQA.Selenium;
-using Reqnroll;
 using FluentAssertions;
+using MH.Capstone.Tests.Acceptance.Configuration;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Interactions;
+using OpenQA.Selenium.Support.UI;
+using Reqnroll;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
@@ -19,21 +11,19 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 public class CSP26StepDefinitions
 {
     private readonly IWebDriver _driver;
-    private readonly ScenarioContext _scenarioContext;
+    private readonly AcceptanceTestSettings _settings;
 
-
-    public CSP26StepDefinitions(ScenarioContext scenarioContext)
+    public CSP26StepDefinitions(IWebDriver driver, AcceptanceTestSettings settings)
     {
-        _scenarioContext = scenarioContext;
-        // Retrieve the driver initialized in the Hook
-        _driver = (IWebDriver)scenarioContext["WebDriver"];
+        _driver = driver;
+        _settings = settings;
     }
 
     [Given("I am on the Login Page")]
     public void GivenIAmOnTheLoginPage()
     {
         // Access the page.
-        _driver.Navigate().GoToUrl("https://localhost:7147/account/login");
+        _driver.Navigate().GoToUrl($"{_settings.BaseUrl}/account/login");
 
     }
 
@@ -80,70 +70,43 @@ public class CSP26StepDefinitions
     public void GivenIAmOnTheForgotPasswordPage()
     {
         // Access the page.
-        _driver.Navigate().GoToUrl("https://localhost:7147/account/ForgotPassword");
+        _driver.Navigate().GoToUrl($"{_settings.BaseUrl}/account/ForgotPassword");
     }
 
     [When("I submit an account search for an account that does not exist")]
     public void WhenISubmitAnAccountSearchForAnAccountThatDoesNotExist()
     {
-        // Locate the Email field in ForgotPassword.cshtml 
-        var emailField = _driver.FindElement(By.Name("Identifier"));
+        var emailField = _driver.FindElement(By.Id("forgotPasswordEmail"));
         emailField.SendKeys("nonexistent@example.com");
 
-        // Locate and click the 'Search' button [cite: 100, 101]
-        var searchButton = _driver.FindElement(By.CssSelector("button[type='submit']"));
-        searchButton.Click();
+        _driver.FindElement(By.Id("sendResetEmailBtn")).Click();
     }
-
-    [Then("I should see an error message saying the account was not found")]
-    public void ThenIShouldSeeAnErrorMessageSayingTheAccountWasNotFound()
-    {
-        // Locate the validation summary alert (wait 5 seconds)
-        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
-
-        var errorAlert = wait.Until(d => d.FindElement(By.Id("validationSummary")));
-        
-        // The specific message defined in AccountController.cs
-        string expectedMessage = "We could not find that account. Please try again.";
-        
-        errorAlert.Text.Should().Contain(expectedMessage);
-        errorAlert.Displayed.Should().BeTrue();
-    }
-
-    // Reference line 78 for Given I am on the Forgot Password page
 
     [When("I search for a valid account that exists")]
     public void WhenISearchForAValidAccountThatExists()
     {
-        // Locate the Email field in ForgotPassword.cshtml 
-        var emailField = _driver.FindElement(By.Id("emailInput"));
+        var emailField = _driver.FindElement(By.Id("forgotPasswordEmail"));
         emailField.SendKeys("alex@test.com");
 
-        // Locate and click the 'Search' button [cite: 100, 101]
-        var searchButton = _driver.FindElement(By.Id("submitBtn"));
-        searchButton.Click();
+        _driver.FindElement(By.Id("sendResetEmailBtn")).Click();
     }
 
-    [Then("I should be shown the two password fields")]
-    public void ThenIShouldBeShownTheTwoPasswordFields()
+    [Then("I should see a password reset confirmation message")]
+    public void ThenIShouldSeeAPasswordResetConfirmationMessage()
     {
-        // Wait so the updated form can load
+        // The controller always shows this message regardless of whether the account exists,
+        // intentionally preventing account enumeration.
         var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
+        var confirmation = wait.Until(d => d.FindElement(By.Id("resetEmailSentMessage")));
 
-        // Get the fields
-        var newPasswordField = wait.Until(d => d.FindElement(By.Id("newPasswordField")));
-        var confirmPasswordField = wait.Until(d => d.FindElement(By.Id("confirmPasswordField")));
-
-        // Assertions using FluentAssertions
-        newPasswordField.Displayed.Should().BeTrue("The New Password field should be visible after a successful account search.");
-        confirmPasswordField.Displayed.Should().BeTrue("The Confirm Password field should be visible after a successful account search.");
+        confirmation.Displayed.Should().BeTrue("the reset confirmation message should appear after any form submission.");
     }
 
     [Given("I am on the Confirm New Password page")]
     public void GivenIAmOnTheConfirmNewPasswordPage()
     {
         // Access the page.
-        _driver.Navigate().GoToUrl("https://localhost:7147/account/ForgotPassword");
+        _driver.Navigate().GoToUrl($"{_settings.BaseUrl}/account/ForgotPassword");
 
         // Search a valid email, then submit.
         var emailField = _driver.FindElement(By.Id("emailInput"));

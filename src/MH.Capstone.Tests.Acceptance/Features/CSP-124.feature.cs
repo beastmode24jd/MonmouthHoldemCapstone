@@ -112,11 +112,11 @@ namespace MH.Capstone.Tests.Acceptance.Features
         
         [global::NUnit.Framework.TestAttribute()]
         [global::NUnit.Framework.DescriptionAttribute("James (user without pre-existing valid account) is on the front page")]
-        [global::NUnit.Framework.CategoryAttribute("specificallyThisTest")]
+        [global::NUnit.Framework.CategoryAttribute("clubs")]
         public async global::System.Threading.Tasks.Task JamesUserWithoutPre_ExistingValidAccountIsOnTheFrontPage()
         {
             string[] tagsOfScenario = new string[] {
-                    "specificallyThisTest"};
+                    "clubs"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "0";
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("James (user without pre-existing valid account) is on the front page", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);

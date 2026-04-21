@@ -14,20 +14,20 @@ Scenario: Alex is looking for the Forgot Password page on the Login page.
 Scenario: James has entered an account that does not exist in the database.
     Given I am on the Forgot Password page
     When I submit an account search for an account that does not exist
-    Then I should see an error message saying the account was not found
+    Then I should see a password reset confirmation message
 
 @forgotPassword
-Scenario: Alex has entered correct account parameters, and is being shown the “Confirm New Password” part of the form.
+Scenario: Alex has entered a valid email on the Forgot Password form.
     Given I am on the Forgot Password page
     When I search for a valid account that exists
-    Then I should be shown the two password fields
+    Then I should see a password reset confirmation message
 
-@forgotPassword
-Scenario: Alex is on the “Confirm New Password” page, but has not written the same password twice.
-    Given I am on the Confirm New Password page
-    When I submit passwords that do not match
-    And I click Save
-    Then I should see an error message telling me the inputs do not match
+#@forgotPassword
+#Scenario: Alex is on the “Confirm New Password” page, but has not written the same password twice.
+    #Given I am on the Confirm New Password page
+    #When I submit passwords that do not match
+    #And I click Save
+    #Then I should see an error message telling me the inputs do not match
 
 #@passwordReset
 #Scenario: Alex is on the “Confirm New Password” page, and has submitted the same password twice.
