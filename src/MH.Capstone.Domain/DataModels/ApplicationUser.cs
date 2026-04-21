@@ -46,6 +46,8 @@ namespace MH.Capstone.Domain.DataModels
         
         public virtual List<Notification> Notifications { get; set; } = new List<Notification>();
 
+        public virtual List<ClubMembership> ClubMemberships { get; set; } = new List<ClubMembership>();
+
         public DateTimeOffset? LastLogin { get; set; }
         public int LoginStreak { get; set; } = 0;
 
