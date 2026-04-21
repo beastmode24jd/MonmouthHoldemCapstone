@@ -45,13 +45,6 @@ public class CSP101StepDefinitions
         _authDriver = authDriver;
     }
 
-    [AfterScenario("report")]
-    public void AfterScenarioUrlReset()
-    {
-        _driver.Navigate().GoToUrl("about:blank");
-        _authDriver.LogoutUser();
-    }
-
     #endregion
 
     #region Given Steps
@@ -234,7 +227,11 @@ public class CSP101StepDefinitions
     [Then("{word} should see a message saying she has already reported this content")]
     public void ThenPersonaShouldSeeAlreadyReportedMessage(string name)
     {
-        var messageDiv = _driver.FindElement(By.Id("reportMessage"));
+        var messageDiv = _wait.Until(d =>
+        {
+            var el = d.FindElement(By.Id("reportMessage"));
+            return (el.Displayed) ? el : null;
+        });
         var messageClass = messageDiv.GetAttribute("class") ?? string.Empty;
         var messageText = messageDiv.Text ?? string.Empty;
 
@@ -256,6 +253,9 @@ public class CSP101StepDefinitions
     [Then("James should not see the {string} button")]
     public void ThenJamesShouldNotSeeTheReportThisPageButton(string buttonLabel)
     {
+        // Wait briefly to assert absence without changing global implicit waits
+        var shortWait = new WebDriverWait(_driver, TimeSpan.FromSeconds(1));
+        shortWait.Until(d => d.FindElements(By.CssSelector("button[data-bs-target='#reportModal']")).Count == 0);
         var reportButtons = _driver.FindElements(By.CssSelector("button[data-bs-target='#reportModal']"));
         reportButtons.Should().BeEmpty("anonymous users should not see the 'Report this page' button");
     }
@@ -356,10 +356,19 @@ public class CSP101StepDefinitions
 
     private void FillReportForm(string reason, string description)
     {
-        var reasonSelect = new SelectElement(_driver.FindElement(By.Id("reportReason")));
+        var reasonElement = _wait.Until(d =>
+        {
+            var el = d.FindElement(By.Id("reportReason"));
+            return (el.Displayed && el.Enabled) ? el : null;
+        });
+        var reasonSelect = new SelectElement(reasonElement);
         reasonSelect.SelectByValue(reason);
 
-        var descriptionBox = _driver.FindElement(By.Id("reportDescription"));
+        var descriptionBox = _wait.Until(d =>
+        {
+            var el = d.FindElement(By.Id("reportDescription"));
+            return (el.Displayed && el.Enabled) ? el : null;
+        });
         descriptionBox.Clear();
         descriptionBox.SendKeys(description);
     }

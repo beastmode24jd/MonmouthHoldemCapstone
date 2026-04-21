@@ -25,7 +25,7 @@ public class EmailVerificationDriver
         _driver.Navigate().GoToUrl($"{_baseUrl}/Account/Register");
         _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
 
-        _driver.FindElement(By.Name("Email")).SendKeys(email);
+        _driver.FindElement(By.Id("emailField")).SendKeys(email);
 
         // The password field has id="passwordField" in Register.cshtml
         _driver.FindElement(By.Id("passwordField")).SendKeys(password);

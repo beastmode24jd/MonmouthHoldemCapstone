@@ -104,12 +104,20 @@ public class CSP120StepDefinitions
     [When("{word} asks {string}")]
     public void WhenPersonaAsks(string name, string question)
     {
-        var input = _driver.FindElement(By.Id("aiCompanionQuestion"));
+        var input = _wait.Until(d =>
+        {
+            var el = d.FindElement(By.Id("aiCompanionQuestion"));
+            return (el.Displayed && el.Enabled) ? el : null;
+        });
         input.Clear();
         input.SendKeys(question);
 
-        var submit = _driver.FindElement(By.Id("aiCompanionSubmitBtn"));
-        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", submit);
+        var submit = _wait.Until(d =>
+        {
+            var el = d.FindElement(By.Id("aiCompanionSubmitBtn"));
+            return (el.Displayed && el.Enabled) ? el : null;
+        });
+        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", submit!);
     }
 
     #endregion
@@ -119,7 +127,11 @@ public class CSP120StepDefinitions
     [Then("{word} should see an {string} button")]
     public void ThenPersonaShouldSeeAButton(string name, string buttonLabel)
     {
-        var button = _driver.FindElement(By.CssSelector("button[data-bs-target='#aiCompanionModal']"));
+        var button = _wait.Until(d =>
+        {
+            var el = d.FindElement(By.CssSelector("button[data-bs-target='#aiCompanionModal']"));
+            return (el.Displayed) ? el : null;
+        });
         button.Displayed.Should().BeTrue(
             $"the '{buttonLabel}' button should be visible to authenticated users");
     }
@@ -127,10 +139,10 @@ public class CSP120StepDefinitions
     [Then("James should not see the {string} button")]
     public void ThenJamesShouldNotSeeTheButton(string buttonLabel)
     {
-        _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(1);
+        // Use a short explicit wait for absence instead of toggling implicit waits
+        var shortWait = new WebDriverWait(_driver, TimeSpan.FromSeconds(1));
+        shortWait.Until(d => d.FindElements(By.CssSelector("button[data-bs-target='#aiCompanionModal']")).Count == 0);
         var buttons = _driver.FindElements(By.CssSelector("button[data-bs-target='#aiCompanionModal']"));
-        _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
-
         buttons.Should().BeEmpty("anonymous users should not see the AI Companion button");
     }
 

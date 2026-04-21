@@ -29,9 +29,9 @@ namespace MH.Capstone.Tests.Acceptance.Features
         private static string[] featureTags = new string[] {
                 "ignore"};
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "Sightings Map", "    As a user of the Wildlife AID app\n    I want to view wildlife sightings on an" +
-                " interactive map\n    So that I can see where animals have been spotted in my are" +
-                "a", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "Sightings Map", "    As a user of the Wildlife AID app\r\n    I want to view wildlife sightings on a" +
+                "n interactive map\r\n    So that I can see where animals have been spotted in my a" +
+                "rea", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
 #line 1 "SightingsMap.feature"
 #line hidden
