@@ -29,8 +29,8 @@ namespace MH.Capstone.Tests.Acceptance.Features
         private static string[] featureTags = new string[] {
                 "report"};
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "Manual User Report of Page (CSP-101)", "  As a logged-in user\r\n  I want to report inappropriate or problematic pages\r\n  S" +
-                "o that the moderation team can review and take action", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "Manual User Report of Page (CSP-101)", "  As a logged-in user\n  I want to report inappropriate or problematic pages\n  So " +
+                "that the moderation team can review and take action", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
 #line 1 "CSP-101.feature"
 #line hidden

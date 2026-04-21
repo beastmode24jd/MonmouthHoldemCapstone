@@ -406,8 +406,7 @@ public class CSP101StepDefinitions
     private void WaitForReportModalHidden()
     {
         // The modal auto-hides ~2s after a successful submission.
-        var longerWait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
-        longerWait.Until(d =>
+        _wait.Until(d =>
         {
             var modal   = d.FindElement(By.Id("reportModal"));
             var classes = modal.GetAttribute("class") ?? string.Empty;

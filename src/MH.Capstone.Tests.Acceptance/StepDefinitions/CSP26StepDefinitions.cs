@@ -5,6 +5,7 @@ using MH.Capstone.Tests.Acceptance.Drivers;
 using MH.Capstone.Tests.Acceptance.Helpers;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Interactions;
+using OpenQA.Selenium.Support.UI;
 using Reqnroll;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
@@ -15,13 +16,15 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 public class CSP26StepDefinitions
 {
     private readonly IWebDriver _driver;
+    private readonly WebDriverWait _wait;
     private readonly string _baseUrl;
     private readonly PasswordResetDriver _passwordResetDriver;
 
-    public CSP26StepDefinitions(IWebDriver driver, AcceptanceTestSettings settings,
-        PasswordResetDriver passwordResetDriver)
+    public CSP26StepDefinitions(IWebDriver driver, WebDriverWait wait,
+        AcceptanceTestSettings settings, PasswordResetDriver passwordResetDriver)
     {
         _driver = driver;
+        _wait = wait;
         _baseUrl = settings.BaseUrl.TrimEnd('/');
         _passwordResetDriver = passwordResetDriver;
     }
@@ -36,21 +39,21 @@ public class CSP26StepDefinitions
     [When(@"the user views the login form")]
     public void WhenTheUserViewsTheLoginForm()
     {
-        var form = _driver.FindElement(By.Id("loginForm"));
+        var form = _wait.Until(d => d.FindElement(By.Id("loginForm")));
         form.Displayed.Should().BeTrue("the login form should be visible on the login page");
     }
 
     [Then(@"a ""Forgot Password?"" link is visible")]
     public void ThenAForgotPasswordLinkIsVisible()
     {
-        var link = _driver.FindElement(By.LinkText("Forgot Password?"));
+        var link = _wait.Until(d => d.FindElement(By.LinkText("Forgot Password?")));
         link.Displayed.Should().BeTrue("the 'Forgot Password?' link should be visible on the login page");
     }
 
     [Then(@"the link changes appearance on hover")]
     public void ThenTheLinkChangesAppearanceOnHover()
     {
-        var link = _driver.FindElement(By.LinkText("Forgot Password?"));
+        var link = _wait.Until(d => d.FindElement(By.LinkText("Forgot Password?")));
         var initialColor = link.GetCssValue("color");
 
         new Actions(_driver).MoveToElement(link).Perform();
@@ -72,14 +75,14 @@ public class CSP26StepDefinitions
     [When(@"the user enters new password ""(.*)"" and confirmation ""(.*)""")]
     public void WhenTheUserEntersNewPasswordAndConfirmation(string newPassword, string confirmPassword)
     {
-        _driver.FindElement(By.Id("newPasswordField")).SendKeys(newPassword);
-        _driver.FindElement(By.Id("confirmPasswordField")).SendKeys(confirmPassword);
+        _wait.Until(d => d.FindElement(By.Id("newPasswordField"))).SendKeys(newPassword);
+        _wait.Until(d => d.FindElement(By.Id("confirmPasswordField"))).SendKeys(confirmPassword);
     }
 
     [When(@"the user submits the reset form")]
     public void WhenTheUserSubmitsTheResetForm()
     {
-        _driver.FindElement(By.Id("resetPasswordBtn")).Click();
+        _wait.Until(d => d.FindElement(By.Id("resetPasswordBtn"))).Click();
         _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
     }
 

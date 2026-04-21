@@ -4,6 +4,7 @@ using MH.Capstone.Tests.Acceptance.Configuration;
 using MH.Capstone.Tests.Acceptance.Drivers;
 using MH.Capstone.Tests.Acceptance.Helpers;
 using OpenQA.Selenium;
+using OpenQA.Selenium.Support.UI;
 using Reqnroll;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
@@ -14,6 +15,7 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 public class CSP47AccountDeactivationSteps
 {
     private readonly IWebDriver _driver;
+    private readonly WebDriverWait _wait;
     private readonly string _baseUrl;
     private readonly AuthenticationDriver _authDriver;
     private readonly EmailVerificationDriver _emailVerificationDriver;
@@ -24,10 +26,12 @@ public class CSP47AccountDeactivationSteps
     private string _dynamicTestEmail    = string.Empty;
     private string _dynamicTestPassword = string.Empty;
 
-    public CSP47AccountDeactivationSteps(IWebDriver driver, AcceptanceTestSettings settings,
-        AuthenticationDriver authDriver, EmailVerificationDriver emailVerificationDriver)
+    public CSP47AccountDeactivationSteps(IWebDriver driver, WebDriverWait wait,
+        AcceptanceTestSettings settings, AuthenticationDriver authDriver,
+        EmailVerificationDriver emailVerificationDriver)
     {
         _driver = driver;
+        _wait = wait;
         _baseUrl = settings.BaseUrl.TrimEnd('/');
         _authDriver = authDriver;
         _emailVerificationDriver = emailVerificationDriver;
@@ -88,7 +92,7 @@ public class CSP47AccountDeactivationSteps
     [When(@"I enter an incorrect password ""(.*)""")]
     public void WhenIEnterAnIncorrectPassword(string password)
     {
-        var passwordField = _driver.FindElement(By.Id("Password"));
+        var passwordField = _wait.Until(d => d.FindElement(By.Id("Password")));
         passwordField.Clear();
         passwordField.SendKeys(password);
     }
@@ -96,7 +100,7 @@ public class CSP47AccountDeactivationSteps
     [When(@"I enter the correct password")]
     public void WhenIEnterTheCorrectPassword()
     {
-        var passwordField = _driver.FindElement(By.Id("Password"));
+        var passwordField = _wait.Until(d => d.FindElement(By.Id("Password")));
         passwordField.Clear();
         passwordField.SendKeys(_dynamicTestPassword);
     }
@@ -104,7 +108,7 @@ public class CSP47AccountDeactivationSteps
     [When(@"I click the deactivate button")]
     public void WhenIClickTheDeactivateButton()
     {
-        var deactivateBtn = _driver.FindElement(By.CssSelector("button.btn-danger[type='submit']"));
+        var deactivateBtn = _wait.Until(d => d.FindElement(By.CssSelector("button.btn-danger[type='submit']")));
         deactivateBtn.Click();
         _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
     }
@@ -112,13 +116,14 @@ public class CSP47AccountDeactivationSteps
     [Then(@"I should be redirected to the login page")]
     public void ThenIShouldBeRedirectedToTheLoginPage()
     {
+        _wait.Until(d => d.Url.Contains("/account/login", StringComparison.OrdinalIgnoreCase));
         _driver.Url.Should().ContainEquivalentOf("/account/login");
     }
 
     [Then(@"I should see a warning about account deactivation consequences")]
     public void ThenIShouldSeeAWarningAboutAccountDeactivationConsequences()
     {
-        var warningAlert = _driver.FindElement(By.CssSelector(".alert-warning"));
+        var warningAlert = _wait.Until(d => d.FindElement(By.CssSelector(".alert-warning")));
         warningAlert.Displayed.Should().BeTrue("a warning alert should be visible on the deactivation page");
         warningAlert.Text.Should().Contain("Warning");
     }
@@ -126,7 +131,7 @@ public class CSP47AccountDeactivationSteps
     [Then(@"I should see a password confirmation field")]
     public void ThenIShouldSeeAPasswordConfirmationField()
     {
-        var passwordField = _driver.FindElement(By.Id("Password"));
+        var passwordField = _wait.Until(d => d.FindElement(By.Id("Password")));
         passwordField.Displayed.Should().BeTrue("the password confirmation field should be visible");
     }
 

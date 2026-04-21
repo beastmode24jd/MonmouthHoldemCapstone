@@ -13,6 +13,7 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 public class CSP42StepDefinitions
 {
     private readonly IWebDriver _driver;
+    private readonly WebDriverWait _wait;
     private readonly string _baseUrl;
     private readonly AuthenticationDriver _authDriver;
     private readonly DashboardDriver _dashboardDriver;
@@ -25,10 +26,11 @@ public class CSP42StepDefinitions
     private string? _invalidIconUploadPath;
     private string? _initialProfileImageSrc;
 
-    public CSP42StepDefinitions(IWebDriver driver, AcceptanceTestSettings settings,
-        AuthenticationDriver authDriver, DashboardDriver dashboardDriver)
+    public CSP42StepDefinitions(IWebDriver driver, WebDriverWait wait,
+        AcceptanceTestSettings settings, AuthenticationDriver authDriver, DashboardDriver dashboardDriver)
     {
         _driver = driver;
+        _wait = wait;
         _baseUrl = settings.BaseUrl.TrimEnd('/');
         _authDriver = authDriver;
         _dashboardDriver = dashboardDriver;
@@ -43,15 +45,14 @@ public class CSP42StepDefinitions
     [When("I look at the menu bar at the top of the page")]
     public void WhenILookAtTheMenuBarAtTheTopOfThePage()
     {
-        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
-        var navProfileImg = wait.Until(d => d.FindElement(By.Id("navProfile")));
+        var navProfileImg = _wait.Until(d => d.FindElement(By.Id("navProfile")));
         navProfileImg.Displayed.Should().BeTrue();
     }
 
     [Then("I should see a placeholder image")]
     public void ThenIShouldSeeAPlaceholderImage()
     {
-        var navProfileImg = _driver.FindElement(By.Id("navProfile"));
+        var navProfileImg = _wait.Until(d => d.FindElement(By.Id("navProfile")));
         string? actualSrc = navProfileImg.GetAttribute("src");
         actualSrc.Should().EndWith(ExpectedDefaultImagePath,
             "a user without a custom upload should see the default placeholder");
@@ -68,15 +69,14 @@ public class CSP42StepDefinitions
     {
         _dashboardDriver.NavigateToDashboard();
 
-        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
-        var customProfileForm = wait.Until(d => d.FindElement(By.Id("uploadForm")));
+        var customProfileForm = _wait.Until(d => d.FindElement(By.Id("uploadForm")));
         customProfileForm.Displayed.Should().BeTrue();
     }
 
     [Then("I can select a profile image to upload from my device")]
     public void ThenICanSelectAProfileImageToUploadFromMyDevice()
     {
-        var fileUpload = _driver.FindElement(By.Id("fileInput"));
+        var fileUpload = _wait.Until(d => d.FindElement(By.Id("fileInput")));
         fileUpload.Displayed.Should().BeTrue();
         fileUpload.Enabled.Should().BeTrue();
 
@@ -106,18 +106,17 @@ public class CSP42StepDefinitions
     {
         _dashboardDriver.NavigateToDashboard();
 
-        var fileInput = _driver.FindElement(By.Id("fileInput"));
+        var fileInput = _wait.Until(d => d.FindElement(By.Id("fileInput")));
         fileInput.SendKeys(_validIconUploadPath!);
 
-        var uploadForm = _driver.FindElement(By.Id("uploadForm"));
+        var uploadForm = _wait.Until(d => d.FindElement(By.Id("uploadForm")));
         uploadForm.Submit();
     }
 
     [Then("the image is displayed as my new avatar")]
     public void ThenTheImageIsDisplayedAsMyNewAvatar()
     {
-        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
-        var navProfileImg = wait.Until(d => d.FindElement(By.Id("navProfile")));
+        var navProfileImg = _wait.Until(d => d.FindElement(By.Id("navProfile")));
         navProfileImg.Displayed.Should().BeTrue();
 
         string? actualSrc = navProfileImg.GetAttribute("src");
@@ -137,8 +136,7 @@ public class CSP42StepDefinitions
     {
         _authDriver.PreformLoginForUser("lily@test.com", "Capstone26!");
 
-        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
-        var navProfileImg = wait.Until(d => d.FindElement(By.Id("navProfile")));
+        var navProfileImg = _wait.Until(d => d.FindElement(By.Id("navProfile")));
         navProfileImg.Displayed.Should().BeTrue();
         _initialProfileImageSrc = navProfileImg.GetAttribute("src");
 
@@ -158,10 +156,10 @@ public class CSP42StepDefinitions
     {
         _dashboardDriver.NavigateToDashboard();
 
-        var fileInput = _driver.FindElement(By.Id("fileInput"));
+        var fileInput = _wait.Until(d => d.FindElement(By.Id("fileInput")));
         fileInput.SendKeys(_invalidIconUploadPath!);
 
-        var uploadForm = _driver.FindElement(By.Id("uploadForm"));
+        var uploadForm = _wait.Until(d => d.FindElement(By.Id("uploadForm")));
         uploadForm.Submit();
     }
 
@@ -180,7 +178,7 @@ public class CSP42StepDefinitions
     [Then("the profile image should remain unchanged")]
     public void ThenTheProfileImageShouldRemainUnchanged()
     {
-        var navProfileImg = _driver.FindElement(By.Id("navProfile"));
+        var navProfileImg = _wait.Until(d => d.FindElement(By.Id("navProfile")));
         string? currentSrc = navProfileImg.GetAttribute("src");
 
         currentSrc.Should().Be(_initialProfileImageSrc,
