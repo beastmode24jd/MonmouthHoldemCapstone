@@ -294,6 +294,40 @@ namespace MH.Capstone.WebApp.Controllers
             return Ok(notification);
         }
 
+        [HttpPut]
+        [ValidateAntiForgeryToken]
+        [Route("/notifications/mark-all-read")]
+        public async Task<IActionResult> MarkAllNotificationsAsRead()
+        {
+            var user = await _userService.GetUserByClaimsPrincipleAsync(User);
+
+            if (user == null)
+            {
+                return Forbid();
+            }
+
+            await _notificationService.MarkAllAsReadAsync(user);
+
+            return Ok(new { message = "All notifications marked as read." });
+        }
+
+        [HttpDelete]
+        [ValidateAntiForgeryToken]
+        [Route("/notifications/all")]
+        public async Task<IActionResult> DeleteAllNotifications()
+        {
+            var user = await _userService.GetUserByClaimsPrincipleAsync(User);
+
+            if (user == null)
+            {
+                return Forbid();
+            }
+
+            await _notificationService.DeleteAllAsync(user);
+
+            return Ok(new { message = "All notifications deleted." });
+        }
+
         [HttpDelete]
         [ValidateAntiForgeryToken]
         [Route("/notifications/{nid:guid}")]

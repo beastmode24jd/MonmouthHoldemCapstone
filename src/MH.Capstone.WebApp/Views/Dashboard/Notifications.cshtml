@@ -68,11 +68,29 @@
         <div class="card-body">
             <div class="d-flex align-items-center mb-3">
                 <h3 class="mb-0 card-title"><i class="bi bi-bell-fill me-2"></i>Your Notifications</h3>
+                @{
+                    var hasUnread = Model != null && Model.Any(n => !n.IsRead);
+                    var hasAny = Model != null && Model.Any();
+                }
+                <div class="d-flex gap-2 ms-auto">
+                    <form id="markAllReadForm" action="/notifications/mark-all-read" class="m-0 @(hasUnread ? "" : "d-none")">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" id="markAllReadBtn" class="btn btn-sm btn-success">
+                            <i class="bi bi-check2-all me-1"></i>Mark All as Read
+                        </button>
+                    </form>
+                    <form id="deleteAllForm" action="/notifications/all" class="m-0 @(hasAny ? "" : "d-none")">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" id="deleteAllBtn" class="btn btn-sm btn-danger">
+                            <i class="bi bi-trash me-1"></i>Delete All
+                        </button>
+                    </form>
+                </div>
             </div>
 
             @if (Model == null || !Model.Any())
             {
-                <div class="alert alert-info" role="alert">
+                <div id="notificationsEmptyState" class="alert alert-info" role="alert">
                     You have no notifications at this time. Way to stay on top of things!
                 </div>
             }
@@ -141,8 +159,82 @@
             return !tbody || tbody.rows.length === 0;
         }
 
+        function hasUnreadRows() {
+            return document.querySelectorAll('.notification-row.unread').length > 0;
+        }
+
         document.addEventListener('DOMContentLoaded',
             function() {
+                // ── Mark All as Read (bulk) ───────────────────────────────────────
+                const markAllReadForm = document.getElementById('markAllReadForm');
+                if (markAllReadForm) {
+                    markAllReadForm.addEventListener('submit', async function(e) {
+                        e.preventDefault();
+                        const token = this.querySelector('input[name="__RequestVerificationToken"]').value;
+
+                        try {
+                            const res = await fetch(this.action, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                    'RequestVerificationToken': token
+                                }
+                            });
+
+                            if (!res.ok) {
+                                console.error('Failed to mark all notifications as read.', res.status);
+                                return;
+                            }
+
+                            // Mark all rows as read in the UI
+                            document.querySelectorAll('.notification-row.unread').forEach(row => {
+                                row.classList.remove('unread');
+                                const notifId = row.getAttribute('data-notif-id');
+                                const readBtn  = row.querySelector(`button[data-notif-id="${notifId}-read"]`);
+                                const unreadBtn = row.querySelector(`button[data-notif-id="${notifId}-unread"]`);
+                                if (readBtn)   readBtn.classList.add('d-none');
+                                if (unreadBtn) unreadBtn.classList.remove('d-none');
+                            });
+
+                            // Hide the "Mark All as Read" button since there are no more unread items
+                            this.classList.add('d-none');
+
+                            notificationAlertRefresh();
+                        } catch (err) {
+                            console.error('Error marking all as read:', err);
+                        }
+                    });
+                }
+
+                // ── Delete All (bulk) ─────────────────────────────────────────────
+                const deleteAllForm = document.getElementById('deleteAllForm');
+                if (deleteAllForm) {
+                    deleteAllForm.addEventListener('submit', async function(e) {
+                        e.preventDefault();
+                        const token = this.querySelector('input[name="__RequestVerificationToken"]').value;
+
+                        try {
+                            const res = await fetch(this.action, {
+                                method: 'DELETE',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                    'RequestVerificationToken': token
+                                }
+                            });
+
+                            if (!res.ok) {
+                                console.error('Failed to delete all notifications.', res.status);
+                                return;
+                            }
+
+                            // Reload to show the empty state
+                            location.reload();
+                        } catch (err) {
+                            console.error('Error deleting all notifications:', err);
+                        }
+                    });
+                }
+
                 // Attach submit event to all notification update forms
                 document.querySelectorAll('.notificationUpdateForm').forEach(form => {
                     form.addEventListener('submit',
