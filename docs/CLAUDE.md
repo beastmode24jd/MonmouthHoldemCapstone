@@ -270,6 +270,36 @@ For BDD scenarios, implement **one scenario per commit** (write the feature step
 [CSP-XXX] BDD: <scenario name from .feature file>
 ```
 
+### Pull Request Conventions
+
+Every PR on this repo must follow these conventions — apply them whenever running `gh pr create`:
+
+- **Reviewer:** always request `jmcshane22` (`--reviewer jmcshane22`)
+- **Assignees:** always assign both `jmcshane22` and `beastmode24jd` (`--assignee jmcshane22,beastmode24jd`)
+- **Draft:** always open as a draft (`--draft`) — PRs must not be auto-ready for merge
+- **Labels:** apply relevant labels (e.g. `feature`, `bug`, `test`, `docs`) based on PR content; check available labels with `gh label list --repo jmcshane22/MonmouthHoldemCapstone`
+
+#### `gh pr edit` is broken on this repo
+
+`gh pr edit` exits with a GraphQL error due to the GitHub classic Projects API deprecation. Use the REST API directly instead:
+
+```bash
+# Add reviewer
+gh api repos/jmcshane22/MonmouthHoldemCapstone/pulls/{n}/requested_reviewers \
+  --method POST --field 'reviewers[]=jmcshane22'
+
+# Add assignees
+gh api repos/jmcshane22/MonmouthHoldemCapstone/issues/{n}/assignees \
+  --method POST --field 'assignees[]=jmcshane22' --field 'assignees[]=beastmode24jd'
+
+# Add label
+gh api repos/jmcshane22/MonmouthHoldemCapstone/issues/{n}/labels \
+  --method POST --field 'labels[]=enhancement'
+
+# Convert back to draft (if created without --draft by mistake)
+gh pr ready {n} --repo jmcshane22/MonmouthHoldemCapstone --undo
+```
+
 ### Post-implementation: update this file
 
 After completing every PBI, update `docs/CLAUDE.md` as a final committed step:
