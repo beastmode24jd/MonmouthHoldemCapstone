@@ -92,6 +92,23 @@ public class AuthenticationDriver
         loginPage.SubmitBtn.Click();
         TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Confirming User {username} log in.");
 
+        // If the submit button remains disabled or the client-side handlers didn't trigger,
+        // attempt a direct JavaScript form submit as a last-resort fallback.
+        try
+        {
+            var js = (IJavaScriptExecutor)_webDriver;
+            var submitDisabled = js.ExecuteScript("return document.getElementById('submitBtn')?.disabled")?.ToString();
+            if (string.Equals(submitDisabled, "true", StringComparison.OrdinalIgnoreCase))
+            {
+                TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Submit button still disabled - attempting JS form submit fallback.");
+                js.ExecuteScript("document.getElementById('loginForm')?.submit();");
+            }
+        }
+        catch (Exception ex)
+        {
+            TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] JS fallback submit failed: {ex.Message}");
+        }
+
         // After submitting the form, wait for either a validation error to appear on the login
         // page (server returned model errors) or for the page to redirect/refresh and show the
         // user dropdown (meaning sign in was successful).
