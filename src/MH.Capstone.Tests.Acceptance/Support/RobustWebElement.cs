@@ -112,7 +112,39 @@ namespace MH.Capstone.Tests.Acceptance.Support
         public string GetDomAttribute(string attributeName) => _inner.GetDomAttribute(attributeName);
         public string GetDomProperty(string propertyName) => _inner.GetDomProperty(propertyName);
         public ISearchContext GetShadowRoot() => _inner.GetShadowRoot();
-        public void SendKeys(string text) => _inner.SendKeys(text);
+        public void SendKeys(string text)
+        {
+            try
+            {
+                _inner.SendKeys(text);
+                return;
+            }
+            catch (OpenQA.Selenium.ElementNotInteractableException)
+            {
+                // continue to fallback
+            }
+            catch (OpenQA.Selenium.WebDriverException)
+            {
+                // continue to fallback
+            }
+
+            var js = GetJavaScriptExecutor();
+            if (js != null)
+            {
+                try
+                {
+                    // If SendKeys didn't set the value (or threw), set via JS and dispatch events so client-side listeners run.
+                    js.ExecuteScript("arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input', {bubbles:true})); arguments[0].dispatchEvent(new Event('change', {bubbles:true}));", _inner, text);
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    throw new OpenQA.Selenium.WebDriverException("Robust SendKeys failed: native SendKeys failed and JS fallback also failed.", ex);
+                }
+            }
+
+            throw new OpenQA.Selenium.WebDriverException("SendKeys failed and no JavaScript executor available for fallback.");
+        }
         public void Submit() => _inner.Submit();
     }
 }
