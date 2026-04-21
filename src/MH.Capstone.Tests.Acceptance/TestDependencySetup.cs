@@ -46,6 +46,7 @@ public static class TestDependencySetup
         services.AddTransient<WildlifeSearchDriver>();
         services.AddTransient<PasswordResetDriver>();
         services.AddTransient<EmailVerificationDriver>();
+        services.AddTransient<NotificationsDriver>();
 
         return services;
     }
