@@ -1,16 +1,7 @@
-using System.Runtime.CompilerServices;
-using MH.Capstone.Domain.DataAccess;
-using MH.Capstone.Domain.DataAccess.Repositories;
-using MH.Capstone.Domain.DataModels;
-using MH.Capstone.Domain.Services;
-using MH.Capstone.Domain.Services.Abstraction;
-using Microsoft.Extensions.Logging.Abstractions;
-using System.Linq.Expressions;
-using Moq;
+using MH.Capstone.Tests.Acceptance.Configuration;
+using NUnit.Framework;
 using OpenQA.Selenium;
-using OpenQA.Selenium.Support.UI;
 using Reqnroll;
-using FluentAssertions;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
@@ -18,20 +9,41 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 public class CSP124StepDefinitions
 {
     private readonly IWebDriver _driver;
-    private readonly ScenarioContext _scenarioContext;
+    private readonly AcceptanceTestSettings _settings;
 
-    // CONST FIELD WILL GO HERE IF NEEDED
-
-    public CSP124StepDefinitions(ScenarioContext scenarioContext)
+    public CSP124StepDefinitions(IWebDriver driver, AcceptanceTestSettings settings)
     {
-        _scenarioContext = scenarioContext;
-        // Retrieve the driver initialized in the Hook
-        _driver = (IWebDriver)scenarioContext["WebDriver"];
+        _driver = driver;
+        _settings = settings;
     }
 
     [Given("I am on the front page")]
     public void GivenIAmOnTheFrontPage()
     {
         // Should not be able to see Clubs in nav bar if not logged in.
+        _driver.Navigate().GoToUrl(_settings.BaseUrl);
     }
+
+    [When("I look at the nav bar")]
+    public void WhenILookAtTheNavBar()
+    {
+        // No action needed; the nav bar is always visible after page load.
+    }
+
+    [Then("I should not see a Club page link")]
+    public void ThenIShouldNotSeeAClubPageLink()
+    {
+        _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(1);
+        var clubLinks = _driver.FindElements(By.CssSelector("a[href='/Clubs']"));
+        _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+
+        Assert.That(clubLinks, Is.Empty,
+            "Unauthenticated users should not see the Clubs nav link");
+    }
+
+    /*
+        Given I am on the front page
+    When I look at the nav bar
+    Then I should not see a Club page link
+    */
 }

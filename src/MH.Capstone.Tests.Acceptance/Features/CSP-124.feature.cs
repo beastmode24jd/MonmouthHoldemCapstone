@@ -18,16 +18,16 @@ namespace MH.Capstone.Tests.Acceptance.Features
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Reqnroll", "3.0.0.0")]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     [global::NUnit.Framework.TestFixtureAttribute()]
-    [global::NUnit.Framework.DescriptionAttribute("Profile Icon Upload")]
+    [global::NUnit.Framework.DescriptionAttribute("Clubs")]
     [global::NUnit.Framework.FixtureLifeCycleAttribute(global::NUnit.Framework.LifeCycle.InstancePerTestCase)]
-    public partial class ProfileIconUploadFeature
+    public partial class ClubsFeature
     {
         
         private global::Reqnroll.ITestRunner testRunner;
         
         private static string[] featureTags = ((string[])(null));
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "Profile Icon Upload", "    As a Wildlife AID user\r\n    I want to create dedicated private and/or public " +
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "Clubs", "    As a Wildlife AID user\r\n    I want to create dedicated private and/or public " +
                 "Clubs\r\n    So we can track our point progress\r\n    Ask questions\r\n    Talk with " +
                 "each other\r\n    Etc.", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
@@ -112,11 +112,11 @@ namespace MH.Capstone.Tests.Acceptance.Features
         
         [global::NUnit.Framework.TestAttribute()]
         [global::NUnit.Framework.DescriptionAttribute("James (user without pre-existing valid account) is on the front page")]
-        [global::NUnit.Framework.CategoryAttribute("frontPage")]
+        [global::NUnit.Framework.CategoryAttribute("specificallyThisTest")]
         public async global::System.Threading.Tasks.Task JamesUserWithoutPre_ExistingValidAccountIsOnTheFrontPage()
         {
             string[] tagsOfScenario = new string[] {
-                    "frontPage"};
+                    "specificallyThisTest"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "0";
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("James (user without pre-existing valid account) is on the front page", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);

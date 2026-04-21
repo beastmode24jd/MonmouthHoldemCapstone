@@ -1,4 +1,4 @@
-Feature: Profile Icon Upload
+Feature: Clubs
     As a Wildlife AID user
     I want to create dedicated private and/or public Clubs
     So we can track our point progress
@@ -6,7 +6,7 @@ Feature: Profile Icon Upload
     Talk with each other
     Etc.
 
-@frontPage
+@clubs
 Scenario: James (user without pre-existing valid account) is on the front page
     Given I am on the front page
     When I look at the nav bar
