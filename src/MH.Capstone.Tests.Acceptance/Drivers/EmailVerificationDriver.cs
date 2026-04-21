@@ -25,11 +25,11 @@ public class EmailVerificationDriver
         _driver.Navigate().GoToUrl($"{_baseUrl}/Account/Register");
         _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
 
-        _driver.FindElement(By.Id("emailField")).SendKeys(email);
+        _driver.WaitForElement(By.Id("emailField"), TimeSpan.FromSeconds(5)).SendKeys(email);
 
         // The password field has id="passwordField" in Register.cshtml
-        _driver.FindElement(By.Id("passwordField")).SendKeys(password);
-        _driver.FindElement(By.Id("confirmPasswordField")).SendKeys(password);
+        _driver.WaitForElement(By.Id("passwordField"), TimeSpan.FromSeconds(5)).SendKeys(password);
+        _driver.WaitForElement(By.Id("confirmPasswordField"), TimeSpan.FromSeconds(5)).SendKeys(password);
 
         // JS enables the submit button only when all fields are valid
         _driver.WaitUntil(d =>
@@ -38,7 +38,7 @@ public class EmailVerificationDriver
             return btn.Count > 0 && btn[0].Enabled;
         }, TimeSpan.FromSeconds(5));
 
-        _driver.FindElement(By.Id("submitBtn")).Click();
+        _driver.WaitForElement(By.Id("submitBtn"), TimeSpan.FromSeconds(5)).Click();
         // Wait explicitly for the RegisterConfirmation page element rather than just
         // document.readyState — the latter can fire on the Register page before the
         // 302 redirect to RegisterConfirmation has started, causing a race condition
@@ -68,7 +68,7 @@ public class EmailVerificationDriver
         var url = $"{_baseUrl}/Account/GenerateEmailConfirmationLink?email={Uri.EscapeDataString(email)}";
         _driver.Navigate().GoToUrl(url);
         _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
-        var link = _driver.FindElement(By.TagName("body")).Text.Trim();
+        var link = _driver.WaitForElement(By.TagName("body"), TimeSpan.FromSeconds(5)).Text.Trim();
         TestContext.Out.WriteLine($"[{nameof(EmailVerificationDriver)}] Confirmation link for {email}: {link}");
         return link;
     }
@@ -131,8 +131,8 @@ public class EmailVerificationDriver
         _driver.Navigate().GoToUrl($"{_baseUrl}/Account/Login");
         _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
 
-        _driver.FindElement(By.Id("emailField")).SendKeys(email);
-        _driver.FindElement(By.Id("passwordField")).SendKeys(password);
+        _driver.WaitForElement(By.Id("emailField"), TimeSpan.FromSeconds(5)).SendKeys(email);
+        _driver.WaitForElement(By.Id("passwordField"), TimeSpan.FromSeconds(5)).SendKeys(password);
 
         // Wait for the submit button to be enabled by JS
         _driver.WaitUntil(d =>
@@ -141,7 +141,7 @@ public class EmailVerificationDriver
             return btn.Count > 0 && btn[0].Enabled;
         }, TimeSpan.FromSeconds(5));
 
-        _driver.FindElement(By.Id("submitBtn")).Click();
+        _driver.WaitForElement(By.Id("submitBtn"), TimeSpan.FromSeconds(5)).Click();
         _driver.WaitForDocumentReady(TimeSpan.FromSeconds(10));
     }
 
@@ -171,9 +171,10 @@ public class EmailVerificationDriver
         _driver.Navigate().GoToUrl($"{_baseUrl}/Account/ResendVerification");
         _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
 
-        _driver.FindElement(By.Id("resendVerificationEmail")).Clear();
-        _driver.FindElement(By.Id("resendVerificationEmail")).SendKeys(email);
-        _driver.FindElement(By.Id("resendVerificationSubmitBtn")).Click();
+        var emailInput = _driver.WaitForElement(By.Id("resendVerificationEmail"), TimeSpan.FromSeconds(5));
+        emailInput.Clear();
+        emailInput.SendKeys(email);
+        _driver.WaitForElement(By.Id("resendVerificationSubmitBtn"), TimeSpan.FromSeconds(5)).Click();
         _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
     }
 

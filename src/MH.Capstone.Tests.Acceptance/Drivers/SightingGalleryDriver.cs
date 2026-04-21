@@ -121,30 +121,17 @@ public class SightingGalleryDriver
 
     public bool IsMyEmptyStateVisible()
     {
-        try
-        {
-            var el = _webDriver.FindElement(By.Id("emptyStateMine"));
-            return el.Displayed;
-        }
-        catch
-        {
-            return false;
-        }
+        var els = _webDriver.FindElements(By.Id("emptyStateMine"));
+        return els.Count > 0 && els[0].Displayed;
     }
 
     public bool HasUploadLink()
     {
-        try
-        {
-            var emptyState = _webDriver.FindElement(By.Id("emptyStateMine"));
-            var links = emptyState.FindElements(By.TagName("a"));
-            return links.Any(l => l.Displayed &&
-                l.GetAttribute("href")?.Contains("/Sighting/", StringComparison.OrdinalIgnoreCase) == true);
-        }
-        catch
-        {
-            return false;
-        }
+        var els = _webDriver.FindElements(By.Id("emptyStateMine"));
+        if (els.Count == 0) return false;
+        var links = els[0].FindElements(By.TagName("a"));
+        return links.Any(l => l.Displayed &&
+            l.GetAttribute("href")?.Contains("/Sighting/", StringComparison.OrdinalIgnoreCase) == true);
     }
 
     public void NavigateAwayAndReturn()

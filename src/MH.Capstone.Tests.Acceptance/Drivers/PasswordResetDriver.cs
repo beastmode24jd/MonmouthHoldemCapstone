@@ -58,7 +58,7 @@ public class PasswordResetDriver
         var testUrl = $"{_baseUrl}/Account/GeneratePasswordResetLink?email={Uri.EscapeDataString(email)}";
         _driver.Navigate().GoToUrl(testUrl);
         _driver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
-        var link = _driver.FindElement(By.TagName("body")).Text.Trim();
+        var link = _driver.WaitForElement(By.TagName("body"), TimeSpan.FromSeconds(5)).Text.Trim();
         TestContext.Out.WriteLine($"[{nameof(PasswordResetDriver)}] Reset link for {email}: {link}");
         return link;
     }

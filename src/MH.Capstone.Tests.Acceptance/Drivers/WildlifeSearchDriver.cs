@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using MH.Capstone.Tests.Acceptance.Configuration;
+using MH.Capstone.Tests.Acceptance.Helpers;
 using MH.Capstone.Tests.Acceptance.PageObjects;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
@@ -23,8 +24,11 @@ public class WildlifeSearchDriver
     }
 
     /// <summary>Navigates to the species search page.</summary>
-    public void NavigateToSearchPage() =>
+    public void NavigateToSearchPage()
+    {
         _webDriver.Navigate().GoToUrl($"{_baseUrl}/Species/Search");
+        _webDriver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+    }
 
     /// <summary>Returns true when the browser is on the species search page.</summary>
     public bool IsOnSearchPage() =>
@@ -35,25 +39,20 @@ public class WildlifeSearchDriver
 
     public bool IsSearchInputVisible()
     {
-        try { return _webDriver.FindElement(By.Id("nameInput")).Displayed; }
-        catch (NoSuchElementException) { return false; }
+        var els = _webDriver.FindElements(By.Id("nameInput"));
+        return els.Count > 0 && els[0].Displayed;
     }
 
     public bool IsSearchButtonVisible()
     {
-        try
-        {
-            return _webDriver
-                .FindElement(By.CssSelector("#searchForm button[type='submit']"))
-                .Displayed;
-        }
-        catch (NoSuchElementException) { return false; }
+        var els = _webDriver.FindElements(By.CssSelector("#searchForm button[type='submit']"));
+        return els.Count > 0 && els[0].Displayed;
     }
 
     public bool IsClearButtonVisible()
     {
-        try { return _webDriver.FindElement(By.Id("clearBtn")).Displayed; }
-        catch (NoSuchElementException) { return false; }
+        var els = _webDriver.FindElements(By.Id("clearBtn"));
+        return els.Count > 0 && els[0].Displayed;
     }
 
     // ─── Search interaction ────────────────────────────────────────────────────
@@ -109,12 +108,8 @@ public class WildlifeSearchDriver
     /// </summary>
     public bool HasNoResultsMessage()
     {
-        try
-        {
-            var card = _webDriver.FindElement(By.Id("resultCard"));
-            return card.Text.Contains("No results", StringComparison.OrdinalIgnoreCase);
-        }
-        catch (NoSuchElementException) { return false; }
+        var cards = _webDriver.FindElements(By.Id("resultCard"));
+        return cards.Count > 0 && cards[0].Text.Contains("No results", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -122,8 +117,8 @@ public class WildlifeSearchDriver
     /// </summary>
     public string GetCounterText()
     {
-        try { return _webDriver.FindElement(By.Id("resultCounter")).Text.Trim(); }
-        catch (NoSuchElementException) { return string.Empty; }
+        var els = _webDriver.FindElements(By.Id("resultCounter"));
+        return els.Count > 0 ? els[0].Text.Trim() : string.Empty;
     }
 
     /// <summary>
@@ -142,7 +137,7 @@ public class WildlifeSearchDriver
     /// <summary>Clicks the Clear button and waits for the result card to reset.</summary>
     public void ClickClear()
     {
-        _webDriver.FindElement(By.Id("clearBtn")).Click();
+        _webDriver.WaitForElement(By.Id("clearBtn"), TimeSpan.FromSeconds(3)).Click();
 
         // The clear handler is synchronous (no fetch involved), so the DOM updates
         // immediately. A short poll confirms the counter has reset to "0 / 0".
@@ -153,11 +148,7 @@ public class WildlifeSearchDriver
     /// <summary>Returns the current value of the search name input.</summary>
     public string GetSearchInputValue()
     {
-        try
-        {
-            return _webDriver.FindElement(By.Id("nameInput"))
-                       .GetAttribute("value") ?? string.Empty;
-        }
-        catch (NoSuchElementException) { return string.Empty; }
+        var els = _webDriver.FindElements(By.Id("nameInput"));
+        return els.Count > 0 ? els[0].GetAttribute("value") ?? string.Empty : string.Empty;
     }
 }
