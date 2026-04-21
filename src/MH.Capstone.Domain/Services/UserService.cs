@@ -77,6 +77,22 @@ namespace MH.Capstone.Domain.Services
             }
         }
 
+        // Sprint 5, CSP-54: Filters active users by case-insensitive username substring match,
+        // then sorts so exact full matches appear before substring matches, both groups alphabetically.
+        public async Task<IEnumerable<ApplicationUser>> SearchUsersAsync(string query)
+        {
+            var queryLower = query.ToLower();
+            var matches = (await _userRepo.GetAllAsync(
+                u => !u.IsDeactivated && u.UserName != null && u.UserName.ToLower().Contains(queryLower)
+            )).ToList();
+
+            // Full matches (case-insensitive) come first, then substring matches.
+            // Within each group, sort alphabetically.
+            return matches
+                .OrderBy(u => u.UserName!.Equals(query, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                .ThenBy(u => u.UserName, StringComparer.OrdinalIgnoreCase);
+        }
+
         public async Task<int> GetTotalUserCountAsync()
         {
             // Count only active (non-deactivated) users.
