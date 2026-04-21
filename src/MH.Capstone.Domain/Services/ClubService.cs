@@ -20,9 +20,9 @@ namespace MH.Capstone.Domain.Services
             _clubRepo = clubRepo;
         }
 
-        public Task<IEnumerable<Club>> GetPublicClubsAsync()
+        public async Task<IEnumerable<Club>> GetPublicClubsAsync()
         {
-            throw new NotImplementedException();
+            return (await _clubRepo.GetAllAsync()).Where(c => c.IsPublic);
         }
     }
 }
