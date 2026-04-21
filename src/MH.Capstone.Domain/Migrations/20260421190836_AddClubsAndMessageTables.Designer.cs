@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MH.Capstone.Domain.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260421072828_AddClubsAndMessageTables")]
+    [Migration("20260421190836_AddClubsAndMessageTables")]
     partial class AddClubsAndMessageTables
     {
         /// <inheritdoc />
@@ -155,6 +155,9 @@ namespace MH.Capstone.Domain.Migrations
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()

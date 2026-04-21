@@ -17,6 +17,7 @@ namespace MH.Capstone.Domain.Migrations
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    IsPublic = table.Column<bool>(type: "bit", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     CreatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     OwnerId = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false)
@@ -48,8 +49,7 @@ namespace MH.Capstone.Domain.Migrations
                         name: "FK_ClubMembership_AspNetUsers_MemberId",
                         column: x => x.MemberId,
                         principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.NoAction);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_ClubMembership_Club_ClubId",
                         column: x => x.ClubId,
@@ -75,8 +75,7 @@ namespace MH.Capstone.Domain.Migrations
                         name: "FK_Message_AspNetUsers_AuthorId",
                         column: x => x.AuthorId,
                         principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.NoAction);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Message_Club_ClubId",
                         column: x => x.ClubId,
