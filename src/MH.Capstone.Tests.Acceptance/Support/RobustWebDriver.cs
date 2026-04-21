@@ -5,7 +5,7 @@ using OpenQA.Selenium;
 
 namespace MH.Capstone.Tests.Acceptance.Support;
 
-public class RobustWebDriver : IWebDriver, IWrapsDriver
+public class RobustWebDriver : IWebDriver, IJavaScriptExecutor, IWrapsDriver
 {
     private readonly IWebDriver _raw;
     private readonly TimeSpan _timeout;
@@ -38,6 +38,39 @@ public class RobustWebDriver : IWebDriver, IWrapsDriver
         return new ReadOnlyCollection<IWebElement>(list);
     }
 
+    // IJavaScriptExecutor
+    public object? ExecuteScript(string script, params object?[] args)
+    {
+        try
+        {
+            if (script != null && (script.Contains("document.readyState") || script.Contains("emailField") || script.Contains("passwordField") || script.Contains("submitBtn")))
+            {
+                Console.WriteLine($"[RobustWebDriver] Executing diagnostic script: {script}");
+            }
+
+            if (_raw is IJavaScriptExecutor js) return js.ExecuteScript(script, args);
+            throw new NotSupportedException("Underlying driver does not support JavaScript execution.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[RobustWebDriver] ExecuteScript failed: {ex.GetType().Name} {ex.Message}");
+            throw;
+        }
+    }
+
+    public object? ExecuteAsyncScript(string script, params object?[] args)
+    {
+        try
+        {
+            if (_raw is IJavaScriptExecutor js) return js.ExecuteAsyncScript(script, args);
+            throw new NotSupportedException("Underlying driver does not support JavaScript execution.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[RobustWebDriver] ExecuteAsyncScript failed: {ex.GetType().Name} {ex.Message}");
+            throw;
+        }
+    }
 
     // IWrapsDriver
     public IWebDriver WrappedDriver => _raw;
