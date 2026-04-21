@@ -59,5 +59,19 @@ namespace MH.Capstone.Domain.Services.Abstraction
         /// that have been sent to the user. Will be empty if the user has no notifications.
         /// </returns>
         Task<IEnumerable<Notification>> GetAllNotificationsAsync(ApplicationUser user);
+
+        /// <summary>
+        /// Marks all unread notifications for the given <see cref="ApplicationUser"/> as read.
+        /// </summary>
+        /// <param name="user">The <see cref="ApplicationUser"/> whose unread notifications should be marked as read.</param>
+        /// <returns>A <see cref="Task"/> representing the async operation.</returns>
+        Task MarkAllAsReadAsync(ApplicationUser user);
+
+        /// <summary>
+        /// Permanently deletes all notifications for the given <see cref="ApplicationUser"/>.
+        /// </summary>
+        /// <param name="user">The <see cref="ApplicationUser"/> whose notifications should be deleted.</param>
+        /// <returns>A <see cref="Task"/> representing the async operation.</returns>
+        Task DeleteAllAsync(ApplicationUser user);
     }
 }
