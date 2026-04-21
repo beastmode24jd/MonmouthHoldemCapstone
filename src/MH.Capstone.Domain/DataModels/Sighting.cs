@@ -7,6 +7,7 @@ using MH.Capstone.Domain.Tools;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
+
 namespace MH.Capstone.Domain.DataModels
 {
     [Table("Sighting")]
@@ -53,6 +54,8 @@ namespace MH.Capstone.Domain.DataModels
 
         public virtual ApplicationUser User { get; set; } = null!;
 
+        #region CSP-109: Scoring Metadata
+
         // Rarity score, point value, and user's login streak value for display metadata.
         //      Defaults to placeholder values until updated by Sightings Service
         public int PointValue { get; set; } = 10;
@@ -64,6 +67,30 @@ namespace MH.Capstone.Domain.DataModels
 
         // Currently set to 5.0 (Mythic), 2.0 (Rare), and 1.0 (Common)
         public double RarityMultiplier { get; set; } = 1.0; // Common rarity
+
+        #endregion
+
+        #region CSP-122: Photo Quality Gate Metadata
+
+        // defining what properties or results get stored in the DB for Quality Checker
+        public PhotoQualityTier QualityTier { get; set; } = PhotoQualityTier.Unknown;
+
+        // Laplacian variance score (higher = sharper). Null for unscored records.
+        public double? SharpnessScore { get; set; } = null;
+
+        //Average pixel luminance, 0.0-1.0 (lower = darker). Null for unscored records.
+        public double? LuminanceAverage { get; set; } = null;
+
+        //Image width in pixels as analyzed. Null for unscored records.
+        public int? ResolutionWidth { get; set; } = null;
+
+        //Image height in pixels as analyzed. Null for unscored records.
+        public int? ResolutionHeight { get; set; } = null;
+
+        //Admin review queue flag. Set true for records flagged by future moderation rules.
+        public bool FlaggedForReview { get; set; } = false;
+
+        #endregion
 
         public Sighting() {}
 

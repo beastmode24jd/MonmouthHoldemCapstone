@@ -18,19 +18,22 @@ namespace MH.Capstone.Tests.Acceptance.Features
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Reqnroll", "3.0.0.0")]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     [global::NUnit.Framework.TestFixtureAttribute()]
-    [global::NUnit.Framework.DescriptionAttribute("CSP-47 Account Deactivation")]
+    [global::NUnit.Framework.DescriptionAttribute("Photo Quality Gate at Sighting Upload (CSP-122)")]
     [global::NUnit.Framework.FixtureLifeCycleAttribute(global::NUnit.Framework.LifeCycle.InstancePerTestCase)]
-    public partial class CSP_47AccountDeactivationFeature
+    [global::NUnit.Framework.CategoryAttribute("photo-quality")]
+    public partial class PhotoQualityGateAtSightingUploadCSP_122Feature
     {
         
         private global::Reqnroll.ITestRunner testRunner;
         
-        private static string[] featureTags = ((string[])(null));
+        private static string[] featureTags = new string[] {
+                "photo-quality"};
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "CSP-47 Account Deactivation", "    As a registered user\r\n    I want to be able to deactivate my account\r\n    So " +
-                "that I have full control over my personal data and digital presence", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "Photo Quality Gate at Sighting Upload (CSP-122)", "  As a Wildlife AID contributor uploading a sighting\r\n  I want the app to evaluat" +
+                "e my photo for blur, exposure, and resolution at submission\r\n  So that I get ins" +
+                "tructional feedback and my sighting record captures quality metadata", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
-#line 1 "CSP-47.feature"
+#line 1 "CSP-122.feature"
 #line hidden
         
         [global::NUnit.Framework.OneTimeSetUpAttribute()]
@@ -104,39 +107,25 @@ namespace MH.Capstone.Tests.Acceptance.Features
             await testRunner.CollectScenarioErrorsAsync();
         }
         
-        public virtual async global::System.Threading.Tasks.Task FeatureBackgroundAsync()
-        {
-#line 6
-#line hidden
-#line 7
-    await testRunner.GivenAsync("I am using Chrome browser", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
-#line hidden
-#line 8
-    await testRunner.AndAsync("the application is running", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
-#line hidden
-        }
-        
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/CSP-47.feature.ndjson", 6);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/CSP-122.feature.ndjson", 6);
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Access deactivation page requires authentication")]
-        [global::NUnit.Framework.CategoryAttribute("deactivation")]
-        [global::NUnit.Framework.CategoryAttribute("selenium")]
-        public async global::System.Threading.Tasks.Task AccessDeactivationPageRequiresAuthentication()
+        [global::NUnit.Framework.DescriptionAttribute("Alex uploads a blurry photo and sees a helpful warning")]
+        [global::NUnit.Framework.CategoryAttribute("functionality")]
+        public async global::System.Threading.Tasks.Task AlexUploadsABlurryPhotoAndSeesAHelpfulWarning()
         {
             string[] tagsOfScenario = new string[] {
-                    "deactivation",
-                    "selenium"};
+                    "functionality"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "0";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Access deactivation page requires authentication", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Alex uploads a blurry photo and sees a helpful warning", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 11
-this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line 8
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
             {
@@ -145,35 +134,43 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 6
-await this.FeatureBackgroundAsync();
+#line 9
+    await testRunner.GivenAsync("user Alex is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 10
+    await testRunner.AndAsync("Alex is on the Sighting Upload page", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 11
+    await testRunner.WhenAsync("Alex submits a sighting with a \"blurry\" image", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 12
-    await testRunner.WhenAsync("I navigate to the deactivate page without logging in", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+    await testRunner.ThenAsync("Alex should see the warning \"This photo looks a bit blurry - steady your camera o" +
+                        "r try again\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
 #line 13
-    await testRunner.ThenAsync("I should be redirected to the login page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+    await testRunner.AndAsync("the saved sighting should have QualityTier \"Low\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 14
+    await testRunner.AndAsync("the saved sighting\'s SharpnessScore should be recorded", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Deactivation page displays warning message")]
-        [global::NUnit.Framework.CategoryAttribute("deactivation")]
-        [global::NUnit.Framework.CategoryAttribute("selenium")]
-        public async global::System.Threading.Tasks.Task DeactivationPageDisplaysWarningMessage()
+        [global::NUnit.Framework.DescriptionAttribute("Alex uploads a photo taken in low light")]
+        [global::NUnit.Framework.CategoryAttribute("functionality")]
+        public async global::System.Threading.Tasks.Task AlexUploadsAPhotoTakenInLowLight()
         {
             string[] tagsOfScenario = new string[] {
-                    "deactivation",
-                    "selenium"};
+                    "functionality"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "1";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Deactivation page displays warning message", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Alex uploads a photo taken in low light", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 16
-this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line 17
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
             {
@@ -182,41 +179,42 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 6
-await this.FeatureBackgroundAsync();
-#line hidden
-#line 17
-    await testRunner.GivenAsync("I am logged in as a registered user", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
-#line hidden
 #line 18
-    await testRunner.WhenAsync("I navigate to the deactivate page", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+    await testRunner.GivenAsync("user Alex is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 19
-    await testRunner.ThenAsync("I should see a warning about account deactivation consequences", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+    await testRunner.AndAsync("Alex is on the Sighting Upload page", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 20
-    await testRunner.AndAsync("I should see a password confirmation field", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.WhenAsync("Alex submits a sighting with a \"low-light\" image", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 21
+    await testRunner.ThenAsync("Alex should see the warning \"This photo is too dark - try finding better light\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+#line 22
+    await testRunner.AndAsync("the saved sighting should have QualityTier \"Low\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 23
+    await testRunner.AndAsync("the saved sighting\'s LuminanceAverage should be recorded", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Failed deactivation with incorrect password")]
-        [global::NUnit.Framework.CategoryAttribute("deactivation")]
-        [global::NUnit.Framework.CategoryAttribute("selenium")]
-        public async global::System.Threading.Tasks.Task FailedDeactivationWithIncorrectPassword()
+        [global::NUnit.Framework.DescriptionAttribute("Alex uploads an washed-out photo")]
+        [global::NUnit.Framework.CategoryAttribute("functionality")]
+        public async global::System.Threading.Tasks.Task AlexUploadsAnWashed_OutPhoto()
         {
             string[] tagsOfScenario = new string[] {
-                    "deactivation",
-                    "selenium"};
+                    "functionality"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "2";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Failed deactivation with incorrect password", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Alex uploads an washed-out photo", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 23
-this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line 26
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
             {
@@ -225,47 +223,39 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 6
-await this.FeatureBackgroundAsync();
-#line hidden
-#line 24
-    await testRunner.GivenAsync("I am logged in as a registered user", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
-#line hidden
-#line 25
-    await testRunner.WhenAsync("I navigate to the deactivate page", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
-#line hidden
-#line 26
-    await testRunner.AndAsync("I enter an incorrect password \"WrongPassword123!\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
-#line hidden
 #line 27
-    await testRunner.AndAsync("I click the deactivate button", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.GivenAsync("user Alex is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 28
-    await testRunner.ThenAsync("I should see an error message about incorrect password", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+    await testRunner.AndAsync("Alex is on the Sighting Upload page", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 29
-    await testRunner.AndAsync("I should remain on the deactivate page", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.WhenAsync("Alex submits a sighting with an \"overexposed\" image", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 30
+    await testRunner.ThenAsync("Alex should see the warning \"This photo is washed out - try adjusting exposure\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+#line 31
+    await testRunner.AndAsync("the saved sighting should have QualityTier \"Low\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Successful account deactivation")]
-        [global::NUnit.Framework.CategoryAttribute("deactivation")]
-        [global::NUnit.Framework.CategoryAttribute("selenium")]
-        public async global::System.Threading.Tasks.Task SuccessfulAccountDeactivation()
+        [global::NUnit.Framework.DescriptionAttribute("Alex uploads a sharp, well lit, high resolution photo")]
+        [global::NUnit.Framework.CategoryAttribute("functionality")]
+        public async global::System.Threading.Tasks.Task AlexUploadsASharpWellLitHighResolutionPhoto()
         {
             string[] tagsOfScenario = new string[] {
-                    "deactivation",
-                    "selenium"};
+                    "functionality"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "3";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Successful account deactivation", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Alex uploads a sharp, well lit, high resolution photo", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 32
-this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line 34
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
             {
@@ -274,29 +264,20 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 6
-await this.FeatureBackgroundAsync();
-#line hidden
-#line 33
-    await testRunner.GivenAsync("I have registered a new test account", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
-#line hidden
-#line 34
-    await testRunner.AndAsync("I am logged in with the test account", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
-#line hidden
 #line 35
-    await testRunner.WhenAsync("I navigate to the deactivate page", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+    await testRunner.GivenAsync("user Alex is logged in", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 36
-    await testRunner.AndAsync("I enter the correct password", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.AndAsync("Alex is on the Sighting Upload page", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
 #line 37
-    await testRunner.AndAsync("I click the deactivate button", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.WhenAsync("Alex submits a sighting with a \"high-quality\" image", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 38
-    await testRunner.ThenAsync("I should be redirected to the login page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+    await testRunner.ThenAsync("Alex should see the badge \"Ready for ID - High Quality\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
 #line 39
-    await testRunner.AndAsync("I should see a message that my account has been deactivated", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+    await testRunner.AndAsync("the saved sighting should have QualityTier \"High\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
