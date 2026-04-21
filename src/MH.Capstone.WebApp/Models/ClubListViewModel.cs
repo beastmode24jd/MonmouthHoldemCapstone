@@ -2,29 +2,27 @@ using MH.Capstone.Domain.DataModels;
 
 namespace MH.Capstone.WebApp.Models
 {
-
-    // CSP-145: Page-level ViewModel for the Sighting Gallery page.
-    // Contains a collection of sighting cards to display in a responsive grid.
+    // Page-level ViewModel for the Clubs landing page.
+    // Public clubs are visible to all authenticated users.
+    // Private clubs list only includes clubs the current user is a member of.
+    // The controller is responsible for fetching both lists via IClubService and passing them here.
     public class ClubListViewModel
     {
-        public List<Club> publicClubs { get; set; } = new();
-
-        public List<Club> privateClubs { get; set; } = new();
-
-        public bool HasSightings => Sightings.Any();
-
-        public int SightingCount => Sightings.Count;
-
-        // CSP-96: The identity string ID of the logged-in user, used by client-side JS filtering
+        public List<Club> PublicClubs { get; set; } = new();
+        public List<Club> PrivateClubs { get; set; } = new();
         public string CurrentUserId { get; set; } = string.Empty;
+
+        public bool HasPublicClubs => PublicClubs.Any();
+        public bool HasPrivateClubs => PrivateClubs.Any();
+        public int PublicClubCount => PublicClubs.Count;
+        public int PrivateClubCount => PrivateClubs.Count;
 
         public ClubListViewModel() { }
 
-        public ClubListViewModel(IEnumerable<Club> clubs, string currentUserId = "")
+        public ClubListViewModel(IEnumerable<Club> publicClubs, IEnumerable<Club> privateClubs, string currentUserId = "")
         {
-            // Logic should probably move to ClubsController.cs
-            publicClubs = Clubs.Select(s => Club.IsPublic == true).ToList();
-            privateClubs = clubs.Select(s => (Club.IsPublic == false && Club.ClubIdentityID = currentUserId)).ToList();
+            PublicClubs = publicClubs.ToList();
+            PrivateClubs = privateClubs.ToList();
             CurrentUserId = currentUserId;
         }
     }
