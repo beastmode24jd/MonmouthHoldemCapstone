@@ -1,13 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
-using MH.Capstone.Domain.DataModels;
-using MH.Capstone.Domain.Services;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
+using MH.Capstone.Domain.DataModels;
+using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
-using System.Text;
 using Moq;
 
 namespace MH.Capstone.Domain.Tests.Unit.Services;
@@ -17,21 +13,34 @@ namespace MH.Capstone.Domain.Tests.Unit.Services;
 [ExcludeFromCodeCoverage]
 public class ClubServiceTests
 {
-    private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock;
-    private Mock<IRepository<Badge, ApplicationDbContext>> _badgeRepoMock;
-    private Mock<IRepository<UserBadge, ApplicationDbContext>> _userBadgeRepoMock;
-    private Mock<INotificationService> _notificationServiceMock;
-    private IBadgeService _clubService;
-    
+    private Mock<IRepository<Club, ApplicationDbContext>> _clubRepoMock;
+    private IClubService _clubService;
 
     [SetUp]
     public void Setup()
     {
-        // Add in the Mocked Repositories
-        _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
-        _badgeRepoMock = new Mock<IRepository<Badge, ApplicationDbContext>>();
-        _userBadgeRepoMock = new Mock<IRepository<UserBadge, ApplicationDbContext>>();
-        _notificationServiceMock = new Mock<INotificationService>();
+        _clubRepoMock = new Mock<IRepository<Club, ApplicationDbContext>>();
+        _clubService = new ClubService(_clubRepoMock.Object);
+    }
 
+    [Test]
+    public async Task GetPublicClubsAsync_ReturnsOnlyPublicClubs()
+    {
+        // Arrange
+        var clubs = new List<Club>
+        {
+            new Club { Name = "Public Club A",  IsPublic = true,  OwnerIdentityId = "owner1", CreatedAt = DateTimeOffset.UtcNow },
+            new Club { Name = "Private Club B", IsPublic = false, OwnerIdentityId = "owner2", CreatedAt = DateTimeOffset.UtcNow },
+        }.AsQueryable();
+
+        _clubRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(clubs);
+
+        // Act
+        var result = (await _clubService.GetPublicClubsAsync()).ToList();
+
+        // Assert
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(result[0].IsPublic, Is.True);
+        Assert.That(result[0].Name, Is.EqualTo("Public Club A"));
     }
 }
