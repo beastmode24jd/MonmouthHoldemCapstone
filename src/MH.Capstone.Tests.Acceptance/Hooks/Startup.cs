@@ -71,7 +71,13 @@ public sealed class Startup
         var options = new ChromeOptions();
 
         if (settings.HeadlessSelenium)
+        {
             options.AddArgument("--headless=new");
+            // Ensure a consistent desktop viewport in headless mode so responsive layouts
+            // and click targets match developer expectations.
+            options.AddArgument("--window-size=1920,1080");
+            options.AddArgument("--start-maximized");
+        }
 
         // Required in CI/Docker environments
         options.AddArgument("--no-sandbox");
