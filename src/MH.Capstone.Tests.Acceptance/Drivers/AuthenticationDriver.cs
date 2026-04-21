@@ -75,6 +75,20 @@ public class AuthenticationDriver
         var loginPage = new LoginPageObject(_webDriver, _baseUrl);
         loginPage.UsernameInput.SendKeys(username);
         loginPage.PasswordInput.SendKeys(password);
+
+        try
+        {
+            // Diagnostic: log the values in the inputs and whether the submit button is enabled
+            var emailVal = ((IJavaScriptExecutor)_webDriver).ExecuteScript("return document.getElementById('emailField')?.value")?.ToString();
+            var passVal = ((IJavaScriptExecutor)_webDriver).ExecuteScript("return document.getElementById('passwordField')?.value")?.ToString();
+            var submitDisabled = ((IJavaScriptExecutor)_webDriver).ExecuteScript("return document.getElementById('submitBtn')?.disabled")?.ToString();
+            TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Diagnostic: email='{emailVal}' passwordPresent={(string.IsNullOrEmpty(passVal) ? "false" : "true")} submitDisabled={submitDisabled}");
+        }
+        catch (Exception ex)
+        {
+            TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Diagnostic JS check failed: {ex.Message}");
+        }
+
         loginPage.SubmitBtn.Click();
         TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Confirming User {username} log in.");
 
