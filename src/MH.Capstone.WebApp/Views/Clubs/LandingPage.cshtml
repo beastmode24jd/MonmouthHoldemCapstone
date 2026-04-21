@@ -1,4 +1,4 @@
-@* @model ClubListViewModel *@
+@model ClubListViewModel
 @{
     ViewData["Title"] = "Clubs";
 }
@@ -10,7 +10,37 @@
                 <i class="bi bi-people-fill"></i> Clubs
             </h1>
             <hr />
-            <p class="text-muted">Find and join clubs to connect with other wildlife enthusiasts.</p>
+            @* Filter Controls — CSP-124 *@
+            <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+                <div class="btn-group" role="group" aria-label="Clubs filter">
+                    <button id="filterAll" type="button" class="btn btn-primary active">
+                        <i class="bi bi-globe"></i> All Public Clubs
+                    </button>
+                    <button id="filterMine" type="button" class="btn btn-outline-primary">
+                        <i class="bi bi-person-fill"></i> My Clubs
+                    </button>
+                </div>
+                <span id="clubCountLabel" class="text-muted small"></span>
+            </div>
+
+            @* Public Clubs empty state — shown when DB has no public Clubs at all *@
+            @if (!Model.HasPublicClubs)
+            {
+                <div id="emptyStateAll" class="text-center py-5">
+                    <h3 class="text-muted">No Clubs Yet...</h3>
+                    <p class="text-muted">Find and join clubs to connect with other wildlife enthusiasts.</p>
+                    <a asp-controller="Clubs" asp-action="CreateClub" class="btn btn-primary btn-lg">
+                        <i class="bi bi-people-fill"></i> Create your own Club
+                    </a>
+                </div>
+            }
         </div>
     </div>
 </div>
+
+@* Hidden element carrying the current user's ID for client-side filtering *@
+<span id="currentUserId" data-user-id="@Model.CurrentUserId" style="display:none"></span>
+
+<script>
+    @* JS for Clubs filter needs to go here *@
+</script>

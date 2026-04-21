@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
@@ -15,7 +16,6 @@ public class ClubServiceTests
 {
     private Mock<IRepository<Club, ApplicationDbContext>> _clubRepoMock;
     private IClubService _clubService;
-
     private Mock<IRepository<ClubMembership, ApplicationDbContext>> _clubMembershipRepoMock;
 
     [SetUp]
@@ -28,6 +28,8 @@ public class ClubServiceTests
             _clubRepoMock.Object, 
             _clubMembershipRepoMock.Object);
     }
+
+    #region GetClubsMethods
 
     [Test]
     public async Task GetPublicClubsAsync_ReturnsOnlyPublicClubs()
@@ -49,4 +51,52 @@ public class ClubServiceTests
         Assert.That(result[0].IsPublic, Is.True);
         Assert.That(result[0].Name, Is.EqualTo("Public Club A"));
     }
+
+    [Test]
+    public async Task GetUserClubsAsync_ReturnsOnlyUserClubs_SortedByClubName()
+    {
+        // Arrange
+
+        // Alex should not be able to see Private Club B in his personal Club list.
+        Guid alexId = Guid.NewGuid();
+
+        var clubAId = Guid.NewGuid();
+        var clubBId = Guid.NewGuid();
+        var clubCId = Guid.NewGuid();
+
+        var clubs = new List<Club>
+        {
+            new Club { Id = clubAId, Name = "Public Club A",  IsPublic = true,  OwnerIdentityId = "Alex", CreatedAt = DateTimeOffset.UtcNow },
+            new Club { Id = clubBId, Name = "Private Club B", IsPublic = false, OwnerIdentityId = "Lily", CreatedAt = DateTimeOffset.UtcNow },
+            new Club { Id = clubCId, Name = "Private Club C", IsPublic = false, OwnerIdentityId = "Alex", CreatedAt = DateTimeOffset.UtcNow },
+        }.AsQueryable();
+
+        // Alex is a member of Club A and Club C, but not Club B (Lily's).
+        var alexMemberships = new List<ClubMembership>
+        {
+            new ClubMembership(alexId, clubAId, DateTimeOffset.UtcNow),
+            new ClubMembership(alexId, clubCId, DateTimeOffset.UtcNow),
+        }.AsQueryable();
+
+        _clubMembershipRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<ClubMembership, bool>>>()))
+            .ReturnsAsync(alexMemberships);
+
+        _clubRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Club, bool>>>()))
+            .ReturnsAsync(clubs.Where(c => c.Id == clubAId || c.Id == clubCId));
+
+        // Act
+        var result = (await _clubService.GetUserClubsAsync(alexId)).ToList();
+
+        // Assert
+        Assert.That(result, Has.Count.EqualTo(2));
+        Assert.That(result[1].OwnerIdentityId, Is.EqualTo("Alex"));
+        Assert.That(result[1].OwnerIdentityId, Is.EqualTo("Alex"));
+
+    }
+
+    #endregion
+
+    
 }
