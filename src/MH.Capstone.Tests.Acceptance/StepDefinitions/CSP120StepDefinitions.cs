@@ -47,8 +47,7 @@ public class CSP120StepDefinitions
     [Given("{word} is logged in and viewing any page on the site")]
     public void GivenPersonaIsLoggedInAndViewingAnyPageOnTheSite(string name)
     {
-        if (_connectionString.Value is null)
-            Assert.Ignore("Skipping: appsettings.Acceptance.json not found.");
+        // acceptance config may be absent; continue and let later steps surface any missing config errors
 
         var user = EnsurePersona(name);
         _authDriver.PreformLoginForUser(user.Email!, DefaultPassword);
@@ -370,6 +369,14 @@ public class CSP120StepDefinitions
 
             dir = dir.Parent;
         }
+
+        // Fallback: try environment variables for the connection string
+        var envCs = Environment.GetEnvironmentVariable("ConnectionStrings__DataDb")
+                    ?? Environment.GetEnvironmentVariable("DataDb")
+                    ?? Environment.GetEnvironmentVariable("ASPNETCORE_ConnectionStrings__DataDb");
+
+        if (!string.IsNullOrWhiteSpace(envCs))
+            return envCs;
 
         return null;
     }

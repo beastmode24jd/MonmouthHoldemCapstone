@@ -589,15 +589,11 @@ public class CSP101StepDefinitions
     private IServiceScope GetServiceScope()
     {
         var webAppPath = _settings.WebAppContentRoot;
-        var configFile = Path.Combine(webAppPath, "appsettings.Acceptance.json");
-
-        if (!File.Exists(configFile))
-            Assert.Ignore("Skipped: appsettings.Acceptance.json not found.");
 
         var configuration = new ConfigurationBuilder()
             .SetBasePath(webAppPath)
             .AddJsonFile("appsettings.json", optional: true)
-            .AddJsonFile("appsettings.Acceptance.json", optional: false)
+            .AddJsonFile("appsettings.Acceptance.json", optional: true)
             .AddJsonFile("appsettings.Acceptance.Local.json", optional: true)
             .AddEnvironmentVariables()
             .Build();
