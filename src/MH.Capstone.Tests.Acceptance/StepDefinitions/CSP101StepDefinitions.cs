@@ -456,7 +456,17 @@ public class CSP101StepDefinitions
             var el = d.FindElement(By.Id("reportSubmitBtn"));
             return (el.Displayed && el.Enabled) ? el : null;
         });
-        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", submitBtn!);
+        TestContext.Out.WriteLine($"[{nameof(SubmitReportForm)}] Clicking submit button (element type: {submitBtn?.GetType().Name})");
+        try
+        {
+            ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", submitBtn!);
+            TestContext.Out.WriteLine($"[{nameof(SubmitReportForm)}] Click issued via JS.");
+        }
+        catch (Exception ex)
+        {
+            TestContext.Out.WriteLine($"[{nameof(SubmitReportForm)}] JS click threw: {ex.GetType().Name} {ex.Message}");
+            throw;
+        }
     }
 
     private void WaitForReportSuccessMessage()
@@ -475,6 +485,8 @@ public class CSP101StepDefinitions
         {
             var el = d.FindElement(By.Id("reportMessage"));
             var classes = el.GetAttribute("class") ?? string.Empty;
+            var text = el.Text ?? string.Empty;
+            TestContext.Out.WriteLine($"[{nameof(WaitForReportErrorMessage)}] reportMessage classes: {classes}, text: '{text}'");
             return classes.Contains("alert-danger");
         });
     }
