@@ -99,7 +99,7 @@ public class ClubServiceTests
     #endregion
 
     #region CreateClubAsync
-
+    
     [Test]
     public async Task CreateClubAsync_ValidClub_SavesClubAndOwnerMembershipReturnsClub()
     {
@@ -110,8 +110,7 @@ public class ClubServiceTests
             IsPublic = true
         };
 
-        _clubRepoMock
-            .Setup(r => r.AddOrUpdateAsync(newClub))
+        _clubRepoMock.Setup(r => r.AddOrUpdateAsync(newClub))
             .ReturnsAsync(newClub)
             .Verifiable(Times.Once);
 

@@ -40,5 +40,19 @@ namespace MH.Capstone.Domain.Services
             var clubQuery = await _clubRepo.GetAllAsync(c => memberClubIds.Contains(c.Id));
             return clubQuery.OrderBy(c => c.Name).ToList();
         }
+
+        public async Task<Club> CreateClubAsync(Club club)
+        {
+            if (club == null)
+                throw new ArgumentNullException(nameof(club));
+
+            var savedClub = await _clubRepo.AddOrUpdateAsync(club);
+
+            // Auto-enroll the owner as the first member so they appear in their own "My Clubs" list.
+            var ownerMembership = new ClubMembership(savedClub.OwnerId, savedClub.Id, DateTimeOffset.UtcNow);
+            await _membershipRepo.AddOrUpdateAsync(ownerMembership);
+
+            return savedClub;
+        }
     }
 }
