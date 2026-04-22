@@ -358,36 +358,36 @@ public class CSP101StepDefinitions
             TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] JS click threw: {ex.GetType().Name} {ex.Message}");
         }
 
-        // Short wait to see if the modal appears naturally
-        var shown = false;
+        // Preferred wait: wait directly for the select inside the modal to be visible
         try
         {
             var shortWait = new WebDriverWait(_driver, TimeSpan.FromSeconds(3));
-            shown = shortWait.Until(d =>
+            var success = shortWait.Until(d =>
             {
-                var modal = d.FindElement(By.Id("reportModal"));
-                var classes = modal.GetAttribute("class") ?? string.Empty;
-                var ariaHidden = modal.GetAttribute("aria-hidden");
-                TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Modal classes: {classes}, aria-hidden: {ariaHidden}");
-                return (classes.Contains("show") && ariaHidden != "true") || modal.Displayed;
+                var els = d.FindElements(By.Id("reportReason"));
+                if (els.Count == 0) return false;
+                var sel = els[0];
+                TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Found reportReason: displayed={sel.Displayed} enabled={sel.Enabled}");
+                return sel.Displayed && sel.Enabled;
             });
+            if (success)
+            {
+                return;
+            }
         }
         catch (OpenQA.Selenium.WebDriverTimeoutException)
         {
-            // modal not shown yet
-            shown = false;
+            // not ready yet, proceed to fallback
         }
         catch (Exception ex)
         {
-            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Error while short-waiting for modal: {ex.GetType().Name} {ex.Message}");
+            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Error while short-waiting for reportReason: {ex.GetType().Name} {ex.Message}");
         }
 
-        if (!shown)
-        {
-            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Modal did not appear; attempting bootstrap/jQuery fallback to show modal.");
+        // Fallback: try bootstrap/jQuery or direct class toggle
+        TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] reportReason not visible after click; attempting bootstrap/jQuery fallback to show modal.");
 
-            var script = @"
-                (function(){
+        var script = @"(function(){
                     try{
                         var el = document.getElementById('reportModal');
                         if(!el) return false;
@@ -400,7 +400,8 @@ public class CSP101StepDefinitions
                             return true;
                         } else {
                             el.classList.add('show');
-                            el.setAttribute('aria-hidden', 'false');
+                            el.style.display = '';
+                            el.setAttribute('aria-hidden','false');
                             return true;
                         }
                     } catch(e){
@@ -408,32 +409,24 @@ public class CSP101StepDefinitions
                     }
                 })();";
 
-            try
-            {
-                var res = ((IJavaScriptExecutor)_driver).ExecuteScript(script);
-                TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Bootstrap fallback executed, result: {res}");
-            }
-            catch (Exception ex)
-            {
-                TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Bootstrap fallback threw: {ex.GetType().Name} {ex.Message}");
-            }
-
-            // Wait for the modal to become visible after fallback
-            _wait.Until(d =>
-            {
-                var modal = d.FindElement(By.Id("reportModal"));
-                var classes = modal.GetAttribute("class") ?? string.Empty;
-                var ariaHidden = modal.GetAttribute("aria-hidden");
-                TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Modal classes after fallback: {classes}, aria-hidden: {ariaHidden}");
-                return (classes.Contains("show") && ariaHidden != "true") || modal.Displayed;
-            });
+        try
+        {
+            var res = ((IJavaScriptExecutor)_driver).ExecuteScript(script);
+            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Bootstrap fallback executed, result: {res}");
+        }
+        catch (Exception ex)
+        {
+            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Bootstrap fallback threw: {ex.GetType().Name} {ex.Message}");
         }
 
-        // Wait for the form controls inside the modal to be interactable.
+        // Final wait for the select to be interactable
         _wait.Until(d =>
         {
             var select = d.FindElement(By.Id("reportReason"));
-            return select.Displayed && select.Enabled;
+            var displayed = select.Displayed;
+            var enabled = select.Enabled;
+            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] reportReason final wait: displayed={displayed} enabled={enabled}");
+            return displayed && enabled;
         });
     }
 
