@@ -24,8 +24,10 @@ public sealed class Startup
     public static async Task BeforeTestRun()
     {
         _settings = AcceptanceTestConfiguration.Load();
-        _webDriver = CreateWebDriver(_settings);
         await TestWebAppHost.StartAsync(_settings);
+        var baseUrl = TestWebAppHost.BoundUrl ?? _settings.BaseUrl;
+        _webDriver = CreateWebDriver(_settings);
+        _webDriver.Navigate().GoToUrl(baseUrl);
     }
 
     /// <summary>
