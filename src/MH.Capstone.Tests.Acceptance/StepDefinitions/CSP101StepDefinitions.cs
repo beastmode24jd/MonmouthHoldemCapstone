@@ -384,8 +384,37 @@ public class CSP101StepDefinitions
             TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Error while short-waiting for reportReason: {ex.GetType().Name} {ex.Message}");
         }
 
-        // Fallback: try bootstrap/jQuery or direct class toggle
-        TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] reportReason not visible after click; attempting bootstrap/jQuery fallback to show modal.");
+        // Fallback: try to cleanup any stray backdrops/modals then show using bootstrap/jQuery/direct DOM
+        TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] reportReason not visible after click; attempting cleanup and bootstrap/jQuery fallback to show modal.");
+
+        var cleanupScript = @"(function(){
+                    try{
+                        document.querySelectorAll('.modal-backdrop').forEach(function(b){ b.remove(); });
+                        document.querySelectorAll('.modal.show').forEach(function(m){
+                            try{
+                                if(typeof bootstrap !== 'undefined' && bootstrap.Modal && bootstrap.Modal.getOrCreateInstance){
+                                    var inst = bootstrap.Modal.getOrCreateInstance(m);
+                                    if(inst) inst.hide();
+                                } else {
+                                    m.classList.remove('show');
+                                    m.style.display = 'none';
+                                    m.setAttribute('aria-hidden','true');
+                                }
+                            } catch(e) { }
+                        });
+                        document.body.classList.remove('modal-open');
+                        return true;
+                    } catch(e){ return false; }
+                })();";
+        try
+        {
+            var cleanupRes = ((IJavaScriptExecutor)_driver).ExecuteScript(cleanupScript);
+            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Cleanup executed, result: {cleanupRes}");
+        }
+        catch (Exception ex)
+        {
+            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Cleanup threw: {ex.GetType().Name} {ex.Message}");
+        }
 
         var script = @"(function(){
                     try{
@@ -417,6 +446,44 @@ public class CSP101StepDefinitions
         catch (Exception ex)
         {
             TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Bootstrap fallback threw: {ex.GetType().Name} {ex.Message}");
+        }
+
+        // Attempt to wait for the bootstrap 'shown' event (async) or fall back to polling the select
+        try
+        {
+            var asyncScript = @"var callback = arguments[arguments.length - 1];
+                try {
+                    var el = document.getElementById('reportModal');
+                    if(!el){ callback(false); return; }
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Modal){
+                        var inst = bootstrap.Modal.getOrCreateInstance(el);
+                        if(inst){
+                            var handler = function(){ el.removeEventListener('shown.bs.modal', handler); callback(true); };
+                            el.addEventListener('shown.bs.modal', handler);
+                            if(!el.classList.contains('show')) inst.show();
+                            return;
+                        }
+                    }
+                    if (typeof $ !== 'undefined' && $.fn && $.fn.modal){
+                        $(el).one('shown.bs.modal', function(){ callback(true); });
+                        $(el).modal('show');
+                        return;
+                    }
+                    // Poll for the inner select briefly
+                    var started = Date.now();
+                    var iv = setInterval(function(){
+                        var sel = document.getElementById('reportReason');
+                        if(sel && (sel.offsetParent !== null || sel.style.display != 'none')){ clearInterval(iv); callback(true); }
+                        else if(Date.now() - started > 3000){ clearInterval(iv); callback(false); }
+                    },100);
+                } catch(e){ callback(false); }";
+
+            var shown = ((IJavaScriptExecutor)_driver).ExecuteAsyncScript(asyncScript);
+            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Async show wait returned: {shown}");
+        }
+        catch (Exception ex)
+        {
+            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Async show wait threw: {ex.GetType().Name} {ex.Message}");
         }
 
         // Final wait for the select to be interactable
