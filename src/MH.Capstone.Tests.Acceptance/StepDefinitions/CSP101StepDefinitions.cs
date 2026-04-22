@@ -504,16 +504,21 @@ public class CSP101StepDefinitions
             var el = d.FindElement(By.Id("reportReason"));
             return (el.Displayed && el.Enabled) ? el : null;
         });
+        TestContext.Out.WriteLine($"[{nameof(FillReportForm)}] Found reason select: displayed={reasonElement.Displayed} enabled={reasonElement.Enabled} type={reasonElement.GetType().Name}");
         var reasonSelect = new SelectElement(reasonElement);
         reasonSelect.SelectByValue(reason);
+        TestContext.Out.WriteLine($"[{nameof(FillReportForm)}] Selected reason value: {reason}");
 
         var descriptionBox = _wait.Until(d =>
         {
             var el = d.FindElement(By.Id("reportDescription"));
             return (el.Displayed && el.Enabled) ? el : null;
         });
+        TestContext.Out.WriteLine($"[{nameof(FillReportForm)}] Found description box: displayed={descriptionBox.Displayed} enabled={descriptionBox.Enabled} type={descriptionBox.GetType().Name}");
         descriptionBox.Clear();
+        TestContext.Out.WriteLine($"[{nameof(FillReportForm)}] Cleared description box");
         descriptionBox.SendKeys(description);
+        TestContext.Out.WriteLine($"[{nameof(FillReportForm)}] Sent keys to description box");
     }
 
     private void SubmitReportForm()
