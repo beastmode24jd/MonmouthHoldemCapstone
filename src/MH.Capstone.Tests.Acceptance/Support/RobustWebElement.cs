@@ -5,7 +5,7 @@ using OpenQA.Selenium;
 
 namespace MH.Capstone.Tests.Acceptance.Support
 {
-    public class RobustWebElement : IWebElement
+    public class RobustWebElement : IWebElement, IWrapsElement
     {
         private readonly IWebElement _inner;
         private readonly IWebDriver _driver;
@@ -15,6 +15,8 @@ namespace MH.Capstone.Tests.Acceptance.Support
             _inner = inner ?? throw new ArgumentNullException(nameof(inner));
             _driver = driver ?? throw new ArgumentNullException(nameof(driver));
         }
+
+        public IWebElement WrappedElement => _inner;
 
         public string TagName => _inner.TagName;
         public string Text => _inner.Text;

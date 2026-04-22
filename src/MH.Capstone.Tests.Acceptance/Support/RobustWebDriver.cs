@@ -49,7 +49,9 @@ public class RobustWebDriver : IWebDriver, IJavaScriptExecutor, IWrapsDriver
                 Console.WriteLine($"[RobustWebDriver] Executing diagnostic script: {script}");
             }
 
-            if (_raw is IJavaScriptExecutor js) return js.ExecuteScript(script, args);
+            var realArgs = UnwrapArgs(args);
+
+            if (_raw is IJavaScriptExecutor js) return js.ExecuteScript(script, realArgs);
             throw new NotSupportedException("Underlying driver does not support JavaScript execution.");
         }
         catch (Exception ex)
@@ -61,7 +63,8 @@ public class RobustWebDriver : IWebDriver, IJavaScriptExecutor, IWrapsDriver
 
     public object? ExecuteScript(PinnedScript script, params object?[] args)
     {
-        if (_raw is IJavaScriptExecutor js) return js.ExecuteScript(script, args);
+        var realArgs = UnwrapArgs(args);
+        if (_raw is IJavaScriptExecutor js) return js.ExecuteScript(script, realArgs);
         throw new NotSupportedException("Underlying driver does not support JavaScript execution.");
     }
 
@@ -69,7 +72,8 @@ public class RobustWebDriver : IWebDriver, IJavaScriptExecutor, IWrapsDriver
     {
         try
         {
-            if (_raw is IJavaScriptExecutor js) return js.ExecuteAsyncScript(script, args);
+            var realArgs = UnwrapArgs(args);
+            if (_raw is IJavaScriptExecutor js) return js.ExecuteAsyncScript(script, realArgs);
             throw new NotSupportedException("Underlying driver does not support JavaScript execution.");
         }
         catch (Exception ex)
@@ -77,6 +81,19 @@ public class RobustWebDriver : IWebDriver, IJavaScriptExecutor, IWrapsDriver
             Console.WriteLine($"[RobustWebDriver] ExecuteAsyncScript failed: {ex.GetType().Name} {ex.Message}");
             throw;
         }
+    }
+
+    private static object?[] UnwrapArgs(object?[] args)
+    {
+        if (args == null || args.Length == 0) return args;
+        var real = new object?[args.Length];
+        for (int i = 0; i < args.Length; i++)
+        {
+            var a = args[i];
+            if (a is RobustWebElement r) real[i] = r.WrappedElement;
+            else real[i] = a;
+        }
+        return real;
     }
 
     // IWrapsDriver
