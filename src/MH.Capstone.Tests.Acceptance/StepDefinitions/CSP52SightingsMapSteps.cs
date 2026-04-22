@@ -122,8 +122,42 @@ public class CSP52SightingsMapSteps
         zoomInButton.Displayed.Should().BeTrue("zoom-in button should be visible");
         zoomOutButton.Displayed.Should().BeTrue("zoom-out button should be visible");
 
-        // Use a JS click to avoid Leaflet intercepts or overlay interference causing ElementNotInteractableException
-        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", zoomInButton);
-        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", zoomOutButton);
+        // Try native click first, fall back to JS click if it fails (log both attempts)
+        void ClickWithFallback(IWebElement el, string name)
+        {
+            try
+            {
+                el.Click();
+                Console.WriteLine($"Clicked {name} natively");
+                return;
+            }
+            catch (OpenQA.Selenium.ElementClickInterceptedException ex)
+            {
+                Console.WriteLine($"Native click intercepted for {name}: {ex.GetType().Name}: {ex.Message}");
+            }
+            catch (OpenQA.Selenium.ElementNotInteractableException ex)
+            {
+                Console.WriteLine($"Native click not interactable for {name}: {ex.GetType().Name}: {ex.Message}");
+            }
+            catch (OpenQA.Selenium.WebDriverException ex)
+            {
+                Console.WriteLine($"Native click WebDriverException for {name}: {ex.GetType().Name}: {ex.Message}");
+            }
+
+            try
+            {
+                Console.WriteLine($"Attempting JS click for {name}");
+                ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", el);
+                Console.WriteLine($"JS click succeeded for {name}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"JS click failed for {name}: {ex.GetType().Name}: {ex.Message}");
+                throw;
+            }
+        }
+
+        ClickWithFallback(zoomInButton, "zoom-in");
+        ClickWithFallback(zoomOutButton, "zoom-out");
     }
 }
