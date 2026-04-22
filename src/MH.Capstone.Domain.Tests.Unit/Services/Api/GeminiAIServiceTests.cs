@@ -45,13 +45,21 @@ public class GeminiAIServiceTests
     }
 
     [Test]
-    public async Task AskAsync_WithValidQuestion_ShouldCallGeminiApi()
+    public Task AskAsync_WithValidQuestion_ShouldCallGeminiApi()
     {
-        // This test uses a fake API key so the Gemini call will fail with 400/401.
-        // The point is to prove the code reaches the HTTP call rather than throwing
-        // NotImplementedException (which was the RED state).
-        // A real integration test with a live key belongs in Tests.Integration.
-        Assert.ThrowsAsync<HttpRequestException>(async () =>
-            await _service.AskAsync("What is a black bear?"));
+        try
+        {
+            // This test uses a fake API key so the Gemini call will fail with 400/401.
+            // The point is to prove the code reaches the HTTP call rather than throwing
+            // NotImplementedException (which was the RED state).
+            // A real integration test with a live key belongs in Tests.Integration.
+            Assert.ThrowsAsync<HttpRequestException>(async () =>
+                await _service.AskAsync("What is a black bear?"));
+            return Task.CompletedTask;
+        }
+        catch (Exception exception)
+        {
+            return Task.FromException(exception);
+        }
     }
 }

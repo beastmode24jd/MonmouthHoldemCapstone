@@ -10,21 +10,34 @@ namespace MH.Capstone.Tests.Acceptance.Drivers;
 public class WildlifeSearchDriver
 {
     private readonly IWebDriver _webDriver;
+    private readonly WebDriverWait _wait;
     private readonly string _baseUrl;
 
     // The external Ninjas API can take a few seconds to respond; 20 s is generous
     // but keeps tests from hanging indefinitely.
     private static readonly TimeSpan SearchTimeout = TimeSpan.FromSeconds(20);
 
-    public WildlifeSearchDriver(IWebDriver webDriver, AcceptanceTestSettings settings)
+    public WildlifeSearchDriver(IWebDriver webDriver, AcceptanceTestSettings settings, WebDriverWait wait)
     {
         _webDriver = webDriver;
         _baseUrl = settings.BaseUrl.TrimEnd('/');
+        _wait = wait;
     }
 
     /// <summary>Navigates to the species search page.</summary>
-    public void NavigateToSearchPage() =>
+    public void NavigateToSearchPage()
+    {
         _webDriver.Navigate().GoToUrl($"{_baseUrl}/Species/Search");
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
+    }
 
     /// <summary>Returns true when the browser is on the species search page.</summary>
     public bool IsOnSearchPage() =>
@@ -35,25 +48,20 @@ public class WildlifeSearchDriver
 
     public bool IsSearchInputVisible()
     {
-        try { return _webDriver.FindElement(By.Id("nameInput")).Displayed; }
-        catch (NoSuchElementException) { return false; }
+        var els = _webDriver.FindElements(By.Id("nameInput"));
+        return els.Count > 0 && els[0].Displayed;
     }
 
     public bool IsSearchButtonVisible()
     {
-        try
-        {
-            return _webDriver
-                .FindElement(By.CssSelector("#searchForm button[type='submit']"))
-                .Displayed;
-        }
-        catch (NoSuchElementException) { return false; }
+        var els = _webDriver.FindElements(By.CssSelector("#searchForm button[type='submit']"));
+        return els.Count > 0 && els[0].Displayed;
     }
 
     public bool IsClearButtonVisible()
     {
-        try { return _webDriver.FindElement(By.Id("clearBtn")).Displayed; }
-        catch (NoSuchElementException) { return false; }
+        var els = _webDriver.FindElements(By.Id("clearBtn"));
+        return els.Count > 0 && els[0].Displayed;
     }
 
     // ─── Search interaction ────────────────────────────────────────────────────
@@ -109,12 +117,8 @@ public class WildlifeSearchDriver
     /// </summary>
     public bool HasNoResultsMessage()
     {
-        try
-        {
-            var card = _webDriver.FindElement(By.Id("resultCard"));
-            return card.Text.Contains("No results", StringComparison.OrdinalIgnoreCase);
-        }
-        catch (NoSuchElementException) { return false; }
+        var cards = _webDriver.FindElements(By.Id("resultCard"));
+        return cards.Count > 0 && cards[0].Text.Contains("No results", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -122,8 +126,8 @@ public class WildlifeSearchDriver
     /// </summary>
     public string GetCounterText()
     {
-        try { return _webDriver.FindElement(By.Id("resultCounter")).Text.Trim(); }
-        catch (NoSuchElementException) { return string.Empty; }
+        var els = _webDriver.FindElements(By.Id("resultCounter"));
+        return els.Count > 0 ? els[0].Text.Trim() : string.Empty;
     }
 
     /// <summary>
@@ -142,7 +146,7 @@ public class WildlifeSearchDriver
     /// <summary>Clicks the Clear button and waits for the result card to reset.</summary>
     public void ClickClear()
     {
-        _webDriver.FindElement(By.Id("clearBtn")).Click();
+        _wait.Until(d => d.FindElement(By.Id("clearBtn"))).Click();
 
         // The clear handler is synchronous (no fetch involved), so the DOM updates
         // immediately. A short poll confirms the counter has reset to "0 / 0".
@@ -153,11 +157,7 @@ public class WildlifeSearchDriver
     /// <summary>Returns the current value of the search name input.</summary>
     public string GetSearchInputValue()
     {
-        try
-        {
-            return _webDriver.FindElement(By.Id("nameInput"))
-                       .GetAttribute("value") ?? string.Empty;
-        }
-        catch (NoSuchElementException) { return string.Empty; }
+        var els = _webDriver.FindElements(By.Id("nameInput"));
+        return els.Count > 0 ? els[0].GetAttribute("value") ?? string.Empty : string.Empty;
     }
 }
