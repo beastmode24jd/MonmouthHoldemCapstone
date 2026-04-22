@@ -238,10 +238,12 @@ public class CSP120StepDefinitions
 
     private void LoginUser(string email, string password)
     {
+        _driver.Navigate().GoToUrl(_settings.BaseUrl);
+        _driver.Manage().Cookies.DeleteAllCookies();
         _driver.Navigate().GoToUrl($"{_settings.BaseUrl}/Account/Login");
-        _wait.Until(d => d.FindElement(By.Id("Email")));
+        _wait.Until(d => d.FindElement(By.Id("emailField")));
 
-        _driver.FindElement(By.Id("Email")).SendKeys(email);
+        _driver.FindElement(By.Id("emailField")).SendKeys(email);
         _driver.FindElement(By.Id("passwordField")).SendKeys(password);
 
         var submit = _driver.FindElement(By.Id("submitBtn"));

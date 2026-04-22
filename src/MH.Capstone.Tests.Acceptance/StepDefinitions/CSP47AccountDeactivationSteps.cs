@@ -1,5 +1,6 @@
 using MH.Capstone.Tests.Acceptance.Hooks;
 using OpenQA.Selenium;
+using OpenQA.Selenium.Support.UI;
 using Reqnroll;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
@@ -36,15 +37,22 @@ public class CSP47AccountDeactivationSteps
     [Given(@"I am logged in as a registered user")]
     public void GivenIAmLoggedInAsARegisteredUser()
     {
+        _driver.Navigate().GoToUrl(BaseUrl);
+        _driver.Manage().Cookies.DeleteAllCookies();
         _driver.Navigate().GoToUrl(BaseUrl + "/Account/Login");
 
-        var emailField = _driver.FindElement(By.Id("Email"));
+        var emailField = _driver.FindElement(By.Id("emailField"));
         var passwordField = _driver.FindElement(By.Id("passwordField"));
-        var submitBtn = _driver.FindElement(By.Id("submitBtn"));
 
         emailField.SendKeys(TestEmail);
         passwordField.SendKeys(TestPassword);
-        submitBtn.Click();
+
+        var wait47 = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
+        var submitBtn = wait47.Until(d => {
+            var btn = d.FindElement(By.Id("submitBtn"));
+            return btn.Enabled ? btn : null;
+        });
+        submitBtn!.Click();
 
         Thread.Sleep(1000);
     }

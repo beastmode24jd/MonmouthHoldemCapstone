@@ -33,7 +33,14 @@ public class CSP42StepDefinitions
         _driver.Navigate().GoToUrl($"{_settings.BaseUrl}/account/login");
         _driver.FindElement(By.Id("emailField")).SendKeys(email);
         _driver.FindElement(By.Id("passwordField")).SendKeys(password);
-        _driver.FindElement(By.Id("submitBtn")).Click();
+
+        // The submit button starts disabled and is enabled by JS after fields are filled.
+        var wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
+        var submitBtn = wait.Until(d => {
+            var btn = d.FindElement(By.Id("submitBtn"));
+            return btn.Enabled ? btn : null;
+        });
+        submitBtn!.Click();
     }
 
     [Given("I have not submitted a custom profile image")]
