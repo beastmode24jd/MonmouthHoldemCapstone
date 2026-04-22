@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.IO;
 using MH.Capstone.Tests.Acceptance.Configuration;
 using MH.Capstone.Tests.Acceptance.PageObjects;
 using OpenQA.Selenium;
@@ -49,7 +50,45 @@ public class SightingsDriver
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
         // ensure the input exists before sending keys
         var input = _wait.Until(d => d.FindElement(By.CssSelector("input[type='file']")));
-        input.SendKeys(absoluteFilePath);
+        try
+        {
+            input.SendKeys(absoluteFilePath);
+            return;
+        }
+        catch (OpenQA.Selenium.WebDriverException ex)
+        {
+            TestContext.Out.WriteLine($"[SightingsDriver] native SendKeys failed: {ex.GetType().Name}: {ex.Message}. Attempting JS fallback.");
+            try
+            {
+                var bytes = File.ReadAllBytes(absoluteFilePath);
+                var base64 = Convert.ToBase64String(bytes);
+                var fileName = Path.GetFileName(absoluteFilePath);
+                var mime = GetMimeType(fileName);
+                var script = @"(function(el, b64, fname, mime) {
+                    var byteCharacters = atob(b64);
+                    var byteNumbers = new Array(byteCharacters.length);
+                    for (var i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    var byteArray = new Uint8Array(byteNumbers);
+                    var blob = new Blob([byteArray], {type: mime});
+                    var file = new File([blob], fname, {type: mime});
+                    var dt = new DataTransfer();
+                    dt.items.add(file);
+                    el.files = dt.files;
+                    el.dispatchEvent(new Event('input', {bubbles:true}));
+                    el.dispatchEvent(new Event('change', {bubbles:true}));
+                    return true;
+                })(arguments[0], arguments[1], arguments[2], arguments[3]);";
+                ((IJavaScriptExecutor)_webDriver).ExecuteScript(script, input, base64, fileName, mime);
+                return;
+            }
+            catch (Exception jsEx)
+            {
+                TestContext.Out.WriteLine($"[SightingsDriver] JS fallback failed: {jsEx.GetType().Name}: {jsEx.Message}");
+                throw;
+            }
+        }
     }
 
     /// <summary>Sets the image file input and then submits the form.</summary>
@@ -57,8 +96,59 @@ public class SightingsDriver
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
         var input = _wait.Until(d => d.FindElement(By.CssSelector("input[type='file']")));
-        input.SendKeys(absoluteFilePath);
+        try
+        {
+            input.SendKeys(absoluteFilePath);
+        }
+        catch (OpenQA.Selenium.WebDriverException ex)
+        {
+            TestContext.Out.WriteLine($"[SightingsDriver] native SendKeys failed: {ex.GetType().Name}: {ex.Message}. Attempting JS fallback.");
+            try
+            {
+                var bytes = File.ReadAllBytes(absoluteFilePath);
+                var base64 = Convert.ToBase64String(bytes);
+                var fileName = Path.GetFileName(absoluteFilePath);
+                var mime = GetMimeType(fileName);
+                var script = @"(function(el, b64, fname, mime) {
+                    var byteCharacters = atob(b64);
+                    var byteNumbers = new Array(byteCharacters.length);
+                    for (var i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    var byteArray = new Uint8Array(byteNumbers);
+                    var blob = new Blob([byteArray], {type: mime});
+                    var file = new File([blob], fname, {type: mime});
+                    var dt = new DataTransfer();
+                    dt.items.add(file);
+                    el.files = dt.files;
+                    el.dispatchEvent(new Event('input', {bubbles:true}));
+                    el.dispatchEvent(new Event('change', {bubbles:true}));
+                    return true;
+                })(arguments[0], arguments[1], arguments[2], arguments[3]);";
+                ((IJavaScriptExecutor)_webDriver).ExecuteScript(script, input, base64, fileName, mime);
+            }
+            catch (Exception jsEx)
+            {
+                TestContext.Out.WriteLine($"[SightingsDriver] JS fallback failed: {jsEx.GetType().Name}: {jsEx.Message}");
+                throw;
+            }
+        }
+
         ((IJavaScriptExecutor)_webDriver).ExecuteScript("arguments[0].click();", page.SubmitBtn);
+    }
+
+    private static string GetMimeType(string fileName)
+    {
+        var ext = Path.GetExtension(fileName)?.ToLowerInvariant() ?? string.Empty;
+        return ext switch
+        {
+            ".jpg" => "image/jpeg",
+            ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".gif" => "image/gif",
+            ".txt" => "text/plain",
+            _ => "application/octet-stream",
+        };
     }
 
     /// <summary>Sets the latitude input to the given value.</summary>
