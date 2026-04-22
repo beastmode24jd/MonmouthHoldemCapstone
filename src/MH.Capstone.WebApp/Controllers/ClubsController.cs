@@ -34,5 +34,7 @@ namespace MH.Capstone.WebApp.Controllers
 
             return View("LandingPage", viewModel);
         }
+
+        
     }
 }

@@ -98,5 +98,44 @@ public class ClubServiceTests
 
     #endregion
 
-    
+    #region CreateClubAsync
+
+    [Test]
+    public async Task CreateClubAsync_ValidClub_SavesClubAndOwnerMembershipReturnsClub()
+    {
+        // Arrange
+        var ownerId = Guid.NewGuid();
+        var newClub = new Club(ownerId, "Bird Watchers", "A club for birding enthusiasts", DateTimeOffset.UtcNow)
+        {
+            IsPublic = true
+        };
+
+        _clubRepoMock
+            .Setup(r => r.AddOrUpdateAsync(newClub))
+            .ReturnsAsync(newClub)
+            .Verifiable(Times.Once);
+
+        _clubMembershipRepoMock
+            .Setup(r => r.AddOrUpdateAsync(It.IsAny<ClubMembership>()))
+            .ReturnsAsync(new ClubMembership(ownerId, newClub.Id, DateTimeOffset.UtcNow))
+            .Verifiable(Times.Once);
+
+        // Act
+        var result = await _clubService.CreateClubAsync(newClub);
+
+        // Assert
+        Assert.That(result, Is.EqualTo(newClub));
+        _clubRepoMock.Verify(r => r.AddOrUpdateAsync(newClub), Times.Once);
+        _clubMembershipRepoMock.Verify(r => r.AddOrUpdateAsync(It.IsAny<ClubMembership>()), Times.Once);
+    }
+
+    [Test]
+    public void CreateClubAsync_NullClub_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.ThrowsAsync<ArgumentNullException>(() => _clubService.CreateClubAsync(null!));
+    }
+
+    #endregion
+
 }
