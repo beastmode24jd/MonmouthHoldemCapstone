@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
+using Microsoft.Extensions.DependencyInjection;
 using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.Tests.Acceptance.Support;
 
