@@ -85,7 +85,7 @@ public class RobustWebDriver : IWebDriver, IJavaScriptExecutor, IWrapsDriver
 
     private static object?[] UnwrapArgs(object?[] args)
     {
-        if (args == null || args.Length == 0) return args;
+        if (args == null! || args.Length == 0) return args!;
         var real = new object?[args.Length];
         for (int i = 0; i < args.Length; i++)
         {

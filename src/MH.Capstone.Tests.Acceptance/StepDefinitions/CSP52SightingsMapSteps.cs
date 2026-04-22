@@ -122,7 +122,8 @@ public class CSP52SightingsMapSteps
         zoomInButton.Displayed.Should().BeTrue("zoom-in button should be visible");
         zoomOutButton.Displayed.Should().BeTrue("zoom-out button should be visible");
 
-        zoomInButton.Click();
-        zoomOutButton.Click();
+        // Use a JS click to avoid Leaflet intercepts or overlay interference causing ElementNotInteractableException
+        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", zoomInButton);
+        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", zoomOutButton);
     }
 }

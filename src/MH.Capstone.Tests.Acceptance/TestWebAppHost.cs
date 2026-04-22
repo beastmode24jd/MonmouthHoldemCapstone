@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
+using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.Tests.Acceptance.Support;
 
 namespace MH.Capstone.Tests.Acceptance;
 
@@ -80,6 +82,10 @@ internal static class TestWebAppHost
             {
                 ["FeatureFlags:EnableEmailTestEndpoint"] = "true"
             });
+
+        // Register a test AI service to avoid calling external Gemini during acceptance runs.
+        // This keeps the AI Companion deterministic and prevents network flakiness from failing tests.
+        builder.Services.AddSingleton<IAIService, TestAIService>();
 
         // MapStaticAssets() resolves the static-web-assets manifest by looking for
         // "{EntryAssemblyName}.staticwebassets.endpoints.json" next to the test binary.

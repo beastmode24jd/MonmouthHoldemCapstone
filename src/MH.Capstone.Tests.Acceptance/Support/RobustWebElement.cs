@@ -30,17 +30,35 @@ namespace MH.Capstone.Tests.Acceptance.Support
 
         public void Click()
         {
+            string Describe()
+            {
+                try
+                {
+                    var id = _inner.GetAttribute("id");
+                    var cls = _inner.GetAttribute("class");
+                    return $"<{_inner.TagName} id='{id}' class='{cls}'>";
+                }
+                catch { return _inner.TagName; }
+            }
+
             try
             {
                 _inner.Click();
                 return;
             }
-            catch (OpenQA.Selenium.ElementClickInterceptedException)
+            catch (OpenQA.Selenium.ElementClickInterceptedException ex)
             {
+                Console.WriteLine($"RobustWebElement.Click: native click threw {ex.GetType().Name}: {ex.Message}. Element: {Describe()}");
+                // continue to fallback
+            }
+            catch (OpenQA.Selenium.ElementNotInteractableException ex)
+            {
+                Console.WriteLine($"RobustWebElement.Click: native click threw {ex.GetType().Name}: {ex.Message}. Element: {Describe()}");
                 // continue to fallback
             }
             catch (OpenQA.Selenium.WebDriverException ex) when (ex.Message?.Contains("element click intercepted", StringComparison.OrdinalIgnoreCase) == true)
             {
+                Console.WriteLine($"RobustWebElement.Click: native click threw WebDriverException: {ex.Message}. Element: {Describe()}");
                 // continue to fallback
             }
 
@@ -62,15 +80,28 @@ namespace MH.Capstone.Tests.Acceptance.Support
                     {
                         if (_inner.Displayed && _inner.Enabled)
                         {
-                            _inner.Click();
-                            return;
+                            try
+                            {
+                                _inner.Click();
+                                return;
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"RobustWebElement.Click: retry native click failed: {ex.GetType().Name}: {ex.Message}. Element: {Describe()}");
+                            }
                         }
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"RobustWebElement.Click: checking displayed/enabled threw: {ex.GetType().Name}: {ex.Message}");
+                    }
                     System.Threading.Thread.Sleep(100);
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"RobustWebElement.Click: wait loop failed: {ex.GetType().Name}: {ex.Message}");
+            }
 
             // Final fallback: JavaScript click
             var jsFallback = GetJavaScriptExecutor();
@@ -78,17 +109,20 @@ namespace MH.Capstone.Tests.Acceptance.Support
             {
                 try
                 {
+                    Console.WriteLine($"RobustWebElement.Click: attempting JavaScript click for Element: {Describe()}");
                     jsFallback.ExecuteScript("arguments[0].click();", _inner);
+                    Console.WriteLine($"RobustWebElement.Click: JavaScript click succeeded for Element: {Describe()}");
                     return;
                 }
                 catch (Exception e)
                 {
-                    throw new OpenQA.Selenium.WebDriverException("Robust click failed: native click intercepted and JS fallback also failed.", e);
+                    var msg = $"Robust click failed: native click retries failed and JS fallback also failed. Element: {Describe()}. JS error: {e.GetType().Name}: {e.Message}";
+                    throw new OpenQA.Selenium.WebDriverException(msg, e);
                 }
             }
 
-            // If no JS available, rethrow original exception
-            throw new OpenQA.Selenium.WebDriverException("Element click intercepted and no JavaScript executor available for fallback.");
+            // If no JS available, rethrow a descriptive exception
+            throw new OpenQA.Selenium.WebDriverException($"Element click intercepted/not interactable and no JavaScript executor available for fallback. Element: {Describe()}");
         }
 
         private IJavaScriptExecutor? GetJavaScriptExecutor()
@@ -116,8 +150,32 @@ namespace MH.Capstone.Tests.Acceptance.Support
         public ISearchContext GetShadowRoot() => _inner.GetShadowRoot();
         public void SendKeys(string text)
         {
+            // Determine whether this is a file input — file inputs cannot be set via JS for security reasons.
+            bool isFileInput = false;
             try
             {
+                if (string.Equals(_inner.TagName, "input", StringComparison.OrdinalIgnoreCase))
+                {
+                    var t = _inner.GetAttribute("type") ?? string.Empty;
+                    isFileInput = string.Equals(t, "file", StringComparison.OrdinalIgnoreCase);
+                }
+            }
+            catch { /* ignore */ }
+
+            // Try native SendKeys first. For file inputs that are hidden, attempt to make them visible
+            // before calling native SendKeys (JS can change styling but cannot set file contents).
+            try
+            {
+                var js = GetJavaScriptExecutor();
+                if (isFileInput && ! _inner.Displayed && js != null)
+                {
+                    try
+                    {
+                        js.ExecuteScript("arguments[0].style.display='block'; arguments[0].style.visibility='visible'; arguments[0].style.opacity=1; arguments[0].style.position='relative'; arguments[0].style.pointerEvents='auto';", _inner);
+                    }
+                    catch { }
+                }
+
                 _inner.SendKeys(text);
                 return;
             }
@@ -130,13 +188,19 @@ namespace MH.Capstone.Tests.Acceptance.Support
                 // continue to fallback
             }
 
-            var js = GetJavaScriptExecutor();
-            if (js != null)
+            var jsFallback = GetJavaScriptExecutor();
+            if (jsFallback != null)
             {
+                if (isFileInput)
+                {
+                    // Cannot set file inputs via JS — provide a clearer error message.
+                    throw new OpenQA.Selenium.WebDriverException("Robust SendKeys failed: native SendKeys failed for file input and JS cannot set file inputs.");
+                }
+
                 try
                 {
                     // If SendKeys didn't set the value (or threw), set via JS and dispatch events so client-side listeners run.
-                    js.ExecuteScript("arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input', {bubbles:true})); arguments[0].dispatchEvent(new Event('change', {bubbles:true}));", _inner, text);
+                    jsFallback.ExecuteScript("arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input', {bubbles:true})); arguments[0].dispatchEvent(new Event('change', {bubbles:true}));", _inner, text);
                     return;
                 }
                 catch (Exception ex)
