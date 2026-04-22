@@ -43,7 +43,8 @@ public class RobustWebDriver : IWebDriver, IJavaScriptExecutor, IWrapsDriver
     {
         try
         {
-            if (script != null && (script.Contains("document.readyState") || script.Contains("emailField") || script.Contains("passwordField") || script.Contains("submitBtn")))
+            ArgumentException.ThrowIfNullOrEmpty(script);
+            if (script.Contains("document.readyState") || script.Contains("emailField") || script.Contains("passwordField") || script.Contains("submitBtn"))
             {
                 Console.WriteLine($"[RobustWebDriver] Executing diagnostic script: {script}");
             }
@@ -56,6 +57,12 @@ public class RobustWebDriver : IWebDriver, IJavaScriptExecutor, IWrapsDriver
             Console.WriteLine($"[RobustWebDriver] ExecuteScript failed: {ex.GetType().Name} {ex.Message}");
             throw;
         }
+    }
+
+    public object? ExecuteScript(PinnedScript script, params object?[] args)
+    {
+        if (_raw is IJavaScriptExecutor js) return js.ExecuteScript(script, args);
+        throw new NotSupportedException("Underlying driver does not support JavaScript execution.");
     }
 
     public object? ExecuteAsyncScript(string script, params object?[] args)

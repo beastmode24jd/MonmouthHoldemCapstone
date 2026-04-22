@@ -106,11 +106,11 @@ namespace MH.Capstone.Tests.Acceptance.Support
             return new ReadOnlyCollection<IWebElement>(list);
         }
 
-        public string GetAttribute(string attributeName) => _inner.GetAttribute(attributeName);
+        public string GetAttribute(string attributeName) => _inner.GetAttribute(attributeName)!;
         public string GetCssValue(string propertyName) => _inner.GetCssValue(propertyName);
-        public string GetProperty(string propertyName) => _inner.GetDomProperty(propertyName);
-        public string GetDomAttribute(string attributeName) => _inner.GetDomAttribute(attributeName);
-        public string GetDomProperty(string propertyName) => _inner.GetDomProperty(propertyName);
+        public string GetProperty(string propertyName) => _inner.GetDomProperty(propertyName)!;
+        public string GetDomAttribute(string attributeName) => _inner.GetDomAttribute(attributeName)!;
+        public string GetDomProperty(string propertyName) => _inner.GetDomProperty(propertyName)!;
         public ISearchContext GetShadowRoot() => _inner.GetShadowRoot();
         public void SendKeys(string text)
         {

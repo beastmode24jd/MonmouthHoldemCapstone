@@ -67,6 +67,7 @@ public class AuthenticationDriver
             try
             {
                 var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Document ready state: {ready}");
                 return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
             }
             catch { return false; }

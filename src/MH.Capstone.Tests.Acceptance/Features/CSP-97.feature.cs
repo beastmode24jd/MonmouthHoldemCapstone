@@ -29,9 +29,9 @@ namespace MH.Capstone.Tests.Acceptance.Features
         private static string[] featureTags = new string[] {
                 "leaderboard"};
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "Points Leaderboard Display (CSP-97)", "  As a user or visitor of the Wildlife AID app\r\n  I want to view the leaderboard " +
-                "with rankings by points\r\n  So I can see how I compare to other players and view " +
-                "top contributors", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "Points Leaderboard Display (CSP-97)", "  As a user or visitor of the Wildlife AID app\n  I want to view the leaderboard w" +
+                "ith rankings by points\n  So I can see how I compare to other players and view to" +
+                "p contributors", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
 #line 1 "CSP-97.feature"
 #line hidden

@@ -27,8 +27,8 @@ namespace MH.Capstone.Tests.Acceptance.Features
         
         private static string[] featureTags = ((string[])(null));
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "Profile Icon Upload", "    As a user of the Wildlife AID app\r\n    I want to be able to change my icon im" +
-                "age\r\n    So that I can customize my account and stand out from other players", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "Profile Icon Upload", "    As a user of the Wildlife AID app\n    I want to be able to change my icon ima" +
+                "ge\n    So that I can customize my account and stand out from other players", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
 #line 1 "CSP-42.feature"
 #line hidden

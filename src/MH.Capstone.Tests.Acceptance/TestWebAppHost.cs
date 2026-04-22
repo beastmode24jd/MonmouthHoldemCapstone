@@ -90,13 +90,13 @@ internal static class TestWebAppHost
 
         // Route all WebApp log output (both startup and request-time) to Console.Out
         // so it appears in the NUnit test runner output alongside scenario results.
-        var testOutputProvider = new TestOutputLoggerProvider();
-        builder.Logging.AddProvider(testOutputProvider);
+        // Two separate provider instances are required: LoggerFactory.Dispose() disposes
+        // every provider it owns, so sharing one instance would dispose the app's provider.
+        var runtimeProvider = new TestOutputLoggerProvider();
+        builder.Logging.AddProvider(runtimeProvider);
 
-        // Build a startup logger factory using the same provider so that the Program.cs
-        // entry logger (used before the DI container is built) also routes through it.
         var startupLoggerFactory = LoggerFactory.Create(b => b
-            .AddProvider(testOutputProvider)
+            .AddProvider(new TestOutputLoggerProvider())
             .SetMinimumLevel(LogLevel.Information));
 
         _app = MH.Capstone.WebApp.Program.Configure(builder, startupLoggerFactory);

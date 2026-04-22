@@ -27,8 +27,8 @@ namespace MH.Capstone.Tests.Acceptance.Features
         
         private static string[] featureTags = ((string[])(null));
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "CSP-52 Sightings Map", "    As a user of the Wildlife AID app\r\n    I want a dedicated map page I can view" +
-                "\r\n    So that I can check if there are any nearby sightings", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "CSP-52 Sightings Map", "    As a user of the Wildlife AID app\n    I want a dedicated map page I can view\n" +
+                "    So that I can check if there are any nearby sightings", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
 #line 1 "CSP-52.feature"
 #line hidden
