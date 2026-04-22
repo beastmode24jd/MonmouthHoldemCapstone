@@ -79,32 +79,47 @@ public class CSP120StepDefinitions
     {
         ((IJavaScriptExecutor)_driver).ExecuteScript("window.scrollTo(0, 0);");
 
-        // Patch window.fetch in the browser to intercept AICompanion/Ask calls and return a mocked response
+        // Inject a fetch stub in the browser to intercept AICompanion/Ask and return a deterministic reply
         try
         {
             var patch = @"(function(){
-                if(!window.fetch) { console.log('No fetch to patch'); return 'no-fetch'; }
-                if (window.__patchedForTests) { console.log('fetch already patched'); return 'already-patched'; }
+                if(!window.fetch) { return 'no-fetch'; }
+                if (window.__aiCompanionMockInjected) { return 'already-injected'; }
                 var orig = window.fetch;
-                window.__patchedForTests = true;
+                window.__aiCompanionMockInjected = true;
                 window.fetch = function(input, init){
                     var url = (typeof input === 'string') ? input : (input && input.url) || '';
                     if (url && url.indexOf('/AICompanion/Ask') !== -1){
-                        console.log('Intercepted AICompanion/Ask request in test; returning mocked response');
-                        var body = JSON.stringify({ text: 'The peregrine falcon is one of the fastest birds in the world, reaching high speeds during dives.' });
+                        var body = JSON.stringify({ reply: 'I can only help with wildlife...' });
                         var response = { ok: true, status: 200, json: function(){ return Promise.resolve(JSON.parse(body)); }, text: function(){ return Promise.resolve(body); } };
                         return Promise.resolve(response);
                     }
                     return orig.apply(this, arguments);
                 };
-                return 'patched';
+                return 'injected';
             })();";
+
             var res = ((IJavaScriptExecutor)_driver).ExecuteScript(patch);
-            Console.WriteLine($"fetch patch result: {res}");
+            Console.WriteLine($"AI companion fetch stub injection result: {res}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"fetch patch failed: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"AI companion fetch stub injection failed: {ex.GetType().Name}: {ex.Message}");
+        }
+
+        // Confirm the injection flag (if present) so tests fail fast if injection didn't take
+        try
+        {
+            _wait.Until(d =>
+            {
+                var js = ((IJavaScriptExecutor)d).ExecuteScript("return !!window.__aiCompanionMockInjected;");
+                return js is bool b && b;
+            });
+        }
+        catch (WebDriverTimeoutException)
+        {
+            // Injection did not report back in time; continue and let later assertions surface failures
+            Console.WriteLine("AI companion fetch stub did not confirm injection within wait period");
         }
 
         var button = _wait.Until(d =>
@@ -170,10 +185,15 @@ public class CSP120StepDefinitions
     {
         // Use a short explicit wait for absence/hidden instead of toggling implicit waits
         var shortWait = new WebDriverWait(_driver, TimeSpan.FromSeconds(1));
-        shortWait.Until(d => d.FindElements(By.CssSelector("button[data-bs-target='#aiCompanionModal']")).All(e => !e.Displayed));
+        shortWait.Until(d =>
+        {
+            var els = d.FindElements(By.CssSelector("button[data-bs-target='#aiCompanionModal']"));
+            return els.Count == 0 || els.All(e => !e.Displayed);
+        });
+
         var buttons = _driver.FindElements(By.CssSelector("button[data-bs-target='#aiCompanionModal']"));
-        var visible = buttons.Where(b => b.Displayed).ToList();
-        visible.Should().BeEmpty("anonymous users should not see the AI Companion button");
+        // Assert that there are no visible buttons
+        buttons.All(b => !b.Displayed).Should().BeTrue("anonymous users should not see the AI Companion button");
     }
 
     [Then("{word} should see a reply from the AI Companion")]
