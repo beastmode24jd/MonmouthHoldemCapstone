@@ -162,29 +162,45 @@ namespace MH.Capstone.Tests.Acceptance.Support
             }
             catch { /* ignore */ }
 
+            string Describe()
+            {
+                try
+                {
+                    var id = _inner.GetAttribute("id");
+                    var cls = _inner.GetAttribute("class");
+                    return $"<{_inner.TagName} id='{id}' class='{cls}'>";
+                }
+                catch { return _inner.TagName; }
+            }
+
             // Try native SendKeys first. For file inputs that are hidden, attempt to make them visible
             // before calling native SendKeys (JS can change styling but cannot set file contents).
             try
             {
                 var js = GetJavaScriptExecutor();
-                if (isFileInput && ! _inner.Displayed && js != null)
+                if (isFileInput && !_inner.Displayed && js != null)
                 {
                     try
                     {
                         js.ExecuteScript("arguments[0].style.display='block'; arguments[0].style.visibility='visible'; arguments[0].style.opacity=1; arguments[0].style.position='relative'; arguments[0].style.pointerEvents='auto';", _inner);
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"RobustWebElement.SendKeys: JS visibility tweak for file input failed: {ex.GetType().Name}: {ex.Message}");
+                    }
                 }
 
                 _inner.SendKeys(text);
                 return;
             }
-            catch (OpenQA.Selenium.ElementNotInteractableException)
+            catch (OpenQA.Selenium.ElementNotInteractableException ex)
             {
+                Console.WriteLine($"RobustWebElement.SendKeys: native SendKeys threw {ex.GetType().Name}: {ex.Message}. Element: {Describe()}");
                 // continue to fallback
             }
-            catch (OpenQA.Selenium.WebDriverException)
+            catch (OpenQA.Selenium.WebDriverException ex)
             {
+                Console.WriteLine($"RobustWebElement.SendKeys: native SendKeys threw WebDriverException: {ex.Message}. Element: {Describe()}");
                 // continue to fallback
             }
 
@@ -194,18 +210,39 @@ namespace MH.Capstone.Tests.Acceptance.Support
                 if (isFileInput)
                 {
                     // Cannot set file inputs via JS — provide a clearer error message.
-                    throw new OpenQA.Selenium.WebDriverException("Robust SendKeys failed: native SendKeys failed for file input and JS cannot set file inputs.");
+                    throw new OpenQA.Selenium.WebDriverException($"Robust SendKeys failed: native SendKeys failed for file input and JS cannot set file inputs. Element: {Describe()}");
                 }
 
                 try
                 {
-                    // If SendKeys didn't set the value (or threw), set via JS and dispatch events so client-side listeners run.
-                    jsFallback.ExecuteScript("arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input', {bubbles:true})); arguments[0].dispatchEvent(new Event('change', {bubbles:true}));", _inner, text);
+                    // Attempt to make the element visible and scroll into view, then retry native SendKeys once
+                    Console.WriteLine($"RobustWebElement.SendKeys: attempting to make element visible and scroll into view. Element: {Describe()}");
+                    jsFallback.ExecuteScript("arguments[0].style.display=''; arguments[0].style.visibility='visible'; arguments[0].style.opacity='1'; if (arguments[0].hasAttribute('hidden')) arguments[0].removeAttribute('hidden'); arguments[0].scrollIntoView(true);", _inner);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"RobustWebElement.SendKeys: JS visibility tweak failed: {ex.GetType().Name}: {ex.Message}");
+                }
+
+                try
+                {
+                    // Retry native SendKeys once after JS adjustments
+                    _inner.SendKeys(text);
                     return;
                 }
                 catch (Exception ex)
                 {
-                    throw new OpenQA.Selenium.WebDriverException("Robust SendKeys failed: native SendKeys failed and JS fallback also failed.", ex);
+                    Console.WriteLine($"RobustWebElement.SendKeys: native SendKeys after JS visibility failed: {ex.GetType().Name}: {ex.Message}. Element: {Describe()}");
+                    try
+                    {
+                        Console.WriteLine($"RobustWebElement.SendKeys: setting value via JS fallback for Element: {Describe()}");
+                        jsFallback.ExecuteScript("arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input')); arguments[0].dispatchEvent(new Event('change'));", _inner, text);
+                        return;
+                    }
+                    catch (Exception e)
+                    {
+                        throw new OpenQA.Selenium.WebDriverException($"Robust SendKeys failed: native SendKeys and JS fallback both failed. Element: {Describe()}. JS error: {e.GetType().Name}: {e.Message}", e);
+                    }
                 }
             }
 
