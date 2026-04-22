@@ -79,7 +79,17 @@ public class CSP101StepDefinitions
     public void GivenJamesIsNotLoggedIn()
     {
         _currentPersona = "James";
-        // No user created, no login performed.
+        // Ensure a clean, unauthenticated browser state.
+        try { _driver.Manage().Cookies.DeleteAllCookies(); } catch { }
+        try { ((IJavaScriptExecutor)_driver).ExecuteScript("window.localStorage.clear(); window.sessionStorage.clear();"); } catch { }
+        _driver.Navigate().GoToUrl(BaseUrl);
+        // Wait for page load
+        _wait.Until(d => {
+            try {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            } catch { return false; }
+        });
     }
 
     [Given("{word} has submitted a report")]
@@ -332,9 +342,10 @@ public class CSP101StepDefinitions
             var el = d.FindElement(By.CssSelector("button[data-bs-target='#reportModal']"));
             return (el.Displayed && el.Enabled) ? el : null;
         });
-
+        TestContext.Progress.WriteLine($"[{nameof(OpenReportModal)}] Open button found: {openButton != null}");
+        TestContext.Progress.WriteLine($"[{nameof(OpenReportModal)}] Open button of type: {openButton?.GetType().Name}");
         // JS click sidesteps overlay interception from the Leaflet map tiles and tooltips.
-        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", openButton!);
+        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", openButton);
 
         // Wait for Bootstrap modal to be fully shown (fade animation complete).
         _wait.Until(d =>
