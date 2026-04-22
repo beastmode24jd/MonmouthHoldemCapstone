@@ -60,7 +60,20 @@ public class CSP120StepDefinitions
     [Given("James is not logged in")]
     public void GivenJamesIsNotLoggedIn()
     {
-        // No user created, no login.
+        // Ensure any previously logged-in user is logged out so the unauthenticated
+        // scenario starts from a known state.
+        try
+        {
+            _authDriver.LogoutUser();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CSP120] Logout attempt failed or no user logged in: {ex.Message}");
+        }
+
+        // Navigate to the base URL to render the anonymous view
+        _driver.Navigate().GoToUrl(_settings.BaseUrl);
+        _wait.Until(d => d.FindElement(By.TagName("body")));
     }
 
     #endregion
