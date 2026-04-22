@@ -79,9 +79,12 @@ public class CSP101StepDefinitions
     public void GivenJamesIsNotLoggedIn()
     {
         _currentPersona = "James";
-        // Ensure a clean, unauthenticated browser state.
+        // Navigate to the site first (so cookie operations target the correct domain),
+        // then clear browser storage and cookies to ensure an unauthenticated state.
+        _driver.Navigate().GoToUrl(BaseUrl);
         try { _driver.Manage().Cookies.DeleteAllCookies(); } catch { }
         try { ((IJavaScriptExecutor)_driver).ExecuteScript("window.localStorage.clear(); window.sessionStorage.clear();"); } catch { }
+        // Reload to ensure the server observes the cleared cookies/storage
         _driver.Navigate().GoToUrl(BaseUrl);
         // Wait for page load
         _wait.Until(d => {
