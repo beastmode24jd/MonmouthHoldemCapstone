@@ -39,9 +39,32 @@ public class AuthenticationDriver
                 return elems.Count > 0 ? elems[0] : null;
             });
 
-            TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] User Auth status: " +
-                                      $"{string.IsNullOrEmpty(username) || userElement.Text.Contains(username)}.");
-            return string.IsNullOrEmpty(username) || userElement.Text.Contains(username);
+            var text = userElement.Text ?? string.Empty;
+            var isLoggedIn = false;
+
+            if (string.IsNullOrEmpty(username))
+            {
+                isLoggedIn = true;
+            }
+            else
+            {
+                // Match either the full email or the local-part (before the @) because the navbar shows the username without domain.
+                if (text.IndexOf(username, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    isLoggedIn = true;
+                }
+                else if (username.Contains('@'))
+                {
+                    var local = username.Split('@')[0];
+                    if (!string.IsNullOrWhiteSpace(local) && text.IndexOf(local, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        isLoggedIn = true;
+                    }
+                }
+            }
+
+            TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] User Auth status: {isLoggedIn}.");
+            return isLoggedIn;
         }
         catch
         {
