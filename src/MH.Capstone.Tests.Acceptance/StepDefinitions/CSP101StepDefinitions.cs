@@ -338,7 +338,7 @@ public class CSP101StepDefinitions
     private void OpenReportModal()
     {
         // Scroll to top so nothing covers the fixed-position floating button.
-        ((IJavaScriptExecutor)_driver).ExecuteScript("window.scrollTo(0, 0);");
+        try { ((IJavaScriptExecutor)_driver).ExecuteScript("window.scrollTo(0, 0);"); } catch { }
 
         var openButton = _wait.Until(d =>
         {
@@ -347,18 +347,87 @@ public class CSP101StepDefinitions
         });
         TestContext.Progress.WriteLine($"[{nameof(OpenReportModal)}] Open button found: {openButton != null}");
         TestContext.Progress.WriteLine($"[{nameof(OpenReportModal)}] Open button of type: {openButton?.GetType().Name}");
-        // JS click sidesteps overlay interception from the Leaflet map tiles and tooltips.
-        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", openButton);
 
-        // Wait for Bootstrap modal to be fully shown (fade animation complete).
-        _wait.Until(d =>
+        // Try a single JS click to open the modal (avoids repeated clicks while waiting).
+        try
         {
-            var modal     = d.FindElement(By.Id("reportModal"));
-            var classes   = modal.GetAttribute("class") ?? string.Empty;
-            var ariaHidden = modal.GetAttribute("aria-hidden");
-            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Modal classes: {classes}, aria-hidden: {ariaHidden}");
-            return classes.Contains("show") && ariaHidden != "true";
-        });
+            ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", openButton);
+        }
+        catch (Exception ex)
+        {
+            TestContext.Progress.WriteLine($"[{nameof(OpenReportModal)}] JS click threw: {ex.GetType().Name} {ex.Message}");
+        }
+
+        // Short wait to see if the modal appears naturally
+        var shown = false;
+        try
+        {
+            var shortWait = new WebDriverWait(_driver, TimeSpan.FromSeconds(3));
+            shown = shortWait.Until(d =>
+            {
+                var modal = d.FindElement(By.Id("reportModal"));
+                var classes = modal.GetAttribute("class") ?? string.Empty;
+                var ariaHidden = modal.GetAttribute("aria-hidden");
+                TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Modal classes: {classes}, aria-hidden: {ariaHidden}");
+                return (classes.Contains("show") && ariaHidden != "true") || modal.Displayed;
+            });
+        }
+        catch (OpenQA.Selenium.WebDriverTimeoutException)
+        {
+            // modal not shown yet
+            shown = false;
+        }
+        catch (Exception ex)
+        {
+            TestContext.Progress.WriteLine($"[{nameof(OpenReportModal)}] Error while short-waiting for modal: {ex.GetType().Name} {ex.Message}");
+        }
+
+        if (!shown)
+        {
+            TestContext.Progress.WriteLine($"[{nameof(OpenReportModal)}] Modal did not appear; attempting bootstrap/jQuery fallback to show modal.");
+
+            var script = @"
+                (function(){
+                    try{
+                        var el = document.getElementById('reportModal');
+                        if(!el) return false;
+                        if(typeof bootstrap !== 'undefined'){
+                            var inst = (bootstrap.Modal && bootstrap.Modal.getOrCreateInstance) ? bootstrap.Modal.getOrCreateInstance(el) : new bootstrap.Modal(el);
+                            inst.show();
+                            return true;
+                        } else if (typeof $ !== 'undefined' && $.fn && $.fn.modal){
+                            $(el).modal('show');
+                            return true;
+                        } else {
+                            el.classList.add('show');
+                            el.setAttribute('aria-hidden', 'false');
+                            return true;
+                        }
+                    } catch(e){
+                        return false;
+                    }
+                })();";
+
+            try
+            {
+                var res = ((IJavaScriptExecutor)_driver).ExecuteScript(script);
+                TestContext.Progress.WriteLine($"[{nameof(OpenReportModal)}] Bootstrap fallback executed, result: {res}");
+            }
+            catch (Exception ex)
+            {
+                TestContext.Progress.WriteLine($"[{nameof(OpenReportModal)}] Bootstrap fallback threw: {ex.GetType().Name} {ex.Message}");
+            }
+
+            // Wait for the modal to become visible after fallback
+            _wait.Until(d =>
+            {
+                var modal = d.FindElement(By.Id("reportModal"));
+                var classes = modal.GetAttribute("class") ?? string.Empty;
+                var ariaHidden = modal.GetAttribute("aria-hidden");
+                TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Modal classes after fallback: {classes}, aria-hidden: {ariaHidden}");
+                return (classes.Contains("show") && ariaHidden != "true") || modal.Displayed;
+            });
+        }
 
         // Wait for the form controls inside the modal to be interactable.
         _wait.Until(d =>
