@@ -93,16 +93,55 @@ public class AuthenticationDriver
         loginPage.SubmitBtn.Click();
         TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Confirming User {username} log in.");
 
-        // If the submit button remains disabled or the client-side handlers didn't trigger,
-        // attempt a direct JavaScript form submit as a last-resort fallback.
+        // Give a short moment for the click to trigger the page's submit handlers and a potential redirect.
+        // Only if nothing appears to be happening do we attempt the JS fallback submit.
         try
         {
-            var js = (IJavaScriptExecutor)_webDriver;
-            var submitDisabled = js.ExecuteScript("return document.getElementById('submitBtn')?.disabled")?.ToString();
-            if (string.Equals(submitDisabled, "true", StringComparison.OrdinalIgnoreCase))
+            var shortWait = new WebDriverWait(_webDriver, TimeSpan.FromSeconds(2));
+            var progressed = shortWait.Until(d =>
             {
-                TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Submit button still disabled - attempting JS form submit fallback.");
-                js.ExecuteScript("document.getElementById('loginForm')?.submit();");
+                // Redirect away from login page and user dropdown present
+                if (!string.Equals(d.Url, loginUrl, StringComparison.InvariantCultureIgnoreCase)
+                    && IsUserLoggedIn(username))
+                {
+                    return true;
+                }
+
+                // Server-side validation errors shown on the page
+                var errorElems = d.FindElements(By.CssSelector(".alert.alert-danger"));
+                if (errorElems.Count > 0) return true;
+
+                return false;
+            });
+
+            if (!progressed)
+            {
+                // No progress observed; attempt JS fallback if button remains disabled.
+                var js = (IJavaScriptExecutor)_webDriver;
+                var submitDisabled = js.ExecuteScript("return document.getElementById('submitBtn')?.disabled")?.ToString();
+                if (string.Equals(submitDisabled, "true", StringComparison.OrdinalIgnoreCase))
+                {
+                    TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Submit button still disabled after click - attempting JS form submit fallback.");
+                    js.ExecuteScript("document.getElementById('loginForm')?.submit();");
+                }
+            }
+        }
+        catch (OpenQA.Selenium.WebDriverTimeoutException)
+        {
+            // short wait timed out — try JS fallback as above
+            try
+            {
+                var js = (IJavaScriptExecutor)_webDriver;
+                var submitDisabled = js.ExecuteScript("return document.getElementById('submitBtn')?.disabled")?.ToString();
+                if (string.Equals(submitDisabled, "true", StringComparison.OrdinalIgnoreCase))
+                {
+                    TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Submit button still disabled after short wait - attempting JS form submit fallback.");
+                    js.ExecuteScript("document.getElementById('loginForm')?.submit();");
+                }
+            }
+            catch (Exception ex)
+            {
+                TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] JS fallback submit failed: {ex.Message}");
             }
         }
         catch (Exception ex)
