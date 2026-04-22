@@ -372,7 +372,19 @@ public class CSP101StepDefinitions
             });
             if (success)
             {
-                return;
+                // Quick stability check: ensure the select remains visible for a short moment
+                try
+                {
+                    var confirm = new WebDriverWait(_driver, TimeSpan.FromSeconds(1));
+                    var stable = confirm.Until(d =>
+                    {
+                        var el = d.FindElement(By.Id("reportReason"));
+                        return el.Displayed && el.Enabled;
+                    });
+                    if (stable)
+                        return;
+                }
+                catch { /* Not stable; proceed to fallback logic */ }
             }
         }
         catch (OpenQA.Selenium.WebDriverTimeoutException)
