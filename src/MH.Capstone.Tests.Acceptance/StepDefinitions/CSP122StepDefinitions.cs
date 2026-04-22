@@ -6,10 +6,7 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
     [Scope(Tag = "photo-quality")]
     public class CSP122StepDefinitions
     {
-        // Drivers (Selenium / DB helpers) will be injected here in Phase 2
-        // once we know which ones we need. For the RED phase, step bodies
-        // throw NotImplementedException so the failing tests prove the
-        // feature is not yet built.
+        // Drivers (Selenium / DB helpers) will be injected here in Phase 2 once we know which ones we need. 
 
         #region Given
 

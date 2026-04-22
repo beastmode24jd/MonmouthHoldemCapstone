@@ -2,7 +2,7 @@ namespace MH.Capstone.Domain.DataModels
 {
     public enum PhotoQualityTier
     {
-        // Pre-CSP-122 records or analysis failures. No penalty; treated as neutral.
+        // No logic yet, enum used just a list of values
         Unknown = 0,
 
         // Blurry, too dark, too bright, or otherwise low-quality.

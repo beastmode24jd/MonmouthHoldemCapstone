@@ -71,23 +71,17 @@ namespace MH.Capstone.Domain.DataModels
         #endregion
 
         #region CSP-122: Photo Quality Gate Metadata
-
-        // defining what properties or results get stored in the DB for Quality Checker
+ 
         public PhotoQualityTier QualityTier { get; set; } = PhotoQualityTier.Unknown;
 
-        // Laplacian variance score (higher = sharper). Null for unscored records.
         public double? SharpnessScore { get; set; } = null;
 
-        //Average pixel luminance, 0.0-1.0 (lower = darker). Null for unscored records.
         public double? LuminanceAverage { get; set; } = null;
 
-        //Image width in pixels as analyzed. Null for unscored records.
         public int? ResolutionWidth { get; set; } = null;
 
-        //Image height in pixels as analyzed. Null for unscored records.
         public int? ResolutionHeight { get; set; } = null;
 
-        //Admin review queue flag. Set true for records flagged by future moderation rules.
         public bool FlaggedForReview { get; set; } = false;
 
         #endregion
