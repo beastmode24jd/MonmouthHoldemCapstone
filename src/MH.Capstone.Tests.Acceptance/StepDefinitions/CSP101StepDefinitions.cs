@@ -345,8 +345,8 @@ public class CSP101StepDefinitions
             var el = d.FindElement(By.CssSelector("button[data-bs-target='#reportModal']"));
             return (el.Displayed && el.Enabled) ? el : null;
         });
-        TestContext.Progress.WriteLine($"[{nameof(OpenReportModal)}] Open button found: {openButton != null}");
-        TestContext.Progress.WriteLine($"[{nameof(OpenReportModal)}] Open button of type: {openButton?.GetType().Name}");
+        TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Open button found: {openButton != null}");
+        TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Open button of type: {openButton?.GetType().Name}");
 
         // Try a single JS click to open the modal (avoids repeated clicks while waiting).
         try
@@ -355,7 +355,7 @@ public class CSP101StepDefinitions
         }
         catch (Exception ex)
         {
-            TestContext.Progress.WriteLine($"[{nameof(OpenReportModal)}] JS click threw: {ex.GetType().Name} {ex.Message}");
+            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] JS click threw: {ex.GetType().Name} {ex.Message}");
         }
 
         // Short wait to see if the modal appears naturally
@@ -379,12 +379,12 @@ public class CSP101StepDefinitions
         }
         catch (Exception ex)
         {
-            TestContext.Progress.WriteLine($"[{nameof(OpenReportModal)}] Error while short-waiting for modal: {ex.GetType().Name} {ex.Message}");
+            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Error while short-waiting for modal: {ex.GetType().Name} {ex.Message}");
         }
 
         if (!shown)
         {
-            TestContext.Progress.WriteLine($"[{nameof(OpenReportModal)}] Modal did not appear; attempting bootstrap/jQuery fallback to show modal.");
+            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Modal did not appear; attempting bootstrap/jQuery fallback to show modal.");
 
             var script = @"
                 (function(){
@@ -411,11 +411,11 @@ public class CSP101StepDefinitions
             try
             {
                 var res = ((IJavaScriptExecutor)_driver).ExecuteScript(script);
-                TestContext.Progress.WriteLine($"[{nameof(OpenReportModal)}] Bootstrap fallback executed, result: {res}");
+                TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Bootstrap fallback executed, result: {res}");
             }
             catch (Exception ex)
             {
-                TestContext.Progress.WriteLine($"[{nameof(OpenReportModal)}] Bootstrap fallback threw: {ex.GetType().Name} {ex.Message}");
+                TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Bootstrap fallback threw: {ex.GetType().Name} {ex.Message}");
             }
 
             // Wait for the modal to become visible after fallback
