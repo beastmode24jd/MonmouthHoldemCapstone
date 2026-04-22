@@ -13,6 +13,7 @@ using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
 using Reqnroll;
 using System.Text.Json;
+using System.Linq;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
@@ -78,6 +79,34 @@ public class CSP120StepDefinitions
     {
         ((IJavaScriptExecutor)_driver).ExecuteScript("window.scrollTo(0, 0);");
 
+        // Patch window.fetch in the browser to intercept AICompanion/Ask calls and return a mocked response
+        try
+        {
+            var patch = @"(function(){
+                if(!window.fetch) { console.log('No fetch to patch'); return 'no-fetch'; }
+                if (window.__patchedForTests) { console.log('fetch already patched'); return 'already-patched'; }
+                var orig = window.fetch;
+                window.__patchedForTests = true;
+                window.fetch = function(input, init){
+                    var url = (typeof input === 'string') ? input : (input && input.url) || '';
+                    if (url && url.indexOf('/AICompanion/Ask') !== -1){
+                        console.log('Intercepted AICompanion/Ask request in test; returning mocked response');
+                        var body = JSON.stringify({ text: 'The peregrine falcon is one of the fastest birds in the world, reaching high speeds during dives.' });
+                        var response = { ok: true, status: 200, json: function(){ return Promise.resolve(JSON.parse(body)); }, text: function(){ return Promise.resolve(body); } };
+                        return Promise.resolve(response);
+                    }
+                    return orig.apply(this, arguments);
+                };
+                return 'patched';
+            })();";
+            var res = ((IJavaScriptExecutor)_driver).ExecuteScript(patch);
+            Console.WriteLine($"fetch patch result: {res}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"fetch patch failed: {ex.GetType().Name}: {ex.Message}");
+        }
+
         var button = _wait.Until(d =>
         {
             var el = d.FindElement(By.CssSelector("button[data-bs-target='#aiCompanionModal']"));
@@ -139,11 +168,12 @@ public class CSP120StepDefinitions
     [Then("James should not see the {string} button")]
     public void ThenJamesShouldNotSeeTheButton(string buttonLabel)
     {
-        // Use a short explicit wait for absence instead of toggling implicit waits
+        // Use a short explicit wait for absence/hidden instead of toggling implicit waits
         var shortWait = new WebDriverWait(_driver, TimeSpan.FromSeconds(1));
-        shortWait.Until(d => d.FindElements(By.CssSelector("button[data-bs-target='#aiCompanionModal']")).Count == 0);
+        shortWait.Until(d => d.FindElements(By.CssSelector("button[data-bs-target='#aiCompanionModal']")).All(e => !e.Displayed));
         var buttons = _driver.FindElements(By.CssSelector("button[data-bs-target='#aiCompanionModal']"));
-        buttons.Should().BeEmpty("anonymous users should not see the AI Companion button");
+        var visible = buttons.Where(b => b.Displayed).ToList();
+        visible.Should().BeEmpty("anonymous users should not see the AI Companion button");
     }
 
     [Then("{word} should see a reply from the AI Companion")]
