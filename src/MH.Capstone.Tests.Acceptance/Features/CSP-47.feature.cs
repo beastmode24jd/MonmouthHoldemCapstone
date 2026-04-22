@@ -27,8 +27,8 @@ namespace MH.Capstone.Tests.Acceptance.Features
         
         private static string[] featureTags = ((string[])(null));
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "CSP-47 Account Deactivation", "    As a registered user\n    I want to be able to deactivate my account\n    So th" +
-                "at I have full control over my personal data and digital presence", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "CSP-47 Account Deactivation", "    As a registered user\r\n    I want to be able to deactivate my account\r\n    So " +
+                "that I have full control over my personal data and digital presence", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
 #line 1 "CSP-47.feature"
 #line hidden

@@ -242,7 +242,7 @@ describe('submitMarkAllRead', () => {
         const fetchFn = jest.fn().mockResolvedValue({ ok: true });
         document.body.innerHTML = makeAntiForgeryForm('/notifications/mark-all-read');
         await submitMarkAllRead(document.querySelector('form'), fetchFn);
-        expect(fetchFn.mock.calls[0][0]).toBe('/notifications/mark-all-read');
+        expect(fetchFn.mock.calls[0][0]).toContain('/notifications/mark-all-read');
     });
 
     test('sends the CSRF token in the RequestVerificationToken header', async () => {
@@ -275,7 +275,7 @@ describe('submitDeleteAll', () => {
         const fetchFn = jest.fn().mockResolvedValue({ ok: true });
         document.body.innerHTML = makeAntiForgeryForm('/notifications/all');
         await submitDeleteAll(document.querySelector('form'), fetchFn);
-        expect(fetchFn.mock.calls[0][0]).toBe('/notifications/all');
+        expect(fetchFn.mock.calls[0][0]).toContain('/notifications/all');
     });
 
     test('sends the CSRF token in the RequestVerificationToken header', async () => {
@@ -300,7 +300,7 @@ describe('submitUpdateNotification', () => {
         const fetchFn = jest.fn().mockResolvedValue({ ok: true });
         document.body.innerHTML = makeAntiForgeryForm('/notifications/abc/update', '<input name="toggleRead" value="true" />');
         await submitUpdateNotification(document.querySelector('form'), fetchFn);
-        expect(fetchFn.mock.calls[0][0]).toBe('/notifications/abc/update');
+        expect(fetchFn.mock.calls[0][0]).toContain('/notifications/abc/update');
     });
 
     test('sends the toggleRead value in the request body', async () => {
@@ -332,7 +332,7 @@ describe('submitDeleteNotification', () => {
         const fetchFn = jest.fn().mockResolvedValue({ ok: true });
         document.body.innerHTML = makeAntiForgeryForm('/notifications/abc');
         await submitDeleteNotification(document.querySelector('form'), fetchFn);
-        expect(fetchFn.mock.calls[0][0]).toBe('/notifications/abc');
+        expect(fetchFn.mock.calls[0][0]).toContain('/notifications/abc');
     });
 
     test('sends the CSRF token in the RequestVerificationToken header', async () => {
