@@ -46,7 +46,7 @@ public static class TestDependencySetup
         services.AddTransient<WildlifeSearchDriver>();
         services.AddTransient<PasswordResetDriver>();
         services.AddTransient<EmailVerificationDriver>();
-        services.AddTransient<UserSearchDriver>();
+        services.AddTransient<UserSearchDriver>(); // Sprint 5, CSP-54
 
         return services;
     }

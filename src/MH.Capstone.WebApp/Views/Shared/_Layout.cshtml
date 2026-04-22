@@ -87,6 +87,7 @@
                         </li>
                         @if (User.Identity?.IsAuthenticated == true)
                         {
+                            @* Sprint 5, CSP-54 *@
                             <li class="nav-item">
                                 <a class="nav-link text-light" asp-controller="User" asp-action="Search">
                                     <i class="bi bi-person-search"></i> Find Users
