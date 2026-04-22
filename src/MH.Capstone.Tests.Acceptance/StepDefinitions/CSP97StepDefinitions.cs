@@ -367,17 +367,8 @@ public class CSP97StepDefinitions
 
     private void LoginUser(string email, string password)
     {
-        _driver.Navigate().GoToUrl($"{BaseUrl}/Account/Login");
-        _wait.Until(d => d.FindElement(By.Id("emailField")));
-
-        _driver.FindElement(By.Id("emailField")).SendKeys(email);
-        _driver.FindElement(By.Id("passwordField")).SendKeys(password);
-
-        var submitButton = _driver.FindElement(By.Id("submitBtn"));
-        _wait.Until(d => submitButton.Enabled);
-        submitButton.Click();
-
-        _wait.Until(d => !d.Url.Contains("/Account/Login", StringComparison.OrdinalIgnoreCase));
+        // Use the shared AuthenticationDriver which includes logout, diagnostic waits, and JS fallback.
+        _authDriver.PreformLoginForUser(email, password);
     }
 
     #endregion

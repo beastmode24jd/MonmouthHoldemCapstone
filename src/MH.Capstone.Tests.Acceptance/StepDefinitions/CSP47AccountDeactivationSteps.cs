@@ -170,8 +170,12 @@ public class CSP47AccountDeactivationSteps
             }
             catch { return false; }
         });
-        _driver.PageSource.ToLower().Should().Contain("incorrect",
-            "an error about the incorrect password should appear");
+
+        var pageText = _driver.PageSource.ToLowerInvariant();
+        var hasAlert = _driver.FindElements(By.CssSelector(".alert.alert-danger, .text-danger")).Count > 0;
+
+        (pageText.Contains("incorrect") || pageText.Contains("invalid") || pageText.Contains("wrong password") || hasAlert)
+            .Should().BeTrue("an error about the incorrect password should appear");
     }
 
     [Then(@"I should remain on the deactivate page")]

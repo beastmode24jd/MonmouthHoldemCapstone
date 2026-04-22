@@ -24,16 +24,37 @@ public class EmailVerificationDriver
     /// </summary>
     public void RegisterNewUser(string email, string password)
     {
-        _driver.Navigate().GoToUrl($"{_baseUrl}/Account/Register");
-        _wait.Until(d =>
+        // Ensure no user is currently logged in to avoid immediately redirecting away from the Register page.
+        try
         {
-            try
+            _driver.Navigate().GoToUrl(_baseUrl);
+            var logoutForms = _driver.FindElements(By.Id("logoutForm"));
+            if (logoutForms.Count > 0)
             {
-                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
-                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+                try { logoutForms[0].Submit(); } catch { }
             }
-            catch { return false; }
-        });
+        }
+        catch { /* ignore */ }
+
+        _driver.Navigate().GoToUrl($"{_baseUrl}/Account/Register");
+        try
+        {
+            _wait.Until(d =>
+            {
+                try
+                {
+                    var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                    return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+                }
+                catch { return false; }
+            });
+        }
+        catch (OpenQA.Selenium.WebDriverTimeoutException ex)
+        {
+            // Some environments can leave readyState unsettled while the page is actually usable.
+            // Log and continue — the explicit element waits below will catch missing fields.
+            TestContext.Out.WriteLine($"[{nameof(EmailVerificationDriver)}] Warning: document.readyState wait timed out: {ex.Message}");
+        }
 
         _wait.Until(d => d.FindElement(By.Id("emailField"))).SendKeys(email);
 
