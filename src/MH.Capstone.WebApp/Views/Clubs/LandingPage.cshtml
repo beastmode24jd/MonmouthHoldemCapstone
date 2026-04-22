@@ -10,6 +10,7 @@
                 <i class="bi bi-people-fill"></i> Clubs
             </h1>
             <hr />
+
             @* Filter Controls — CSP-124 *@
             <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
                 <div class="btn-group" role="group" aria-label="Clubs filter">
@@ -27,11 +28,45 @@
             @if (!Model.HasPublicClubs)
             {
                 <div id="emptyStateAll" class="text-center py-5">
+                    <i class="bi bi-people display-1 text-muted mb-3"></i>
                     <h3 class="text-muted">No Clubs Yet...</h3>
-                    <p class="text-muted">Find and join clubs to connect with other wildlife enthusiasts.</p>
+                    <p class="lead text-muted mb-4">
+                        Find and join clubs to connect with other wildlife enthusiasts.
+                    </p>
                     <a asp-controller="Clubs" asp-action="CreateClub" class="btn btn-primary btn-lg">
                         <i class="bi bi-people-fill"></i> Create your own Club
                     </a>
+                </div>
+            }
+
+            @* My Clubs empty state — shown by JS when filter is "mine" and user has no clubs *@
+            <div id="emptyStateMine" class="text-center py-5" style="display:none">
+                <i class="bi bi-people display-1 text-muted mb-3"></i>
+                <h3 class="text-muted">You Haven't Joined Any Clubs</h3>
+                <p class="lead text-muted mb-4">
+                    Create a club or join an existing one to get started!
+                </p>
+                <a asp-controller="Clubs" asp-action="CreateClub" class="btn btn-primary btn-lg">
+                    <i class="bi bi-people-fill"></i> Create your own Club
+                </a>
+            </div>
+
+            @* Club cards grid — will be populated once Club upload is implemented *@
+            @if (Model.HasPublicClubs)
+            {
+                <div id="clubsGrid" class="row g-4">
+                    @foreach (var club in Model.PublicClubs)
+                    {
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 club-card-wrapper"
+                             data-user-id="@club.OwnerIdentityId">
+                            <div class="card h-100 shadow-sm club-card">
+                                <div class="card-body d-flex flex-column">
+                                    <h5 class="card-title">@club.Name</h5>
+                                    <p class="card-text text-muted small flex-grow-1">@club.Description</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
                 </div>
             }
         </div>
@@ -41,6 +76,69 @@
 @* Hidden element carrying the current user's ID for client-side filtering *@
 <span id="currentUserId" data-user-id="@Model.CurrentUserId" style="display:none"></span>
 
+@* Club filter + sessionStorage persistence *@
 <script>
-    @* JS for Clubs filter needs to go here *@
+    (function () {
+        const STORAGE_KEY = 'clubsFilter';
+        const currentUserId = document.getElementById('currentUserId')?.dataset.userId ?? '';
+
+        const filterAllBtn = document.getElementById('filterAll');
+        const filterMineBtn = document.getElementById('filterMine');
+        const emptyStateMine = document.getElementById('emptyStateMine');
+        const emptyStateAll = document.getElementById('emptyStateAll');
+        const countLabel = document.getElementById('clubCountLabel');
+
+        function applyFilter(filter) {
+            sessionStorage.setItem(STORAGE_KEY, filter);
+
+            const cards = document.querySelectorAll('.club-card-wrapper');
+            let visibleCount = 0;
+
+            if (filter === 'mine') {
+                filterAllBtn.classList.remove('btn-primary', 'active');
+                filterAllBtn.classList.add('btn-outline-primary');
+                filterMineBtn.classList.remove('btn-outline-primary');
+                filterMineBtn.classList.add('btn-primary', 'active');
+
+                cards.forEach(function (card) {
+                    if (card.dataset.userId === currentUserId) {
+                        card.style.display = '';
+                        visibleCount++;
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+
+                if (emptyStateAll) emptyStateAll.style.display = 'none';
+                if (emptyStateMine) emptyStateMine.style.display = visibleCount === 0 ? '' : 'none';
+                if (countLabel) {
+                    countLabel.textContent = visibleCount === 0
+                        ? ''
+                        : visibleCount + ' ' + (visibleCount === 1 ? 'club' : 'clubs');
+                }
+            } else {
+                filterAllBtn.classList.add('btn-primary', 'active');
+                filterAllBtn.classList.remove('btn-outline-primary');
+                filterMineBtn.classList.add('btn-outline-primary');
+                filterMineBtn.classList.remove('btn-primary', 'active');
+
+                cards.forEach(function (card) {
+                    card.style.display = '';
+                    visibleCount++;
+                });
+
+                if (emptyStateAll) emptyStateAll.style.display = visibleCount === 0 ? '' : 'none';
+                if (emptyStateMine) emptyStateMine.style.display = 'none';
+                if (countLabel) {
+                    countLabel.textContent = visibleCount + ' ' + (visibleCount === 1 ? 'club' : 'clubs');
+                }
+            }
+        }
+
+        if (filterAllBtn) filterAllBtn.addEventListener('click', function () { applyFilter('all'); });
+        if (filterMineBtn) filterMineBtn.addEventListener('click', function () { applyFilter('mine'); });
+
+        const saved = sessionStorage.getItem(STORAGE_KEY) || 'all';
+        applyFilter(saved);
+    })();
 </script>
