@@ -289,10 +289,23 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .HasColumnType("decimal(9,6)")
                         .HasColumnName("Lat");
 
+                    b.Property<bool>("LoginStreak")
+                        .HasColumnType("bit");
+
                     b.Property<decimal>("Longitude")
                         .HasPrecision(9, 6)
                         .HasColumnType("decimal(9,6)")
                         .HasColumnName("Long");
+
+                    b.Property<int>("PointValue")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Rarity")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double>("RarityMultiplier")
+                        .HasColumnType("float");
 
                     b.Property<DateTimeOffset>("Timestamp")
                         .HasColumnType("datetimeoffset");

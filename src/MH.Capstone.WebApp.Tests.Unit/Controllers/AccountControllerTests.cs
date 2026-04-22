@@ -1,5 +1,6 @@
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.Domain.Tools;
 using MH.Capstone.WebApp.Controllers;
 using MH.Capstone.WebApp.Models;
 using Microsoft.AspNetCore.Http;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Microsoft.AspNetCore.Mvc.ViewFeatures; // Required for TempDataDictionary
+using Microsoft.AspNetCore.Mvc.Routing; // Required for UrlActionContext class
 
 namespace MH.Capstone.WebApp.Tests.Unit.Controllers;
 
@@ -17,8 +19,10 @@ public class AccountControllerTests
     private Mock<IAuthenticationService> _mockAuthService;
     private Mock<IUserService> _mockUserService;
     private Mock<ILogger<AccountController>> _mockLogger;
+    private Mock<IEmailService> _mockEmailService;
     private AccountController _controller;
     private Mock<UserManager<ApplicationUser>> _mockUserManager;
+    private Mock<IUrlHelper> _mockUrlHelper;
 
     [SetUp]
     public void Setup()
@@ -26,6 +30,8 @@ public class AccountControllerTests
         _mockAuthService = new Mock<IAuthenticationService>();
         _mockUserService = new Mock<IUserService>();
         _mockLogger = new Mock<ILogger<AccountController>>();
+        _mockEmailService = new Mock<IEmailService>();
+        _mockUrlHelper = new Mock<IUrlHelper>();
 
         // Mock UserManager (requires a Mock UserStore)
         var store = new Mock<IUserStore<ApplicationUser>>();
@@ -36,7 +42,17 @@ public class AccountControllerTests
             _mockAuthService.Object,
             _mockUserService.Object,
             _mockUserManager.Object,
+            _mockEmailService.Object,
+            new FeatureFlags(),
             _mockLogger.Object);
+
+        // Setup the Mock URL Helper to return a dummy string
+        _mockUrlHelper
+            .Setup(x => x.Action(It.IsAny<UrlActionContext>()))
+            .Returns("/account/login");
+
+        // Assign the mock to the controller
+        _controller.Url = _mockUrlHelper.Object;
 
         _controller.ControllerContext = new ControllerContext
         {
@@ -71,8 +87,8 @@ public class AccountControllerTests
             RememberMe = false
         };
 
-        // Mock user exists and is not deactivated
-        var user = new ApplicationUser { Email = loginModel.Email, IsDeactivated = false };
+        // Mock user exists, is not deactivated, and has confirmed their email
+        var user = new ApplicationUser { Email = loginModel.Email, IsDeactivated = false, EmailConfirmed = true };
         _mockUserService.Setup(s => s.GetUserByEmailAsync(loginModel.Email)).ReturnsAsync(user);
 
         // Mock password check passes
@@ -126,7 +142,7 @@ public class AccountControllerTests
     }
 
     [Test]
-    public async Task Register_Post_WithValidData_RedirectsToDashboard()
+    public async Task Register_Post_WithValidData_RedirectsToConfirmation()
     {
         var registerModel = new RegisterViewModel
         {
@@ -136,16 +152,20 @@ public class AccountControllerTests
         };
 
         _mockAuthService.Setup(s => s.RegisterUserAsync(registerModel.Email, registerModel.Password)).ReturnsAsync(true);
-        _mockAuthService.Setup(s => s.SignInUserAsync(It.IsAny<HttpContext>(), registerModel.Email, false)).Returns(Task.CompletedTask);
+
+        // FindByEmailAsync returns null → email-sending block is skipped (no email service in unit tests)
+        _mockUserManager.Setup(m => m.FindByEmailAsync(registerModel.Email))
+            .ReturnsAsync((ApplicationUser?)null);
 
         var result = await _controller.Register(registerModel);
 
         var redirectResult = result as RedirectToActionResult;
         Assert.That(redirectResult, Is.Not.Null);
-        Assert.That(redirectResult.ActionName, Is.EqualTo("Index"));
-        Assert.That(redirectResult.ControllerName, Is.EqualTo("Dashboard"));
+        Assert.That(redirectResult.ActionName, Is.EqualTo("RegisterConfirmation"));
+        Assert.That(redirectResult.ControllerName, Is.EqualTo("Account"));
         _mockAuthService.Verify(s => s.RegisterUserAsync(registerModel.Email, registerModel.Password), Times.Once);
-        _mockAuthService.Verify(s => s.SignInUserAsync(It.IsAny<HttpContext>(), registerModel.Email, false), Times.Once);
+        // Registration no longer auto-signs in — user must verify email first
+        _mockAuthService.Verify(s => s.SignInUserAsync(It.IsAny<HttpContext>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
     }
 
     [Test]

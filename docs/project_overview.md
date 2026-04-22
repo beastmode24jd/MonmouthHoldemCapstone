@@ -1,7 +1,7 @@
 # Project Overview
 
 ### Product Vision Statement
-Monmouth Hold’em’s Competitive Wildlife Scavenger App (CWSA) is a next-generation platform that brings competition, discovery, and education together in the natural world. By blending engaging gameplay with real-world exploration, CWSA redefines how people experience, understand, and connect with nature. From rare and exotic wildlife to the plants in your own backyard, CWSA transforms zoology, botany, and outdoor exploration into an interactive, rewarding experience for everyone.
+Monmouth Hold’em’s Competitive Wildlife Scavenger App (CWSA) is a next-generation platform that brings competition, discovery, and education together in the natural world. By blending engaging gameplay with real-world exploration, CWSA redefines how people experience, understand, and connect with nature. From rare and exotic wildlife to the bugs in your own backyard, CWSA transforms zoology and outdoor exploration into an interactive, rewarding experience for everyone.
 
 ### Project Details Overview
 The app features three main pillars: 

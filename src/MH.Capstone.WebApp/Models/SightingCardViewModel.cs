@@ -7,33 +7,49 @@ namespace MH.Capstone.WebApp.Models
     
     public class SightingCardViewModel
     {
-
-        
         public Guid Id { get; set; }
 
-    
         public string ImageDataUrl { get; set; } = string.Empty;
 
-        
-        /// Optional description of the sighting provided by the user
         public string? Description { get; set; }
+
+        // CSP-96: Attribution — the identity string ID of the submitting user
+        public string SubmittedByUserId { get; set; } = string.Empty;
+
+        // CSP-96: Attribution — the display username of the submitting user
+        public string SubmittedByUsername { get; set; } = string.Empty;
+
+        // New metadata fields, added from Sighting data model
+
+        public int PointValue { get; set; } = 10;
+
+        public bool LoginStreak { get; set; }
+
+        public string Rarity { get; set; } = "Common";
+
+        public double RarityMultiplier { get; set; } = 1.0;
+
+        public DateTimeOffset Timestamp { get; set; }
 
        
         public SightingCardViewModel() { }
 
-        // Converts a Sighting entity into a SightingCardViewModel for display.
-        // Handles the conversion of the image byte array to a base64 data URL.
-        /// <param name="sighting">The sighting entity from the database</param>
         public SightingCardViewModel(Sighting sighting)
         {
             Id = sighting.Id;
             Description = sighting.Description;
+            SubmittedByUserId = sighting.UserIdentityId;
+            SubmittedByUsername = sighting.User?.UserName ?? "Unknown";
+            PointValue = sighting.PointValue;
+            LoginStreak = sighting.LoginStreak;
+            Rarity = sighting.Rarity;
+            RarityMultiplier = sighting.RarityMultiplier;
+            Timestamp = sighting.Timestamp;
 
-            // Convert the byte array to a base64 string and wrap it in a data URL
-            // This allows the image to be displayed directly in an <img> tag without a separate endpoint
-            // Assuming JPEG format - could be enhanced to detect actual image type from byte header
             var base64 = Convert.ToBase64String(sighting.ImageBuffer);
             ImageDataUrl = $"data:image/jpeg;base64,{base64}";
+
+
         }
     }
 }

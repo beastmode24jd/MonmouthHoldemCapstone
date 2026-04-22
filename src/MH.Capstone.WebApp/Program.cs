@@ -1,9 +1,11 @@
+using MH.Capstone.Domain.ApiContracts.Gemini;
 using MH.Capstone.Domain.ApiContracts.Ninja;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.Domain.Services.Api;
 using MH.Capstone.Domain.Services.Background;
 using MH.Capstone.Domain.Services.Notifications;
 using Microsoft.AspNetCore.Identity;
@@ -18,28 +20,38 @@ namespace MH.Capstone.WebApp
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+            var app = Configure(builder);
+            app.Run();
+        }
 
+        public static WebApplication Configure(WebApplicationBuilder builder, ILoggerFactory? startupLoggerFactory = null)
+        {
             // Configure logging based on environment first so that it is available during app startup and for all services.
             builder.Logging.ConfigureLogging(builder.Environment);
-            var entryLogger = CreateProgramEntryLogger();
+            var entryLogger = startupLoggerFactory?.CreateLogger("ProgramEntry") ?? CreateProgramEntryLogger();
 
             // Register FeatureFlags from configuration so features can be checked through DI
             var featureFlags = new FeatureFlags(builder.Configuration);
             builder.Services.AddSingleton(featureFlags);
             entryLogger.LogInformation("FeatureFlags registered from configuration.");
 
+            // Obtain DB Connection String
             const string appConnStrName = "DataDb"; // For application data
+            string? appConnStr = builder.Configuration.GetConnectionString(appConnStrName);
+            if (string.IsNullOrEmpty(appConnStr) && !EF.IsDesignTime)
+            {
+                // Throw is the connection string was not found and EF is not in design-time
+                throw new InvalidOperationException($"Connection string {appConnStrName} not found in app settings file.\n\t" +
+                    $"ENV is {builder.Environment.EnvironmentName}.");
+            }
             
             // Add EF Core DbContexts
             builder.Services.AddDbContext<ApplicationDbContext>(opt => opt
                 .UseLazyLoadingProxies()
-                .UseSqlServer(
-                    builder.Configuration.GetConnectionString(appConnStrName)
-                    ?? throw new InvalidOperationException($"Connection string {appConnStrName} not found in app settings file.\n\t" +
-                        $"ENV is {builder.Environment.EnvironmentName}."),
-                    sqlOptions => 
-                        // Handle transient Azure SQL failures
-                        sqlOptions.EnableRetryOnFailure())
+                .UseSqlServer(appConnStr, sqlOptions =>
+                    // Handle transient Azure SQL failures
+                    sqlOptions.EnableRetryOnFailure()
+                        .MigrationsHistoryTable("__EFMigrationsHistory_ApplicationDbContext"))
                     // Must implement the synchronous SeedData method for EF Core Tooling.
                     .UseSeeding((context, _) => {
                         if (context is ApplicationDbContext appSyncContext)
@@ -48,8 +60,7 @@ namespace MH.Capstone.WebApp
                         }
                     })
                     // This is the preferred call by any part of EF Core that can support Async calls.
-                    .UseAsyncSeeding(async (context, _, token) =>
-                    {
+                    .UseAsyncSeeding(async (context, _, token) => {
                         if (context is ApplicationDbContext appAsyncContext)
                         {
                             await ApplicationDbContextSeeding.SeedDataAsync(appAsyncContext, _, token);
@@ -60,13 +71,10 @@ namespace MH.Capstone.WebApp
             // Register second DbContext for caching (uses same connection string/options as ApplicationDbContext, no seeding)
             builder.Services.AddDbContext<CacheDbContext>(opt => opt
                 .UseLazyLoadingProxies()
-                .UseSqlServer(
-                    builder.Configuration.GetConnectionString(appConnStrName)
-                    ?? throw new InvalidOperationException($"Connection string {appConnStrName} not found in app settings file.\n\t" +
-                        $"ENV is {builder.Environment.EnvironmentName}."),
-                    sqlOptions => 
-                        // Handle transient Azure SQL failures
-                        sqlOptions.EnableRetryOnFailure())
+                .UseSqlServer(appConnStr, sqlOptions => 
+                    // Handle transient Azure SQL failures
+                    sqlOptions.EnableRetryOnFailure()
+                        .MigrationsHistoryTable("__EFMigrationsHistory_CacheDbContext"))
             );
 
             // Configure Identity for authentication
@@ -113,12 +121,24 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
             builder.Services.AddScoped<IReportService, ReportService>();
 
-            // Configure Azure Communication Services Email client depending on environment and feature flag
+            // AI Companion (CSP-120) — Gemini-backed wildlife education chat
+            if (featureFlags.IsEnabled("EnableGeminiAIService") && !EF.IsDesignTime)
+            {
+                entryLogger.LogInformation("EnableGeminiAIService flag is ON. Registering GeminiAIService.");
+                builder.Services.Configure<GeminiOptions>(builder.Configuration.GetSection(GeminiOptions.SectionName));
+                builder.Services.AddHttpClient<IAIService, GeminiAIService>();
+            }
+            else
+            {
+                entryLogger.LogInformation("EnableGeminiAIService flag is OFF. GeminiAIService will not be registered.");
+            }
+
+            // Configure Azure Communication Services Email client depending on feature flag state and when EF is not in design-time
             var emailConnectionString = builder.Configuration.GetConnectionString("AzureCommunicationServices");
             var emailSender = builder.Configuration.GetValue<string>("Email:SenderAddress");
             var useRealEmailer = featureFlags.IsEnabled("UseRealEmailerService");
 
-            if (useRealEmailer)
+            if (useRealEmailer && !EF.IsDesignTime)
             {
                 if (string.IsNullOrWhiteSpace(emailConnectionString) || string.IsNullOrWhiteSpace(emailSender))
                 {
@@ -148,11 +168,14 @@ namespace MH.Capstone.WebApp
                 entryLogger.LogInformation("NoOpEmailService registered (feature flag disabled).");
             }
 
-            // Configure Ninja API Caller
-            const string ninjasApiConfigSectionPath = "Api:External:Ninjas";
-            builder.Services.AddExternalApiCaller<NinjaApiConfigValues>(builder.Configuration,
-                builder.Environment, entryLogger, ninjasApiConfigSectionPath,
-                opts => opts.UseCacheProxy<NinjaAnimalCacheEntity>());
+            // Configure Ninja API Caller when EF is not running for design-time
+            if (!EF.IsDesignTime)
+            {
+                const string ninjasApiConfigSectionPath = "Api:External:Ninjas";
+                builder.Services.AddExternalApiCaller<NinjaApiConfigValues>(builder.Configuration,
+                    builder.Environment, entryLogger, ninjasApiConfigSectionPath,
+                    opts => opts.UseCacheProxy<NinjaAnimalCacheEntity>());
+            }
 
             // Add controllers with views and configure Newtonsoft.Json for JSON serialization
             builder.Services.AddControllersWithViews()
@@ -182,7 +205,7 @@ namespace MH.Capstone.WebApp
                 pattern: "{controller=Home}/{action=Index}/{id?}")
                 .WithStaticAssets();
 
-            app.Run();
+            return app;
         }
 
         public static ILogger CreateProgramEntryLogger()

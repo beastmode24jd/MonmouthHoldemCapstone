@@ -18,9 +18,6 @@ namespace MH.Capstone.WebApp.Controllers
         // 2MB Image file limit.
         // TODO - Consider moving this to a configuration file or constant class for better maintainability.
         const long MAX_IMG_SIZE = 2 * 1024 * 1024;
-        //private readonly Guid PROFILE_BADGE_GUID = MH.Capstone.Domain.Constants.BadgeId.ProfileBadgeGUID;
-        //private readonly Guid BIO_BADGE_GUID = MH.Capstone.Domain.Constants.BadgeId.CustomBioBadgeGUID;
-        //private readonly Guid SIGHTING_BADGE_GUID = MH.Capstone.Domain.Constants.BadgeId.FirstSightingBadgeGUID;
         
         // Logger to track dashboard access and activity. 
         private readonly ILogger<DashboardController> _logger;

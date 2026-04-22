@@ -7,17 +7,9 @@ namespace MH.Capstone.WebApp.Models
         [Required(ErrorMessage = "Email is required")]
         [EmailAddress(ErrorMessage = "Invalid email address")]
         [Display(Name = "Email")]
-        public string? Identifier { get; set; }
+        public string Email { get; set; } = string.Empty;
 
-        [DataType(DataType.Password)]
-        [Display(Name = "New Password")]
-        public string? NewPassword { get; set; }
-
-        [DataType(DataType.Password)]
-        [Display(Name = "Confirm New Password")]
-        [Compare(nameof(NewPassword), ErrorMessage = "The two passwords do not match.")]
-        public string? ConfirmNewPassword { get; set; }
-
-        public bool ShowPasswordResetFields { get; set; }
+        /// <summary>True after the form is submitted — triggers the "check your email" message.</summary>
+        public bool EmailSent { get; set; }
     }
 }

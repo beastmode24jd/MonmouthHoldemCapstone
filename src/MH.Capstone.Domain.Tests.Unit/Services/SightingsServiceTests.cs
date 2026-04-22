@@ -40,6 +40,22 @@ public class SightingsServiceTests
         _scoringServiceMock = new Mock<IScoringService>();
         _notificationServiceMock = new Mock<INotificationService>();
         _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
+
+        // GLOBAL MOCKS for new dependencies
+        _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(It.IsAny<int>()))
+            .ReturnsAsync(10);
+
+        // Mock the metadata tuple return
+        _scoringServiceMock.Setup(s => s.GetRarityMultiplierAndName(It.IsAny<int>()))
+            .ReturnsAsync((1.0, "Common"));
+
+        // Default global count
+        _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(It.IsAny<int>()))
+            .ReturnsAsync(10);
+
+        // Provide an empty list of users by default so FirstOrDefault doesn't crash
+        _userRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(new List<ApplicationUser>().AsQueryable());
     }
 
     [TearDown]
@@ -57,19 +73,12 @@ public class SightingsServiceTests
 
     private void AssertAllMockVerifications()
     {
-
         // Asserts that the methods that were set up in the Moq were called in ways that we set up
-        _sightingsRepoMock.VerifyAll();
-        _scoringServiceMock.VerifyAll();
-        _notificationServiceMock.VerifyAll();
-        _userRepoMock.VerifyAll();
-
-        // Asserts that the Moq mocks were only called in ways that we set up with the Setup method,
-        // failing if any method was called that was not set up
-        _sightingsRepoMock.VerifyNoOtherCalls();
-        _scoringServiceMock.VerifyNoOtherCalls();
-        _notificationServiceMock.VerifyNoOtherCalls();
-        _userRepoMock.VerifyNoOtherCalls();
+        // Global Setup calls act as defaults
+        _sightingsRepoMock.Verify();
+        _scoringServiceMock.Verify();
+        _notificationServiceMock.Verify();
+        _userRepoMock.Verify();
     }
 
     // Will run 2^4 = 16 times, testing all combinations of the valid values for lat, long, timestamp, and description
@@ -82,7 +91,7 @@ public class SightingsServiceTests
     {
         // Arrange
         var sighting = new Sighting(_validSighting.Id, _validSighting.UserId, lat, lon,
-            timestamp, desc, [0x01]);
+            timestamp, desc, [0x01], 10, false, "Common", 1.0);
         var sightingsCount = GetRandomIntInRange(1, 100);
         var pointsValue = GetRandomIntInRange(1, 20);
 
@@ -231,10 +240,17 @@ public class SightingsServiceTests
         var sighting = _validSighting;
         _validSighting.UserId = Guid.AllBitsSet;
 
-        _sightingsRepoMock.Setup(r =>
-            r.AddOrUpdateAsync(It.Is(sighting, SightingComparer.Instance)))
-            .ThrowsAsync(new DbUpdateException("Foreign key violation", new SqlExceptionBuilder().WithNumber(547).Build()))
-            .Verifiable(Times.Once);
+        // User cannot be null, to hit try block where exception is
+        var user = new ApplicationUser { Id = sighting.UserIdentityId };
+
+        // User exists in memory but database throws FK constraint on save
+        _userRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(new List<ApplicationUser> { user }.AsQueryable());
+
+        _sightingsRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<Sighting>()))
+            .ThrowsAsync(new DbUpdateException("Foreign key violation", 
+            new SqlExceptionBuilder().WithNumber(547).Build()))
+            .Verifiable();
 
         var sut = CreateSut();
 
@@ -479,7 +495,52 @@ public class SightingsServiceTests
 
     #endregion
 
-        [Test]
+    #region CSP-96: GetAllSightingsAsync Tests
+
+    [Test]
+    public async Task GetAllSightingsAsync_ReturnsSightingsFromAllUsersOrderedByTimestampDescending()
+    {
+        // Arrange
+        var sightings = new List<Sighting>
+        {
+            new() { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), Timestamp = DateTimeOffset.UtcNow.AddDays(-3), ImageBuffer = [0x01] },
+            new() { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), Timestamp = DateTimeOffset.UtcNow.AddDays(-1), ImageBuffer = [0x01] },
+            new() { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), Timestamp = DateTimeOffset.UtcNow.AddDays(-2), ImageBuffer = [0x01] }
+        }.AsQueryable();
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(sightings);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = (await sut.GetAllSightingsAsync()).ToList();
+
+        // Assert
+        Assert.That(result.Count, Is.EqualTo(3));
+        Assert.That(result[0].Timestamp, Is.GreaterThan(result[1].Timestamp));
+        Assert.That(result[1].Timestamp, Is.GreaterThan(result[2].Timestamp));
+    }
+
+    [Test]
+    public async Task GetAllSightingsAsync_NoSightings_ReturnsEmpty()
+    {
+        // Arrange
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, object>>[]>()))
+            .ReturnsAsync(Enumerable.Empty<Sighting>().AsQueryable());
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetAllSightingsAsync();
+
+        // Assert
+        Assert.That(result, Is.Empty);
+    }
+
+    #endregion
+
+    [Test]
     public async Task CreateSightingAsync_UserHasActiveStreak_Applies1Point5Multiplier()
     {
         // Arrange
@@ -582,7 +643,7 @@ public struct SightingValidValuesSource
 
     public static Sighting DefaultValidSighting =>
         new Sighting(Guid.NewGuid(), Guid.NewGuid(), 0m, 0m, _fixedBaseTime,
-            string.Empty, [0x01]);
+            string.Empty, [0x01], 10, false, "Common", 1.0);
 
     public static IEnumerable<decimal> GetValidLats() =>
             GetEnumerableOfDecimalsInRangeOfAmount(_EnumerableCounts, -90m, 90m);

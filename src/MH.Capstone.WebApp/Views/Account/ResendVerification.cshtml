@@ -1,0 +1,56 @@
+@model ResendVerificationViewModel
+@{
+    ViewData["Title"] = "Resend Verification Email";
+}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-7 col-lg-5">
+        <div class="card shadow">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4">Resend Verification Email</h2>
+
+                @if (Model.EmailSent)
+                {
+                    <div class="alert alert-success" role="alert" id="resendVerificationSentMessage">
+                        <strong>Check your email.</strong><br />
+                        If that address belongs to an unverified account, we've sent a new
+                        verification link. The link expires after a period of time.
+                    </div>
+                    <div class="text-center mt-3">
+                        <a asp-action="Login" asp-controller="Account" class="btn btn-outline-primary">
+                            Back to Login
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted text-center mb-4">
+                        Enter the email address you registered with and we will send a new verification link.
+                    </p>
+                    <form asp-action="ResendVerification" asp-controller="Account" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label">Email address</label>
+                            <input asp-for="Email" class="form-control" type="email"
+                                   id="resendVerificationEmail" placeholder="Enter your email" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" id="resendVerificationSubmitBtn">
+                                Resend Verification Email
+                            </button>
+                        </div>
+                        <div class="text-center mt-3">
+                            <a asp-action="Login" asp-controller="Account"
+                               class="link-primary text-decoration-underline">
+                                Back to Login
+                            </a>
+                        </div>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

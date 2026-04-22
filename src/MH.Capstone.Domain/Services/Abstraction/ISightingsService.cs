@@ -22,5 +22,12 @@ namespace MH.Capstone.Domain.Services.Abstraction
         Task<IEnumerable<Sighting>> GetUserSightingsAsync(Guid userId);
 
         #endregion
+
+        #region CSP-96: Community Gallery
+
+        // Returns all sightings from all users, with User navigation property loaded, ordered by most recent
+        Task<IEnumerable<Sighting>> GetAllSightingsAsync();
+
+        #endregion
     }
 }
