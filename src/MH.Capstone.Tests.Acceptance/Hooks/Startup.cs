@@ -81,9 +81,10 @@ public sealed class Startup
             options.AddArgument("--start-maximized");
         }
 
-        // Required in CI/Docker environments
+        // Required in CI/Docker/WSL2 environments
         options.AddArgument("--no-sandbox");
         options.AddArgument("--disable-dev-shm-usage");
+        options.AddArgument("--disable-gpu");
 
         // Suppress TLS errors for the local dev certificate used by Kestrel
         options.AddArgument("--allow-insecure-localhost");
