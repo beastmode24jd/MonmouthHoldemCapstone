@@ -1,4 +1,7 @@
-using MH.Capstone.Tests.Acceptance.Hooks;
+using System.Diagnostics.CodeAnalysis;
+using FluentAssertions;
+using MH.Capstone.Tests.Acceptance.Configuration;
+using MH.Capstone.Tests.Acceptance.Drivers;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
 using Reqnroll;
@@ -7,19 +10,30 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
 [Binding]
 [Scope(Tag = "deactivation")]
+[ExcludeFromCodeCoverage]
 public class CSP47AccountDeactivationSteps
 {
     private readonly IWebDriver _driver;
-    private string BaseUrl => Startup.GetSettings().BaseUrl;
-    private const string TestEmail = "alex@test.com";
+    private readonly WebDriverWait _wait;
+    private readonly string _baseUrl;
+    private readonly AuthenticationDriver _authDriver;
+    private readonly EmailVerificationDriver _emailVerificationDriver;
+
+    private const string TestEmail    = "alex@test.com";
     private const string TestPassword = "Capstone26!";
 
-    private string _dynamicTestEmail = "";
-    private string _dynamicTestPassword = "";
+    private string _dynamicTestEmail    = string.Empty;
+    private string _dynamicTestPassword = string.Empty;
 
-    public CSP47AccountDeactivationSteps(IWebDriver driver)
+    public CSP47AccountDeactivationSteps(IWebDriver driver, WebDriverWait wait,
+        AcceptanceTestSettings settings, AuthenticationDriver authDriver,
+        EmailVerificationDriver emailVerificationDriver)
     {
         _driver = driver;
+        _wait = wait;
+        _baseUrl = settings.BaseUrl.TrimEnd('/');
+        _authDriver = authDriver;
+        _emailVerificationDriver = emailVerificationDriver;
     }
 
     [Given(@"I am using Chrome browser")]
@@ -31,83 +45,69 @@ public class CSP47AccountDeactivationSteps
     [Given(@"the application is running")]
     public void GivenTheApplicationIsRunning()
     {
-        _driver.Navigate().GoToUrl(BaseUrl);
+        _driver.Navigate().GoToUrl(_baseUrl);
     }
 
     [Given(@"I am logged in as a registered user")]
     public void GivenIAmLoggedInAsARegisteredUser()
     {
-        _driver.Navigate().GoToUrl(BaseUrl);
-        _driver.Manage().Cookies.DeleteAllCookies();
-        _driver.Navigate().GoToUrl(BaseUrl + "/Account/Login");
-
-        var emailField = _driver.FindElement(By.Id("emailField"));
-        var passwordField = _driver.FindElement(By.Id("passwordField"));
-
-        emailField.SendKeys(TestEmail);
-        passwordField.SendKeys(TestPassword);
-
-        var wait47 = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
-        var submitBtn = wait47.Until(d => {
-            var btn = d.FindElement(By.Id("submitBtn"));
-            return btn.Enabled ? btn : null;
-        });
-        submitBtn!.Click();
-
-        Thread.Sleep(1000);
+        _authDriver.PreformLoginForUser(TestEmail, TestPassword);
     }
 
     [Given(@"I have registered a new test account")]
     public void GivenIHaveRegisteredANewTestAccount()
     {
-        _dynamicTestEmail = "testdeactivate" + Guid.NewGuid().ToString("N").Substring(0, 8) + "@test.com";
+        _dynamicTestEmail    = $"testdeactivate{Guid.NewGuid().ToString("N")[..8]}@test.com";
         _dynamicTestPassword = "TestDeactivate123!";
 
-        _driver.Navigate().GoToUrl(BaseUrl + "/Account/Register");
-        Thread.Sleep(500);
-
-        var emailField = _driver.FindElement(By.Id("Email"));
-        var passwordField = _driver.FindElement(By.Id("passwordField"));
-        var confirmPasswordField = _driver.FindElement(By.Id("confirmPasswordField"));
-
-        emailField.SendKeys(_dynamicTestEmail);
-        passwordField.SendKeys(_dynamicTestPassword);
-        confirmPasswordField.SendKeys(_dynamicTestPassword);
-
-        Thread.Sleep(1000);
-        var submitBtn = _driver.FindElement(By.Id("submitBtn"));
-        ((OpenQA.Selenium.IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].disabled = false;", submitBtn);
-        ((OpenQA.Selenium.IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", submitBtn);
-
-        Thread.Sleep(2000);
+        _emailVerificationDriver.RegisterNewUser(_dynamicTestEmail, _dynamicTestPassword);
     }
 
     [Given(@"I am logged in with the test account")]
     public void GivenIAmLoggedInWithTheTestAccount()
     {
-        // After registration, user is automatically logged in
-        // Just verify we are not on the login page
-        Thread.Sleep(500);
+        // Post-CSP-134: registration requires email verification before login.
+        // Get the confirmation link and navigate to it to verify the email first.
+        var link = _emailVerificationDriver.GetEmailConfirmationLink(_dynamicTestEmail);
+        _emailVerificationDriver.NavigateToVerificationLink(link);
+
+        _authDriver.PreformLoginForUser(_dynamicTestEmail, _dynamicTestPassword);
     }
 
     [When(@"I navigate to the deactivate page without logging in")]
     public void WhenINavigateToTheDeactivatePageWithoutLoggingIn()
     {
-        _driver.Navigate().GoToUrl(BaseUrl + "/Account/Deactivate");
-        Thread.Sleep(500);
+        _driver.Navigate().GoToUrl($"{_baseUrl}/Account/Deactivate");
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
     }
 
     [When(@"I navigate to the deactivate page")]
     public void WhenINavigateToTheDeactivatePage()
     {
-        _driver.Navigate().GoToUrl(BaseUrl + "/Account/Deactivate");
-        Thread.Sleep(500);
+        _driver.Navigate().GoToUrl($"{_baseUrl}/Account/Deactivate");
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
     }
 
     [When(@"I enter an incorrect password ""(.*)""")]
     public void WhenIEnterAnIncorrectPassword(string password)
     {
-        var passwordField = _driver.FindElement(By.Id("Password"));
+        var passwordField = _wait.Until(d => d.FindElement(By.Id("Password")));
         passwordField.Clear();
         passwordField.SendKeys(password);
     }
@@ -115,7 +115,7 @@ public class CSP47AccountDeactivationSteps
     [When(@"I enter the correct password")]
     public void WhenIEnterTheCorrectPassword()
     {
-        var passwordField = _driver.FindElement(By.Id("Password"));
+        var passwordField = _wait.Until(d => d.FindElement(By.Id("Password")));
         passwordField.Clear();
         passwordField.SendKeys(_dynamicTestPassword);
     }
@@ -123,52 +123,71 @@ public class CSP47AccountDeactivationSteps
     [When(@"I click the deactivate button")]
     public void WhenIClickTheDeactivateButton()
     {
-        var deactivateBtn = _driver.FindElement(By.CssSelector("button.btn-danger[type='submit']"));
+        var deactivateBtn = _wait.Until(d => d.FindElement(By.CssSelector("button.btn-danger[type='submit']")));
         deactivateBtn.Click();
-        Thread.Sleep(1000);
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
     }
 
     [Then(@"I should be redirected to the login page")]
     public void ThenIShouldBeRedirectedToTheLoginPage()
     {
-        Assert.That(_driver.Url, Does.Contain("/account/login").IgnoreCase);
+        _wait.Until(d => d.Url.Contains("/account/login", StringComparison.OrdinalIgnoreCase));
+        _driver.Url.Should().ContainEquivalentOf("/account/login");
     }
 
     [Then(@"I should see a warning about account deactivation consequences")]
     public void ThenIShouldSeeAWarningAboutAccountDeactivationConsequences()
     {
-        var warningAlert = _driver.FindElement(By.CssSelector(".alert-warning"));
-        Assert.That(warningAlert.Displayed, Is.True);
-        Assert.That(warningAlert.Text, Does.Contain("Warning"));
+        var warningAlert = _wait.Until(d => d.FindElement(By.CssSelector(".alert-warning")));
+        warningAlert.Displayed.Should().BeTrue("a warning alert should be visible on the deactivation page");
+        warningAlert.Text.Should().Contain("Warning");
     }
 
     [Then(@"I should see a password confirmation field")]
     public void ThenIShouldSeeAPasswordConfirmationField()
     {
-        var passwordField = _driver.FindElement(By.Id("Password"));
-        Assert.That(passwordField.Displayed, Is.True);
+        var passwordField = _wait.Until(d => d.FindElement(By.Id("Password")));
+        passwordField.Displayed.Should().BeTrue("the password confirmation field should be visible");
     }
 
     [Then(@"I should see an error message about incorrect password")]
     public void ThenIShouldSeeAnErrorMessageAboutIncorrectPassword()
     {
-        Thread.Sleep(500);
-        var pageSource = _driver.PageSource.ToLower();
-        Assert.That(pageSource, Does.Contain("incorrect"));
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
+
+        var pageText = _driver.PageSource.ToLowerInvariant();
+        var hasAlert = _driver.FindElements(By.CssSelector(".alert.alert-danger, .text-danger")).Count > 0;
+
+        (pageText.Contains("incorrect") || pageText.Contains("invalid") || pageText.Contains("wrong password") || hasAlert)
+            .Should().BeTrue("an error about the incorrect password should appear");
     }
 
     [Then(@"I should remain on the deactivate page")]
     public void ThenIShouldRemainOnTheDeactivatePage()
     {
-        Assert.That(_driver.Url, Does.Contain("/Account/Deactivate").IgnoreCase.Or.Contain("/account/Deactivate"));
+        _driver.Url.Should().ContainEquivalentOf("/Account/Deactivate");
     }
 
     [Then(@"I should see a message that my account has been deactivated")]
     public void ThenIShouldSeeAMessageThatMyAccountHasBeenDeactivated()
     {
-        // After deactivation, user is redirected to login page
-        // The success message may or may not be visible depending on TempData rendering
-        // Verify we are on the login page (already confirmed in previous step)
-        Assert.That(_driver.Url.ToLower(), Does.Contain("/account/login"));
+        // After deactivation the user is redirected to the login page.
+        _driver.Url.ToLower().Should().Contain("/account/login");
     }
 }
