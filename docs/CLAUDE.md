@@ -109,11 +109,13 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `IBadgeService` | `BadgeService` | Check and award badges |
 | `ILeaderboardService` | `LeaderboardService` | Ranked user standings |
 | `IReportService` | `ReportService` | Submit and resolve content reports |
-| `INotificationService` | `InAppNotificationService` | Create and deliver in-app notifications |
+| `INotificationService` | `InAppNotificationService` | Create and deliver in-app notifications. Includes `MarkAllAsReadAsync(user)` and `DeleteAllAsync(user)` for bulk operations (implemented in `NotificationServiceBase`). |
 | `IEmailService` | `AzureCommunicationEmailService` / `NoOpEmailService` | Send emails (toggled by `UseRealEmailerService` feature flag). Used by `AccountController.ForgotPassword` to deliver password-reset links. |
 | `IApiCaller` | `ExternalApiCaller` | HTTP calls to external APIs with SQL caching |
 
 **Background service:** `EmailDispatcherService` (hosted service) processes the `EmailQueue` outbox.
+
+**Bulk notification endpoints (CSP-138):** `PUT /notifications/mark-all-read` and `DELETE /notifications/all` — both require `[ValidateAntiForgeryToken]` and are scoped to the authenticated user.
 
 ---
 
@@ -231,6 +233,11 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `/Sighting/Gallery` | `currentUserId` | Hidden `<span data-user-id="…">` carrying the logged-in user's identity string ID |
 | `/Sighting/Gallery` | `.sighting-card-wrapper[data-user-id]` | Per-card wrapper; `data-user-id` attribute used by JS to match against current user |
 | `/Sighting/Gallery` | `.sighting-attribution` | `<span>` inside each card showing the submitter's `UserName` |
+| `/notifications` | `markAllReadForm` | Form wrapping the "Mark All as Read" button; has `d-none` class when no unread notifications exist |
+| `/notifications` | `markAllReadBtn` | "Mark All as Read" submit button |
+| `/notifications` | `deleteAllForm` | Form wrapping the "Delete All" button; has `d-none` class when notification list is empty |
+| `/notifications` | `deleteAllBtn` | "Delete All" submit button |
+| `/notifications` | `notificationsEmptyState` | `div.alert` shown when the user has no notifications |
 
 Access-denied detection: checks if `driver.Url` contains `/account/login` (case-insensitive redirect).
 
@@ -261,6 +268,36 @@ For BDD scenarios, implement **one scenario per commit** (write the feature step
 ```
 [CSP-XXX] <what was implemented> (TDD)
 [CSP-XXX] BDD: <scenario name from .feature file>
+```
+
+### Pull Request Conventions
+
+Every PR on this repo must follow these conventions — apply them whenever running `gh pr create`:
+
+- **Reviewer:** always request `jmcshane22` (`--reviewer jmcshane22`)
+- **Assignees:** always assign both `jmcshane22` and `beastmode24jd` (`--assignee jmcshane22,beastmode24jd`)
+- **Draft:** always open as a draft (`--draft`) — PRs must not be auto-ready for merge
+- **Labels:** apply relevant labels (e.g. `feature`, `bug`, `test`, `docs`) based on PR content; check available labels with `gh label list --repo jmcshane22/MonmouthHoldemCapstone`
+
+#### `gh pr edit` is broken on this repo
+
+`gh pr edit` exits with a GraphQL error due to the GitHub classic Projects API deprecation. Use the REST API directly instead:
+
+```bash
+# Add reviewer
+gh api repos/jmcshane22/MonmouthHoldemCapstone/pulls/{n}/requested_reviewers \
+  --method POST --field 'reviewers[]=jmcshane22'
+
+# Add assignees
+gh api repos/jmcshane22/MonmouthHoldemCapstone/issues/{n}/assignees \
+  --method POST --field 'assignees[]=jmcshane22' --field 'assignees[]=beastmode24jd'
+
+# Add label
+gh api repos/jmcshane22/MonmouthHoldemCapstone/issues/{n}/labels \
+  --method POST --field 'labels[]=enhancement'
+
+# Convert back to draft (if created without --draft by mistake)
+gh pr ready {n} --repo jmcshane22/MonmouthHoldemCapstone --undo
 ```
 
 ### Post-implementation: update this file
