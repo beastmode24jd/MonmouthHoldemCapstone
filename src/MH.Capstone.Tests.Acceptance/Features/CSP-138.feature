@@ -1,3 +1,4 @@
+@csp138
 Feature: CSP-138
 
 Bulk Notification Actions — Mark All as Read and Delete All

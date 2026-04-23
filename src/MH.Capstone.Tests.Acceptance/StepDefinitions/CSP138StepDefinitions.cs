@@ -21,6 +21,20 @@ public class CSP138StepDefinitions
         _notificationsDriver = notificationsDriver;
     }
 
+    // ── Hooks ─────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Resets the acceptance database to a known state before every CSP-138
+    /// scenario.  This prevents notification rows created by earlier test
+    /// suites (e.g. CSP-101 report-submission notifications) from bleeding into
+    /// scenarios that depend on exact unread / total notification counts.
+    /// </summary>
+    [BeforeScenario("csp138")]
+    public static async Task BeforeCsp138Scenario()
+    {
+        await TestWebAppHost.ResetSeedDataAsync();
+    }
+
     // ── Shared Given steps ────────────────────────────────────────────────────
 
     [Given("Alex is logged in and views their notifications")]
@@ -34,6 +48,12 @@ public class CSP138StepDefinitions
     public void GivenPatriciaIsLoggedInAndViewsTheirNotifications()
     {
         _authenticationDriver.PreformLoginForUser("patricia@test.com", AcceptanceTestSeeder.TestPassword);
+        _notificationsDriver.NavigateToNotifications();
+        // Login always creates "Successful Login" (and possibly streak) notifications.
+        // Mark them all read here so this Given fully establishes the precondition:
+        // Patricia has viewed her notifications and all are read.
+        if (_notificationsDriver.HasUnreadNotifications())
+            _notificationsDriver.ClickMarkAllRead();
         _notificationsDriver.NavigateToNotifications();
     }
 

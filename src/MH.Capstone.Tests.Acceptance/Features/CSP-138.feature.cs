@@ -20,12 +20,14 @@ namespace MH.Capstone.Tests.Acceptance.Features
     [global::NUnit.Framework.TestFixtureAttribute()]
     [global::NUnit.Framework.DescriptionAttribute("CSP-138")]
     [global::NUnit.Framework.FixtureLifeCycleAttribute(global::NUnit.Framework.LifeCycle.InstancePerTestCase)]
+    [global::NUnit.Framework.CategoryAttribute("csp138")]
     public partial class CSP_138Feature
     {
         
         private global::Reqnroll.ITestRunner testRunner;
         
-        private static string[] featureTags = ((string[])(null));
+        private static string[] featureTags = new string[] {
+                "csp138"};
         
         private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "CSP-138", "Bulk Notification Actions — Mark All as Read and Delete All", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
@@ -118,7 +120,7 @@ namespace MH.Capstone.Tests.Acceptance.Features
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("User marks all notifications as read", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 5
+#line 6
 this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -128,25 +130,25 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 6
+#line 7
   await testRunner.GivenAsync("Alex is logged in and views their notifications", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 7
+#line 8
   await testRunner.AndAsync("Alex has unread notifications", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-#line 8
+#line 9
   await testRunner.WhenAsync("Alex selects Mark All as Read", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 9
+#line 10
   await testRunner.ThenAsync("all notifications are marked as read", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
-#line 10
+#line 11
   await testRunner.AndAsync("the Mark All as Read control is not visible", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-#line 11
+#line 12
   await testRunner.AndAsync("the notification count badge is cleared", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-#line 12
+#line 13
   await testRunner.AndAsync("the acceptance database is restored to its original seed state", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
@@ -163,7 +165,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Mark All as Read is suppressed when no unread notifications exist", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 14
+#line 15
 this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -173,10 +175,10 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 15
+#line 16
   await testRunner.GivenAsync("Patricia is logged in and views their notifications", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 16
+#line 17
   await testRunner.ThenAsync("the Mark All as Read control is not visible", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
@@ -193,7 +195,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("User deletes all notifications", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 18
+#line 19
 this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -203,25 +205,25 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 19
+#line 20
   await testRunner.GivenAsync("Alex is logged in and views their notifications", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 20
+#line 21
   await testRunner.AndAsync("Alex has notifications", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-#line 21
+#line 22
   await testRunner.WhenAsync("Alex selects Delete All", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 22
+#line 23
   await testRunner.ThenAsync("the notification list displays an empty state message", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
-#line 23
+#line 24
   await testRunner.AndAsync("the Delete All control is not visible", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-#line 24
+#line 25
   await testRunner.AndAsync("the notification count badge is cleared", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-#line 25
+#line 26
   await testRunner.AndAsync("the acceptance database is restored to its original seed state", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
@@ -238,7 +240,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Delete All is suppressed when no notifications exist", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 27
+#line 28
 this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -248,16 +250,16 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 28
+#line 29
   await testRunner.GivenAsync("Alex has no notifications remaining", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 29
+#line 30
   await testRunner.WhenAsync("Alex views their notifications", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 30
+#line 31
   await testRunner.ThenAsync("the Delete All control is not visible", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
-#line 31
+#line 32
   await testRunner.AndAsync("the acceptance database is restored to its original seed state", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
@@ -274,7 +276,7 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Bulk operations are scoped to the authenticated user", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 33
+#line 34
 this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -284,19 +286,19 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 34
+#line 35
   await testRunner.GivenAsync("Alex is logged in and views their notifications", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 35
+#line 36
   await testRunner.WhenAsync("Alex selects Delete All", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 36
+#line 37
   await testRunner.ThenAsync("only Alex\'s notifications are deleted", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
-#line 37
+#line 38
   await testRunner.AndAsync("Lily\'s notifications remain unchanged", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-#line 38
+#line 39
   await testRunner.AndAsync("the acceptance database is restored to its original seed state", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
