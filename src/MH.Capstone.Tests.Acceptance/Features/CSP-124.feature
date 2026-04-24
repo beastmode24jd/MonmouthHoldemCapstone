@@ -17,7 +17,7 @@ Scenario: Alex is on the Clubs page, and wants to create a new club
     Given I am on the Clubs page
     When I click the Create New Club button
     And I select valid options
-    Then I should be redirected to the Club chatroom
+    Then I should be redirected to my Club front page
     And see the new club on my Clubs page
 
 #@clubs

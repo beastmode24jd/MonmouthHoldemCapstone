@@ -14,10 +14,16 @@ namespace MH.Capstone.WebApp.Controllers
         private readonly IClubService _clubService;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public ClubsController(IClubService clubService, UserManager<ApplicationUser> userManager)
+        // To notify user if they have been added to/invited to a Club.
+        private readonly INotificationService _notificationService;
+
+        public ClubsController(IClubService clubService,
+            UserManager<ApplicationUser> userManager,
+            INotificationService notificationService)
         {
             _clubService = clubService;
             _userManager = userManager;
+            _notificationService = notificationService;
         }
 
         public async Task<IActionResult> Index()
@@ -35,6 +41,11 @@ namespace MH.Capstone.WebApp.Controllers
             return View("LandingPage", viewModel);
         }
 
-        
+        public async Task<IActionResult> CreateNewClub()
+        {
+            // Need to create a new Club,
+            //      then load and redirect to the Club's front page.
+            return View("ClubPage");
+        }
     }
 }

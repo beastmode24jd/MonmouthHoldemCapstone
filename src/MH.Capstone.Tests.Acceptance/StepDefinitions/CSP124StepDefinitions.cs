@@ -50,8 +50,8 @@ public class CSP124StepDefinitions
         // Fill out the modal inputs
     }
 
-    [Then("I should be redirected to the Club chatroom")]
-    public void ThenIShouldBeRedirectedToTheClubChatroom()
+    [Then("I should be redirected to my Club front page")]
+    public void ThenIShouldBeRedirectedToMyClubFrontPage()
     {
         // Check the page
     }
