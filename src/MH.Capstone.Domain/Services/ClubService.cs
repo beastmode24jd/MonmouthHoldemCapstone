@@ -49,7 +49,7 @@ namespace MH.Capstone.Domain.Services
             var savedClub = await _clubRepo.AddOrUpdateAsync(club);
 
             // Auto-enroll the owner as the first member so they appear in their own "My Clubs" list.
-            var ownerMembership = new ClubMembership(savedClub.OwnerId, savedClub.Id, DateTimeOffset.UtcNow);
+            var ownerMembership = new ClubMembership(savedClub.OwnerId, savedClub.Id, savedClub.CreatedAt);
             await _membershipRepo.AddOrUpdateAsync(ownerMembership);
 
             return savedClub;

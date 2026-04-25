@@ -41,22 +41,33 @@ namespace MH.Capstone.WebApp.Controllers
             return View("LandingPage", viewModel);
         }
 
-        public async Task<IActionResult> CreateNewClub()
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateClub(string name, string? description, bool isPublic)
         {
-            // Need to create a new Club,
-            //      then load and redirect to the Club's front page.
+            var user = await _userManager.GetUserAsync(User);
 
-            
+            if (user == null)
+                return StatusCode((int)HttpStatusCode.InternalServerError);
 
-            /*
-                public Club(Guid ownerId, string name, string? description, DateTimeOffset createdAt)
-                {
-                    OwnerId = ownerId;
-                    Name = name;
-                    Description = description;
-                    CreatedAt = createdAt;
-                }
-            */
+            // Initialize the club.
+
+            Guid ownerId = user.GuidId;
+            DateTimeOffset createdAt = new DateTimeOffset();
+
+            var newClub = new Club
+            {
+                OwnerId = ownerId,
+                Name = name,
+                Description = description,
+                IsPublic = isPublic,
+                CreatedAt = createdAt
+            };
+
+            // Save the club
+            await _clubService.CreateClubAsync(newClub);
+
+            // TODO: redirect to ClubPage
 
             // Get timezone cookie from site.js (defaults to PST if not found)
             string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
@@ -73,8 +84,24 @@ namespace MH.Capstone.WebApp.Controllers
                 userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
             }
 
-            // Need to pass this along to the ClubPage display, so it can show the created time
-            //          accurately.
+            // Convert the timestamp to the device's actual zone
+            DateTimeOffset deviceTime = TimeZoneInfo.ConvertTime((DateTimeOffset)newClub.CreatedAt, userZone);
+
+            // Generate the notification with the correct AM/PM and 12-hour format
+            string timeDisplay = deviceTime.ToString("MM/dd/yyyy h:mm tt");
+
+            await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId,
+                $"Made the {newClub.Name} Club",
+                $"Good work. Keep at it!"
+                ));
+
+            // Need to pass this along to the ClubPage display,
+            //      so it can show the created time accurately.
+
+            string clubId = newClub.Id.ToString();
+
+            ViewData["ClubCreatedAt"] = timeDisplay;
+            ViewData["ClubIDValue"] = clubId;
 
             return View("ClubPage");
         }

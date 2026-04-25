@@ -107,7 +107,7 @@ namespace MH.Capstone.Tests.Acceptance.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/CSP-124.feature.ndjson", 3);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/CSP-124.feature.ndjson", 4);
         }
         
         [global::NUnit.Framework.TestAttribute()]
@@ -140,6 +140,47 @@ this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
 #line 13
     await testRunner.ThenAsync("I should not see a Club page link", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::NUnit.Framework.TestAttribute()]
+        [global::NUnit.Framework.DescriptionAttribute("Alex is on the Clubs page, and wants to create a new club")]
+        [global::NUnit.Framework.CategoryAttribute("clubs")]
+        public async global::System.Threading.Tasks.Task AlexIsOnTheClubsPageAndWantsToCreateANewClub()
+        {
+            string[] tagsOfScenario = new string[] {
+                    "clubs"};
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "1";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Alex is on the Clubs page, and wants to create a new club", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 16
+this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 17
+    await testRunner.GivenAsync("I am on the Clubs page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 18
+    await testRunner.WhenAsync("I click the Create New Club button", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 19
+    await testRunner.AndAsync("I select valid options", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 20
+    await testRunner.ThenAsync("I should be redirected to my Club front page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+#line 21
+    await testRunner.AndAsync("see the new club on my Clubs page", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

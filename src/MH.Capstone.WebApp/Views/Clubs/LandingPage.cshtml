@@ -46,9 +46,6 @@
                 <p class="lead text-muted mb-4">
                     Create a club or join an existing one to get started!
                 </p>
-                <button type="button" class="btn btn-primary btn-lg" onclick="showClubModal()">
-                    <i class="bi bi-people-fill"></i> Create your own Club
-                </button>
             </div>
 
             @* Club cards grid — will be populated once Club upload is implemented *@
@@ -69,6 +66,15 @@
                     }
                 </div>
             }
+
+            <div class="row g2">
+                <div class="mt-4 mb-4">
+                    <button type="button" class="btn btn-primary btn-lg" onclick="showClubModal()">
+                        <i class="bi bi-people-fill"></i> Create your own Club
+                    </button>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
@@ -81,20 +87,38 @@
                 <h5 class="modal-title">Create a new Club</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label for="modalClubName" class="form-label">Name</label>
-                    <input type="text" id="modalClubName" class="form-control" />
+            <form asp-controller="Clubs" asp-action="CreateClub" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="modalClubName" class="form-label">Name</label>
+                        <input type="text" id="modalClubName" name="name" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <textarea id="descInput" name="description" class="form-control" rows="6" maxlength="250" placeholder="Tell us about your Club..."></textarea>
+                        <div class="form-text">Club description should be 250 characters or less.</div>
+                        <span id="charCount" class="form-text">0/250</span>
+                        <div id="descErrorMsg" class="text-danger fw-bold small mt-1" style="display:none;"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Visibility</label>
+                        <div class="btn-group w-100" role="group" aria-label="Club visibility">
+                            <input type="radio" class="btn-check" name="isPublic" id="radioPublic" value="true" autocomplete="off" checked />
+                            <label class="btn btn-outline-primary" for="radioPublic">
+                                <i class="bi bi-globe"></i> Public
+                            </label>
+                            <input type="radio" class="btn-check" name="isPublic" id="radioPrivate" value="false" autocomplete="off" />
+                            <label class="btn btn-outline-secondary" for="radioPrivate">
+                                <i class="bi bi-lock-fill"></i> Private
+                            </label>
+                        </div>
+                    </div>
                 </div>
-                <textarea id="descInput" name="description" class="form-control" rows="6" maxlength="250" placeholder="Tell us about your Club..."></textarea>
-                <div class="form-text">Club description should be 250 characters or less.</div>
-                <span id="charCount" class="form-text">0/250</span>
-                <div id="descErrorMsg" class="text-danger fw-bold small mt-1" style="display:none;"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="confirmAuthBtn">Create Club</button>
-            </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="confirmAuthBtn">Create Club</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
