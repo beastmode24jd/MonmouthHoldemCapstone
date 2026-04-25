@@ -7,6 +7,7 @@ using MH.Capstone.WebApp.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -65,6 +66,9 @@ public class SightingControllerTests
                 }, "mock"))
             }
         };
+
+        // TempData carries the photo-quality flash message across the redirect to Dashboard.
+        _controller.TempData = new TempDataDictionary(_controller.HttpContext, Mock.Of<ITempDataProvider>());
 
         _mockUserManager
             .Setup(m => m.GetUserAsync(It.IsAny<ClaimsPrincipal>()))
@@ -276,6 +280,61 @@ public class SightingControllerTests
             s => s.CreateSightingAsync(It.IsAny<Sighting>(), It.IsAny<string>()),
             Times.Never,
             "no sighting should be persisted when the resolution gate rejects the image");
+    }
+
+    [TestCase(PhotoQualityTier.High,    450.0, 0.55, "PhotoQualitySuccess", "Ready for ID - High Quality")]
+    [TestCase(PhotoQualityTier.Low,      50.0, 0.50, "PhotoQualityWarning", "blurry")]
+    [TestCase(PhotoQualityTier.Low,       0.0, 0.10, "PhotoQualityWarning", "too dark")]
+    [TestCase(PhotoQualityTier.Low,       0.0, 0.95, "PhotoQualityWarning", "washed out")]
+    public async Task Upload_Post_AfterSuccessfulSave_SetsTempDataMessageMatchingTier(
+        PhotoQualityTier tier, double sharpness, double luminance,
+        string expectedTempDataKey, string expectedMessageSubstring)
+    {
+        // Arrange — analyzer returns the given tier/metric combo against a large enough image.
+        var vm = BuildViewModelWithImage();
+
+        _mockSightingsService
+            .Setup(s => s.ValidateImage(It.IsAny<IFormFile>()))
+            .Returns(true);
+        _mockSightingsService
+            .Setup(s => s.CreateSightingAsync(It.IsAny<Sighting>(), It.IsAny<string>()))
+            .ReturnsAsync(10);
+        _mockPhotoQualityService
+            .Setup(p => p.AnalyzeAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((tier, sharpness, luminance, 2400, 1800));
+
+        // Act
+        await _controller.Upload(vm);
+
+        // Assert — TempData has the correct flash message under the tier-appropriate key.
+        var actual = _controller.TempData[expectedTempDataKey] as string;
+        Assert.That(actual, Is.Not.Null,
+            $"TempData['{expectedTempDataKey}'] should be set for tier {tier}");
+        Assert.That(actual, Does.Contain(expectedMessageSubstring).IgnoreCase);
+    }
+
+    [Test]
+    public async Task Upload_Post_WithMediumTier_DoesNotSetAnyFlashMessage()
+    {
+        // Arrange — Medium tier means the photo passed but isn't notable; no message either way.
+        var vm = BuildViewModelWithImage();
+
+        _mockSightingsService
+            .Setup(s => s.ValidateImage(It.IsAny<IFormFile>()))
+            .Returns(true);
+        _mockSightingsService
+            .Setup(s => s.CreateSightingAsync(It.IsAny<Sighting>(), It.IsAny<string>()))
+            .ReturnsAsync(10);
+        _mockPhotoQualityService
+            .Setup(p => p.AnalyzeAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PhotoQualityTier.Medium, 200.0, 0.50, 1600, 1200));
+
+        // Act
+        await _controller.Upload(vm);
+
+        // Assert
+        Assert.That(_controller.TempData["PhotoQualitySuccess"], Is.Null);
+        Assert.That(_controller.TempData["PhotoQualityWarning"], Is.Null);
     }
 
     [Test]
