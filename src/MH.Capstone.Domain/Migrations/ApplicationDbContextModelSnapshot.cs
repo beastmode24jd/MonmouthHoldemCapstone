@@ -150,8 +150,8 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
 
                     b.Property<bool>("IsPublic")
                         .HasColumnType("bit");

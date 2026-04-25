@@ -45,6 +45,36 @@ namespace MH.Capstone.WebApp.Controllers
         {
             // Need to create a new Club,
             //      then load and redirect to the Club's front page.
+
+            
+            /*
+                public Club(Guid ownerId, string name, string? description, DateTimeOffset createdAt)
+                {
+                    OwnerId = ownerId;
+                    Name = name;
+                    Description = description;
+                    CreatedAt = createdAt;
+                }
+            */
+
+            // Get timezone cookie from site.js (defaults to PST if not found)
+            string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
+            
+            TimeZoneInfo userZone;
+
+            try
+            {
+                userZone = TimeZoneInfo.FindSystemTimeZoneById(userTimeZoneId);
+            }
+            catch
+            {
+                // Windows server fallback for if IANA string fails
+                userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+            }
+
+            // Need to pass this along to the ClubPage display, so it can show the created time
+            //          accurately.
+
             return View("ClubPage");
         }
     }

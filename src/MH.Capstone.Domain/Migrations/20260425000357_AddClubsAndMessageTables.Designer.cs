@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MH.Capstone.Domain.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260421190836_AddClubsAndMessageTables")]
+    [Migration("20260425000357_AddClubsAndMessageTables")]
     partial class AddClubsAndMessageTables
     {
         /// <inheritdoc />
@@ -153,8 +153,8 @@ namespace MH.Capstone.Domain.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
 
                     b.Property<bool>("IsPublic")
                         .HasColumnType("bit");

@@ -73,6 +73,33 @@
     </div>
 </div>
 
+@* New Club input modal (hidden initially) *@
+<div class="modal fade" id="newClubModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title">Create a new Club</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+                <div class="mb-3">
+                    <label for="modalClubName" class="form-label">Name</label>
+                    <input type="text" id="modalClubName" class="form-control" />
+                </div>
+            </div>
+            <div>
+                <textarea id="descInput" name="description" class="form-control" rows="3" maxlength="250" placeholder="Tell us about your Club..."></textarea>
+                <div class="form-text">Club description should be 250 characters or less.</div>
+                <span id="charCount" class="form-text">0/250</span>
+                <div id="descErrorMsg" class="text-danger fw-bold small mt-1" style="display:none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmAuthBtn">Create Club</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @* Hidden element carrying the current user's ID for client-side filtering *@
 <span id="currentUserId" data-user-id="@Model.CurrentUserId" style="display:none"></span>
 

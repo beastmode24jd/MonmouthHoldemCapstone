@@ -18,7 +18,7 @@ namespace MH.Capstone.Domain.DataModels
         [Required]
         public bool IsPublic { get; set; } = false; // Type of Club: Public or Private
 
-        [MaxLength(500)]
+        [MaxLength(250)]
         public string? Description { get; set; } = null;
 
         [Required]

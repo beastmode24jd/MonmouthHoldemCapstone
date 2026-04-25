@@ -91,7 +91,7 @@ public class ClubServiceTests
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(2));
-        Assert.That(result[1].OwnerIdentityId, Is.EqualTo("Alex"));
+        Assert.That(result[0].OwnerIdentityId, Is.EqualTo("Alex"));
         Assert.That(result[1].OwnerIdentityId, Is.EqualTo("Alex"));
 
     }
