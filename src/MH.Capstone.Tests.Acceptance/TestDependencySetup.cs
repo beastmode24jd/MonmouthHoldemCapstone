@@ -41,6 +41,7 @@ public static class TestDependencySetup
         // Reqnroll.Microsoft.Extensions.DependencyInjection — they are not
         // auto-discovered the way step-definition bindings are.
         services.AddTransient<AuthenticationDriver>();
+        services.AddTransient<ClubsDriver>();
         services.AddTransient<DashboardDriver>();
         services.AddTransient<SightingGalleryDriver>();
         services.AddTransient<SightingsDriver>();

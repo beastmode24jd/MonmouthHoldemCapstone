@@ -1,4 +1,6 @@
-using MH.Capstone.Tests.Acceptance.Configuration;
+using System.Diagnostics.CodeAnalysis;
+using FluentAssertions;
+using MH.Capstone.Tests.Acceptance.Drivers;
 using NUnit.Framework;
 using OpenQA.Selenium;
 using Reqnroll;
@@ -6,23 +8,38 @@ using Reqnroll;
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
 [Binding]
+[ExcludeFromCodeCoverage]
 public class CSP124StepDefinitions
 {
     private readonly IWebDriver _driver;
-    private readonly AcceptanceTestSettings _settings;
+    private readonly AuthenticationDriver _authDriver;
+    private readonly ClubsDriver _clubsDriver;
 
-    public CSP124StepDefinitions(IWebDriver driver, AcceptanceTestSettings settings)
+    // Shared across steps within this scenario; lets the Then steps know
+    // which club name to look for without re-parsing the URL.
+    private string _newClubName = string.Empty;
+
+    public CSP124StepDefinitions(
+        IWebDriver driver,
+        AuthenticationDriver authDriver,
+        ClubsDriver clubsDriver)
     {
         _driver = driver;
-        _settings = settings;
+        _authDriver = authDriver;
+        _clubsDriver = clubsDriver;
     }
+
+    // -------------------------------------------------------------------------
+    // Scenario 1: James (unauthenticated) should not see the Clubs nav link
+    // -------------------------------------------------------------------------
 
     [Given("I am on the front page")]
     [When("I look at the nav bar")]
     public void GivenIAmOnTheFrontPage()
     {
-        // Should not be able to see Clubs in nav bar if not logged in.
-        _driver.Navigate().GoToUrl(_settings.BaseUrl);
+        _authDriver.LogoutUser();
+        _authDriver.WasPageAccessDenied(_driver.Url);   // ensure we're logged out
+        _driver.Navigate().GoToUrl(_driver.Url.Split('/')[0] + "//" + _driver.Url.Split('/')[2]);
     }
 
     [Then("I should not see a Club page link")]
@@ -32,41 +49,57 @@ public class CSP124StepDefinitions
         var clubLinks = _driver.FindElements(By.CssSelector("a[href='/Clubs']"));
         _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
 
-        Assert.That(clubLinks, Is.Empty,
-            "Unauthenticated users should not see the Clubs nav link");
+        clubLinks.Should().BeEmpty("unauthenticated users should not see the Clubs nav link");
     }
+
+    // -------------------------------------------------------------------------
+    // Scenario 2: Alex creates a new club
+    // -------------------------------------------------------------------------
 
     [Given("I am on the Clubs page")]
     public void GivenIAmOnTheClubsPage()
     {
-        // Log in Alex, go to Clubs page
-        //_driver.Navigate().GoToUrl(_settings.BaseUrl);
+        _authDriver.PreformLoginForUser("alex@test.com", "Capstone26!");
+        _clubsDriver.NavigateToLandingPage();
     }
 
     [When("I click the Create New Club button")]
-    [When("I select valid options")]
     public void WhenIClickTheCreateNewClubButton()
     {
-        // Fill out the modal inputs
+        _clubsDriver.OpenCreateClubModal();
+    }
+
+    [When("I select valid options")]
+    public void WhenISelectValidOptions()
+    {
+        // Use a unique suffix so re-runs do not conflict with clubs from prior runs.
+        _newClubName = $"Acceptance Club {Guid.NewGuid().ToString()[..8]}";
+        _clubsDriver.FillCreateClubModal(
+            name: _newClubName,
+            description: "Created by CSP-124 acceptance tests.",
+            isPublic: true);
+
+        _clubsDriver.SubmitCreateClubModal();
     }
 
     [Then("I should be redirected to my Club front page")]
     public void ThenIShouldBeRedirectedToMyClubFrontPage()
     {
-        // Check the page
+        _clubsDriver.IsOnClubPage().Should().BeTrue(
+            "submitting the Create Club form should redirect to /Clubs/ClubPage/{id}");
+
+        // The page title should contain the club name.
+        _driver.Title.Should().Contain(_newClubName,
+            "the ClubPage title is set to the club's name");
     }
 
     [Then("see the new club on my Clubs page")]
     public void ThenSeeTheNewClubOnMyClubsPage()
     {
-        // Direct the driver to the Clubs page, then check for a new Club item
-    }
+        _clubsDriver.NavigateToLandingPage();
+        _clubsDriver.SwitchToMyClubsFilter();
 
-    /*
-        Given I am on the Clubs page
-    When I select valid options
-    And I click the Create New Club button
-    Then I should be redirected to the Club chatroom
-    And see the new club on my Clubs page
-    */
+        _clubsDriver.IsClubCardVisible(_newClubName).Should().BeTrue(
+            $"the newly created club '{_newClubName}' should appear under 'My Clubs'");
+    }
 }
