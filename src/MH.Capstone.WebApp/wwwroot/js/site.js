@@ -68,19 +68,18 @@ function initUserTimezone() {
     }
 }
 
-// Updates the user bio character counter.
-document.addEventListener("DOMContentLoaded", function ()
-{
-    const bioArea = document.getElementById('bioInput');
-    const counter = document.getElementById('charCount');
-    const bioForm = document.getElementById('bioForm');
+// Generic character counter — works for any textarea/counter pair.
+// Safe to call on pages that don't have the given elements; exits early if either is missing.
+function initCharCounter(textareaId, counterId, maxLength) {
+    const textarea = document.getElementById(textareaId);
+    const counter = document.getElementById(counterId);
+    if (!textarea || !counter) return;
 
-    function updateCounter() {
-        const length = bioArea.value.length;
-        counter.textContent = `${length}/250`;
-                
-        // Change text color if approaching submission limit
-        if (length >= 240) {
+    function update() {
+        const length = textarea.value.length;
+        counter.textContent = `${length}/${maxLength}`;
+
+        if (length >= maxLength - 10) {
             counter.classList.replace('text-dark', 'text-danger');
         } else {
             counter.classList.add('text-dark');
@@ -88,12 +87,9 @@ document.addEventListener("DOMContentLoaded", function ()
         }
     }
 
-    // Initialize counter on page load
-    updateCounter();
-
-    // Listen for user input
-    bioArea.addEventListener('input', updateCounter);
-});
+    update();
+    textarea.addEventListener('input', update);
+}
 
 // For my sanity, we are adding a visibility toggle function for passwords
 function togglePasswordVisibility(inputId, iconId) {
@@ -132,6 +128,8 @@ document.addEventListener("DOMContentLoaded", function() {
     registerAllNumericInputs();  // Reworked from original global registration
     registerPasswordToggles();  // New global registration
     initUserTimezone();         // Gets timezone cookie from the user, for page display
+    initCharCounter('bioInput',  'charCount', 250);  // Dashboard bio field
+    initCharCounter('descInput', 'charCount', 250);  // Club creation modal
 });
 
 // Thanks, ChatGPT, for the help with this function!
