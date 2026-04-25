@@ -137,4 +137,56 @@ public class ClubServiceTests
 
     #endregion
 
+    /*
+    Need methods to:
+        - Invite a user to a club / accept the invitation to a club
+        - Leave a club
+        - Message on a club message board
+    */
+
+    #region ClubInviteMethods
+
+    [Test]
+    public void SendInviteAsync_ValidUsers_SendsClubInvite()
+    {
+        // Arrange
+        var receiverId = Guid.NewGuid();
+        var ownerId = Guid.NewGuid();
+        var newClub = new Club(ownerId, "Bird Watchers", "A club for birding enthusiasts", DateTimeOffset.UtcNow)
+        {
+            IsPublic = true
+        };
+
+        // Need to flesh out method more...
+
+        // Act
+        _clubService.SendInviteAsync(newClub, ownerId, receiverId);
+
+        // Assert
+        // .........
+    }
+
+    [Test]
+    public void AcceptInviteAsync_ValidUsers_AddsUserToClubMembers()
+    {
+        
+    }
+
+    [Test]
+    public void DeclineInviteAsync_ValidUsers_DeletesPendingStatus()
+    {
+        
+    }
+
+    #endregion
+
+    #region LeaveClubAsync
+
+
+    #endregion
+
+    #region MessageClubAsync
+
+
+    #endregion
 }

@@ -73,11 +73,10 @@ namespace MH.Capstone.WebApp.Controllers
 
             if (!newClub.IsPublic)
             {
-                _logger.LogInformation("Saved user {Email}'s private Club {Name}", 
-                user.Email, newClub.Name);
+                _logger.LogInformation($"Saved user {user.Email}'s private Club {newClub.Name}.");
             }
 
-            // TODO: redirect to ClubPage
+            // TODO: redirect to actual ClubPage
 
             // Get timezone cookie from site.js (defaults to PST if not found)
             string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
@@ -108,10 +107,9 @@ namespace MH.Capstone.WebApp.Controllers
             // Need to pass this along to the ClubPage display,
             //      so it can show the created time accurately.
 
-            string clubId = newClub.Id.ToString();
-
             ViewData["ClubCreatedAt"] = timeDisplay;
-            ViewData["ClubIDValue"] = clubId;
+            ViewData["NewClub"] = newClub;
+            ViewData["ClubTitle"] = newClub.Name;
 
             return View("ClubPage");
         }

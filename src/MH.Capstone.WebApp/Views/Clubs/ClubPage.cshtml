@@ -1,3 +1,32 @@
+@using MH.Capstone.Domain.DataModels
+@inject Microsoft.AspNetCore.Identity.UserManager<MH.Capstone.Domain.DataModels.ApplicationUser> _userManager
 @{
     ViewData["Title"] = "My Club";
+
+    var userTimeDisplay = ViewData["ClubCreatedAt"];
+    var pageClub = ViewData["NewClub"];
+    var clubTitle = ViewData["ClubTitle"];
+    var user = await _userManager.GetUserAsync(User);
+
+    @* 
+        ViewData["ClubCreatedAt"] = timeDisplay;
+        ViewData["newClub"] = newClub;
+    *@
 }
+
+<div class="container mt-4">
+    <div class="banner-img-3" role="img" aria-label="A valley underneath a sunset sky.">
+        <div class="hero-text">
+            <h1 class="lightText">@clubTitle</h1>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body">
+            <h1 class="card-title">
+                <i class="bi bi-people-fill"></i> Created on @userTimeDisplay.
+            </h1>
+            <p>Sample text</p>
+        </div>
+    </div>
+</div>

@@ -54,5 +54,24 @@ namespace MH.Capstone.Domain.Services
 
             return savedClub;
         }
+
+        // Sends an invite from a member of a club to a non-member user.
+        public async Task SendInviteAsync(Club club, Guid senderId, Guid receiverId)
+        {
+            
+        }
+
+        // Accepts an invite from a member of a club as a former non-member user.
+        public async Task AcceptInviteAsync(Club club, Guid senderId, Guid receiverId)
+        {
+            
+        }
+
+        // Declines an invite from a member of a club as the non-member user.
+        public async Task DeclineInviteAsync(Club club, Guid senderId, Guid receiverId)
+        {
+            
+        }
+
     }
 }
