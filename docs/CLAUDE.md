@@ -112,6 +112,7 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `INotificationService` | `InAppNotificationService` | Create and deliver in-app notifications |
 | `IEmailService` | `AzureCommunicationEmailService` / `NoOpEmailService` | Send emails (toggled by `UseRealEmailerService` feature flag). Used by `AccountController.ForgotPassword` to deliver password-reset links. |
 | `IApiCaller` | `ExternalApiCaller` | HTTP calls to external APIs with SQL caching |
+| `IClubService` | `ClubService` | List public clubs, list user's clubs, create a club (auto-enrolls owner as first member) |
 
 **Background service:** `EmailDispatcherService` (hosted service) processes the `EmailQueue` outbox.
 
@@ -142,6 +143,7 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `ReportControllers` | Submit and view content reports |
 | `SightingController` | Submit and view wildlife sightings |
 | `SpeciesController` | Anidex species catalog (Ninja API backed) |
+| `ClubsController` | Club listing, creation (POST with notification + timezone); club page and chatroom (stubs) |
 
 ---
 
@@ -560,6 +562,8 @@ Nav properties: `Owner` (ApplicationUser), `Memberships` (List\<ClubMembership\>
 
 `OwnerId` / `OwnerIdentityId` pattern: `OwnerId` is a `[NotMapped]` `Guid` convenience property; `OwnerIdentityId` is the actual `string` column (same pattern as `ApplicationUser.GuidId`).
 
+Constructors: `Club()` (default) and `Club(Guid ownerId, string name, string? description, DateTimeOffset createdAt)`.
+
 #### `ClubMembership` (table: `ClubMembership`)
 
 | Column | Type | Constraints |
@@ -570,6 +574,8 @@ Nav properties: `Owner` (ApplicationUser), `Memberships` (List\<ClubMembership\>
 | `JoinedAt` | datetimeoffset | required |
 
 `MemberId` / `MemberIdentityId` follow the same `[NotMapped]` Guid / mapped string column pattern as `Club.OwnerId`.
+
+Constructors: `ClubMembership()` (default) and `ClubMembership(Guid memberId, Guid clubId, DateTimeOffset joinedAt)`.
 
 #### `Message` (table: `Message`)
 
@@ -582,6 +588,8 @@ Nav properties: `Owner` (ApplicationUser), `Memberships` (List\<ClubMembership\>
 | `SentAt` | datetimeoffset | required |
 
 `AuthorId` / `AuthorIdentityId` follow the same pattern.
+
+Constructors: `Message()` (default) and `Message(Guid clubId, Guid authorId, string content, DateTimeOffset sentAt)`.
 
 **Migration:** `20260425000357_AddClubsAndMessageTables`
 
@@ -603,12 +611,12 @@ Nav properties: `Owner` (ApplicationUser), `Memberships` (List\<ClubMembership\>
 
 `ClubsController` (`[Authorize]`) — `src/MH.Capstone.WebApp/Controllers/ClubsController.cs`
 
-Injects: `IClubService`, `UserManager<ApplicationUser>`, `INotificationService`.
+Injects: `IClubService`, `UserManager<ApplicationUser>`, `INotificationService`, `ILogger<ClubsController>`.
 
 | Action | Route | Status |
 |---|---|---|
 | `Index()` | `GET /Clubs` | **Done** — loads `ClubListViewModel`, renders `LandingPage` view |
-| `CreateNewClub()` | `GET /Clubs/CreateNewClub` | **Shell only** — reads `UserTimeZone` cookie for timezone resolution, returns `ClubPage` view; does not yet persist a club |
+| `CreateClub(string name, string? description, bool isPublic)` | `POST /Clubs/CreateClub` | **Done (partial)** — saves club via `CreateClubAsync`; auto-enrolls owner as first member; sends an in-app notification to the owner; resolves `UserTimeZone` cookie (IANA string, Windows fallback) to compute `timeDisplay`; passes `ViewData["ClubCreatedAt"]` (formatted local time) and `ViewData["ClubIDValue"]` (club GUID string) to `ClubPage`; has a `TODO` to redirect to `ClubPage` rather than returning it directly. **Known bug:** `CreatedAt` is set to `new DateTimeOffset()` (= `DateTimeOffset.MinValue`) instead of `DateTimeOffset.UtcNow`. |
 
 ---
 
@@ -654,7 +662,7 @@ Injects: `IClubService`, `UserManager<ApplicationUser>`, `INotificationService`.
 | `descInput` | Club description textarea inside the modal (max 250 chars) |
 | `charCount` | Live character count display (`0/250`) |
 | `descErrorMsg` | Inline validation error div inside the modal |
-| `confirmAuthBtn` | "Create Club" submit button inside the modal |
+| `confirmAuthBtn` | `type="submit"` button inside the modal — submits the form to `POST /Clubs/CreateClub` |
 
 Filter state is persisted with `sessionStorage` key `'clubsFilter'` (`'all'` or `'mine'`).
 
@@ -675,11 +683,11 @@ Filter state is persisted with `sessionStorage` key `'clubsFilter'` (`'all'` or 
 
 ### What Is Still Incomplete
 
-- `CreateNewClub()` controller action is a shell — no form POST, no club persistence, no redirect to `ClubPage`
-- `ClubPage.cshtml` is a stub
-- `Chatroom.cshtml` is not yet wired to a controller action or service
-- No acceptance tests (.feature files) exist yet for any Club scenarios
-- The `newClubModal` in `LandingPage.cshtml` does not yet call the `CreateNewClub` action (the `confirmAuthBtn` has no submit handler wired up)
+- `ClubPage.cshtml` is a stub (`ViewData["Title"] = "My Club"` only) — no club details, member list, or chatroom link rendered yet
+- `Chatroom.cshtml` is a stub (`ViewData["Title"] = "Club Chatroom"` only) — not yet wired to a controller action or service
+- `CreateClub()` currently returns `View("ClubPage")` directly (a stub) instead of redirecting to a proper `ClubPage` route — has a `TODO` comment noting this
+- `CreateClub()` sets `CreatedAt = new DateTimeOffset()` which resolves to `DateTimeOffset.MinValue` — should be `DateTimeOffset.UtcNow`
+- No acceptance tests (`.feature` files) exist yet for any Club scenarios
 - User-deletion flow must be updated to clean up `ClubMembership` and `Message` rows before removing a user
 
 ---

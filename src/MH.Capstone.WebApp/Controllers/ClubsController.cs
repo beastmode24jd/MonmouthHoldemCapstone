@@ -17,10 +17,14 @@ namespace MH.Capstone.WebApp.Controllers
         // To notify user if they have been added to/invited to a Club.
         private readonly INotificationService _notificationService;
 
-        public ClubsController(IClubService clubService,
+        private readonly ILogger<ClubsController> _logger;
+
+        public ClubsController(ILogger<ClubsController> logger,
+            IClubService clubService,
             UserManager<ApplicationUser> userManager,
             INotificationService notificationService)
         {
+            _logger = logger;
             _clubService = clubService;
             _userManager = userManager;
             _notificationService = notificationService;
@@ -53,7 +57,7 @@ namespace MH.Capstone.WebApp.Controllers
             // Initialize the club.
 
             Guid ownerId = user.GuidId;
-            DateTimeOffset createdAt = new DateTimeOffset();
+            DateTimeOffset createdAt = DateTimeOffset.UtcNow;
 
             var newClub = new Club
             {
@@ -66,6 +70,12 @@ namespace MH.Capstone.WebApp.Controllers
 
             // Save the club
             await _clubService.CreateClubAsync(newClub);
+
+            if (!newClub.IsPublic)
+            {
+                _logger.LogInformation("Saved user {Email}'s private Club {Name}", 
+                user.Email, newClub.Name);
+            }
 
             // TODO: redirect to ClubPage
 
