@@ -20,6 +20,7 @@ public class SightingControllerTests
     private Mock<ISightingsService> _mockSightingsService = null!;
     private Mock<UserManager<ApplicationUser>> _mockUserManager = null!;
     private Mock<IBadgeService> _mockBadgeService = null!;
+    private Mock<IPhotoQualityService> _mockPhotoQualityService = null!;
     private SightingController _controller = null!;
 
     private static readonly string TestUserId = Guid.NewGuid().ToString();
@@ -36,6 +37,12 @@ public class SightingControllerTests
         _mockLogger = new Mock<ILogger<SightingController>>();
         _mockSightingsService = new Mock<ISightingsService>();
         _mockBadgeService = new Mock<IBadgeService>();
+        _mockPhotoQualityService = new Mock<IPhotoQualityService>();
+
+        // Default no-op result so existing tests that don't care about photo quality still run.
+        _mockPhotoQualityService
+            .Setup(p => p.AnalyzeAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PhotoQualityTier.Unknown, 0.0, 0.0, 0, 0));
 
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
@@ -45,7 +52,8 @@ public class SightingControllerTests
             _mockLogger.Object,
             _mockSightingsService.Object,
             _mockUserManager.Object,
-            _mockBadgeService.Object);
+            _mockBadgeService.Object,
+            _mockPhotoQualityService.Object);
 
         _controller.ControllerContext = new ControllerContext
         {
@@ -163,6 +171,69 @@ public class SightingControllerTests
 
         // Assert: the card carries the submitter's user ID for client-side filtering
         Assert.That(vm!.Sightings[0].SubmittedByUserId, Is.EqualTo(user1.Id));
+    }
+
+    #endregion
+
+    #region CSP-122: Photo quality integration
+
+    [Test]
+    public async Task Upload_Post_WithValidImage_AnalyzesPhotoAndPersistsQualityMetadataOnSighting()
+    {
+        // Arrange — a real (small) IFormFile so ToByteArray inside ToDataModel returns non-empty.
+        var imageBytes = new byte[] { 0x01, 0x02, 0x03, 0x04 };
+        var formFile = new FormFile(
+            new MemoryStream(imageBytes), 0, imageBytes.Length, "UploadedImage", "owl.jpg")
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = "image/jpeg"
+        };
+
+        var vm = new SightingUploadViewModel
+        {
+            Latitude = 44.85m,
+            Longitude = -123.23m,
+            Description = "Owl",
+            Timestamp = DateTimeOffset.UtcNow.AddHours(-1),
+            UploadedImage = formFile,
+            DeviceTimezone = "America/Los_Angeles"
+        };
+
+        _mockSightingsService
+            .Setup(s => s.ValidateImage(It.IsAny<IFormFile>()))
+            .Returns(true);
+
+        // Capture the Sighting handed to CreateSightingAsync so we can inspect its quality fields.
+        Sighting? captured = null;
+        _mockSightingsService
+            .Setup(s => s.CreateSightingAsync(It.IsAny<Sighting>(), It.IsAny<string>()))
+            .Callback<Sighting, string>((s, _) => captured = s)
+            .ReturnsAsync(10);
+
+        var qualityResult = (
+            Tier: PhotoQualityTier.High,
+            Sharpness: 450.0,
+            Luminance: 0.55,
+            Width: 2400,
+            Height: 1800);
+        _mockPhotoQualityService
+            .Setup(p => p.AnalyzeAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(qualityResult);
+
+        // Act
+        await _controller.Upload(vm);
+
+        // Assert — analyzer was invoked exactly once, and every metadata field flows onto the saved Sighting.
+        _mockPhotoQualityService.Verify(
+            p => p.AnalyzeAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        Assert.That(captured, Is.Not.Null, "controller should have called CreateSightingAsync");
+        Assert.That(captured!.QualityTier, Is.EqualTo(PhotoQualityTier.High));
+        Assert.That(captured.SharpnessScore, Is.EqualTo(450.0));
+        Assert.That(captured.LuminanceAverage, Is.EqualTo(0.55));
+        Assert.That(captured.ResolutionWidth, Is.EqualTo(2400));
+        Assert.That(captured.ResolutionHeight, Is.EqualTo(1800));
     }
 
     #endregion

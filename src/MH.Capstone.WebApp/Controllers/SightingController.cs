@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using MH.Capstone.Domain.Constants;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
@@ -17,14 +17,17 @@ namespace MH.Capstone.WebApp.Controllers
         private readonly ISightingsService _sightingsService;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IBadgeService _badgeService;
+        private readonly IPhotoQualityService _photoQualityService;
 
         public SightingController(ILogger<SightingController> logger, ISightingsService sightingsService,
-            UserManager<ApplicationUser> userManager, IBadgeService badgeService)
+            UserManager<ApplicationUser> userManager, IBadgeService badgeService,
+            IPhotoQualityService photoQualityService)
         {
             _logger = logger;
             _sightingsService = sightingsService;
             _userManager = userManager;
             _badgeService = badgeService;
+            _photoQualityService = photoQualityService;
         }
 
         [HttpGet]
@@ -89,6 +92,17 @@ namespace MH.Capstone.WebApp.Controllers
             }
 
             var dataModel = sightingUpload.ToDataModel(user.GuidId);
+
+            // CSP-122: run the photo through the quality gate and persist the metadata
+            // alongside the sighting. Tier/scores are informational; downstream cycles
+            // will use them for the resolution gate and UI feedback.
+            var quality = await _photoQualityService.AnalyzeAsync(dataModel.ImageBuffer);
+            dataModel.QualityTier = quality.Tier;
+            dataModel.SharpnessScore = quality.Sharpness;
+            dataModel.LuminanceAverage = quality.Luminance;
+            dataModel.ResolutionWidth = quality.Width;
+            dataModel.ResolutionHeight = quality.Height;
+
             // Points are awarded in the service, so we don't need to worry about that here.
             // CreateSightingAsync returns the points awarded for the sighting, but we don't
             // need to capture that here since the user will be able to see it reflected in
