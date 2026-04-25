@@ -33,9 +33,9 @@
                     <p class="lead text-muted mb-4">
                         Find and join clubs to connect with other wildlife enthusiasts.
                     </p>
-                    <a asp-controller="Clubs" asp-action="CreateClub" class="btn btn-primary btn-lg">
+                    <button type="button" class="btn btn-primary btn-lg" onclick="showClubModal()">
                         <i class="bi bi-people-fill"></i> Create your own Club
-                    </a>
+                    </button>
                 </div>
             }
 
@@ -46,9 +46,9 @@
                 <p class="lead text-muted mb-4">
                     Create a club or join an existing one to get started!
                 </p>
-                <a asp-controller="Clubs" asp-action="CreateClub" class="btn btn-primary btn-lg">
+                <button type="button" class="btn btn-primary btn-lg" onclick="showClubModal()">
                     <i class="bi bi-people-fill"></i> Create your own Club
-                </a>
+                </button>
             </div>
 
             @* Club cards grid — will be populated once Club upload is implemented *@
@@ -75,19 +75,18 @@
 
 @* New Club input modal (hidden initially) *@
 <div class="modal fade" id="newClubModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-dark text-white">
                 <h5 class="modal-title">Create a new Club</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            <div class="modal-body">
                 <div class="mb-3">
                     <label for="modalClubName" class="form-label">Name</label>
                     <input type="text" id="modalClubName" class="form-control" />
                 </div>
-            </div>
-            <div>
-                <textarea id="descInput" name="description" class="form-control" rows="3" maxlength="250" placeholder="Tell us about your Club..."></textarea>
+                <textarea id="descInput" name="description" class="form-control" rows="6" maxlength="250" placeholder="Tell us about your Club..."></textarea>
                 <div class="form-text">Club description should be 250 characters or less.</div>
                 <span id="charCount" class="form-text">0/250</span>
                 <div id="descErrorMsg" class="text-danger fw-bold small mt-1" style="display:none;"></div>
@@ -105,9 +104,7 @@
 
 @* Club modal + Club filter + sessionStorage persistence *@
 <script>
-    function showClubModal(formId) {
-    activeFormId = formId;
-    
+    function showClubModal() {
     // Clear text field from any previous entries
     const nameInput = document.getElementById('modalClubName');
     if (nameInput)
@@ -120,6 +117,10 @@
     {
         descriptionInput.value = '';
     }
+
+    // Reset the character counter display when the modal opens
+    const counter = document.getElementById('charCount');
+    if (counter) counter.textContent = '0/250';
 
     // Initialize and show Manage.cshtml Bootstrap Modal
     const modalElement = document.getElementById('newClubModal');

@@ -531,6 +531,159 @@ The acceptance-specific seed users should be added to `ApplicationDbContextSeedi
 
 ---
 
+## Clubs Feature (Sprint 4 — in progress)
+
+### Overview
+
+Clubs are groups users can create and join. A club can be **public** (visible to all authenticated users) or **private** (visible only to members). The owner is automatically enrolled as the first member on creation. Each club has a chatroom (`Message` table) for member communication.
+
+> **IMPORTANT:** `ClubService` has a pending constraint: deleting a user will throw if they still have club memberships or messages. Any future user-deletion logic must clean up `ClubMembership` and `Message` rows first.
+
+---
+
+### New Entities
+
+All in `src/MH.Capstone.Domain/DataModels/`:
+
+#### `Club` (table: `Club`)
+
+| Column | Type | Constraints |
+|---|---|---|
+| `Id` | uniqueidentifier | PK, identity |
+| `Name` | nvarchar(100) | required, 1–100 chars |
+| `IsPublic` | bit | required; `false` = private |
+| `Description` | nvarchar(250) | nullable |
+| `CreatedAt` | datetimeoffset | required |
+| `OwnerId` | nvarchar(450) | FK → AspNetUsers; mapped column for `OwnerIdentityId` |
+
+Nav properties: `Owner` (ApplicationUser), `Memberships` (List\<ClubMembership\>), `Messages` (List\<Message\>).
+
+`OwnerId` / `OwnerIdentityId` pattern: `OwnerId` is a `[NotMapped]` `Guid` convenience property; `OwnerIdentityId` is the actual `string` column (same pattern as `ApplicationUser.GuidId`).
+
+#### `ClubMembership` (table: `ClubMembership`)
+
+| Column | Type | Constraints |
+|---|---|---|
+| `Id` | uniqueidentifier | PK, identity |
+| `MemberId` | nvarchar(450) | FK → AspNetUsers |
+| `ClubId` | uniqueidentifier | FK → Club |
+| `JoinedAt` | datetimeoffset | required |
+
+`MemberId` / `MemberIdentityId` follow the same `[NotMapped]` Guid / mapped string column pattern as `Club.OwnerId`.
+
+#### `Message` (table: `Message`)
+
+| Column | Type | Constraints |
+|---|---|---|
+| `Id` | uniqueidentifier | PK, identity |
+| `ClubId` | uniqueidentifier | FK → Club |
+| `AuthorId` | nvarchar(450) | FK → AspNetUsers |
+| `Content` | nvarchar(2000) | required, 1–2000 chars |
+| `SentAt` | datetimeoffset | required |
+
+`AuthorId` / `AuthorIdentityId` follow the same pattern.
+
+**Migration:** `20260425000357_AddClubsAndMessageTables`
+
+---
+
+### Service
+
+`IClubService` / `ClubService` — `src/MH.Capstone.Domain/Services/`
+
+| Method | Behaviour |
+|---|---|
+| `GetPublicClubsAsync()` | Returns all clubs where `IsPublic = true` |
+| `GetUserClubsAsync(Guid userId)` | Returns clubs the user has a `ClubMembership` row for, sorted by `Name` |
+| `CreateClubAsync(Club club)` | Saves the club, then auto-enrolls the owner as the first `ClubMembership`; throws `ArgumentNullException` on null |
+
+---
+
+### Controller
+
+`ClubsController` (`[Authorize]`) — `src/MH.Capstone.WebApp/Controllers/ClubsController.cs`
+
+Injects: `IClubService`, `UserManager<ApplicationUser>`, `INotificationService`.
+
+| Action | Route | Status |
+|---|---|---|
+| `Index()` | `GET /Clubs` | **Done** — loads `ClubListViewModel`, renders `LandingPage` view |
+| `CreateNewClub()` | `GET /Clubs/CreateNewClub` | **Shell only** — reads `UserTimeZone` cookie for timezone resolution, returns `ClubPage` view; does not yet persist a club |
+
+---
+
+### ViewModel
+
+`ClubListViewModel` — `src/MH.Capstone.WebApp/Models/ClubListViewModel.cs`
+
+| Property | Type | Notes |
+|---|---|---|
+| `PublicClubs` | `List<Club>` | All public clubs |
+| `UserClubs` | `List<Club>` | Clubs the current user is a member of |
+| `CurrentUserId` | `string` | Identity string ID of the logged-in user |
+| `HasPublicClubs` | bool | Computed |
+| `HasPersonalClubs` | bool | Computed |
+| `PublicClubCount` / `UserClubCount` | int | Computed |
+
+---
+
+### Views
+
+| View | Path | Status |
+|---|---|---|
+| `LandingPage.cshtml` | `Views/Clubs/LandingPage.cshtml` | Done — filter UI, club cards grid, create-club modal |
+| `ClubPage.cshtml` | `Views/Clubs/ClubPage.cshtml` | Stub — title only |
+| `Chatroom.cshtml` | `Views/Clubs/Chatroom.cshtml` | Exists, not yet wired up |
+
+---
+
+### Page Element IDs — `/Clubs` (LandingPage)
+
+| Element ID | Purpose |
+|---|---|
+| `filterAll` | "All Public Clubs" toggle button |
+| `filterMine` | "My Clubs" toggle button |
+| `clubCountLabel` | Visible count label (updated by JS) |
+| `emptyStateAll` | Server-rendered empty state when no public clubs exist at all |
+| `emptyStateMine` | JS-toggled empty state when user has no club memberships |
+| `clubsGrid` | Grid container `div` holding all `.club-card-wrapper` elements |
+| `.club-card-wrapper[data-user-id]` | Per-card wrapper; `data-user-id` = `OwnerIdentityId` string |
+| `currentUserId` | Hidden `<span data-user-id="…">` carrying the current user's identity string ID |
+| `newClubModal` | Bootstrap modal for the "Create a new Club" form |
+| `modalClubName` | Club name text input inside the modal |
+| `descInput` | Club description textarea inside the modal (max 250 chars) |
+| `charCount` | Live character count display (`0/250`) |
+| `descErrorMsg` | Inline validation error div inside the modal |
+| `confirmAuthBtn` | "Create Club" submit button inside the modal |
+
+Filter state is persisted with `sessionStorage` key `'clubsFilter'` (`'all'` or `'mine'`).
+
+---
+
+### Unit Tests
+
+`ClubServiceTests` — `src/MH.Capstone.Domain.Tests.Unit/Services/ClubServiceTests.cs`
+
+| Test | Covers |
+|---|---|
+| `GetPublicClubsAsync_ReturnsOnlyPublicClubs` | Filters out private clubs |
+| `GetUserClubsAsync_ReturnsOnlyUserClubs_SortedByClubName` | Returns only clubs the user has a membership for |
+| `CreateClubAsync_ValidClub_SavesClubAndOwnerMembershipReturnsClub` | Happy path: persists club and owner membership |
+| `CreateClubAsync_NullClub_ThrowsArgumentNullException` | Null guard |
+
+---
+
+### What Is Still Incomplete
+
+- `CreateNewClub()` controller action is a shell — no form POST, no club persistence, no redirect to `ClubPage`
+- `ClubPage.cshtml` is a stub
+- `Chatroom.cshtml` is not yet wired to a controller action or service
+- No acceptance tests (.feature files) exist yet for any Club scenarios
+- The `newClubModal` in `LandingPage.cshtml` does not yet call the `CreateNewClub` action (the `confirmAuthBtn` has no submit handler wired up)
+- User-deletion flow must be updated to clean up `ClubMembership` and `Message` rows before removing a user
+
+---
+
 ## Jira PBI / User Story Guidelines
 
 > The human-readable version of these guidelines lives at `docs/pbi_guidelines.md`.
