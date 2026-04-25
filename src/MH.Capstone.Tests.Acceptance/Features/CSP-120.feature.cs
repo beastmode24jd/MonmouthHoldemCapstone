@@ -29,9 +29,9 @@ namespace MH.Capstone.Tests.Acceptance.Features
         private static string[] featureTags = new string[] {
                 "ai-companion"};
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "AI Companion for Sightings (CSP-120)", "  As a logged-in WildlifeAID user\n  I want a globally-accessible AI chat companio" +
-                "n\n  So that I can ask wildlife-education and observer-safety questions from any " +
-                "page", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en"), "Features", "AI Companion for Sightings (CSP-120)", "  As a logged-in WildlifeAID user\r\n  I want a globally-accessible AI chat compani" +
+                "on\r\n  So that I can ask wildlife-education and observer-safety questions from an" +
+                "y page", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
 #line 1 "CSP-120.feature"
 #line hidden
