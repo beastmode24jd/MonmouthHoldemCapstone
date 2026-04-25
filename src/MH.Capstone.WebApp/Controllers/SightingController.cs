@@ -13,6 +13,9 @@ namespace MH.Capstone.WebApp.Controllers
     [Route("Sighting")]
     public class SightingController : Controller
     {
+        // CSP-122: long side below this many pixels is rejected outright at upload.
+        private const int MinAcceptableLongSidePixels = 1024;
+
         private readonly ILogger<SightingController> _logger;
         private readonly ISightingsService _sightingsService;
         private readonly UserManager<ApplicationUser> _userManager;
@@ -93,10 +96,19 @@ namespace MH.Capstone.WebApp.Controllers
 
             var dataModel = sightingUpload.ToDataModel(user.GuidId);
 
-            // CSP-122: run the photo through the quality gate and persist the metadata
-            // alongside the sighting. Tier/scores are informational; downstream cycles
-            // will use them for the resolution gate and UI feedback.
+            // CSP-122: run the photo through the quality gate. Tier/scores are
+            // informational, but resolution is a hard gate — anything below the
+            // long-side threshold is rejected back to the upload form.
             var quality = await _photoQualityService.AnalyzeAsync(dataModel.ImageBuffer);
+
+            int longSide = Math.Max(quality.Width, quality.Height);
+            if (longSide < MinAcceptableLongSidePixels)
+            {
+                ModelState.AddModelError(nameof(sightingUpload.UploadedImage),
+                    "Please upload a higher-resolution original (at least 1024 px on the long side).");
+                return View(sightingUpload);
+            }
+
             dataModel.QualityTier = quality.Tier;
             dataModel.SharpnessScore = quality.Sharpness;
             dataModel.LuminanceAverage = quality.Luminance;
