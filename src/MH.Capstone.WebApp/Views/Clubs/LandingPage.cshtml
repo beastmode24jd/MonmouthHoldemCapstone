@@ -42,7 +42,7 @@
             @* My Clubs empty state — shown by JS when filter is "mine" and user has no clubs *@
             <div id="emptyStateMine" class="text-center py-5" style="display:none">
                 <i class="bi bi-people display-1 text-muted mb-3"></i>
-                <h3 class="text-muted">You Haven't Joined Any Clubs</h3>
+                <h3 class="text-muted">You haven't joined any Clubs</h3>
                 <p class="lead text-muted mb-4">
                     Create a club or join an existing one to get started!
                 </p>
@@ -103,8 +103,30 @@
 @* Hidden element carrying the current user's ID for client-side filtering *@
 <span id="currentUserId" data-user-id="@Model.CurrentUserId" style="display:none"></span>
 
-@* Club filter + sessionStorage persistence *@
+@* Club modal + Club filter + sessionStorage persistence *@
 <script>
+    function showClubModal(formId) {
+    activeFormId = formId;
+    
+    // Clear text field from any previous entries
+    const nameInput = document.getElementById('modalClubName');
+    if (nameInput)
+    {
+        nameInput.value = '';
+    }
+
+    const descriptionInput = document.getElementById('descInput');
+    if (descriptionInput)
+    {
+        descriptionInput.value = '';
+    }
+
+    // Initialize and show Manage.cshtml Bootstrap Modal
+    const modalElement = document.getElementById('newClubModal');
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+    }
+
     (function () {
         const STORAGE_KEY = 'clubsFilter';
         const currentUserId = document.getElementById('currentUserId')?.dataset.userId ?? '';

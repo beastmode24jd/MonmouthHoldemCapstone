@@ -47,6 +47,7 @@ namespace MH.Capstone.WebApp.Controllers
             //      then load and redirect to the Club's front page.
 
             
+
             /*
                 public Club(Guid ownerId, string name, string? description, DateTimeOffset createdAt)
                 {
