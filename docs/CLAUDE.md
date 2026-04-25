@@ -527,3 +527,149 @@ Seed at least one sighting per tier to exercise all scoring branches.
 The acceptance-specific seed users should be added to `ApplicationDbContextSeeding.SeedDataAsync` gated on an environment check, **or** in a dedicated acceptance-only seeding method called from `TestWebAppHost.StartAsync`. The latter is preferred so production/staging seeding remains unaffected.
 
 `TestWebAppHost.ResetSeedData()` is currently a `NotImplementedException` stub — implementing it to truncate non-badge rows and re-run seed will be required for true scenario isolation once test count grows.
+
+---
+
+## Recent Additions (as of branch `Story/Photo-Quality-CSP122`, April 2026)
+
+This section documents features and infrastructure added after the original CLAUDE.md was written. Items here supplement (do not replace) the sections above — when something here conflicts with an earlier section, the more recent description wins.
+
+### AI Companion (CSP-120) — Gemini integration
+
+A logged-in user can open a chat modal to ask wildlife/safety questions. Replies come from Google's Gemini API with a server-side system prompt that constrains topics to wildlife education and observer safety.
+
+| Piece | Location |
+|---|---|
+| Interface | `src/MH.Capstone.Domain/Services/Abstraction/IAIService.cs` — single method `Task<string> AskAsync(string userQuestion, CancellationToken)` |
+| Implementation | `src/MH.Capstone.Domain/Services/Api/GeminiAIService.cs` — POSTs to `{BaseUrl}/models/{Model}:generateContent?key={ApiKey}` |
+| Options binding | `src/MH.Capstone.Domain/ApiContracts/Gemini/GeminiOptions.cs` — section name `"Gemini"`, fields `ApiKey`, `Model` (default `"gemini-2.5-flash"`), `BaseUrl` (default `"https://generativelanguage.googleapis.com/v1beta/"`); `IsValid` requires all three non-empty |
+| Controller | `src/MH.Capstone.WebApp/Controllers/AICompanionController.cs` — `[Authorize]`, POST `/AICompanion/Ask` accepts `[FromForm] string question` and returns JSON `{ reply }`. Returns 503 with friendly message on API failure |
+| UI | Modal embedded in `Views/Shared/_Layout.cshtml` — no dedicated view directory |
+| DI registration | `Program.cs` — `Configure<GeminiOptions>(...)` + `AddHttpClient<IAIService, GeminiAIService>()`, gated by feature flag `EnableGeminiAIService` |
+| Acceptance | `StepDefinitions/CSP120StepDefinitions.cs` (tag `@ai-companion`) |
+
+#### AI Companion modal element IDs (in `_Layout.cshtml`)
+
+| Element ID | Purpose |
+|---|---|
+| `aiCompanionModal` | Bootstrap modal container |
+| `aiCompanionForm` | Chat form; posts to `/AICompanion/Ask` |
+| `aiCompanionQuestion` | Question text input |
+| `aiCompanionSubmitBtn` | Submit button |
+| `aiCompanionMessages` | Scrollable replies container; reply spans use class `ai-reply` |
+
+The trigger button is rendered only for authenticated users (`data-bs-target='#aiCompanionModal'`).
+
+### Photo Quality (CSP-122) — WIP on this branch
+
+Each `Sighting` row now stores image-quality metadata. Implementation is at the **TDD Red** stage: schema and interfaces are in place, but the analyzer is a placeholder and acceptance steps throw `NotImplementedException`. Do not assume photo quality affects scoring yet — `ScoringService` does **not** read these fields.
+
+| Piece | Notes |
+|---|---|
+| Enum | `PhotoQualityTier` in `MH.Capstone.Domain.DataModels` — `Unknown=0, Low=1, Medium=2, High=3` |
+| Interface | `IPhotoQualityService.AnalyzeAsync(byte[] imageBytes, CancellationToken)` returns `(PhotoQualityTier Tier, double Sharpness, double Luminance, int Width, int Height)` |
+| Implementation | `PhotoQualityService` uses `SixLabors.ImageSharp` (Rgba32). Currently returns `Unknown`/`0.0`/`0.0` plus real width/height — sharpness and luminance logic is **not implemented yet** |
+| Migration | `20260421231908_CSP122_AddPhotoQualityFields` |
+| Acceptance | `StepDefinitions/CSP122StepDefinitions.cs` (tag `@photo-quality`) — every step throws `NotImplementedException` |
+
+Validation thresholds the unit tests assert against (when logic lands): luminance valid range `0.20–0.85`, "high" resolution ≥ 2048 px on the long side.
+
+### Updated `Sighting` columns (beyond what's in the schema table above)
+
+| Column | Type | Source | Notes |
+|---|---|---|---|
+| `PointValue` | int | CSP-109 scoring metadata migration `20260412175159_AddSightingScoringMetadata` | Default 10 — points awarded for this specific sighting |
+| `LoginStreak` | bit | same migration | Captures whether streak was active at submission |
+| `Rarity` | nvarchar | same migration | Default `"Common"` — frozen tier label at submission time |
+| `RarityMultiplier` | float | same migration | Default `1.0` — frozen multiplier at submission time |
+| `QualityTier` | int | CSP-122 migration | Default `0` (Unknown) |
+| `SharpnessScore` | float? | CSP-122 migration | Nullable |
+| `LuminanceAverage` | float? | CSP-122 migration | Nullable |
+| `ResolutionWidth` | int? | CSP-122 migration | Nullable |
+| `ResolutionHeight` | int? | CSP-122 migration | Nullable |
+| `FlaggedForReview` | bit | CSP-122 migration | Default false |
+
+The `Sighting` constructor was extended to accept the CSP-109 scoring fields, and `SightingCardViewModel` now surfaces them for gallery display.
+
+`20260414223118_FixSightingUserIdType` corrected the `Sighting.UserId` FK column type — relevant if you regenerate a migration that touches that column.
+
+### Validation: `NotDefaultCoordinatesAttribute`
+
+`src/MH.Capstone.Domain/Tools/NotDefaultCoordinatesAttribute.cs` — class-level `ValidationAttribute` that fails when both Latitude and Longitude are exactly `0.0`. Default property names are `"Latitude"`/`"Longitude"`; override via `LatitudePropertyName`/`LongitudePropertyName`. Applied to `SightingUploadViewModel`. Error: `"Latitude and Longitude cannot both be 0. Please enter valid coordinates."`
+
+### `IAuthenticationService` — new methods
+
+Added for the CSP-133/CSP-134 email-confirmation flow:
+
+- `Task<string?> GenerateEmailConfirmationTokenAsync(string email)`
+- `Task<bool> ConfirmEmailAsync(string email, string token)`
+
+(`ResendVerificationViewModel` exposes `Email` + `EmailSent` for the resend page.)
+
+### `SightingUploadViewModel` — timezone handling
+
+Now carries `DeviceTimezone` (default `"America/Los_Angeles"`). `ToDataModel()` converts the user-entered local timestamp to UTC using this value before persisting. Tests/seeds that build sightings via the view model must populate this field.
+
+### Feature flags — additions
+
+Beyond `UseRealEmailerService` and `EnableEmailTestEndpoint`:
+
+- `EnableGeminiAIService` — when `true`, registers `GeminiAIService` against `IAIService`; when `false`, AI Companion calls fail at the controller (no DI registration)
+- `ExposeDetailedApiCacheOnUi` — defined in config; no usage wired up yet
+
+### CI/CD — workflows have been split
+
+CLAUDE.md's earlier description of `build_test_ci.yml` + `deploy.yml` is **out of date**. Current `.github/workflows/`:
+
+| Workflow | Role |
+|---|---|
+| `build.yml` | Reusable: restore, build (Release), publish artifacts |
+| `unit_tests.yml` | Reusable: run unit-test projects only |
+| `ef_core_tests.yml` | Reusable: validate both DbContexts have no pending migrations |
+| `system_tests.yml` | Reusable: integration + Selenium acceptance tests (uses Azure OIDC, environment `system_testing`) |
+| `test_suite_complete_run.yml` | Orchestrates unit + EF + system; the "full PR gate" |
+| `test_suite_limited_run.yml` | Lightweight: unit + EF only, no system tests |
+| `deploy.yml` | Calls `build.yml` + `test_suite_complete_run.yml`, then deploys + runs EF migrations against Azure SQL via OIDC |
+
+Build versioning convention (`YYYY.M.<run_number>.<run_attempt>`) and the `main`→prod / `dev`→staging split still hold.
+
+### Acceptance test infrastructure — additions
+
+#### `AcceptanceTestSeeder` personas (referenced by step definitions on this branch)
+
+Personas in `src/MH.Capstone.Tests.Acceptance/Seeding/AcceptanceTestSeeder.cs` use **fixed GUIDs** (so FKs survive re-seeds) and password `Capstone26!`. All have `EmailConfirmed = true`.
+
+| Persona | Notes |
+|---|---|
+| Alex | GUID `aaaaaaaa-...` — primary "logged-in user" persona for newer scenarios |
+| Patricia | GUID `bbbbbbbb-...` |
+| Lily | GUID `cccccccc-...` |
+| James | Unauthenticated visitor — no DB account |
+
+Older scenarios (CSP-53 etc.) still use the original `alpha@test.com` / `alice@test.com` / `bob@test.com` / `newuser@test.com` / `admin@test.com` personas documented earlier. Both sets coexist.
+
+#### New Driver / PageObject — Wildlife Search
+
+`WildlifeSearchDriver` + `WildlifeSearchPageObject` exercise `/Species/Search`. Element IDs in `Views/Species/Search.cshtml`:
+
+| Element ID | Purpose |
+|---|---|
+| `nameInput` | Search text input |
+| `clearBtn` | Clear search button |
+| `searchForm` | Search form |
+| `searchStatus` | aria-live status / error message region |
+| `resultCard` | Result display container |
+| `resultCounter` | "X of Y" pagination counter |
+| `prevBtn` | Previous result button |
+| `nextBtn` | Next result button |
+
+Drivers must be registered as `services.AddTransient<TDriver>()` in `TestDependencySetup.CreateServices()` — Reqnroll does not auto-discover them. `WildlifeSearchDriver` is already registered.
+
+### Tests directories on disk (sanity)
+
+```
+src/MH.Capstone.Domain.Tests.Unit/Services/Api/        # GeminiAIServiceTests, ExternalApiCallerTests
+src/MH.Capstone.Domain.Tests.Unit/Tools/               # NotDefaultCoordinatesAttributeTests
+src/MH.Capstone.Tests.Acceptance/Seeding/              # AcceptanceTestSeeder
+```
+

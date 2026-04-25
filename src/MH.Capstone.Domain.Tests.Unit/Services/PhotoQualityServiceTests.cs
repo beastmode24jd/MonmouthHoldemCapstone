@@ -39,6 +39,27 @@ public class PhotoQualityServiceTests
         return ms.ToArray();
     }
 
+    // Produce a black/white 1px checkerboard. Yields very high Laplacian variance (sharp)
+    // and an average luminance of ~0.5 (well-lit). PNG so pixel values round-trip exactly.
+    private static byte[] CreateCheckerboardImageBytes(int width, int height)
+    {
+        var black = new Rgba32(0, 0, 0, 255);
+        var white = new Rgba32(255, 255, 255, 255);
+        using var image = new Image<Rgba32>(width, height);
+        image.ProcessPixelRows(accessor =>
+        {
+            for (int y = 0; y < accessor.Height; y++)
+            {
+                var row = accessor.GetRowSpan(y);
+                for (int x = 0; x < row.Length; x++)
+                    row[x] = ((x + y) % 2 == 0) ? black : white;
+            }
+        });
+        using var ms = new MemoryStream();
+        image.SaveAsPng(ms);
+        return ms.ToArray();
+    }
+
     [Test]
     public void AnalyzeAsync_WithNullBytes_ThrowsArgumentException()
     {
@@ -108,5 +129,47 @@ public class PhotoQualityServiceTests
 
         // Assert — luminance should be neither too low nor too high; tier logic comes later.
         Assert.That(result.Luminance, Is.InRange(0.20, 0.85));
+    }
+
+    [Test]
+    public async Task AnalyzeAsync_WithSolidColorImage_ReturnsLowSharpnessAndLowTier()
+    {
+        // A solid-color image has zero Laplacian variance — the canonical "blurry" case.
+        // Luminance is fine (0.50), so this exercises the sharpness path of the Low rule.
+        var sut = CreateSut();
+        var imageBytes = CreateSolidImageBytes(1600, 1200, new Rgba32(128, 128, 128, 255));
+
+        var result = await sut.AnalyzeAsync(imageBytes);
+
+        Assert.That(result.Sharpness, Is.LessThan(100), "solid image must score below the blur threshold");
+        Assert.That(result.Tier, Is.EqualTo(PhotoQualityTier.Low));
+    }
+
+    [Test]
+    public async Task AnalyzeAsync_WithSharpWellLitLargeImage_ReturnsHighTier()
+    {
+        // Checkerboard at >=2048 long side: very high variance, luminance ~0.5, large enough.
+        // Hits every High-tier criterion.
+        var sut = CreateSut();
+        var imageBytes = CreateCheckerboardImageBytes(2400, 1800);
+
+        var result = await sut.AnalyzeAsync(imageBytes);
+
+        Assert.That(result.Sharpness, Is.GreaterThanOrEqualTo(300));
+        Assert.That(result.Luminance, Is.InRange(0.30, 0.75));
+        Assert.That(result.Tier, Is.EqualTo(PhotoQualityTier.High));
+    }
+
+    [Test]
+    public async Task AnalyzeAsync_WithSharpWellLitSmallImage_ReturnsMediumTier()
+    {
+        // Checkerboard at 1600x1200: passes sharpness + luminance gates, but long side
+        // is below 2048 so the High criteria fail. Should land at Medium.
+        var sut = CreateSut();
+        var imageBytes = CreateCheckerboardImageBytes(1600, 1200);
+
+        var result = await sut.AnalyzeAsync(imageBytes);
+
+        Assert.That(result.Tier, Is.EqualTo(PhotoQualityTier.Medium));
     }
 }
