@@ -41,6 +41,14 @@ namespace MH.Capstone.Domain.Services
             return clubQuery.OrderBy(c => c.Name).ToList();
         }
 
+        public async Task<Club?> GetClubByIdAsync(Guid id)
+        {
+            // Includes Owner so the controller/view can display the owner's username
+            // without relying on lazy loading.
+            return (await _clubRepo.GetAllAsync(c => c.Owner))
+                .FirstOrDefault(c => c.Id == id);
+        }
+
         public async Task<Club> CreateClubAsync(Club club)
         {
             if (club == null)

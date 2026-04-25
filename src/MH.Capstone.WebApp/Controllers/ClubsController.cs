@@ -45,73 +45,60 @@ namespace MH.Capstone.WebApp.Controllers
             return View("LandingPage", viewModel);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> ClubPage(Guid id)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return StatusCode((int)HttpStatusCode.InternalServerError);
+
+            var club = await _clubService.GetClubByIdAsync(id);
+            if (club == null)
+                return NotFound();
+
+            var userClubs = await _clubService.GetUserClubsAsync(user.GuidId);
+            bool isMember = userClubs.Any(c => c.Id == id);
+            bool isOwner = club.OwnerId == user.GuidId;
+
+            if (!club.IsPublic && !isMember)
+                return Forbid();
+
+            return View("ClubPage", new ClubPageViewModel(club, isOwner, isMember));
+        }
+
+        [HttpGet]
+        public IActionResult Chatroom(Guid id)
+        {
+            return View("Chatroom");
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateClub(string name, string? description, bool isPublic)
         {
             var user = await _userManager.GetUserAsync(User);
-
             if (user == null)
                 return StatusCode((int)HttpStatusCode.InternalServerError);
 
-            // Initialize the club.
-
-            Guid ownerId = user.GuidId;
-            DateTimeOffset createdAt = DateTimeOffset.UtcNow;
-
             var newClub = new Club
             {
-                OwnerId = ownerId,
+                OwnerId = user.GuidId,
                 Name = name,
                 Description = description,
                 IsPublic = isPublic,
-                CreatedAt = createdAt
+                CreatedAt = DateTimeOffset.UtcNow
             };
 
-            // Save the club
             await _clubService.CreateClubAsync(newClub);
 
             if (!newClub.IsPublic)
-            {
-                _logger.LogInformation($"Saved user {user.Email}'s private Club {newClub.Name}.");
-            }
-
-            // TODO: redirect to actual ClubPage
-
-            // Get timezone cookie from site.js (defaults to PST if not found)
-            string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
-            
-            TimeZoneInfo userZone;
-
-            try
-            {
-                userZone = TimeZoneInfo.FindSystemTimeZoneById(userTimeZoneId);
-            }
-            catch
-            {
-                // Windows server fallback for if IANA string fails
-                userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
-            }
-
-            // Convert the timestamp to the device's actual zone
-            DateTimeOffset deviceTime = TimeZoneInfo.ConvertTime((DateTimeOffset)newClub.CreatedAt, userZone);
-
-            // Generate the notification with the correct AM/PM and 12-hour format
-            string timeDisplay = deviceTime.ToString("MM/dd/yyyy h:mm tt");
+                _logger.LogInformation("Saved user {Email}'s private Club {Name}.", user.Email, newClub.Name);
 
             await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId,
                 $"Made the {newClub.Name} Club",
-                $"Good work. Keep at it!"
-                ));
+                "Good work. Keep at it!"));
 
-            // Need to pass this along to the ClubPage display,
-            //      so it can show the created time accurately.
-
-            ViewData["ClubCreatedAt"] = timeDisplay;
-            ViewData["NewClub"] = newClub;
-            ViewData["ClubTitle"] = newClub.Name;
-
-            return View("ClubPage");
+            return RedirectToAction(nameof(ClubPage), new { id = newClub.Id });
         }
     }
 }

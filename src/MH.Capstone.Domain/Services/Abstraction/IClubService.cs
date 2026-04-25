@@ -9,6 +9,9 @@ namespace MH.Capstone.Domain.Services.Abstraction
         // Returns private clubs the given user is a member of via ClubMembership.
         Task<IEnumerable<Club>> GetUserClubsAsync(Guid userId);
 
+        // Returns a single club with its Owner nav property loaded, or null if not found.
+        Task<Club?> GetClubByIdAsync(Guid id);
+
         // Creates a new club and auto-enrolls the owner as its first member.
         Task<Club> CreateClubAsync(Club club);
 

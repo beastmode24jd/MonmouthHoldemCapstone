@@ -603,7 +603,9 @@ Constructors: `Message()` (default) and `Message(Guid clubId, Guid authorId, str
 |---|---|
 | `GetPublicClubsAsync()` | Returns all clubs where `IsPublic = true` |
 | `GetUserClubsAsync(Guid userId)` | Returns clubs the user has a `ClubMembership` row for, sorted by `Name` |
+| `GetClubByIdAsync(Guid id)` | Eagerly loads all clubs with `Owner` included via `GetAllAsync(c => c.Owner)`, then returns the first matching `Id`. Returns `null` if not found. |
 | `CreateClubAsync(Club club)` | Saves the club, then auto-enrolls the owner as the first `ClubMembership`; throws `ArgumentNullException` on null |
+| `SendInviteAsync` / `AcceptInviteAsync` / `DeclineInviteAsync` | Stub methods — interface defined, implementations empty |
 
 ---
 
@@ -616,11 +618,13 @@ Injects: `IClubService`, `UserManager<ApplicationUser>`, `INotificationService`,
 | Action | Route | Status |
 |---|---|---|
 | `Index()` | `GET /Clubs` | **Done** — loads `ClubListViewModel`, renders `LandingPage` view |
-| `CreateClub(string name, string? description, bool isPublic)` | `POST /Clubs/CreateClub` | **Done (partial)** — saves club via `CreateClubAsync`; auto-enrolls owner as first member; sends an in-app notification to the owner; resolves `UserTimeZone` cookie (IANA string, Windows fallback) to compute `timeDisplay`; passes `ViewData["ClubCreatedAt"]` (formatted local time) and `ViewData["ClubIDValue"]` (club GUID string) to `ClubPage`; has a `TODO` to redirect to `ClubPage` rather than returning it directly. **Known bug:** `CreatedAt` is set to `new DateTimeOffset()` (= `DateTimeOffset.MinValue`) instead of `DateTimeOffset.UtcNow`. |
+| `ClubPage(Guid id)` | `GET /Clubs/ClubPage/{id}` | **Done** — fetches club via `GetClubByIdAsync` (Owner eagerly loaded); checks membership via `GetUserClubsAsync`; returns 404 if club not found, 403 if private and non-member; renders `ClubPage` view with `ClubPageViewModel` |
+| `Chatroom(Guid id)` | `GET /Clubs/Chatroom/{id}` | **Stub** — returns the `Chatroom` view; no data passed yet |
+| `CreateClub(string name, string? description, bool isPublic)` | `POST /Clubs/CreateClub` | **Done** — saves club via `CreateClubAsync`; sends an in-app notification to the owner; redirects to `GET /Clubs/ClubPage/{id}` |
 
 ---
 
-### ViewModel
+### ViewModels
 
 `ClubListViewModel` — `src/MH.Capstone.WebApp/Models/ClubListViewModel.cs`
 
@@ -633,15 +637,37 @@ Injects: `IClubService`, `UserManager<ApplicationUser>`, `INotificationService`,
 | `HasPersonalClubs` | bool | Computed |
 | `PublicClubCount` / `UserClubCount` | int | Computed |
 
+`ClubPageViewModel` — `src/MH.Capstone.WebApp/Models/ClubPageViewModel.cs`
+
+| Property | Type | Notes |
+|---|---|---|
+| `Club` | `Club` | The club entity; `Owner` nav property is eagerly loaded by `GetClubByIdAsync` |
+| `IsCurrentUserOwner` | `bool` | True when the logged-in user's `GuidId` matches `Club.OwnerId` |
+| `IsCurrentUserMember` | `bool` | True when the club appears in the user's `GetUserClubsAsync` result |
+
+Constructor: `ClubPageViewModel(Club club, bool isOwner, bool isMember)`.
+
 ---
 
 ### Views
 
 | View | Path | Status |
 |---|---|---|
-| `LandingPage.cshtml` | `Views/Clubs/LandingPage.cshtml` | Done — filter UI, club cards grid, create-club modal |
-| `ClubPage.cshtml` | `Views/Clubs/ClubPage.cshtml` | Stub — title only |
-| `Chatroom.cshtml` | `Views/Clubs/Chatroom.cshtml` | Exists, not yet wired up |
+| `LandingPage.cshtml` | `Views/Clubs/LandingPage.cshtml` | Done — filter UI, club cards grid (public + private user clubs), "View Club" links on each card, create-club modal |
+| `ClubPage.cshtml` | `Views/Clubs/ClubPage.cshtml` | Done — club name, visibility badge, description, owner username, created date, "Go to Chatroom" button, "Invite Member" button + modal (owner-only; send not yet implemented), "Back to Clubs" link |
+| `Chatroom.cshtml` | `Views/Clubs/Chatroom.cshtml` | Stub — wired to `GET /Clubs/Chatroom/{id}`, no content yet |
+
+---
+
+### Page Element IDs — `/Clubs/ClubPage/{id}` (ClubPage)
+
+| Element ID | Purpose |
+|---|---|
+| `inviteMemberBtn` | "Invite Member" button; only rendered for the club owner; opens `inviteMemberModal` |
+| `inviteMemberModal` | Bootstrap modal for invite flow; only rendered for the club owner |
+| `memberSearchInput` | Username search input inside the invite modal |
+| `memberSearchResults` | `<div>` where search results will be injected (not yet implemented) |
+| `sendInviteBtn` | "Send Invite" button inside the modal; disabled until invite feature is implemented |
 
 ---
 
@@ -683,10 +709,8 @@ Filter state is persisted with `sessionStorage` key `'clubsFilter'` (`'all'` or 
 
 ### What Is Still Incomplete
 
-- `ClubPage.cshtml` is a stub (`ViewData["Title"] = "My Club"` only) — no club details, member list, or chatroom link rendered yet
-- `Chatroom.cshtml` is a stub (`ViewData["Title"] = "Club Chatroom"` only) — not yet wired to a controller action or service
-- `CreateClub()` currently returns `View("ClubPage")` directly (a stub) instead of redirecting to a proper `ClubPage` route — has a `TODO` comment noting this
-- `CreateClub()` sets `CreatedAt = new DateTimeOffset()` which resolves to `DateTimeOffset.MinValue` — should be `DateTimeOffset.UtcNow`
+- `Chatroom.cshtml` is a stub — the GET route exists (`/Clubs/Chatroom/{id}`) but the view has no content, and there is no service method for messages yet
+- Invite feature: `memberSearchInput` in `ClubPage.cshtml` is non-functional; `SendInviteAsync` / `AcceptInviteAsync` / `DeclineInviteAsync` in `ClubService` are empty stubs
 - No acceptance tests (`.feature` files) exist yet for any Club scenarios
 - User-deletion flow must be updated to clean up `ClubMembership` and `Message` rows before removing a user
 
