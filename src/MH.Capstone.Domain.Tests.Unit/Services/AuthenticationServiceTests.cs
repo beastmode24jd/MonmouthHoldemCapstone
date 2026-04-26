@@ -108,6 +108,35 @@ public class AuthenticationServiceTests
         AssertAllMockVerifySetups();
     }
 
+    [Test]
+    public async Task RegisterUserAsync_WithDisplayName_SetsDisplayNameOnUser()
+    {
+        // Arrange
+        const string email = "newuser@example.com";
+        const string password = "Test@123!";
+        const string displayName = "Jane Doe";
+
+        _userManagerMock.Setup(x => x.CreateAsync(
+                It.Is<ApplicationUser>(u =>
+                    string.Equals(u.Email, email) &&
+                    string.Equals(u.DisplayName, displayName)), password))
+            .ReturnsAsync(IdentityResult.Success).Verifiable(Times.Once);
+
+        _userManagerMock.Setup(x => x.AddToRoleAsync(
+                It.Is<ApplicationUser>(u => string.Equals(u.Email, email)), "User"))
+            .ReturnsAsync(IdentityResult.Success).Verifiable(Times.Once);
+
+        _notificationServiceMock.Setup(s => s.SendNotificationAsync(
+            It.IsAny<Notification>())).Verifiable(Times.Once);
+
+        // Act
+        var result = await _authService.RegisterUserAsync(email, password, displayName);
+
+        // Assert
+        Assert.That(result, Is.True, "Registration with display name should succeed");
+        AssertAllMockVerifySetups();
+    }
+
     #endregion
     #region ValidateCredentialsAsyncTests
 

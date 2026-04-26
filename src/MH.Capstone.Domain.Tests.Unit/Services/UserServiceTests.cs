@@ -417,5 +417,95 @@ namespace MH.Capstone.Domain.Tests.Unit.Services
     }
 
     #endregion
+
+    #region UpdateDisplayNameAsyncTests
+
+    [Test]
+    public async Task UpdateDisplayNameAsync_ValidDisplayName_SavesDisplayName()
+    {
+        // Arrange
+        const string newDisplayName = "Jane Doe";
+        var user = new ApplicationUser { GuidId = Guid.NewGuid(), DisplayName = "UNSET" };
+
+        _userRepoMock.Setup(r =>
+            r.AddOrUpdateAsync(It.Is<ApplicationUser>(u =>
+                u.Id == user.Id && u.DisplayName == newDisplayName)))
+            .Verifiable(Times.Once);
+
+        var sut = CreateSut();
+
+        // Act
+        await sut.UpdateDisplayNameAsync(user, newDisplayName);
+
+        // Assert
+        Assert.That(user.DisplayName, Is.EqualTo(newDisplayName));
+        AssertAllMockVerifications();
+    }
+
+    [Test]
+    public void UpdateDisplayNameAsync_DisplayNameTooShort_ThrowsArgumentOutOfRangeException()
+    {
+        // Arrange
+        var user = new ApplicationUser { GuidId = Guid.NewGuid() };
+        var sut = CreateSut();
+
+        // Act & Assert
+        Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => sut.UpdateDisplayNameAsync(user, "X"));
+        AssertAllMockVerifications();
+    }
+
+    [Test]
+    public void UpdateDisplayNameAsync_DisplayNameTooLong_ThrowsArgumentOutOfRangeException()
+    {
+        // Arrange
+        var user = new ApplicationUser { GuidId = Guid.NewGuid() };
+        var sut = CreateSut();
+        var tooLong = new string('A', 51);
+
+        // Act & Assert
+        Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => sut.UpdateDisplayNameAsync(user, tooLong));
+        AssertAllMockVerifications();
+    }
+
+    [TestCase("")]
+    [TestCase("   ")]
+    public void UpdateDisplayNameAsync_WhitespaceOrEmpty_ThrowsArgumentOutOfRangeException(string input)
+    {
+        // Arrange
+        var user = new ApplicationUser { GuidId = Guid.NewGuid() };
+        var sut = CreateSut();
+
+        // Act & Assert
+        Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => sut.UpdateDisplayNameAsync(user, input));
+        AssertAllMockVerifications();
+    }
+
+    [TestCase("Alice")]
+    [TestCase("O'Brien")]
+    [TestCase("Jean-Luc")]
+    [TestCase("Dr. Pepper")]
+    public async Task UpdateDisplayNameAsync_ValidVariousNames_SavesSuccessfully(string name)
+    {
+        // Arrange
+        var user = new ApplicationUser { GuidId = Guid.NewGuid(), DisplayName = "UNSET" };
+
+        _userRepoMock.Setup(r =>
+            r.AddOrUpdateAsync(It.Is<ApplicationUser>(u => u.DisplayName == name)))
+            .Verifiable(Times.Once);
+
+        var sut = CreateSut();
+
+        // Act
+        await sut.UpdateDisplayNameAsync(user, name);
+
+        // Assert
+        Assert.That(user.DisplayName, Is.EqualTo(name));
+        AssertAllMockVerifications();
+    }
+
+    #endregion
     }
 }

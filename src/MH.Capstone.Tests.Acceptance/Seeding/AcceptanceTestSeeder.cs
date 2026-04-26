@@ -53,6 +53,13 @@ internal static class AcceptanceTestSeeder
     /// <summary>Lily — second standard User.  Used for multi-user interaction scenarios.</summary>
     internal static readonly Guid LilyUserId     = new("cccccccc-cccc-cccc-cccc-cccccccccccc");
 
+    /// <summary>Owen — standard User with DisplayName == "UNSET". Used for forced display-name *completion* scenario (CSP-168).</summary>
+    internal static readonly Guid OwenUserId     = new("dddddddd-dddd-dddd-dddd-dddddddddddd");
+
+    /// <summary>Faye — standard User with DisplayName == "UNSET". Used for the forced display-name *redirect* check scenario (CSP-168).
+    /// Kept separate from Owen so the two scenarios do not share mutable state.</summary>
+    internal static readonly Guid FayeUserId     = new("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
+
     // James has no database account — he represents an unauthenticated visitor.
 
     // -- Roles (stored as strings to match ASP.NET Identity) ------------------
@@ -191,6 +198,7 @@ internal static class AcceptanceTestSeeder
         db.Users.AddRange(
             // Alex — leaderboard rank #2, active login streak
             MakeUser(AlexUserId, "alex@test.com", hasher,
+                displayName: "Alex",
                 points: 75,
                 bio: "Wildlife enthusiast from Monmouth, OR.",
                 loginStreak: 5,
@@ -198,6 +206,7 @@ internal static class AcceptanceTestSeeder
 
             // Patricia — admin account, minimal data for clean admin scenarios
             MakeUser(PatriciaUserId, "patricia@test.com", hasher,
+                displayName: "Patricia",
                 points: 0,
                 bio: "System administrator.",
                 loginStreak: 0,
@@ -205,10 +214,27 @@ internal static class AcceptanceTestSeeder
 
             // Lily — leaderboard rank #1, all three badges, longer history
             MakeUser(LilyUserId, "lily@test.com", hasher,
+                displayName: "Lily",
                 points: 200,
                 bio: "Passionate nature photographer and conservationist.",
                 loginStreak: 10,
-                lastLoginDaysAgo: 1)
+                lastLoginDaysAgo: 1),
+
+            // Owen — DisplayName == "UNSET"; used for the *completion* scenario (sets name during test)
+            MakeUser(OwenUserId, "owen@test.com", hasher,
+                displayName: "UNSET",
+                points: 0,
+                bio: null,
+                loginStreak: 0,
+                lastLoginDaysAgo: null),
+
+            // Faye — DisplayName == "UNSET"; used only for the *redirect check* scenario (never sets name)
+            MakeUser(FayeUserId, "faye@test.com", hasher,
+                displayName: "UNSET",
+                points: 0,
+                bio: null,
+                loginStreak: 0,
+                lastLoginDaysAgo: null)
         );
 
         await db.SaveChangesAsync(token);
@@ -218,6 +244,7 @@ internal static class AcceptanceTestSeeder
         Guid id,
         string email,
         PasswordHasher<ApplicationUser> hasher,
+        string displayName,
         int points,
         string? bio,
         int loginStreak,
@@ -234,6 +261,7 @@ internal static class AcceptanceTestSeeder
             EmailConfirmed     = true,
             SecurityStamp      = Guid.NewGuid().ToString("D"),
             ConcurrencyStamp   = Guid.NewGuid().ToString("D"),
+            DisplayName        = displayName,
             Points             = points,
             Bio                = bio,
             LoginStreak        = loginStreak,
@@ -257,7 +285,9 @@ internal static class AcceptanceTestSeeder
             new IdentityUserRole<string> { UserId = AlexUserId.ToString(),     RoleId = UserRoleId  },
             new IdentityUserRole<string> { UserId = PatriciaUserId.ToString(), RoleId = AdminRoleId },
             new IdentityUserRole<string> { UserId = PatriciaUserId.ToString(), RoleId = UserRoleId  },
-            new IdentityUserRole<string> { UserId = LilyUserId.ToString(),     RoleId = UserRoleId  }
+            new IdentityUserRole<string> { UserId = LilyUserId.ToString(),     RoleId = UserRoleId  },
+            new IdentityUserRole<string> { UserId = OwenUserId.ToString(),     RoleId = UserRoleId  },
+            new IdentityUserRole<string> { UserId = FayeUserId.ToString(),     RoleId = UserRoleId  }
         );
         await db.SaveChangesAsync(token);
     }

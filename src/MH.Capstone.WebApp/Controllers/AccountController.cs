@@ -254,7 +254,8 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
             // Attempt to register the user
             var success = await _authService.RegisterUserAsync(
                 model.Email,
-                model.Password);
+                model.Password,
+                model.DisplayName);
 
             if (success)
             {
@@ -579,6 +580,32 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
             await _authService.SignOutUserAsync(HttpContext);
             TempData["SuccessMessage"] = "Your account has been deactivated.";
             return RedirectToAction("Login");
+        }
+
+        // CSP-168: Forced display name setup for users whose DisplayName is "UNSET".
+        [HttpGet]
+        [Route("SetDisplayName")]
+        public IActionResult SetDisplayName()
+        {
+            return View(new SetDisplayNameViewModel());
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Route("SetDisplayName")]
+        public async Task<IActionResult> SetDisplayName(SetDisplayNameViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return RedirectToAction(nameof(Login));
+
+            await _userService.UpdateDisplayNameAsync(user, model.DisplayName);
+            _logger.LogInformation("User {Email} set display name to '{DisplayName}'", user.Email, model.DisplayName);
+
+            return RedirectToAction("Index", "Dashboard");
         }
 
         // Logs the current user out and clears authentication cookies.

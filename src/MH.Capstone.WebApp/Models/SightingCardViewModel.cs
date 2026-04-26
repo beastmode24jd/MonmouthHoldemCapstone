@@ -39,7 +39,7 @@ namespace MH.Capstone.WebApp.Models
             Id = sighting.Id;
             Description = sighting.Description;
             SubmittedByUserId = sighting.UserIdentityId;
-            SubmittedByUsername = sighting.User?.UserName ?? "Unknown";
+            SubmittedByUsername = sighting.User?.DisplayName ?? sighting.User?.UserName ?? "Unknown";
             PointValue = sighting.PointValue;
             LoginStreak = sighting.LoginStreak;
             Rarity = sighting.Rarity;

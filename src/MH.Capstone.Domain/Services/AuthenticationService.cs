@@ -32,14 +32,15 @@ namespace MH.Capstone.Domain.Services
             _authRepo = authRepo;
         }
 
-        public async Task<bool> RegisterUserAsync(string email, string password)
+        public async Task<bool> RegisterUserAsync(string email, string password, string displayName = "UNSET")
         {
             // Implement registration logic
             // Creating a new ApplicationUser with the provided email
             var user = new ApplicationUser
             {
                 UserName = email, //Identity requires UserName
-                Email = email
+                Email = email,
+                DisplayName = string.IsNullOrWhiteSpace(displayName) ? "UNSET" : displayName
             };
 
             // Use UserManager to create the user with the hashed password

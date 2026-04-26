@@ -110,12 +110,19 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `ILeaderboardService` | `LeaderboardService` | Ranked user standings |
 | `IReportService` | `ReportService` | Submit and resolve content reports |
 | `INotificationService` | `InAppNotificationService` | Create and deliver in-app notifications. Includes `MarkAllAsReadAsync(user)` and `DeleteAllAsync(user)` for bulk operations (implemented in `NotificationServiceBase`). |
+| `IUserProfileService` | `UserService` | Extended (CSP-168) with `UpdateDisplayNameAsync(user, displayName)` — validates 2–50 chars, throws `ArgumentOutOfRangeException` if invalid. |
 | `IEmailService` | `AzureCommunicationEmailService` / `NoOpEmailService` | Send emails (toggled by `UseRealEmailerService` feature flag). Used by `AccountController.ForgotPassword` to deliver password-reset links. |
 | `IApiCaller` | `ExternalApiCaller` | HTTP calls to external APIs with SQL caching |
 
 **Background service:** `EmailDispatcherService` (hosted service) processes the `EmailQueue` outbox.
 
 **Bulk notification endpoints (CSP-138):** `PUT /notifications/mark-all-read` and `DELETE /notifications/all` — both require `[ValidateAntiForgeryToken]` and are scoped to the authenticated user.
+
+**Display name endpoints (CSP-168):**
+- `GET/POST /account/SetDisplayName` — forced setup page for users with `DisplayName == "UNSET"`; `[Authorize]`, no ANTIFORGERY needed on GET
+- `POST /dashboard/UpdateDisplayName` — updates display name from dashboard settings; `[Authorize]`
+
+**RequireDisplayNameFilter:** Global `IAsyncActionFilter` that redirects authenticated users with `DisplayName == "UNSET"` to `Account/SetDisplayName` before any other action executes. Exempted actions: `SetDisplayName`, `Login`, `Logout`, `Register`, `RegisterConfirmation`, `VerifyEmail`, `ResendVerification`, `ForgotPassword`, `ResetPassword`, `Reactivate`, `Deactivate`, and the test-only email endpoints.
 
 ---
 
@@ -233,6 +240,12 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `/Sighting/Gallery` | `currentUserId` | Hidden `<span data-user-id="…">` carrying the logged-in user's identity string ID |
 | `/Sighting/Gallery` | `.sighting-card-wrapper[data-user-id]` | Per-card wrapper; `data-user-id` attribute used by JS to match against current user |
 | `/Sighting/Gallery` | `.sighting-attribution` | `<span>` inside each card showing the submitter's `UserName` |
+| `/Account/Register` | `displayNameField` | Display name text input on the registration form |
+| `/Account/SetDisplayName` | `setDisplayNameField` | Display name text input on the forced setup page |
+| `/Account/SetDisplayName` | `setDisplayNameBtn` | Submit button on the forced setup page |
+| `/dashboard` | `displayNameInput` | Display name text input in the Account Settings section |
+| `/dashboard` | `updateDisplayNameBtn` | "Update Display Name" submit button |
+| `/dashboard` | `displayNameSuccessMessage` | Success banner shown after a display name is updated |
 | `/notifications` | `markAllReadForm` | Form wrapping the "Mark All as Read" button; has `d-none` class when no unread notifications exist |
 | `/notifications` | `markAllReadBtn` | "Mark All as Read" submit button |
 | `/notifications` | `deleteAllForm` | Form wrapping the "Delete All" button; has `d-none` class when notification list is empty |
@@ -383,6 +396,7 @@ Two EF Core DbContexts, both using the `DataDb` connection string.
 | `Bio` | nvarchar(250) | nullable |
 | `LastLogin` | datetimeoffset | nullable |
 | `LoginStreak` | int | days in current streak |
+| `DisplayName` | nvarchar(50) | required, non-null; defaults to `"UNSET"` for migrated rows; 2–50 chars; not unique |
 | Standard Identity columns | — | `SecurityStamp`, `ConcurrencyStamp`, `LockoutEnabled`, `LockoutEnd`, `AccessFailedCount`, `TwoFactorEnabled`, `PhoneNumber`, `PhoneNumberConfirmed` |
 
 `IsStreakActive` (not mapped): true when `(UtcNow − LastLogin) ≤ 30 days`.
@@ -525,6 +539,8 @@ These users must exist in `WAID_AppDataDb` for acceptance tests to pass. The pas
 | `bob@test.com` | User | 20 | (none) | 1 sighting | Mid-ranked user; no badges yet |
 | `newuser@test.com` | User | 0 | (none) | 0 sightings | Baseline new account; exercises empty-state views |
 | `admin@test.com` | Admin | 0 | (none) | 0 sightings | Admin-role user for moderation/report scenarios; also satisfies `AdminAccount:Hidden` config if set to this address |
+
+> **Note:** The active acceptance test seeder (`AcceptanceTestSeeder.cs`) uses different personas: **Alex** (`alex@test.com`), **Patricia** (`patricia@test.com`), **Lily** (`lily@test.com`), and **Owen** (`owen@test.com` — `DisplayName = "UNSET"`, used for CSP-168 forced setup scenarios). These supersede the old persona names in CI. Password for all: `Capstone26!`.
 
 ### Suggested sighting locations (Pacific Northwest theme)
 
