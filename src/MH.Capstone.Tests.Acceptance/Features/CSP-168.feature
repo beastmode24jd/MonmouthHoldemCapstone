@@ -17,11 +17,13 @@ Feature: CSP-168 — Set Display Name from Account Settings
     Then the user is not redirected to the Set Your Display Name page
     And "Nature Explorer" appears as the user's display name on the dashboard
 
+  @existingUserUnsetDisplayName
   Scenario: Existing user with UNSET display name is forced to set one at login
     Given the user "faye@test.com" has a display name of "UNSET"
     When "faye@test.com" logs in with password "Capstone26!"
     Then the user is redirected to the Set Your Display Name page
 
+  @existingUserUnsetDisplayName
   Scenario: Existing user completes the forced display name setup
     Given the user "owen@test.com" has a display name of "UNSET"
     When "owen@test.com" logs in with password "Capstone26!"

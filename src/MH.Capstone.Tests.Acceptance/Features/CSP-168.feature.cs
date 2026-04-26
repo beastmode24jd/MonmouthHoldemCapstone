@@ -199,15 +199,17 @@ namespace MH.Capstone.Tests.Acceptance.Features
         
         [global::NUnit.Framework.TestAttribute()]
         [global::NUnit.Framework.DescriptionAttribute("Existing user with UNSET display name is forced to set one at login")]
+        [global::NUnit.Framework.CategoryAttribute("existingUserUnsetDisplayName")]
         public async global::System.Threading.Tasks.Task ExistingUserWithUNSETDisplayNameIsForcedToSetOneAtLogin()
         {
-            string[] tagsOfScenario = ((string[])(null));
+            string[] tagsOfScenario = new string[] {
+                    "existingUserUnsetDisplayName"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "2";
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Existing user with UNSET display name is forced to set one at login", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 20
+#line 21
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -220,13 +222,13 @@ namespace MH.Capstone.Tests.Acceptance.Features
 #line 5
   await this.FeatureBackgroundAsync();
 #line hidden
-#line 21
+#line 22
     await testRunner.GivenAsync("the user \"faye@test.com\" has a display name of \"UNSET\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 22
+#line 23
     await testRunner.WhenAsync("\"faye@test.com\" logs in with password \"Capstone26!\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 23
+#line 24
     await testRunner.ThenAsync("the user is redirected to the Set Your Display Name page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
@@ -235,15 +237,17 @@ namespace MH.Capstone.Tests.Acceptance.Features
         
         [global::NUnit.Framework.TestAttribute()]
         [global::NUnit.Framework.DescriptionAttribute("Existing user completes the forced display name setup")]
+        [global::NUnit.Framework.CategoryAttribute("existingUserUnsetDisplayName")]
         public async global::System.Threading.Tasks.Task ExistingUserCompletesTheForcedDisplayNameSetup()
         {
-            string[] tagsOfScenario = ((string[])(null));
+            string[] tagsOfScenario = new string[] {
+                    "existingUserUnsetDisplayName"};
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "3";
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Existing user completes the forced display name setup", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 25
+#line 27
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -256,19 +260,19 @@ namespace MH.Capstone.Tests.Acceptance.Features
 #line 5
   await this.FeatureBackgroundAsync();
 #line hidden
-#line 26
+#line 28
     await testRunner.GivenAsync("the user \"owen@test.com\" has a display name of \"UNSET\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 27
+#line 29
     await testRunner.WhenAsync("\"owen@test.com\" logs in with password \"Capstone26!\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 28
+#line 30
     await testRunner.AndAsync("the user sets their display name to \"Owen Naturalist\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
-#line 29
+#line 31
     await testRunner.ThenAsync("the user is redirected to the dashboard", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
-#line 30
+#line 32
     await testRunner.AndAsync("\"Owen Naturalist\" appears as the user\'s display name on the dashboard", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
@@ -285,7 +289,7 @@ namespace MH.Capstone.Tests.Acceptance.Features
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("User updates their display name from account settings", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 32
+#line 34
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -298,16 +302,16 @@ namespace MH.Capstone.Tests.Acceptance.Features
 #line 5
   await this.FeatureBackgroundAsync();
 #line hidden
-#line 33
+#line 35
     await testRunner.GivenAsync("the user \"alex@test.com\" is logged in with password \"Capstone26!\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 34
+#line 36
     await testRunner.WhenAsync("the user updates their display name to \"Alex Explorer\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 35
+#line 37
     await testRunner.ThenAsync("the display name \"Alex Explorer\" is shown on the dashboard", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
-#line 36
+#line 38
     await testRunner.AndAsync("a success confirmation is displayed", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
 #line hidden
             }
@@ -324,7 +328,7 @@ namespace MH.Capstone.Tests.Acceptance.Features
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Display name field is pre-populated in account settings", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 38
+#line 40
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -337,13 +341,13 @@ namespace MH.Capstone.Tests.Acceptance.Features
 #line 5
   await this.FeatureBackgroundAsync();
 #line hidden
-#line 39
+#line 41
     await testRunner.GivenAsync("the user \"alex@test.com\" is logged in with password \"Capstone26!\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 40
+#line 42
     await testRunner.WhenAsync("the user views the dashboard account settings", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 41
+#line 43
     await testRunner.ThenAsync("the display name input is pre-populated with \"Alex\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
@@ -360,7 +364,7 @@ namespace MH.Capstone.Tests.Acceptance.Features
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Validation rejects a display name that is too short", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 43
+#line 45
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -373,13 +377,13 @@ namespace MH.Capstone.Tests.Acceptance.Features
 #line 5
   await this.FeatureBackgroundAsync();
 #line hidden
-#line 44
+#line 46
     await testRunner.GivenAsync("the user \"alex@test.com\" is logged in with password \"Capstone26!\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 45
+#line 47
     await testRunner.WhenAsync("the user submits a display name of \"X\" from account settings", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 46
+#line 48
     await testRunner.ThenAsync("the display name update is rejected with a validation error", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
