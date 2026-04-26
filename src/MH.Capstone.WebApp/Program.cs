@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MH.Capstone.Domain.Tools;
 using MH.Capstone.Domain.Constants.Configurables;
+using MH.Capstone.WebApp.Filters;
 
 namespace MH.Capstone.WebApp
 {
@@ -178,7 +179,10 @@ namespace MH.Capstone.WebApp
             }
 
             // Add controllers with views and configure Newtonsoft.Json for JSON serialization
-            builder.Services.AddControllersWithViews()
+            builder.Services.AddControllersWithViews(options =>
+            {
+                options.Filters.Add<RequireDisplayNameFilter>();
+            })
                 .AddNewtonsoftJson();
 
             var app = builder.Build();

@@ -148,10 +148,11 @@ public class AccountControllerTests
         {
             Email = "newuser@example.com",
             Password = "Test@123",
-            ConfirmPassword = "Test@123"
+            ConfirmPassword = "Test@123",
+            DisplayName = "TestUser"
         };
 
-        _mockAuthService.Setup(s => s.RegisterUserAsync(registerModel.Email, registerModel.Password)).ReturnsAsync(true);
+        _mockAuthService.Setup(s => s.RegisterUserAsync(registerModel.Email, registerModel.Password, registerModel.DisplayName)).ReturnsAsync(true);
 
         // FindByEmailAsync returns null → email-sending block is skipped (no email service in unit tests)
         _mockUserManager.Setup(m => m.FindByEmailAsync(registerModel.Email))
@@ -163,7 +164,7 @@ public class AccountControllerTests
         Assert.That(redirectResult, Is.Not.Null);
         Assert.That(redirectResult.ActionName, Is.EqualTo("RegisterConfirmation"));
         Assert.That(redirectResult.ControllerName, Is.EqualTo("Account"));
-        _mockAuthService.Verify(s => s.RegisterUserAsync(registerModel.Email, registerModel.Password), Times.Once);
+        _mockAuthService.Verify(s => s.RegisterUserAsync(registerModel.Email, registerModel.Password, registerModel.DisplayName), Times.Once);
         // Registration no longer auto-signs in — user must verify email first
         _mockAuthService.Verify(s => s.SignInUserAsync(It.IsAny<HttpContext>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
     }

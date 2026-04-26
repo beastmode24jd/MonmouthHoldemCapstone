@@ -39,28 +39,39 @@ public class AuthenticationDriver
                 return elems.Count > 0 ? elems[0] : null;
             });
 
+            // The nav now shows the user's DisplayName rather than their email/UserName,
+            // so we cannot reliably match by username text. Presence of the dropdown element
+            // is sufficient to confirm that a user is authenticated. If a username was
+            // provided we still attempt a text match (handles display-name-aware callers),
+            // but fall back to element-presence if the text match fails.
             var text = userElement.Text ?? string.Empty;
-            var isLoggedIn = false;
 
+            bool isLoggedIn;
             if (string.IsNullOrEmpty(username))
             {
                 isLoggedIn = true;
             }
-            else
+            else if (text.IndexOf(username, StringComparison.OrdinalIgnoreCase) >= 0)
             {
-                // Match either the full email or the local-part (before the @) because the navbar shows the username without domain.
-                if (text.IndexOf(username, StringComparison.OrdinalIgnoreCase) >= 0)
+                isLoggedIn = true;
+            }
+            else if (username.Contains('@'))
+            {
+                var local = username.Split('@')[0];
+                isLoggedIn = !string.IsNullOrWhiteSpace(local) &&
+                             text.IndexOf(local, StringComparison.OrdinalIgnoreCase) >= 0;
+
+                // Email not found in nav text — the nav may be showing a DisplayName.
+                // Treat the authenticated-dropdown presence as confirmation of login.
+                if (!isLoggedIn)
                 {
+                    TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Username '{username}' not found in nav text '{text}' — nav may be showing DisplayName. Treating dropdown presence as logged-in.");
                     isLoggedIn = true;
                 }
-                else if (username.Contains('@'))
-                {
-                    var local = username.Split('@')[0];
-                    if (!string.IsNullOrWhiteSpace(local) && text.IndexOf(local, StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        isLoggedIn = true;
-                    }
-                }
+            }
+            else
+            {
+                isLoggedIn = false;
             }
 
             TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] User Auth status: {isLoggedIn}.");
@@ -77,11 +88,37 @@ public class AuthenticationDriver
     {
         var loginUrl = $"{_baseUrl.TrimEnd('/')}/Account/Login";
 
-        if (IsUserLoggedIn(username))
-            return;
+        // If any user is currently logged in, check whether it's the requested user
+        if (IsUserLoggedIn())
+        {
+            try
+            {
+                var elems = _webDriver.FindElements(By.Id("userDropdownNavDisplay"));
+                if (elems.Count > 0)
+                {
+                    var navText = elems[0].Text ?? string.Empty;
+                    var matchesRequested = false;
+                    if (!string.IsNullOrEmpty(username))
+                    {
+                        if (navText.IndexOf(username, StringComparison.OrdinalIgnoreCase) >= 0)
+                            matchesRequested = true;
+                        else if (username.Contains('@'))
+                        {
+                            var local = username.Split('@')[0];
+                            if (!string.IsNullOrWhiteSpace(local) && navText.IndexOf(local, StringComparison.OrdinalIgnoreCase) >= 0)
+                                matchesRequested = true;
+                        }
+                    }
 
-        // If a different user is logged in, log them out first before logging in.
-        LogoutUser();
+                    if (matchesRequested)
+                        return;
+                }
+            }
+            catch { }
+
+            // Different user or unable to detect — logout first
+            LogoutUser();
+        }
 
         TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Attempting User {username} log in.");
         _webDriver.Navigate().GoToUrl(loginUrl);

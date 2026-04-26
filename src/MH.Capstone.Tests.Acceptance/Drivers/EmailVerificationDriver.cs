@@ -22,7 +22,7 @@ public class EmailVerificationDriver
     /// <summary>
     /// Registers a new user via the registration form and waits for the result page.
     /// </summary>
-    public void RegisterNewUser(string email, string password)
+    public void RegisterNewUser(string email, string password, string displayName = "TestUser")
     {
         // Ensure no user is currently logged in to avoid immediately redirecting away from the Register page.
         try
@@ -56,6 +56,7 @@ public class EmailVerificationDriver
             TestContext.Out.WriteLine($"[{nameof(EmailVerificationDriver)}] Warning: document.readyState wait timed out: {ex.Message}");
         }
 
+        _wait.Until(d => d.FindElement(By.Id("displayNameField"))).SendKeys(displayName);
         _wait.Until(d => d.FindElement(By.Id("emailField"))).SendKeys(email);
 
         // The password field has id="passwordField" in Register.cshtml

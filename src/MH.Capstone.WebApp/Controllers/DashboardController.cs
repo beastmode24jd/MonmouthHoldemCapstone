@@ -219,6 +219,28 @@ namespace MH.Capstone.WebApp.Controllers
             return RedirectToAction("Index");
         }
 
+        [HttpPost("UpdateDisplayName")]
+        public async Task<IActionResult> UpdateDisplayName(string newDisplayName)
+        {
+            var userEmail = User.Identity?.Name;
+            var user = await _userService.GetUserByEmailAsync(userEmail ?? "");
+
+            if (user == null)
+                return RedirectToAction("Index");
+
+            if (string.IsNullOrWhiteSpace(newDisplayName) || newDisplayName.Length < 2 || newDisplayName.Length > 50)
+            {
+                TempData["DisplayNameError"] = "Display name must be between 2 and 50 characters.";
+                return RedirectToAction("Index");
+            }
+
+            await _userService.UpdateDisplayNameAsync(user, newDisplayName);
+            _logger.LogInformation("User {Email} updated display name to '{DisplayName}'", userEmail, newDisplayName);
+
+            TempData["DisplayNameSuccess"] = "Display name updated successfully.";
+            return RedirectToAction("Index");
+        }
+
         [HttpGet]
         [Route("/notifications")]
         public async Task<IActionResult> Notifications()
