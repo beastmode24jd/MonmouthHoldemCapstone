@@ -109,7 +109,8 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `IBadgeService` | `BadgeService` | Check and award badges |
 | `ILeaderboardService` | `LeaderboardService` | Ranked user standings. `GetLeaderboardPageAsync()` returns `IEnumerable<ApplicationUser>`; controller projects to `LeaderboardEntryViewModel` (CSP-170: excludes `Email` from public view model). |
 | `IReportService` | `ReportService` | Submit and resolve content reports |
-| `INotificationService` | `InAppNotificationService` | Create and deliver in-app notifications. Includes `MarkAllAsReadAsync(user)` and `DeleteAllAsync(user)` for bulk operations (implemented in `NotificationServiceBase`). |
+| `INotificationService` | `NotificationDispatchService` | Route notifications to in-app and/or email based on user preferences (CSP-169). `SendNotificationAsync(notification, notificationType)` — SystemCritical always delivers to both channels; other types consult `INotificationPreferenceService`. Inherits query/bulk methods from `NotificationServiceBase` (`MarkAllAsReadAsync`, `DeleteAllAsync`). |
+| `INotificationPreferenceService` | `NotificationPreferenceService` | Get and save per-user, per-type notification delivery preferences (CSP-169). `GetPreferencesAsync(user)` returns configurable types only (excludes SystemCritical). `GetDeliveryChannelAsync(user, type)` returns default `InAppOnly` when no preference stored. `SavePreferencesAsync(user, preferences)` silently ignores SystemCritical. |
 | `IUserProfileService` | `UserService` | Extended (CSP-168) with `UpdateDisplayNameAsync(user, displayName)` — validates 2–50 chars, throws `ArgumentOutOfRangeException` if invalid. |
 | `IEmailService` | `AzureCommunicationEmailService` / `NoOpEmailService` | Send emails (toggled by `UseRealEmailerService` feature flag). Used by `AccountController.ForgotPassword` to deliver password-reset links. |
 | `IApiCaller` | `ExternalApiCaller` | HTTP calls to external APIs with SQL caching |
@@ -117,6 +118,13 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 **Background service:** `EmailDispatcherService` (hosted service) processes the `EmailQueue` outbox.
 
 **Bulk notification endpoints (CSP-138):** `PUT /notifications/mark-all-read` and `DELETE /notifications/all` — both require `[ValidateAntiForgeryToken]` and are scoped to the authenticated user.
+
+**Notification preference endpoints (CSP-169):**
+- `GET /dashboard/notification-preferences` — displays the preferences page with per-type delivery dropdowns; `[Authorize]`
+- `POST /dashboard/notification-preferences` — saves preferences via `NotificationPreferencesViewModel`; `[ValidateAntiForgeryToken]`
+- SystemCritical type is enforced server-side — never shown in UI, silently ignored on save
+
+**Notification routing (CSP-169):** `NotificationDispatchService.SendNotificationAsync(notification, notificationType)` — delivery channels: `Silenced`, `InAppOnly`, `EmailOnly`, `InAppAndEmail`. Default (no stored preference): `InAppOnly`. SystemCritical always `InAppAndEmail`. Email delivery writes to `EmailQueue` with HTML body built from `notification.Title` + `notification.Message`.
 
 **Display name endpoints (CSP-168):**
 - `GET/POST /account/SetDisplayName` — forced setup page for users with `DisplayName == "UNSET"`; `[Authorize]`, no ANTIFORGERY needed on GET
@@ -252,6 +260,11 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `/notifications` | `deleteAllForm` | Form wrapping the "Delete All" button; has `d-none` class when notification list is empty |
 | `/notifications` | `deleteAllBtn` | "Delete All" submit button |
 | `/notifications` | `notificationsEmptyState` | `div.alert` shown when the user has no notifications |
+| `/dashboard` | `notificationPreferencesLink` | Link button in Account Settings to navigate to notification preferences page |
+| `/dashboard/notification-preferences` | `notificationPreferencesForm` | Form wrapping the per-type delivery dropdowns |
+| `/dashboard/notification-preferences` | `saveNotificationPreferencesBtn` | Save button for notification preferences |
+| `/dashboard/notification-preferences` | `notificationPreferenceSuccess` | Success alert shown after saving preferences |
+| `/dashboard/notification-preferences` | `pref_{NotificationType}` | `<select>` element for each configurable notification type (e.g. `pref_BadgeAwarded`) |
 
 Access-denied detection: checks if `driver.Url` contains `/account/login` (case-insensitive redirect).
 
