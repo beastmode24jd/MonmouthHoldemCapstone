@@ -200,7 +200,8 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 
 | Page | Element ID | Purpose |
 |---|---|---|
-| Any page | `userDropdownNavDisplay` | Detect logged-in user (nav bar) |
+| Any page | `userDropdownNavDisplay` | Detect logged-in user (nav bar) — contains profile image, `navDisplayNameText` span, and notification badge; use `navDisplayNameText` to read the display name in isolation |
+| Any page | `navDisplayNameText` | `<span>` inside `userDropdownNavDisplay` containing only the user's display name text (excludes notification badge count) |
 | Any page | `logoutBtn` | Logout button |
 | `/Account/Login` | `emailField` | Username input |
 | `/Account/Login` | `passwordField` | Password input |

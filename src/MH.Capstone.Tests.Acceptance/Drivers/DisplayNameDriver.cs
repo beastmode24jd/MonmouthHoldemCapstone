@@ -102,13 +102,13 @@ public class DisplayNameDriver
         });
     }
 
-    /// <summary>Returns the display name shown in the dashboard greeting or nav.</summary>
+    /// <summary>Returns the display name shown in the nav bar.</summary>
     public string GetDisplayedDisplayName()
     {
         try
         {
-            var navDisplay = _driver.FindElements(By.Id("userDropdownNavDisplay"));
-            return navDisplay.Count > 0 ? navDisplay[0].Text.Trim() : string.Empty;
+            var nameSpan = _driver.FindElements(By.Id("navDisplayNameText"));
+            return nameSpan.Count > 0 ? nameSpan[0].Text.Trim() : string.Empty;
         }
         catch { return string.Empty; }
     }
