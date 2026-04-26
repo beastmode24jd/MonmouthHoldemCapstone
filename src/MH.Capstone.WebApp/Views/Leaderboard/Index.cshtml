@@ -46,7 +46,7 @@
 
                         <tr class="@rowClass" id="user-@entry.Id">
                             <td>@(rankStart + i)</td>
-                            <td>@(string.IsNullOrEmpty(entry.DisplayName) || entry.DisplayName == "UNSET" ? entry.UserName : entry.DisplayName)</td>
+                            <td>@entry.DisplayName</td>
                             <td>@entry.Points</td>
                         </tr>
                     }
