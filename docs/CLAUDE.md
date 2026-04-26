@@ -301,6 +301,7 @@ For BDD scenarios, implement **one scenario per commit** (write the feature step
 
 Every PR on this repo must follow these conventions — apply them whenever running `gh pr create`:
 
+- **Base branch:** always target `dev` (`--base dev`) — **never `main`**; feature PRs merge into `dev`, not `main`
 - **Reviewer:** always request `jmcshane22` (`--reviewer jmcshane22`)
 - **Assignees:** always assign both `jmcshane22` and `beastmode24jd` (`--assignee jmcshane22,beastmode24jd`)
 - **Draft:** always open as a draft (`--draft`) — PRs must not be auto-ready for merge
