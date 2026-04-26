@@ -34,9 +34,14 @@ public class CSP52SightingsMapSteps
     [Given(@"I am logged in as a registered user")]
     public void GivenIAmLoggedInAsARegisteredUser()
     {
+        // Clear any existing auth cookie from a previous scenario, otherwise navigating
+        // to /Account/Login redirects to Dashboard and #emailField won't exist.
+        _driver.Navigate().GoToUrl(_baseUrl);
+        _driver.Manage().Cookies.DeleteAllCookies();
+
         _driver.Navigate().GoToUrl($"{_baseUrl}/Account/Login");
 
-        var emailField = _driver.FindElement(By.Id("Email"));
+        var emailField = _driver.FindElement(By.Id("emailField"));
         var passwordField = _driver.FindElement(By.Id("passwordField"));
 
         emailField.SendKeys(TestEmail);

@@ -22,18 +22,19 @@ public class CSP26StepDefinitions
     private readonly ScenarioContext _scenarioContext;
 
 
-    public CSP26StepDefinitions(ScenarioContext scenarioContext)
+    public CSP26StepDefinitions(ScenarioContext scenarioContext, IWebDriver webDriver)
     {
         _scenarioContext = scenarioContext;
-        // Retrieve the driver initialized in the Hook
-        _driver = (IWebDriver)scenarioContext["WebDriver"];
+        // IWebDriver comes from Reqnroll's per-scenario DI container; the older
+        // scenarioContext["WebDriver"] lookup is no longer populated.
+        _driver = webDriver;
     }
 
     [Given("I am on the Login Page")]
     public void GivenIAmOnTheLoginPage()
     {
         // Access the page.
-        _driver.Navigate().GoToUrl("https://localhost:7147/account/login");
+        _driver.Navigate().GoToUrl("http://localhost:5001/account/login");
 
     }
 
@@ -80,18 +81,18 @@ public class CSP26StepDefinitions
     public void GivenIAmOnTheForgotPasswordPage()
     {
         // Access the page.
-        _driver.Navigate().GoToUrl("https://localhost:7147/account/ForgotPassword");
+        _driver.Navigate().GoToUrl("http://localhost:5001/account/ForgotPassword");
     }
 
     [When("I submit an account search for an account that does not exist")]
     public void WhenISubmitAnAccountSearchForAnAccountThatDoesNotExist()
     {
         // Locate the Email field in ForgotPassword.cshtml 
-        var emailField = _driver.FindElement(By.Name("Identifier"));
+        var emailField = _driver.FindElement(By.Id("forgotPasswordEmail"));
         emailField.SendKeys("nonexistent@example.com");
 
         // Locate and click the 'Search' button [cite: 100, 101]
-        var searchButton = _driver.FindElement(By.CssSelector("button[type='submit']"));
+        var searchButton = _driver.FindElement(By.Id("sendResetEmailBtn"));
         searchButton.Click();
     }
 
@@ -116,7 +117,7 @@ public class CSP26StepDefinitions
     public void WhenISearchForAValidAccountThatExists()
     {
         // Locate the Email field in ForgotPassword.cshtml 
-        var emailField = _driver.FindElement(By.Id("emailInput"));
+        var emailField = _driver.FindElement(By.Id("forgotPasswordEmail"));
         emailField.SendKeys("alex@test.com");
 
         // Locate and click the 'Search' button [cite: 100, 101]
@@ -143,10 +144,10 @@ public class CSP26StepDefinitions
     public void GivenIAmOnTheConfirmNewPasswordPage()
     {
         // Access the page.
-        _driver.Navigate().GoToUrl("https://localhost:7147/account/ForgotPassword");
+        _driver.Navigate().GoToUrl("http://localhost:5001/account/ForgotPassword");
 
         // Search a valid email, then submit.
-        var emailField = _driver.FindElement(By.Id("emailInput"));
+        var emailField = _driver.FindElement(By.Id("forgotPasswordEmail"));
         emailField.SendKeys("alex@test.com");
 
         var searchButton = _driver.FindElement(By.Id("submitBtn"));

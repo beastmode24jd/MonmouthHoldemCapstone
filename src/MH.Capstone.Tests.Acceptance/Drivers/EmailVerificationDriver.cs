@@ -38,7 +38,10 @@ public class EmailVerificationDriver
             return btn.Count > 0 && btn[0].Enabled;
         }, TimeSpan.FromSeconds(5));
 
-        _driver.FindElement(By.Id("submitBtn")).Click();
+        // JS click to bypass any overlapping element (e.g. password-visibility toggle
+        // icon or HTML5 validation tooltip) that can intercept a native Selenium click.
+        var registerSubmit = _driver.FindElement(By.Id("submitBtn"));
+        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", registerSubmit);
         // Wait explicitly for the RegisterConfirmation page element rather than just
         // document.readyState — the latter can fire on the Register page before the
         // 302 redirect to RegisterConfirmation has started, causing a race condition
@@ -141,7 +144,9 @@ public class EmailVerificationDriver
             return btn.Count > 0 && btn[0].Enabled;
         }, TimeSpan.FromSeconds(5));
 
-        _driver.FindElement(By.Id("submitBtn")).Click();
+        // JS click to bypass any overlapping element that can intercept a native click.
+        var loginSubmit = _driver.FindElement(By.Id("submitBtn"));
+        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", loginSubmit);
         _driver.WaitForDocumentReady(TimeSpan.FromSeconds(10));
     }
 

@@ -24,18 +24,21 @@ public class CSP42StepDefinitions
     private const string ExpectedDefaultImagePath = "/imgs/profileDefault.jpg";
     const long MAX_IMG_SIZE = 2 * 1024 * 1024;
 
-    public CSP42StepDefinitions(ScenarioContext scenarioContext)
+    public CSP42StepDefinitions(ScenarioContext scenarioContext, IWebDriver webDriver)
     {
         _scenarioContext = scenarioContext;
-        // Retrieve the driver initialized in the Hook
-        _driver = (IWebDriver)scenarioContext["WebDriver"];
+        // IWebDriver comes from Reqnroll's per-scenario DI container; the older
+        // scenarioContext["WebDriver"] lookup is no longer populated.
+        _driver = webDriver;
     }
 
     [Given("I have not submitted a custom profile image")]
     public void GivenIHaveNotSubmittedACustomProfileImage()
     {
         // Log in user who has not submitted a custom profile image
-        _driver.Navigate().GoToUrl("https://localhost:7147/account/login");
+        _driver.Navigate().GoToUrl("http://localhost:5001/");
+        _driver.Manage().Cookies.DeleteAllCookies();
+        _driver.Navigate().GoToUrl("http://localhost:5001/account/login");
 
         // Provide valid username and password params
         var emailInput = _driver.FindElement(By.Id("emailField"));
@@ -84,7 +87,9 @@ public class CSP42StepDefinitions
     public void GivenIAmLoggedIn()
     {
         // Log in user who has not submitted a custom profile image
-        _driver.Navigate().GoToUrl("https://localhost:7147/account/login");
+        _driver.Navigate().GoToUrl("http://localhost:5001/");
+        _driver.Manage().Cookies.DeleteAllCookies();
+        _driver.Navigate().GoToUrl("http://localhost:5001/account/login");
 
         // Provide valid username and password params
         var emailInput = _driver.FindElement(By.Id("emailField"));
@@ -132,7 +137,9 @@ public class CSP42StepDefinitions
     public void GivenIHaveSelectedAValidImageUnder2MB()
     {
         // Log in Lily, who we will use for upload testing
-        _driver.Navigate().GoToUrl("https://localhost:7147/account/login");
+        _driver.Navigate().GoToUrl("http://localhost:5001/");
+        _driver.Manage().Cookies.DeleteAllCookies();
+        _driver.Navigate().GoToUrl("http://localhost:5001/account/login");
 
         // Provide valid username and password params
         var emailInput = _driver.FindElement(By.Id("emailField"));
@@ -214,7 +221,9 @@ public class CSP42StepDefinitions
     public void GivenIHaveSelectedAnImageLargerThan2MB()
     {
         // Log in Lily
-        _driver.Navigate().GoToUrl("https://localhost:7147/account/login");
+        _driver.Navigate().GoToUrl("http://localhost:5001/");
+        _driver.Manage().Cookies.DeleteAllCookies();
+        _driver.Navigate().GoToUrl("http://localhost:5001/account/login");
 
         var emailInput = _driver.FindElement(By.Id("emailField"));
         var passwordInput = _driver.FindElement(By.Id("passwordField"));
