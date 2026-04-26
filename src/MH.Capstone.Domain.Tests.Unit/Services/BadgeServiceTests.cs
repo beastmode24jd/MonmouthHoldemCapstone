@@ -66,7 +66,7 @@ public class BadgeServiceTests
                   .ReturnsAsync(badgeTemplate);
 
         _notificationServiceMock.Setup(s => s.SendNotificationAsync(
-            It.IsAny<Notification>()))
+            It.IsAny<Notification>(), It.IsAny<NotificationType>()))
             .Returns(Task.CompletedTask)
             .Verifiable(Times.Once);
 
@@ -91,7 +91,7 @@ public class BadgeServiceTests
 
         // Verify notification was sent to the correct GuidId
         _notificationServiceMock.Verify(s => s.SendNotificationAsync(
-            It.Is<Notification>(n => n.RecipientId == user.GuidId)), Times.Once);
+            It.Is<Notification>(n => n.RecipientId == user.GuidId), It.IsAny<NotificationType>()), Times.Once);
 
     }
 

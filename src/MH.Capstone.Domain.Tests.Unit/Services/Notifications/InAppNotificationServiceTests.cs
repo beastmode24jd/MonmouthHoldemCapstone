@@ -46,7 +46,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
 
             // Act
             var sut = CreateSut();
-            await sut.SendNotificationAsync(notif);
+            await sut.SendNotificationAsync(notif, NotificationType.BadgeAwarded);
 
             // Assert
             AssertAllMockVerifications();
@@ -70,7 +70,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
             var sut = CreateSut();
 
             // Assert
-            Assert.ThrowsAsync<ArgumentException>(() => sut.SendNotificationAsync(notif));
+            Assert.ThrowsAsync<ArgumentException>(() => sut.SendNotificationAsync(notif, NotificationType.BadgeAwarded));
             AssertAllMockVerifications();
         }
 
@@ -92,7 +92,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
             var sut = CreateSut();
 
             // Act & Assert - should fail validation before repository is called
-            Assert.ThrowsAsync<ArgumentException>(() => sut.SendNotificationAsync(notif));
+            Assert.ThrowsAsync<ArgumentException>(() => sut.SendNotificationAsync(notif, NotificationType.BadgeAwarded));
             AssertAllMockVerifications();
         }
 
@@ -114,7 +114,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
             var sut = CreateSut();
 
             // Act & Assert - should fail validation before repository is called
-            Assert.ThrowsAsync<ArgumentException>(() => sut.SendNotificationAsync(notif));
+            Assert.ThrowsAsync<ArgumentException>(() => sut.SendNotificationAsync(notif, NotificationType.BadgeAwarded));
             AssertAllMockVerifications();
         }
 

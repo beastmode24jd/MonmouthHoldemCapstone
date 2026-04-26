@@ -14,7 +14,7 @@ namespace MH.Capstone.Domain.Services.Abstraction
         /// </summary>
         /// <param name="notification">The <see cref="Notification"/> to send</param>
         /// <returns>A <see cref="Task"/> object representing the async task for this method</returns>
-        Task SendNotificationAsync(Notification notification);
+        Task SendNotificationAsync(Notification notification, NotificationType notificationType);
 
         //TODO - Allow for date-range filtering of notifications, and/or pagination of results for users with many notifications.
         /// <summary>

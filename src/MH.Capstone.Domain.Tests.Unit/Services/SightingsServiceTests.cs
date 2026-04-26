@@ -118,7 +118,7 @@ public class SightingsServiceTests
             .Verifiable(Times.Once);
 
         _notificationServiceMock.Setup(s => s.SendNotificationAsync(
-            It.Is<Notification>(n => n.RecipientId == sighting.UserId)))
+            It.Is<Notification>(n => n.RecipientId == sighting.UserId), It.IsAny<NotificationType>()))
             .Verifiable(Times.Once);
 
         var sut = CreateSut();
@@ -160,7 +160,7 @@ public class SightingsServiceTests
             .Verifiable(Times.Once);
 
         _notificationServiceMock.Setup(s => s.SendNotificationAsync(
-                It.Is<Notification>(n => n.RecipientId == sighting.UserId)))
+                It.Is<Notification>(n => n.RecipientId == sighting.UserId), It.IsAny<NotificationType>()))
             .Verifiable(Times.Once);
 
         var sut = CreateSut();
