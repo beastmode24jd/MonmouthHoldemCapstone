@@ -49,6 +49,7 @@ public static class TestDependencySetup
         services.AddTransient<EmailVerificationDriver>();
         services.AddTransient<NotificationsDriver>();
         services.AddTransient<DisplayNameDriver>();
+        services.AddTransient<NotificationPreferencesDriver>();
 
         return services;
     }

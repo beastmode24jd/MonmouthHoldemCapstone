@@ -31,7 +31,7 @@ namespace MH.Capstone.Domain.Services.Notifications
 
         // Abstract method since the actual implementation will depend on the specific type of notification
         // service (ie email, in-app, sms, etc.)
-        public abstract Task SendNotificationAsync(Notification notification);
+        public abstract Task SendNotificationAsync(Notification notification, NotificationType notificationType);
         
         public async Task<IEnumerable<Notification>> GetPendingNotificationsAsync(Guid userId)
         {

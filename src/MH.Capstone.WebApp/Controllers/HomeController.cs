@@ -135,7 +135,8 @@ namespace MH.Capstone.WebApp.Controllers
                 await _notificationService.SendNotificationAsync(Notification
                     .Create(user.GuidId, "Test Email Enqueued!",
                         $"A test email has been queued to your email {user.Email} " +
-                        $"from our email {_emailService.SenderAddress} and will be sent soon!"));
+                        $"from our email {_emailService.SenderAddress} and will be sent soon!"),
+                    NotificationType.SystemCritical);
 
                 return RedirectToAction("Notifications", "Dashboard");
             }
