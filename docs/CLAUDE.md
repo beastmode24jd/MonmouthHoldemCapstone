@@ -109,11 +109,13 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `IBadgeService` | `BadgeService` | Check and award badges |
 | `ILeaderboardService` | `LeaderboardService` | Ranked user standings |
 | `IReportService` | `ReportService` | Submit and resolve content reports |
-| `INotificationService` | `InAppNotificationService` | Create and deliver in-app notifications |
+| `INotificationService` | `InAppNotificationService` | Create and deliver in-app notifications. Includes `MarkAllAsReadAsync(user)` and `DeleteAllAsync(user)` for bulk operations (implemented in `NotificationServiceBase`). |
 | `IEmailService` | `AzureCommunicationEmailService` / `NoOpEmailService` | Send emails (toggled by `UseRealEmailerService` feature flag). Used by `AccountController.ForgotPassword` to deliver password-reset links. |
 | `IApiCaller` | `ExternalApiCaller` | HTTP calls to external APIs with SQL caching |
 
 **Background service:** `EmailDispatcherService` (hosted service) processes the `EmailQueue` outbox.
+
+**Bulk notification endpoints (CSP-138):** `PUT /notifications/mark-all-read` and `DELETE /notifications/all` — both require `[ValidateAntiForgeryToken]` and are scoped to the authenticated user.
 
 ---
 
@@ -193,7 +195,7 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 |---|---|---|
 | Any page | `userDropdownNavDisplay` | Detect logged-in user (nav bar) |
 | Any page | `logoutBtn` | Logout button |
-| `/Account/Login` | `Email` | Username input |
+| `/Account/Login` | `emailField` | Username input |
 | `/Account/Login` | `passwordField` | Password input |
 | `/Account/Login` | `RememberMe` | Remember me checkbox |
 | `/Account/Login` | `submitBtn` | Login submit button |
@@ -231,6 +233,11 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `/Sighting/Gallery` | `currentUserId` | Hidden `<span data-user-id="…">` carrying the logged-in user's identity string ID |
 | `/Sighting/Gallery` | `.sighting-card-wrapper[data-user-id]` | Per-card wrapper; `data-user-id` attribute used by JS to match against current user |
 | `/Sighting/Gallery` | `.sighting-attribution` | `<span>` inside each card showing the submitter's `UserName` |
+| `/notifications` | `markAllReadForm` | Form wrapping the "Mark All as Read" button; has `d-none` class when no unread notifications exist |
+| `/notifications` | `markAllReadBtn` | "Mark All as Read" submit button |
+| `/notifications` | `deleteAllForm` | Form wrapping the "Delete All" button; has `d-none` class when notification list is empty |
+| `/notifications` | `deleteAllBtn` | "Delete All" submit button |
+| `/notifications` | `notificationsEmptyState` | `div.alert` shown when the user has no notifications |
 
 Access-denied detection: checks if `driver.Url` contains `/account/login` (case-insensitive redirect).
 
@@ -261,6 +268,36 @@ For BDD scenarios, implement **one scenario per commit** (write the feature step
 ```
 [CSP-XXX] <what was implemented> (TDD)
 [CSP-XXX] BDD: <scenario name from .feature file>
+```
+
+### Pull Request Conventions
+
+Every PR on this repo must follow these conventions — apply them whenever running `gh pr create`:
+
+- **Reviewer:** always request `jmcshane22` (`--reviewer jmcshane22`)
+- **Assignees:** always assign both `jmcshane22` and `beastmode24jd` (`--assignee jmcshane22,beastmode24jd`)
+- **Draft:** always open as a draft (`--draft`) — PRs must not be auto-ready for merge
+- **Labels:** apply relevant labels (e.g. `feature`, `bug`, `test`, `docs`) based on PR content; check available labels with `gh label list --repo jmcshane22/MonmouthHoldemCapstone`
+
+#### `gh pr edit` is broken on this repo
+
+`gh pr edit` exits with a GraphQL error due to the GitHub classic Projects API deprecation. Use the REST API directly instead:
+
+```bash
+# Add reviewer
+gh api repos/jmcshane22/MonmouthHoldemCapstone/pulls/{n}/requested_reviewers \
+  --method POST --field 'reviewers[]=jmcshane22'
+
+# Add assignees
+gh api repos/jmcshane22/MonmouthHoldemCapstone/issues/{n}/assignees \
+  --method POST --field 'assignees[]=jmcshane22' --field 'assignees[]=beastmode24jd'
+
+# Add label
+gh api repos/jmcshane22/MonmouthHoldemCapstone/issues/{n}/labels \
+  --method POST --field 'labels[]=enhancement'
+
+# Convert back to draft (if created without --draft by mistake)
+gh pr ready {n} --repo jmcshane22/MonmouthHoldemCapstone --undo
 ```
 
 ### Post-implementation: update this file
@@ -317,6 +354,7 @@ Two GitHub Actions workflows in `.github/workflows/`:
 | Feature flags | `src/MH.Capstone.Domain/Tools/FeatureFlags.cs` |
 | API Ninja contract | `src/MH.Capstone.Domain/ApiContracts/Ninja/` |
 | Acceptance test features | `src/MH.Capstone.Tests.Acceptance/Features/` |
+| Acceptance testing guide | `docs/acceptance_testing.md` |
 | Architectural guidelines | `docs/architectural_guidelines.md` |
 
 ---
@@ -673,3 +711,172 @@ src/MH.Capstone.Domain.Tests.Unit/Tools/               # NotDefaultCoordinatesAt
 src/MH.Capstone.Tests.Acceptance/Seeding/              # AcceptanceTestSeeder
 ```
 
+---
+
+## Jira PBI / User Story Guidelines
+
+> The human-readable version of these guidelines lives at `docs/pbi_guidelines.md`.
+
+This section governs how AI assistants (and developers) should create or update Jira issues in the CSP project. All user stories must conform to the **INVEST** principles and follow the established story structure below.
+
+---
+
+### INVEST Principles (required for every story)
+
+Every user story written for this project must satisfy all six INVEST criteria before being submitted to Jira:
+
+| Principle | Requirement |
+|---|---|
+| **Independent** | The story must be self-contained with no inherent dependency on another story. |
+| **Negotiable** | Until a story enters an active sprint, it can always be rewritten or changed. |
+| **Valuable** | The story must deliver clear value to the end user. |
+| **Estimable** | The story must be scoped clearly enough that the team can estimate its size. |
+| **Small** | The story must be small enough to plan, task, and prioritize with certainty. |
+| **Testable** | The story must provide enough detail for test development to be possible. |
+
+---
+
+### User Story Structure
+
+Every Jira issue must include the following sections. Use the template below exactly — do not omit sections.
+
+#### Story Case (Summary / Title field)
+
+Write in the standard user story format:
+
+```
+As a <role>, when <context>, I want <goal> so that <benefit>.
+```
+
+#### Description
+
+Provide 2–4 sentences of background explaining the current state and what this story changes. Follow with a bulleted list of specific behavioral requirements the implementation must satisfy.
+
+#### Assumptions / Preconditions
+
+Organize assumptions into four subsections:
+
+- **Functional Assumptions** — what the system already provides that this story depends on
+- **Security Assumptions** — authentication, authorization, and data visibility rules
+- **User Experience Assumptions** — UI behavior, empty states, transitions, labeling
+- **System Behavior Assumptions** — backend/data layer behavior, performance, pagination
+
+#### Acceptance Criteria
+
+Write all acceptance criteria as Gherkin scenarios using `Given / When / Then` format, wrapped in a fenced Gherkin code block:
+
+````
+```Gherkin
+Scenario: <scenario name>
+    Given <precondition>
+    When <action>
+    Then <expected outcome>
+    And <additional assertion>
+```
+````
+
+Each acceptance criterion from the description must map to at least one scenario. Cover: happy path, alternative paths, empty states, and any security/visibility rules.
+
+---
+
+### Example Story (reference)
+
+The following is a canonical example of a well-formed story for this project:
+
+**Story Case:**
+> As a User, when I visit the gallery page, I want to view sightings submitted by all users so that I can explore the broader community's observations, while still being able to filter the gallery to show only my own sightings when I choose.
+
+**Description:**
+Currently, the gallery page displays only the authenticated user's own sightings. This story expands the gallery to show sightings from all users by default, turning it into a community-wide feed. Users retain the ability to filter the gallery down to only their own submissions at any time.
+
+Requirements:
+- Display all sightings from all users by default, sorted by most recent
+- Show relevant attribution on each sighting card (e.g., submitted by username or display name)
+- Provide a filter control (toggle or dropdown) allowing the user to switch between "All Sightings" and "My Sightings"
+- Persist the selected filter for the duration of the session (or until changed)
+- Respect existing visibility/privacy rules — private sightings must not appear in the community view
+
+**Acceptance Criteria (Gherkin):**
+```Gherkin
+Scenario: Default gallery shows all community sightings
+    Given an authenticated user navigates to the gallery page
+    When the page loads with no filter selected
+    Then sightings from all users are displayed
+    And each sighting card shows the submitting user's attribution
+
+Scenario: User filters gallery to their own sightings
+    Given an authenticated user is on the gallery page
+    When the user selects the "My Sightings" filter
+    Then only sightings submitted by the authenticated user are displayed
+    And the filter control reflects the active "My Sightings" state
+
+Scenario: User clears the filter to return to community view
+    Given an authenticated user has the "My Sightings" filter active
+    When the user selects the "All Sightings" filter
+    Then sightings from all users are displayed again
+    And the filter control reflects the active "All Sightings" state
+
+Scenario: Private sightings are excluded from community view
+    Given a user has submitted a sighting marked as private
+    When any other user views the gallery in "All Sightings" mode
+    Then the private sighting is not visible to them
+
+Scenario: Empty state when user has no sightings
+    Given an authenticated user has not submitted any sightings
+    When the user selects the "My Sightings" filter
+    Then an empty state message is displayed
+    And the user is prompted to submit their first sighting
+
+Scenario: Filter persists within the session
+    Given an authenticated user has selected the "My Sightings" filter
+    When the user navigates away and returns to the gallery page within the same session
+    Then the "My Sightings" filter remains active
+```
+
+---
+
+### Required Jira Fields
+
+In addition to the story content, every Jira issue must have the following fields set:
+
+#### Team
+Always assign the team **"MH Development Team"** unless explicitly told otherwise.
+
+#### Story Point Estimate (SPE)
+Use powers of 2 only: **1, 2, 4, 8, …**. Target ≤ 4 points per story — if a story feels larger, consider splitting it.
+
+| Points | When to use |
+|---|---|
+| **1** | Minor bug fix; UI-only update; no new testing or back-end code, or only minimal/routine changes to existing tests and back-end. |
+| **2** | Larger full-stack bug fix; larger UI-only or back-end-only update or new design; little to moderate testing updates or implementation. |
+| **4** | New full-stack feature; heavy back-end work; requires new or large overhauls of all test types (unit, acceptance, etc.). |
+
+> Estimates may vary depending on whether existing infrastructure or prior experience is available to support the story's implementation. Use the table as a guide, not a rule — the same work can reasonably land at a different point value given context.
+
+---
+
+### AI Agent Attribution
+
+When an AI agent creates or modifies a Jira PBI description, it must append the following note at the very bottom of the description field:
+
+```
+---
+AI Agent <Agent Name> assisted in the creation and/or modification of this PBI.
+```
+
+Replace `<Agent Name>` with the name of the AI agent or model used (e.g., `Claude Sonnet 4.6`).
+
+---
+
+### Checklist before creating or updating a Jira issue
+
+- [ ] Story case follows `As a / when / I want / so that` format
+- [ ] All six INVEST criteria are satisfied
+- [ ] Description includes background context and a bulleted requirements list
+- [ ] Assumptions are organized into the four subsections
+- [ ] Every requirement maps to at least one Gherkin scenario
+- [ ] Gherkin scenarios cover happy path, alternative paths, empty states, and security rules
+- [ ] Story is small enough to be completed within a single sprint
+- [ ] Team is set to **MH Development Team**
+- [ ] Story point estimate is set (1, 2, or 4) using the SPE guidelines above
+- [ ] AI agent attribution note appended to the bottom of the description (if created or modified by an AI agent)

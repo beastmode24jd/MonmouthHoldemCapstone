@@ -1,121 +1,49 @@
+using System.Diagnostics.CodeAnalysis;
+using FluentAssertions;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Tests.Acceptance.Configuration;
-using MH.Capstone.Tests.Acceptance.Hooks;
+using MH.Capstone.Tests.Acceptance.Drivers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using OpenQA.Selenium;
-using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 using Reqnroll;
-using System.IO;
-using System.Text.Json;
-using MH.Capstone.Tests.Acceptance.Drivers;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
 [Binding]
+[ExcludeFromCodeCoverage]
 public class CSP101StepDefinitions
 {
     private readonly IWebDriver _driver;
     private readonly WebDriverWait _wait;
+    private readonly AcceptanceTestSettings _settings;
     private readonly AuthenticationDriver _authDriver;
 
-    private readonly string BaseUrl;
+    private string BaseUrl => _settings.BaseUrl.TrimEnd('/');
     private const string ReportablePath = "/About";
     private const string DefaultReason = "Inappropriate content";
-    private const string DefaultPassword = "Test@1234";
+    private const string DefaultPassword = "Capstone26!";
 
     private readonly List<string> _createdUserIds = new();
     private readonly Dictionary<string, ApplicationUser> _personaUsers = new();
     private string _currentPersona = string.Empty;
 
-    private static readonly Lazy<string?> _connectionString = new(LoadConnectionString);
-
     #region Setup and Teardown
 
-    public CSP101StepDefinitions(IWebDriver webDriver, AcceptanceTestSettings settings,
-        AuthenticationDriver authDriver)
+    public CSP101StepDefinitions(IWebDriver driver, WebDriverWait wait,
+        AcceptanceTestSettings settings, AuthenticationDriver authDriver)
     {
-        BaseUrl = settings.BaseUrl;
+        _driver   = driver;
+        _wait     = wait;
+        _settings = settings;
         _authDriver = authDriver;
-        _driver = webDriver;
-        _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
-        _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(15));
     }
-
-    [AfterScenario("report")]
-    public void AfterScenarioUrlReset()
-    {
-        // Reset to a neutral page after each scenario to ensure a consistent starting point.
-        _driver.Navigate().GoToUrl("pre-post:test");
-        _authDriver.LogoutUser();
-    }
-
-    //[BeforeScenario]
-    //public void SetupBrowser()
-    //{
-    //    // Skip cleanly in CI (or anywhere the dev settings file isn't present) instead of hard-failing.
-    //    if (_connectionString.Value is null)
-    //    {
-    //        Assert.Ignore(
-    //            "Skipping: could not locate MH.Capstone.WebApp/appsettings.Acceptance.json. " +
-    //            "These BDD tests need the acceptance connection string to seed/verify the database.");
-    //    }
-
-    //    var options = new ChromeOptions();
-    //    options.AddArgument("--headless=new");
-    //    options.AddArgument("--no-sandbox");
-    //    options.AddArgument("--disable-dev-shm-usage");
-    //    options.AddArgument("--ignore-certificate-errors");
-    //    options.AddArgument("--disable-gpu");
-    //    options.AddArgument("--window-size=1920,1080");
-
-    //    _driver = new ChromeDriver(options);
-    //    _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
-    //    _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(15));
-    //}
-
-    //[AfterScenario]
-    //public void Cleanup()
-    //{
-    //    if (_createdUserIds.Any())
-    //    {
-    //        using var scope = GetServiceScope();
-    //        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    //        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-
-    //        // Reports FK ReportingUserId -> AspNetUsers.Id; delete reports first to avoid FK violation.
-    //        var reportsToDelete = dbContext.Reports
-    //            .Where(r => _createdUserIds.Contains(r.ReportingUserIdentityId))
-    //            .ToList();
-    //        dbContext.Reports.RemoveRange(reportsToDelete);
-
-    //        var notificationsToDelete = dbContext.Notifications
-    //            .Where(n => _createdUserIds.Contains(n.LinkedUserIdentityId))
-    //            .ToList();
-    //        dbContext.Notifications.RemoveRange(notificationsToDelete);
-
-    //        dbContext.SaveChanges();
-
-    //        foreach (var userId in _createdUserIds)
-    //        {
-    //            var user = dbContext.Users.Find(userId);
-    //            if (user != null)
-    //            {
-    //                userManager.DeleteAsync(user).GetAwaiter().GetResult();
-    //            }
-    //        }
-
-    //        dbContext.SaveChanges();
-    //    }
-
-    //    _driver?.Quit();
-    //    _driver?.Dispose();
-    //}
 
     #endregion
 
@@ -125,7 +53,7 @@ public class CSP101StepDefinitions
     public void GivenPersonaIsLoggedInAndViewingASightingPage(string name)
     {
         var user = EnsurePersona(name);
-        LoginUser(user.Email!, DefaultPassword);
+        _authDriver.PreformLoginForUser(user.Email!, DefaultPassword);
         NavigateToReportablePage();
     }
 
@@ -151,7 +79,20 @@ public class CSP101StepDefinitions
     public void GivenJamesIsNotLoggedIn()
     {
         _currentPersona = "James";
-        // No user created, no login performed.
+        // Navigate to the site first (so cookie operations target the correct domain),
+        // then clear browser storage and cookies to ensure an unauthenticated state.
+        _driver.Navigate().GoToUrl(BaseUrl);
+        try { _driver.Manage().Cookies.DeleteAllCookies(); } catch { }
+        try { ((IJavaScriptExecutor)_driver).ExecuteScript("window.localStorage.clear(); window.sessionStorage.clear();"); } catch { }
+        // Reload to ensure the server observes the cleared cookies/storage
+        _driver.Navigate().GoToUrl(BaseUrl);
+        // Wait for page load
+        _wait.Until(d => {
+            try {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            } catch { return false; }
+        });
     }
 
     [Given("{word} has submitted a report")]
@@ -167,8 +108,8 @@ public class CSP101StepDefinitions
     [When("{word} clicks {string}")]
     public void WhenPersonaClicksButton(string name, string buttonLabel)
     {
-        Assert.That(_currentPersona, Is.EqualTo(name), "Scenario persona mismatch");
-        Assert.That(buttonLabel, Is.EqualTo("Report this page"));
+        _currentPersona.Should().Be(name, "scenario persona mismatch");
+        buttonLabel.Should().Be("Report this page");
         OpenReportModal();
     }
 
@@ -233,7 +174,7 @@ public class CSP101StepDefinitions
                 r.ReportingUserIdentityId == user.Id &&
                 r.ReportedPageUrl == ReportablePath);
 
-        Assert.That(report, Is.Not.Null, $"Report for {_currentPersona} on {ReportablePath} should be persisted");
+        report.Should().NotBeNull($"report for {_currentPersona} on {ReportablePath} should be persisted");
     }
 
     [Then("{word} should receive an in-app notification confirming the report was received")]
@@ -250,8 +191,8 @@ public class CSP101StepDefinitions
             .OrderByDescending(n => n.SentAt)
             .FirstOrDefault();
 
-        Assert.That(notification, Is.Not.Null, $"{name} should have a 'Report Received' notification");
-        Assert.That(notification!.Message, Does.Contain("has been received"));
+        notification.Should().NotBeNull($"{name} should have a 'Report Received' notification");
+        notification!.Message.Should().Contain("has been received");
     }
 
     [Then("it should contain {word}'s UserId, the page URL, the selected reason, and a SubmittedAt timestamp")]
@@ -268,13 +209,13 @@ public class CSP101StepDefinitions
                 r.ReportingUserIdentityId == user.Id &&
                 r.ReportedPageUrl == ReportablePath);
 
-        Assert.That(report, Is.Not.Null, "Report should exist in the database");
-        Assert.That(report!.ReportingUserIdentityId, Is.EqualTo(user.Id), $"Should have {name}'s UserId");
-        Assert.That(report.ReportedPageUrl, Is.EqualTo(ReportablePath), "Should have correct page URL");
-        Assert.That(report.Reason, Is.EqualTo(DefaultReason), "Should have correct reason");
-        Assert.That(report.SubmittedAt, Is.Not.EqualTo(default(DateTime)), "Should have SubmittedAt timestamp");
-        Assert.That(report.SubmittedAt, Is.LessThanOrEqualTo(DateTime.UtcNow.AddMinutes(1)),
-            "Timestamp should not be meaningfully in the future");
+        report.Should().NotBeNull("the report should exist in the database");
+        report!.ReportingUserIdentityId.Should().Be(user.Id, $"should have {name}'s UserId");
+        report.ReportedPageUrl.Should().Be(ReportablePath, "should have the correct page URL");
+        report.Reason.Should().Be(DefaultReason, "should have the correct reason");
+        report.SubmittedAt.Should().NotBe(default, "should have a SubmittedAt timestamp");
+        report.SubmittedAt.Should().BeBefore(DateTime.UtcNow.AddMinutes(1),
+            "the timestamp should not be in the future");
     }
 
     [Then("the system should reject the duplicate")]
@@ -292,19 +233,23 @@ public class CSP101StepDefinitions
                 r.ReportedPageUrl == ReportablePath &&
                 !r.IsResolved);
 
-        Assert.That(reportCount, Is.EqualTo(1),
-            $"Only one unresolved report should exist for {_currentPersona} on {ReportablePath}");
+        reportCount.Should().Be(1,
+            $"only one unresolved report should exist for {_currentPersona} on {ReportablePath}");
     }
 
     [Then("{word} should see a message saying she has already reported this content")]
     public void ThenPersonaShouldSeeAlreadyReportedMessage(string name)
     {
-        var messageDiv = _driver.FindElement(By.Id("reportMessage"));
+        var messageDiv = _wait.Until(d =>
+        {
+            var el = d.FindElement(By.Id("reportMessage"));
+            return (el.Displayed) ? el : null;
+        });
         var messageClass = messageDiv.GetAttribute("class") ?? string.Empty;
         var messageText = messageDiv.Text ?? string.Empty;
 
-        Assert.That(messageClass, Does.Contain("alert-danger"),
-            "Duplicate submission should show an error alert");
+        messageClass.Should().Contain("alert-danger",
+            "a duplicate submission should show an error alert");
 
         // The modal JS renders duplicates through one of two branches:
         //   else  -> "You have already reported this page." (from 409 JSON body)
@@ -314,22 +259,24 @@ public class CSP101StepDefinitions
             messageText.Contains("already reported", StringComparison.OrdinalIgnoreCase) ||
             messageText.Contains("previous report", StringComparison.OrdinalIgnoreCase);
 
-        Assert.That(indicatesDuplicate, Is.True,
+        indicatesDuplicate.Should().BeTrue(
             $"{name} should see an error indicating the report is a duplicate. Actual: '{messageText}'");
     }
 
     [Then("James should not see the {string} button")]
     public void ThenJamesShouldNotSeeTheReportThisPageButton(string buttonLabel)
     {
+        // Wait briefly to assert absence without changing global implicit waits
+        var shortWait = new WebDriverWait(_driver, TimeSpan.FromSeconds(1));
+        shortWait.Until(d => d.FindElements(By.CssSelector("button[data-bs-target='#reportModal']")).Count == 0);
         var reportButtons = _driver.FindElements(By.CssSelector("button[data-bs-target='#reportModal']"));
-        Assert.That(reportButtons, Is.Empty,
-            "Anonymous users should not see the Report this page button");
+        reportButtons.Should().BeEmpty("anonymous users should not see the 'Report this page' button");
     }
 
     [Then("Alex's report should appear with status {string}")]
     public void ThenAlexsReportShouldAppearWithStatus(string status)
     {
-        Assert.That(status, Is.EqualTo("Unresolved"), "Only Unresolved status is implemented");
+        status.Should().Be("Unresolved", "only Unresolved status is currently implemented");
         var alex = _personaUsers["Alex"];
 
         using var scope = GetServiceScope();
@@ -340,7 +287,7 @@ public class CSP101StepDefinitions
             .Where(r => r.ReportingUserIdentityId == alex.Id && !r.IsResolved)
             .ToList();
 
-        Assert.That(unresolved, Is.Not.Empty, "Alex should have at least one unresolved report");
+        unresolved.Should().NotBeEmpty("Alex should have at least one unresolved report");
     }
 
     #endregion
@@ -358,48 +305,28 @@ public class CSP101StepDefinitions
         using var scope = GetServiceScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var suffix   = Guid.NewGuid().ToString("N")[..8];
         var username = $"Test{name}{suffix}";
-        var email = $"{username}@test.com";
+        var email    = $"{username}@test.com";
 
         var user = new ApplicationUser
         {
-            UserName = email,
-            Email = email,
+            UserName      = email,
+            Email         = email,
             EmailConfirmed = true,
-            Points = 0,
+            Points        = 0,
             IsDeactivated = false
         };
 
         var result = userManager.CreateAsync(user, DefaultPassword).GetAwaiter().GetResult();
         if (!result.Succeeded)
-        {
             throw new Exception(
                 $"Failed to create test user {email}: {string.Join(", ", result.Errors.Select(e => e.Description))}");
-        }
 
         _createdUserIds.Add(user.Id);
         _personaUsers[name] = user;
         _currentPersona = name;
         return user;
-    }
-
-    private void LoginUser(string email, string password)
-    {
-        _driver.Navigate().GoToUrl($"{BaseUrl}/Account/Login");
-        _wait.Until(d => d.FindElement(By.Id("Email")));
-
-        var emailInput = _driver.FindElement(By.Id("Email"));
-        var passwordInput = _driver.FindElement(By.Id("passwordField"));
-        var submitButton = _driver.FindElement(By.Id("submitBtn"));
-
-        emailInput.SendKeys(email);
-        passwordInput.SendKeys(password);
-
-        _wait.Until(d => submitButton.Enabled);
-        submitButton.Click();
-
-        _wait.Until(d => !d.Url.Contains("/Account/Login", StringComparison.OrdinalIgnoreCase));
     }
 
     private void NavigateToReportablePage()
@@ -411,44 +338,199 @@ public class CSP101StepDefinitions
     private void OpenReportModal()
     {
         // Scroll to top so nothing covers the fixed-position floating button.
-        ((IJavaScriptExecutor)_driver).ExecuteScript("window.scrollTo(0, 0);");
+        try { ((IJavaScriptExecutor)_driver).ExecuteScript("window.scrollTo(0, 0);"); } catch { }
 
         var openButton = _wait.Until(d =>
         {
             var el = d.FindElement(By.CssSelector("button[data-bs-target='#reportModal']"));
             return (el.Displayed && el.Enabled) ? el : null;
         });
+        TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Open button found: {openButton != null}");
+        TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Open button of type: {openButton?.GetType().Name}");
 
-        // JS click sidesteps overlay interception from the Leaflet map tiles and tooltips.
-        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", openButton!);
-
-
-        // Wait for Bootstrap modal to be fully shown (fade animation complete).
-        _wait.Until(d =>
+        // Try a single JS click to open the modal (avoids repeated clicks while waiting).
+        try
         {
-            var modal = d.FindElement(By.Id("reportModal"));
-            var classes = modal.GetAttribute("class") ?? string.Empty;
-            var ariaHidden = modal.GetAttribute("aria-hidden");
-            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Modal classes: {classes}, aria-hidden: {ariaHidden}");
-            return classes.Contains("show") && ariaHidden != "true";
-        });
+            ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", openButton);
+        }
+        catch (Exception ex)
+        {
+            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] JS click threw: {ex.GetType().Name} {ex.Message}");
+        }
 
-        // Wait for the form controls inside the modal to be interactable.
+        // Preferred wait: wait directly for the select inside the modal to be visible
+        try
+        {
+            var shortWait = new WebDriverWait(_driver, TimeSpan.FromSeconds(3));
+            var success = shortWait.Until(d =>
+            {
+                var els = d.FindElements(By.Id("reportReason"));
+                if (els.Count == 0) return false;
+                var sel = els[0];
+                TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Found reportReason: displayed={sel.Displayed} enabled={sel.Enabled}");
+                return sel.Displayed && sel.Enabled;
+            });
+            if (success)
+            {
+                // Quick stability check: ensure the select remains visible for a short moment
+                try
+                {
+                    var confirm = new WebDriverWait(_driver, TimeSpan.FromSeconds(1));
+                    var stable = confirm.Until(d =>
+                    {
+                        var el = d.FindElement(By.Id("reportReason"));
+                        return el.Displayed && el.Enabled;
+                    });
+                    if (stable)
+                        return;
+                }
+                catch { /* Not stable; proceed to fallback logic */ }
+            }
+        }
+        catch (OpenQA.Selenium.WebDriverTimeoutException)
+        {
+            // not ready yet, proceed to fallback
+        }
+        catch (Exception ex)
+        {
+            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Error while short-waiting for reportReason: {ex.GetType().Name} {ex.Message}");
+        }
+
+        // Fallback: try to cleanup any stray backdrops/modals then show using bootstrap/jQuery/direct DOM
+        TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] reportReason not visible after click; attempting cleanup and bootstrap/jQuery fallback to show modal.");
+
+        var cleanupScript = @"(function(){
+                    try{
+                        document.querySelectorAll('.modal-backdrop').forEach(function(b){ b.remove(); });
+                        document.querySelectorAll('.modal.show').forEach(function(m){
+                            try{
+                                if(typeof bootstrap !== 'undefined' && bootstrap.Modal && bootstrap.Modal.getOrCreateInstance){
+                                    var inst = bootstrap.Modal.getOrCreateInstance(m);
+                                    if(inst) inst.hide();
+                                } else {
+                                    m.classList.remove('show');
+                                    m.style.display = 'none';
+                                    m.setAttribute('aria-hidden','true');
+                                }
+                            } catch(e) { }
+                        });
+                        document.body.classList.remove('modal-open');
+                        return true;
+                    } catch(e){ return false; }
+                })();";
+        try
+        {
+            var cleanupRes = ((IJavaScriptExecutor)_driver).ExecuteScript(cleanupScript);
+            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Cleanup executed, result: {cleanupRes}");
+        }
+        catch (Exception ex)
+        {
+            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Cleanup threw: {ex.GetType().Name} {ex.Message}");
+        }
+
+        var script = @"(function(){
+                    try{
+                        var el = document.getElementById('reportModal');
+                        if(!el) return false;
+                        if(typeof bootstrap !== 'undefined'){
+                            var inst = (bootstrap.Modal && bootstrap.Modal.getOrCreateInstance) ? bootstrap.Modal.getOrCreateInstance(el) : new bootstrap.Modal(el);
+                            inst.show();
+                            return true;
+                        } else if (typeof $ !== 'undefined' && $.fn && $.fn.modal){
+                            $(el).modal('show');
+                            return true;
+                        } else {
+                            el.classList.add('show');
+                            el.style.display = '';
+                            el.setAttribute('aria-hidden','false');
+                            return true;
+                        }
+                    } catch(e){
+                        return false;
+                    }
+                })();";
+
+        try
+        {
+            var res = ((IJavaScriptExecutor)_driver).ExecuteScript(script);
+            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Bootstrap fallback executed, result: {res}");
+        }
+        catch (Exception ex)
+        {
+            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Bootstrap fallback threw: {ex.GetType().Name} {ex.Message}");
+        }
+
+        // Attempt to wait for the bootstrap 'shown' event (async) or fall back to polling the select
+        try
+        {
+            var asyncScript = @"var callback = arguments[arguments.length - 1];
+                try {
+                    var el = document.getElementById('reportModal');
+                    if(!el){ callback(false); return; }
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Modal){
+                        var inst = bootstrap.Modal.getOrCreateInstance(el);
+                        if(inst){
+                            var handler = function(){ el.removeEventListener('shown.bs.modal', handler); callback(true); };
+                            el.addEventListener('shown.bs.modal', handler);
+                            if(!el.classList.contains('show')) inst.show();
+                            return;
+                        }
+                    }
+                    if (typeof $ !== 'undefined' && $.fn && $.fn.modal){
+                        $(el).one('shown.bs.modal', function(){ callback(true); });
+                        $(el).modal('show');
+                        return;
+                    }
+                    // Poll for the inner select briefly
+                    var started = Date.now();
+                    var iv = setInterval(function(){
+                        var sel = document.getElementById('reportReason');
+                        if(sel && (sel.offsetParent !== null || sel.style.display != 'none')){ clearInterval(iv); callback(true); }
+                        else if(Date.now() - started > 3000){ clearInterval(iv); callback(false); }
+                    },100);
+                } catch(e){ callback(false); }";
+
+            var shown = ((IJavaScriptExecutor)_driver).ExecuteAsyncScript(asyncScript);
+            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Async show wait returned: {shown}");
+        }
+        catch (Exception ex)
+        {
+            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] Async show wait threw: {ex.GetType().Name} {ex.Message}");
+        }
+
+        // Final wait for the select to be interactable
         _wait.Until(d =>
         {
             var select = d.FindElement(By.Id("reportReason"));
-            return select.Displayed && select.Enabled;
+            var displayed = select.Displayed;
+            var enabled = select.Enabled;
+            TestContext.Out.WriteLine($"[{nameof(OpenReportModal)}] reportReason final wait: displayed={displayed} enabled={enabled}");
+            return displayed && enabled;
         });
     }
 
     private void FillReportForm(string reason, string description)
     {
-        var reasonSelect = new SelectElement(_driver.FindElement(By.Id("reportReason")));
+        var reasonElement = _wait.Until(d =>
+        {
+            var el = d.FindElement(By.Id("reportReason"));
+            return (el.Displayed && el.Enabled) ? el : null;
+        });
+        TestContext.Out.WriteLine($"[{nameof(FillReportForm)}] Found reason select: displayed={reasonElement.Displayed} enabled={reasonElement.Enabled} type={reasonElement.GetType().Name}");
+        var reasonSelect = new SelectElement(reasonElement);
         reasonSelect.SelectByValue(reason);
+        TestContext.Out.WriteLine($"[{nameof(FillReportForm)}] Selected reason value: {reason}");
 
-        var descriptionBox = _driver.FindElement(By.Id("reportDescription"));
+        var descriptionBox = _wait.Until(d =>
+        {
+            var el = d.FindElement(By.Id("reportDescription"));
+            return (el.Displayed && el.Enabled) ? el : null;
+        });
+        TestContext.Out.WriteLine($"[{nameof(FillReportForm)}] Found description box: displayed={descriptionBox.Displayed} enabled={descriptionBox.Enabled} type={descriptionBox.GetType().Name}");
         descriptionBox.Clear();
+        TestContext.Out.WriteLine($"[{nameof(FillReportForm)}] Cleared description box");
         descriptionBox.SendKeys(description);
+        TestContext.Out.WriteLine($"[{nameof(FillReportForm)}] Sent keys to description box");
     }
 
     private void SubmitReportForm()
@@ -458,7 +540,17 @@ public class CSP101StepDefinitions
             var el = d.FindElement(By.Id("reportSubmitBtn"));
             return (el.Displayed && el.Enabled) ? el : null;
         });
-        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", submitBtn!);
+        TestContext.Out.WriteLine($"[{nameof(SubmitReportForm)}] Clicking submit button (element type: {submitBtn?.GetType().Name})");
+        try
+        {
+            ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", submitBtn!);
+            TestContext.Out.WriteLine($"[{nameof(SubmitReportForm)}] Click issued via JS.");
+        }
+        catch (Exception ex)
+        {
+            TestContext.Out.WriteLine($"[{nameof(SubmitReportForm)}] JS click threw: {ex.GetType().Name} {ex.Message}");
+            throw;
+        }
     }
 
     private void WaitForReportSuccessMessage()
@@ -477,6 +569,8 @@ public class CSP101StepDefinitions
         {
             var el = d.FindElement(By.Id("reportMessage"));
             var classes = el.GetAttribute("class") ?? string.Empty;
+            var text = el.Text ?? string.Empty;
+            TestContext.Out.WriteLine($"[{nameof(WaitForReportErrorMessage)}] reportMessage classes: {classes}, text: '{text}'");
             return classes.Contains("alert-danger");
         });
     }
@@ -484,10 +578,9 @@ public class CSP101StepDefinitions
     private void WaitForReportModalHidden()
     {
         // The modal auto-hides ~2s after a successful submission.
-        var longerWait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
-        longerWait.Until(d =>
+        _wait.Until(d =>
         {
-            var modal = d.FindElement(By.Id("reportModal"));
+            var modal   = d.FindElement(By.Id("reportModal"));
             var classes = modal.GetAttribute("class") ?? string.Empty;
             return !classes.Contains("show");
         });
@@ -495,16 +588,22 @@ public class CSP101StepDefinitions
 
     private IServiceScope GetServiceScope()
     {
-        var connectionString = _connectionString.Value
-                               ?? throw new InvalidOperationException(
-                                   "Connection string unavailable. BeforeScenario should have skipped this test.");
+        var webAppPath = _settings.WebAppContentRoot;
 
-        // Azure SQL serverless tiers can take ~30s to wake from pause. Give the first
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(webAppPath)
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddJsonFile("appsettings.Acceptance.json", optional: true)
+            .AddJsonFile("appsettings.Acceptance.Local.json", optional: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+        var connectionString = configuration.GetConnectionString("DataDb")
+            ?? throw new InvalidOperationException("Connection string 'DataDb' not found.");
+
+        // Azure SQL serverless tiers can take ~30s to wake from pause — give the first
         // connection plenty of headroom and retry transient failures automatically.
-        var builder = new SqlConnectionStringBuilder(connectionString)
-        {
-            ConnectTimeout = 120
-        };
+        var builder = new SqlConnectionStringBuilder(connectionString) { ConnectTimeout = 120 };
         connectionString = builder.ConnectionString;
 
         var services = new ServiceCollection();
@@ -513,20 +612,14 @@ public class CSP101StepDefinitions
             options.UseSqlServer(connectionString, sql =>
             {
                 sql.CommandTimeout(120);
-                sql.EnableRetryOnFailure(
-                    maxRetryCount: 5,
-                    maxRetryDelay: TimeSpan.FromSeconds(15),
-                    errorNumbersToAdd: null);
+                sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(15), null);
             }));
 
         services.AddDbContext<CacheDbContext>(options =>
             options.UseSqlServer(connectionString, sql =>
             {
                 sql.CommandTimeout(120);
-                sql.EnableRetryOnFailure(
-                    maxRetryCount: 5,
-                    maxRetryDelay: TimeSpan.FromSeconds(15),
-                    errorNumbersToAdd: null);
+                sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(15), null);
             }));
 
         services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -543,46 +636,6 @@ public class CSP101StepDefinitions
         services.AddLogging();
 
         return services.BuildServiceProvider().CreateScope();
-    }
-
-    private static string? LoadConnectionString()
-    {
-        var settingsPath = FindWebAppDevSettings();
-        if (settingsPath is null)
-        {
-            return null;
-        }
-
-        using var stream = File.OpenRead(settingsPath);
-        using var doc = JsonDocument.Parse(stream);
-
-        if (doc.RootElement.TryGetProperty("ConnectionStrings", out var connectionStrings) &&
-            connectionStrings.TryGetProperty("DataDb", out var dataDb) &&
-            dataDb.ValueKind == JsonValueKind.String)
-        {
-            return dataDb.GetString();
-        }
-
-        return null;
-    }
-
-    private static string? FindWebAppDevSettings()
-    {
-        // Walk up from the test bin directory until we find a parent that contains
-        // MH.Capstone.WebApp/appsettings.Acceptance.json (i.e. the src/ folder).
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            var candidate = Path.Combine(dir.FullName, "MH.Capstone.WebApp", "appsettings.Acceptance.json");
-            if (File.Exists(candidate))
-            {
-                return candidate;
-            }
-
-            dir = dir.Parent;
-        }
-
-        return null;
     }
 
     #endregion

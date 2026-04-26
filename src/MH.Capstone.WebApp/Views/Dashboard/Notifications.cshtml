@@ -68,11 +68,29 @@
         <div class="card-body">
             <div class="d-flex align-items-center mb-3">
                 <h3 class="mb-0 card-title"><i class="bi bi-bell-fill me-2"></i>Your Notifications</h3>
+                @{
+                    var hasUnread = Model != null && Model.Any(n => !n.IsRead);
+                    var hasAny = Model != null && Model.Any();
+                }
+                <div class="d-flex gap-2 ms-auto">
+                    <form id="markAllReadForm" asp-action="MarkAllNotificationsAsRead" asp-controller="Dashboard" class="m-0 @(hasUnread ? "" : "d-none")">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" id="markAllReadBtn" class="btn btn-sm btn-success">
+                            <i class="bi bi-check2-all me-1"></i>Mark All as Read
+                        </button>
+                    </form>
+                    <form id="deleteAllForm" asp-action="DeleteAllNotifications" asp-controller="Dashboard" class="m-0 @(hasAny ? "" : "d-none")">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" id="deleteAllBtn" class="btn btn-sm btn-danger">
+                            <i class="bi bi-trash me-1"></i>Delete All
+                        </button>
+                    </form>
+                </div>
             </div>
 
             @if (Model == null || !Model.Any())
             {
-                <div class="alert alert-info" role="alert">
+                <div id="notificationsEmptyState" class="alert alert-info" role="alert">
                     You have no notifications at this time. Way to stay on top of things!
                 </div>
             }
@@ -134,136 +152,5 @@
 
 @section Scripts
 {
-    <script type="text/javascript">
-        function isTableEmpty() {
-            const table = document.querySelector('.notifications-table');
-            const tbody = table && table.tBodies && table.tBodies[0];
-            return !tbody || tbody.rows.length === 0;
-        }
-
-        document.addEventListener('DOMContentLoaded',
-            function() {
-                // Attach submit event to all notification update forms
-                document.querySelectorAll('.notificationUpdateForm').forEach(form => {
-                    form.addEventListener('submit',
-                        function(e) {
-                            e.preventDefault(); // Prevent default form submission
-                            const notifId = this.getAttribute('data-notif-id');
-                            const toggleReadValue = this.querySelector('input[name="toggleRead"]').value;
-                            fetch(this.action,
-                                    {
-                                        method: 'PUT',
-                                        headers: {
-                                            'Content-Type': 'application/x-www-form-urlencoded',
-                                            'RequestVerificationToken': this.querySelector('input[name="__RequestVerificationToken"]').value
-                                        },
-                                        body: new URLSearchParams({
-                                            toggleRead: toggleReadValue
-                                        })
-                                    })
-                                .then(response => {
-                                    if (response.ok) {
-                                        // On success, toggle the row's unread class & the button's appearance
-                                        const row = document.querySelector(`tr[data-notif-id="${notifId}"]`);
-                                        const readBtn = this.querySelector(`button[data-notif-id="${notifId}-read"]`);
-                                        const unreadBtn = this.querySelector(`button[data-notif-id="${notifId}-unread"]`);
-                                        if (row) {
-                                            row.classList.toggle('unread');
-                                            readBtn.classList.toggle('d-none');
-                                            unreadBtn.classList.toggle('d-none');
-                                        }
-
-                                        // Refresh (not by reload) the notifications badge in the navbar
-                                        notificationAlertRefresh();
-                                    } else {
-                                        console.error('Failed to update notification status.');
-                                    }
-                                })
-                                .catch(error => console.error('Error:', error));
-                        });
-                });
-
-                // ---------------------------
-                // Delete handler (AJAX) - prevents page reload, removes row, calls notificationAlertRefresh()
-                // ---------------------------
-                document.querySelectorAll('.notificationDeleteForm').forEach(form => {
-                    form.addEventListener('submit',
-                        async function(e) {
-                            e.preventDefault();
-
-                            // Optional: confirm delete with the user
-                            if (!confirm('Delete this notification? This action cannot be undone.')) {
-                                return;
-                            }
-
-                            const btn = this.querySelector('.btn-delete');
-                            const notifId = this.getAttribute('data-notif-id');
-
-                            if (!notifId) {
-                                console.error('Notification id not found on delete form.');
-                                return;
-                            }
-
-                            try {
-                                // Disable button to prevent duplicate clicks
-                                if (btn) {
-                                    btn.disabled = true;
-                                    btn.classList.add('disabled');
-                                }
-
-                                // Send DELETE to delete endpoint. Body carries notification id in case server needs it.
-                                const res = await fetch(this.action,
-                                    {
-                                        method: 'DELETE',
-                                        headers: {
-                                            'Content-Type': 'application/x-www-form-urlencoded',
-                                            'RequestVerificationToken': this.querySelector('input[name="__RequestVerificationToken"]').value
-                                        }
-                                    });
-
-                                if (!res.ok) {
-                                    console.error('Failed to delete notification', res.status);
-                                    if (btn) {
-                                        btn.disabled = false;
-                                        btn.classList.remove('disabled');
-                                    }
-                                    return;
-                                }
-
-                                // Remove the table row corresponding to the deleted notification
-                                const row = document.querySelector(`tr[data-notif-id="${notifId}"]`);
-                                if (row) {
-                                    // small fade-out for good UX
-                                    row.style.transition = 'opacity 220ms ease, height 220ms ease, margin 220ms ease';
-                                    row.style.opacity = '0';
-                                    row.style.height = '0';
-                                    row.style.margin = '0';
-                                    // Remove from DOM after transition
-                                    setTimeout(() => {
-                                        row.remove();
-                                        if (isTableEmpty()) {
-                                            // no notifications left - refresh the page to show the "no notifications" message 
-                                            // (simpler than dynamically inserting it here since a reload won't load any notifications)
-                                            location.reload();
-                                        }
-                                    },
-                                    240);
-                                };
-
-                                // Update the notifications badge/alert count
-                                if (typeof notificationAlertRefresh === 'function') {
-                                    notificationAlertRefresh();
-                                }
-                            } catch
-                            (err) {
-                                console.error('Error deleting notification:', err);
-                                if (btn) {
-                                    btn.disabled = false;
-                                    btn.classList.remove('disabled');
-                                }
-                            }
-                        });
-                });
-            });
-    </script>
+    <script src="~/js/notifications.js" asp-append-version="true"></script>
 }

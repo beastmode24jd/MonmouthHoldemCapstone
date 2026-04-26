@@ -428,6 +428,134 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
         }
 
         #endregion
+
+        #region MarkAllAsReadAsyncTests
+
+        private static Expression<Func<Notification, bool>> CreateUnreadNotificationTestExpression(Guid userId)
+            => n => n.LinkedUserIdentityId == userId.ToString() && !n.IsRead;
+
+        [Test]
+        public async Task MarkAllAsReadAsync_HasUnreadNotifications_MarksAllAsRead()
+        {
+            // Arrange
+            var user = new ApplicationUser { GuidId = Guid.NewGuid() };
+            var unreadNotifs = new[]
+            {
+                NotificationValidValuesSource.GetValidNotification(user.GuidId, isRead: false),
+                NotificationValidValuesSource.GetValidNotification(user.GuidId, isRead: false)
+            };
+            var testExpression = CreateUnreadNotificationTestExpression(user.GuidId);
+
+            _mockNotificationRepository
+                .Setup(r => r.GetAllAsync(It.Is<Expression<Func<Notification, bool>>>(
+                    e => Lambda.ExpressionsEqual(e, testExpression))))
+                .ReturnsAsync(unreadNotifs.AsQueryable())
+                .Verifiable(Times.Once);
+
+            foreach (var notif in unreadNotifs)
+            {
+                var capturedId = notif.Id;
+                _mockNotificationRepository
+                    .Setup(r => r.AddOrUpdateAsync(It.Is<Notification>(n => n.Id == capturedId && n.IsRead)))
+                    .ReturnsAsync(notif)
+                    .Verifiable(Times.Once);
+            }
+
+            // Act
+            var sut = CreateSut();
+            await sut.MarkAllAsReadAsync(user);
+
+            // Assert
+            Assert.That(unreadNotifs.All(n => n.IsRead), Is.True);
+            _mockNotificationRepository.VerifyAll();
+            _mockNotificationRepository.VerifyNoOtherCalls();
+        }
+
+        [Test]
+        public async Task MarkAllAsReadAsync_HasNoUnreadNotifications_DoesNotCallAddOrUpdate()
+        {
+            // Arrange
+            var user = new ApplicationUser { GuidId = Guid.NewGuid() };
+            var testExpression = CreateUnreadNotificationTestExpression(user.GuidId);
+
+            _mockNotificationRepository
+                .Setup(r => r.GetAllAsync(It.Is<Expression<Func<Notification, bool>>>(
+                    e => Lambda.ExpressionsEqual(e, testExpression))))
+                .ReturnsAsync(Enumerable.Empty<Notification>().AsQueryable())
+                .Verifiable(Times.Once);
+
+            // Act
+            var sut = CreateSut();
+            await sut.MarkAllAsReadAsync(user);
+
+            // Assert — AddOrUpdateAsync should never be called when there are no unread notifications
+            _mockNotificationRepository.VerifyAll();
+            _mockNotificationRepository.VerifyNoOtherCalls();
+        }
+
+        #endregion
+
+        #region DeleteAllAsyncTests
+
+        [Test]
+        public async Task DeleteAllAsync_HasNotifications_DeletesAll()
+        {
+            // Arrange
+            var user = new ApplicationUser { GuidId = Guid.NewGuid() };
+            var notifications = new[]
+            {
+                NotificationValidValuesSource.GetValidNotification(user.GuidId, isRead: false),
+                NotificationValidValuesSource.GetValidNotification(user.GuidId, isRead: true)
+            };
+            var testExpression = CreateAllNotificationTestExpression(user.GuidId);
+
+            _mockNotificationRepository
+                .Setup(r => r.GetAllAsync(It.Is<Expression<Func<Notification, bool>>>(
+                    e => Lambda.ExpressionsEqual(e, testExpression))))
+                .ReturnsAsync(notifications.AsQueryable())
+                .Verifiable(Times.Once);
+
+            foreach (var notif in notifications)
+            {
+                var capturedId = notif.Id;
+                _mockNotificationRepository
+                    .Setup(r => r.DeleteAsync(It.Is<Notification>(n => n.Id == capturedId)))
+                    .Returns(Task.CompletedTask)
+                    .Verifiable(Times.Once);
+            }
+
+            // Act
+            var sut = CreateSut();
+            await sut.DeleteAllAsync(user);
+
+            // Assert
+            _mockNotificationRepository.VerifyAll();
+            _mockNotificationRepository.VerifyNoOtherCalls();
+        }
+
+        [Test]
+        public async Task DeleteAllAsync_HasNoNotifications_DoesNotCallDelete()
+        {
+            // Arrange
+            var user = new ApplicationUser { GuidId = Guid.NewGuid() };
+            var testExpression = CreateAllNotificationTestExpression(user.GuidId);
+
+            _mockNotificationRepository
+                .Setup(r => r.GetAllAsync(It.Is<Expression<Func<Notification, bool>>>(
+                    e => Lambda.ExpressionsEqual(e, testExpression))))
+                .ReturnsAsync(Enumerable.Empty<Notification>().AsQueryable())
+                .Verifiable(Times.Once);
+
+            // Act
+            var sut = CreateSut();
+            await sut.DeleteAllAsync(user);
+
+            // Assert — DeleteAsync should never be called when there are no notifications
+            _mockNotificationRepository.VerifyAll();
+            _mockNotificationRepository.VerifyNoOtherCalls();
+        }
+
+        #endregion
     }
 
     public struct NotificationValidValuesSource

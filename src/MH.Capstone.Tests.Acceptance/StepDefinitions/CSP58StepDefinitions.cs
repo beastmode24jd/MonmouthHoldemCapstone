@@ -5,6 +5,7 @@ using Reqnroll;
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
 [Binding]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public class CSP58StepDefinitions
 {
     private readonly WildlifeSearchDriver _searchDriver;

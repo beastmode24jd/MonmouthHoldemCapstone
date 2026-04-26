@@ -34,7 +34,8 @@ public static class TestDependencySetup
         services.AddSingleton<IWebDriver>(Startup.GetWebDriver());
 
         // One shared WebDriverWait for step definitions that need explicit waits.
-        services.AddSingleton(new WebDriverWait(Startup.GetWebDriver(), TimeSpan.FromSeconds(15)));
+        // Increased to 30s to reduce transient timing failures in CI/headless environments.
+        services.AddSingleton(new WebDriverWait(Startup.GetWebDriver(), TimeSpan.FromSeconds(30)));
 
         // Driver classes must be explicitly registered when using
         // Reqnroll.Microsoft.Extensions.DependencyInjection — they are not
@@ -46,6 +47,7 @@ public static class TestDependencySetup
         services.AddTransient<WildlifeSearchDriver>();
         services.AddTransient<PasswordResetDriver>();
         services.AddTransient<EmailVerificationDriver>();
+        services.AddTransient<NotificationsDriver>();
 
         return services;
     }

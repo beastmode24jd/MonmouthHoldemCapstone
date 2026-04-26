@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions
 {
     [Binding]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class CSP53StepDefinitions
     {
         private readonly SightingsDriver _sightingsDriver;

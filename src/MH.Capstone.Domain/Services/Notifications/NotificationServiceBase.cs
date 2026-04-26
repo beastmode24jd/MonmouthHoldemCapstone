@@ -62,10 +62,33 @@ namespace MH.Capstone.Domain.Services.Notifications
         }
 
         public async Task<IEnumerable<Notification>> GetAllNotificationsAsync(ApplicationUser user)
-            => await HandleSqlErrors(_notificationRepo.GetAllAsync(n => 
+            => await HandleSqlErrors(_notificationRepo.GetAllAsync(n =>
                 n.LinkedUserIdentityId == user.GuidId.ToString()));
 
         //ModelHelpers.IsLinkedToUserExpression<Notification>(user.GuidId))
+
+        public async Task MarkAllAsReadAsync(ApplicationUser user)
+        {
+            var unread = (await _notificationRepo.GetAllAsync(n =>
+                n.LinkedUserIdentityId == user.GuidId.ToString() && !n.IsRead)).ToList();
+
+            foreach (var notification in unread)
+            {
+                notification.IsRead = true;
+                await _notificationRepo.AddOrUpdateAsync(notification);
+            }
+        }
+
+        public async Task DeleteAllAsync(ApplicationUser user)
+        {
+            var all = (await _notificationRepo.GetAllAsync(n =>
+                n.LinkedUserIdentityId == user.GuidId.ToString())).ToList();
+
+            foreach (var notification in all)
+            {
+                await _notificationRepo.DeleteAsync(notification);
+            }
+        }
 
         protected static async Task<TOut> HandleSqlErrors<TOut>(Task<TOut> repoCmd, string? paramName = null)
         {
