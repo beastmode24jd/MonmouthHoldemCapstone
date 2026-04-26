@@ -3,12 +3,12 @@ using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Tests.Acceptance.Configuration;
 using MH.Capstone.Tests.Acceptance.Drivers;
-using MH.Capstone.Tests.Acceptance.Helpers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OpenQA.Selenium;
+using OpenQA.Selenium.Support.UI;
 using Reqnroll;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -23,6 +23,7 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
         private const string AlexEmail = "alex@test.com";
 
         private readonly IWebDriver _webDriver;
+        private readonly WebDriverWait _wait;
         private readonly SightingsDriver _sightingsDriver;
         private readonly string _dashboardUrl;
 
@@ -36,10 +37,11 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
 
         private static readonly Lazy<string?> _connectionString = new(LoadConnectionString);
 
-        public CSP122StepDefinitions(IWebDriver webDriver, AcceptanceTestSettings settings,
-            SightingsDriver sightingsDriver)
+        public CSP122StepDefinitions(IWebDriver webDriver, WebDriverWait wait,
+            AcceptanceTestSettings settings, SightingsDriver sightingsDriver)
         {
             _webDriver = webDriver;
+            _wait = wait;
             _sightingsDriver = sightingsDriver;
             _dashboardUrl = $"{settings.BaseUrl.TrimEnd('/')}/Dashboard";
         }
@@ -87,9 +89,7 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
             _sightingsDriver.UploadFileAndSubmit(_generatedImagePath);
 
             // Successful upload redirects to /Dashboard. Wait for that before asserting anything.
-            _webDriver.WaitUntil(
-                d => d.Url.Contains("/Dashboard", StringComparison.InvariantCultureIgnoreCase),
-                TimeSpan.FromSeconds(15));
+            _wait.Until(d => d.Url.Contains("/Dashboard", StringComparison.InvariantCultureIgnoreCase));
         }
 
         #endregion
@@ -99,14 +99,14 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
         [Then("Alex should see the warning {string}")]
         public void ThenAlexShouldSeeTheWarning(string warningText)
         {
-            var element = _webDriver.WaitForElement(By.Id("photoQualityWarning"), TimeSpan.FromSeconds(5));
+            var element = _wait.Until(d => d.FindElement(By.Id("photoQualityWarning")));
             element.Text.Should().Contain(warningText);
         }
 
         [Then("Alex should see the badge {string}")]
         public void ThenAlexShouldSeeTheBadge(string badgeText)
         {
-            var element = _webDriver.WaitForElement(By.Id("photoQualityBadge"), TimeSpan.FromSeconds(5));
+            var element = _wait.Until(d => d.FindElement(By.Id("photoQualityBadge")));
             element.Text.Should().Contain(badgeText);
         }
 
