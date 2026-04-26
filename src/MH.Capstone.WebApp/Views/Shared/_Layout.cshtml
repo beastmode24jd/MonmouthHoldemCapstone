@@ -1,4 +1,4 @@
-@inject Microsoft.AspNetCore.Identity.UserManager<MH.Capstone.Domain.DataModels.ApplicationUser> _userManager
+﻿@inject Microsoft.AspNetCore.Identity.UserManager<MH.Capstone.Domain.DataModels.ApplicationUser> _userManager
 @using static MH.Capstone.WebApp.VersionHelper
 @{
     // Get the current user to access their profile image URL in the layout.
@@ -298,15 +298,12 @@
             });
         </script>
 
-        @* AI Companion button (bottom-left corner) — only for authenticated users *@
-        @if (User.Identity?.IsAuthenticated == true)
-        {
-            <div style="position: fixed; bottom: 1.5rem; left: 1.5rem; z-index: 1040;">
-                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#aiCompanionModal">
-                    <i class="bi bi-chat-dots"></i> Ask the AI Companion
-                </button>
-            </div>
-        }
+        <!-- AI Companion button (bottom-left corner, all pages) -->
+        <div style="position: fixed; bottom: 1.5rem; left: 1.5rem; z-index: 1040;">
+            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#aiCompanionModal">
+                <i class="bi bi-chat-dots"></i> Ask the AI Companion
+            </button>
+        </div>
 
         <!-- AI Companion Modal -->
         <div class="modal fade" id="aiCompanionModal" tabindex="-1" aria-labelledby="aiCompanionModalLabel" aria-hidden="true">

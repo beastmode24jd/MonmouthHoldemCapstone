@@ -386,15 +386,10 @@ public class CSP101StepDefinitions
 
     private void LoginUser(string email, string password)
     {
-        // Clear any existing auth cookie from a previous scenario, otherwise navigating
-        // to /Account/Login redirects to Dashboard and #emailField won't exist.
-        _driver.Navigate().GoToUrl(BaseUrl);
-        _driver.Manage().Cookies.DeleteAllCookies();
-
         _driver.Navigate().GoToUrl($"{BaseUrl}/Account/Login");
-        _wait.Until(d => d.FindElement(By.Id("emailField")));
+        _wait.Until(d => d.FindElement(By.Id("Email")));
 
-        var emailInput = _driver.FindElement(By.Id("emailField"));
+        var emailInput = _driver.FindElement(By.Id("Email"));
         var passwordInput = _driver.FindElement(By.Id("passwordField"));
         var submitButton = _driver.FindElement(By.Id("submitBtn"));
 
