@@ -88,11 +88,37 @@ public class AuthenticationDriver
     {
         var loginUrl = $"{_baseUrl.TrimEnd('/')}/Account/Login";
 
-        if (IsUserLoggedIn(username))
-            return;
+        // If any user is currently logged in, check whether it's the requested user
+        if (IsUserLoggedIn())
+        {
+            try
+            {
+                var elems = _webDriver.FindElements(By.Id("userDropdownNavDisplay"));
+                if (elems.Count > 0)
+                {
+                    var navText = elems[0].Text ?? string.Empty;
+                    var matchesRequested = false;
+                    if (!string.IsNullOrEmpty(username))
+                    {
+                        if (navText.IndexOf(username, StringComparison.OrdinalIgnoreCase) >= 0)
+                            matchesRequested = true;
+                        else if (username.Contains('@'))
+                        {
+                            var local = username.Split('@')[0];
+                            if (!string.IsNullOrWhiteSpace(local) && navText.IndexOf(local, StringComparison.OrdinalIgnoreCase) >= 0)
+                                matchesRequested = true;
+                        }
+                    }
 
-        // If a different user is logged in, log them out first before logging in.
-        LogoutUser();
+                    if (matchesRequested)
+                        return;
+                }
+            }
+            catch { }
+
+            // Different user or unable to detect — logout first
+            LogoutUser();
+        }
 
         TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Attempting User {username} log in.");
         _webDriver.Navigate().GoToUrl(loginUrl);
