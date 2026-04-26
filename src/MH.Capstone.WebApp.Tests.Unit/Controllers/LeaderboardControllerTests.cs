@@ -70,12 +70,12 @@ public class LeaderboardControllerTests
     [Test]
     public async Task Index_ReturnsViewWithLeaderboardViewModel()
     {
-        // Arrange 
+        // Arrange
         var fakeUsers = new List<ApplicationUser>
         {
-            new() { Id = "user-1", UserName = "Alice", Points = 300 },
-            new() { Id = "user-2", UserName = "Bob",   Points = 200 },
-            new() { Id = "user-3", UserName = "Charlie", Points = 100 }
+            new() { Id = "user-1", DisplayName = "Alice", Points = 300 },
+            new() { Id = "user-2", DisplayName = "Bob",   Points = 200 },
+            new() { Id = "user-3", DisplayName = "Charlie", Points = 100 }
         };
         _mockLeaderboardService.Setup(s => s.GetLeaderboardPageAsync(1, 30)).ReturnsAsync(fakeUsers);
         _mockUserService.Setup(s => s.GetTotalUserCountAsync()).ReturnsAsync(3);
@@ -84,7 +84,7 @@ public class LeaderboardControllerTests
         // Act
         var result = await _controller.Index(page: 1) as ViewResult;
 
-        // Assert 
+        // Assert
         Assert.That(result, Is.Not.Null);
         Assert.That(result!.Model, Is.InstanceOf<LeaderboardViewModel>());
     }
@@ -101,7 +101,7 @@ public class LeaderboardControllerTests
         var result = await _controller.Index(page: 1) as ViewResult;
         var vm = result!.Model as LeaderboardViewModel;
 
-        // Assert 
+        // Assert
         Assert.That(vm!.CurrentUserId, Is.Null);
     }
 
@@ -118,8 +118,77 @@ public class LeaderboardControllerTests
         var result = await _controller.Index(page: 1) as ViewResult;
         var vm = result!.Model as LeaderboardViewModel;
 
-        // Assert 
+        // Assert
         Assert.That(vm!.CurrentUserId, Is.EqualTo("user-1"));
+    }
+
+    #endregion
+
+    #region CSP-170 — Leaderboard entry projection (no email in public view model)
+
+    [Test]
+    public async Task Index_UsersProjectedToLeaderboardEntryViewModels()
+    {
+        // Arrange
+        var fakeUsers = new List<ApplicationUser>
+        {
+            new() { Id = "user-1", DisplayName = "Alice", Email = "alice@test.com", Points = 300 },
+            new() { Id = "user-2", DisplayName = "Bob",   Email = "bob@test.com",   Points = 200 },
+        };
+        _mockLeaderboardService.Setup(s => s.GetLeaderboardPageAsync(1, 30)).ReturnsAsync(fakeUsers);
+        _mockUserService.Setup(s => s.GetTotalUserCountAsync()).ReturnsAsync(2);
+        SetAnonymousUser();
+
+        // Act
+        var result = await _controller.Index(page: 1) as ViewResult;
+        var vm = result!.Model as LeaderboardViewModel;
+
+        // Assert — entries are the DTO type, not the full entity
+        Assert.That(vm!.Users, Is.All.InstanceOf<LeaderboardEntryViewModel>());
+    }
+
+    [Test]
+    public async Task Index_LeaderboardEntries_ContainDisplayNameNotEmail()
+    {
+        // Arrange
+        var fakeUsers = new List<ApplicationUser>
+        {
+            new() { Id = "user-1", DisplayName = "Alice", Email = "alice@test.com", Points = 300 },
+        };
+        _mockLeaderboardService.Setup(s => s.GetLeaderboardPageAsync(1, 30)).ReturnsAsync(fakeUsers);
+        _mockUserService.Setup(s => s.GetTotalUserCountAsync()).ReturnsAsync(1);
+        SetAnonymousUser();
+
+        // Act
+        var result = await _controller.Index(page: 1) as ViewResult;
+        var vm = result!.Model as LeaderboardViewModel;
+        var entry = vm!.Users.Single();
+
+        // Assert — DisplayName is projected, email-containing strings are absent
+        Assert.That(entry.DisplayName, Is.EqualTo("Alice"));
+        Assert.That(entry.DisplayName, Does.Not.Contain("@"),
+            "leaderboard entry must not expose email address");
+    }
+
+    [Test]
+    public async Task Index_LeaderboardEntries_PreserveIdAndPoints()
+    {
+        // Arrange
+        var fakeUsers = new List<ApplicationUser>
+        {
+            new() { Id = "user-1", DisplayName = "Alice", Email = "alice@test.com", Points = 300 },
+        };
+        _mockLeaderboardService.Setup(s => s.GetLeaderboardPageAsync(1, 30)).ReturnsAsync(fakeUsers);
+        _mockUserService.Setup(s => s.GetTotalUserCountAsync()).ReturnsAsync(1);
+        SetAnonymousUser();
+
+        // Act
+        var result = await _controller.Index(page: 1) as ViewResult;
+        var vm = result!.Model as LeaderboardViewModel;
+        var entry = vm!.Users.Single();
+
+        Assert.That(entry.Id, Is.EqualTo("user-1"));
+        Assert.That(entry.Points, Is.EqualTo(300));
     }
 
     #endregion

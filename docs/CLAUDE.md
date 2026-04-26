@@ -107,7 +107,7 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `ISightingsService` | `SightingsService` | Submit and query wildlife sightings. `GetAllSightingsAsync()` eager-loads `User` nav property for attribution; `GetUserSightingsAsync(Guid)` filters to one user (no include). |
 | `IScoringService` | `ScoringService` | Award points using rarity multiplier |
 | `IBadgeService` | `BadgeService` | Check and award badges |
-| `ILeaderboardService` | `LeaderboardService` | Ranked user standings |
+| `ILeaderboardService` | `LeaderboardService` | Ranked user standings. `GetLeaderboardPageAsync()` returns `IEnumerable<ApplicationUser>`; controller projects to `LeaderboardEntryViewModel` (CSP-170: excludes `Email` from public view model). |
 | `IReportService` | `ReportService` | Submit and resolve content reports |
 | `INotificationService` | `InAppNotificationService` | Create and deliver in-app notifications. Includes `MarkAllAsReadAsync(user)` and `DeleteAllAsync(user)` for bulk operations (implemented in `NotificationServiceBase`). |
 | `IUserProfileService` | `UserService` | Extended (CSP-168) with `UpdateDisplayNameAsync(user, displayName)` — validates 2–50 chars, throws `ArgumentOutOfRangeException` if invalid. |
@@ -200,7 +200,8 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 
 | Page | Element ID | Purpose |
 |---|---|---|
-| Any page | `userDropdownNavDisplay` | Detect logged-in user (nav bar) |
+| Any page | `userDropdownNavDisplay` | Detect logged-in user (nav bar) — contains profile image, `navDisplayNameText` span, and notification badge; use `navDisplayNameText` to read the display name in isolation |
+| Any page | `navDisplayNameText` | `<span>` inside `userDropdownNavDisplay` containing only the user's display name text (excludes notification badge count) |
 | Any page | `logoutBtn` | Logout button |
 | `/Account/Login` | `emailField` | Username input |
 | `/Account/Login` | `passwordField` | Password input |
@@ -239,7 +240,7 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `/Sighting/Gallery` | `sightingsGrid` | Container `div` holding all card wrappers (when sightings exist) |
 | `/Sighting/Gallery` | `currentUserId` | Hidden `<span data-user-id="…">` carrying the logged-in user's identity string ID |
 | `/Sighting/Gallery` | `.sighting-card-wrapper[data-user-id]` | Per-card wrapper; `data-user-id` attribute used by JS to match against current user |
-| `/Sighting/Gallery` | `.sighting-attribution` | `<span>` inside each card showing the submitter's `UserName` |
+| `/Sighting/Gallery` | `.sighting-attribution` | `<span>` inside each card showing the submitter's `DisplayName` (CSP-170: no email or UserName fallback) |
 | `/Account/Register` | `displayNameField` | Display name text input on the registration form |
 | `/Account/SetDisplayName` | `setDisplayNameField` | Display name text input on the forced setup page |
 | `/Account/SetDisplayName` | `setDisplayNameBtn` | Submit button on the forced setup page |
@@ -372,58 +373,15 @@ Two GitHub Actions workflows in `.github/workflows/`:
 
 ---
 
-## Detailed Database Schema
+## Database Schema
 
-Two EF Core DbContexts, both using the `DataDb` connection string.
+Full column details are in the EF entity classes under `src/MH.Capstone.Domain/DataModels/`. Non-obvious constraints:
 
-### ApplicationDbContext tables
-
-#### `AspNetUsers` (`ApplicationUser : IdentityUser`)
-
-| Column | Type | Notes |
-|---|---|---|
-| `Id` | nvarchar(450) | PK, GUID stored as string |
-| `Email` | nvarchar(256) | |
-| `NormalizedEmail` | nvarchar(256) | Indexed |
-| `UserName` | nvarchar(256) | |
-| `NormalizedUserName` | nvarchar(256) | Unique index (nullable-filtered) |
-| `PasswordHash` | nvarchar(max) | |
-| `EmailConfirmed` | bit | |
-| `ProfileImage` | varbinary(max) | nullable; null = use default avatar |
-| `ProfileImageType` | nvarchar(50) | nullable; e.g. `"image/png"` |
-| `IsDeactivated` | bit | soft-delete flag |
-| `Points` | int | total accumulated points |
-| `Bio` | nvarchar(250) | nullable |
-| `LastLogin` | datetimeoffset | nullable |
-| `LoginStreak` | int | days in current streak |
-| `DisplayName` | nvarchar(50) | required, non-null; defaults to `"UNSET"` for migrated rows; 2–50 chars; not unique |
-| Standard Identity columns | — | `SecurityStamp`, `ConcurrencyStamp`, `LockoutEnabled`, `LockoutEnd`, `AccessFailedCount`, `TwoFactorEnabled`, `PhoneNumber`, `PhoneNumberConfirmed` |
-
-`IsStreakActive` (not mapped): true when `(UtcNow − LastLogin) ≤ 30 days`.
-
-#### `Sighting`
-
-| Column | Type | Constraints |
-|---|---|---|
-| `Id` | uniqueidentifier | PK, identity |
-| `UserId` | nvarchar(450) | FK → AspNetUsers (cascade delete), indexed |
-| `Lat` | decimal(9,6) | -90 to 90 |
-| `Long` | decimal(9,6) | -180 to 180 |
-| `Timestamp` | datetimeoffset | must be in the past (`[PastDateTime]`) |
-| `Description` | nvarchar(500) | nullable |
-| `ImageBuffer` | varbinary(max) | required; 1 byte – 2 MB |
-
-#### `Badge`
-
-| Column | Type | Constraints |
-|---|---|---|
-| `BadgeID` | uniqueidentifier | PK |
-| `Title` | nvarchar(50) | 1–50 chars |
-| `Description` | nvarchar(150) | max 150 |
-| `PointValue` | int | default 10 |
-| `BadgeIcon` | varbinary(max) | nullable |
-
-Three badges are always seeded (idempotent upsert in `ApplicationDbContextSeeding`):
+- `ApplicationUser.DisplayName`: `nvarchar(50)`, required, defaults to `"UNSET"` for migrated rows; 2–50 chars; `IsStreakActive` is a computed (not-mapped) property: true when `(UtcNow − LastLogin) ≤ 30 days`.
+- `Sighting.ImageBuffer`: `varbinary(max)`, required (1 byte – 2 MB); `Timestamp` must be in the past (`[PastDateTime]`).
+- `Report`: unique filtered index on `(ReportingUserId, ReportedPageUrl)` where `IsResolved = 0` — prevents duplicate open reports, allows re-reporting after resolution.
+- `EmailQueue`: composite index on `(IsSent, ScheduledAt)`; `Processing` bit = dispatcher lock flag.
+- Seeded roles: `User`, `Admin`. Three badges always seeded (idempotent upsert):
 
 | Constant | GUID | Title | Points |
 |---|---|---|---|
@@ -431,87 +389,7 @@ Three badges are always seeded (idempotent upsert in `ApplicationDbContextSeedin
 | `BadgeId.CustomBioBadgeGUID` | `91E7773E-F6D7-457E-911E-8246891D65A2` | Custom Bio Badge | 10 |
 | `BadgeId.FirstSightingBadgeGUID` | `B2C3D4E5-F6A7-4890-9B0C-1D2E3F4B5A6F` | First Sighting Badge | 25 |
 
-#### `PersonalBadges` (`UserBadge`)
-
-| Column | Type | Notes |
-|---|---|---|
-| `UserBadgeId` | uniqueidentifier | PK |
-| `User ID` | nvarchar(450) | FK → AspNetUsers (cascade), indexed |
-| `Badge ID` | uniqueidentifier | FK → Badge (cascade), indexed |
-| `BadgeEarned` | datetimeoffset | nullable |
-
-#### `Notification`
-
-| Column | Type | Constraints |
-|---|---|---|
-| `Id` | uniqueidentifier | PK, identity |
-| `RecipientId` | nvarchar(450) | FK → AspNetUsers (cascade), indexed |
-| `Title` | nvarchar(50) | 1–50 chars |
-| `Message` | nvarchar(250) | 1–250 chars |
-| `SentAt` | datetimeoffset | required |
-| `IsRead` | bit | default false |
-
-`IsPostdated` (not mapped): true when `SentAt > UtcNow` — future-dated delivery is supported.
-
-#### `Report`
-
-| Column | Type | Constraints |
-|---|---|---|
-| `Id` | uniqueidentifier | PK, identity |
-| `ReportingUserId` | nvarchar(450) | FK → AspNetUsers (cascade) |
-| `ReportedPageUrl` | nvarchar(2048) | required |
-| `Reason` | nvarchar(100) | required |
-| `Description` | nvarchar(1000) | nullable |
-| `SubmittedAt` | datetime2 | defaults to `DateTime.UtcNow` |
-| `IsResolved` | bit | default false |
-
-Unique filtered index on `(ReportingUserId, ReportedPageUrl)` where `IsResolved = 0` — prevents duplicate open reports, but allows re-reporting after resolution.
-
-#### `EmailQueue`
-
-| Column | Type | Notes |
-|---|---|---|
-| `Id` | uniqueidentifier | PK, identity |
-| `Recipient` | nvarchar(450) | email address |
-| `Subject` | nvarchar(250) | |
-| `HtmlBody` | nvarchar(max) | required |
-| `PlainTextBody` | nvarchar(max) | nullable |
-| `CreatedAt` | datetimeoffset | defaults to `UtcNow` |
-| `ScheduledAt` | datetimeoffset | nullable; null = send immediately |
-| `IsSent` | bit | |
-| `SentAt` | datetimeoffset | nullable |
-| `Attempts` | int | retry count |
-| `LastAttemptAt` | datetimeoffset | nullable |
-| `LastError` | nvarchar(max) | nullable |
-| `Processing` | bit | dispatcher lock flag |
-
-Composite index on `(IsSent, ScheduledAt)` for dispatcher queries.
-
-### Standard ASP.NET Identity tables (auto-managed)
-
-`AspNetRoles`, `AspNetUserRoles`, `AspNetUserClaims`, `AspNetUserLogins`, `AspNetUserTokens`, `AspNetRoleClaims`.
-
-Seeded roles: `User`, `Admin`.
-
-### CacheDbContext tables
-
-`ApiCallerCacheEntity` / `NinjaAnimalCacheEntity` — SQL-backed cache for API-Ninjas Animals API responses. Managed separately; migrations in `src/MH.Capstone.Domain/Migrations/Cache/`.
-
-### FK dependency order for seeding
-
-```
-AspNetRoles
-  ↓
-AspNetUsers (ApplicationUser)
-  ↓
-Badge          (no FK dependencies)
-  ↓
-Sighting       (FK → AspNetUsers)
-PersonalBadges (FK → AspNetUsers + Badge)
-Notification   (FK → AspNetUsers)
-Report         (FK → AspNetUsers)
-EmailQueue     (no FK; standalone outbox)
-```
+FK seeding order: `AspNetRoles` → `AspNetUsers` → `Badge` → `Sighting` / `PersonalBadges` / `Notification` / `Report` → `EmailQueue` (no FK).
 
 ---
 
@@ -542,40 +420,6 @@ These users must exist in `WAID_AppDataDb` for acceptance tests to pass. The pas
 
 > **Note:** The active acceptance test seeder (`AcceptanceTestSeeder.cs`) uses different personas: **Alex** (`alex@test.com`), **Patricia** (`patricia@test.com`), **Lily** (`lily@test.com`), and **Owen** (`owen@test.com` — `DisplayName = "UNSET"`, used for CSP-168 forced setup scenarios). These supersede the old persona names in CI. Password for all: `Capstone26!`.
 
-### Suggested sighting locations (Pacific Northwest theme)
-
-| Label | Latitude | Longitude | User | Notes |
-|---|---|---|---|---|
-| WOU Campus | 44.847600 | -123.234300 | alpha | Within Salem-area bounds |
-| Silver Falls | 44.877000 | -122.654000 | alpha | Common — many global sightings |
-| Crater Lake | 42.944600 | -122.109000 | alice | Rare/mythic — few global sightings |
-| Portland | 45.523100 | -122.676200 | alice | Urban sighting |
-| Eugene | 44.052100 | -123.086800 | alice | Mid-range sighting |
-| Outside Oregon | 34.052200 | -118.243700 | bob | LA — useful for map bounds filtering tests |
-
-### Scoring tier thresholds to seed around
-
-Per `ScoringService`:
-- **Mythic** (≤5 global sightings of a species): 10 pts × 5 = **50 pts**
-- **Rare** (6–50 global sightings): 10 pts × 2 = **20 pts**
-- **Common** (>50 global sightings): 10 pts × 1 = **10 pts**
-
-Seed at least one sighting per tier to exercise all scoring branches.
-
-### Notification scenarios to seed
-
-- At least one **unread** notification for `alpha` — so the notification bell/badge has something to display
-- At least one **read** notification — to verify read-state rendering
-- Optionally one **postdated** notification (`SentAt > UtcNow`) to test `IsPostdated` path
-
-### LoginStreak scenarios to seed
-
-| User | `LastLogin` | `LoginStreak` | `IsStreakActive` |
-|---|---|---|---|
-| `alpha` | `UtcNow - 1 day` | 5 | true |
-| `bob` | `UtcNow - 31 days` | 3 | false (expired) |
-| `newuser` | null | 0 | false (never logged in) |
-
 ### Where to add acceptance seed data
 
 The acceptance-specific seed users should be added to `ApplicationDbContextSeeding.SeedDataAsync` gated on an environment check, **or** in a dedicated acceptance-only seeding method called from `TestWebAppHost.StartAsync`. The latter is preferred so production/staging seeding remains unaffected.
@@ -592,18 +436,7 @@ This section governs how AI assistants (and developers) should create or update 
 
 ---
 
-### INVEST Principles (required for every story)
-
-Every user story written for this project must satisfy all six INVEST criteria before being submitted to Jira:
-
-| Principle | Requirement |
-|---|---|
-| **Independent** | The story must be self-contained with no inherent dependency on another story. |
-| **Negotiable** | Until a story enters an active sprint, it can always be rewritten or changed. |
-| **Valuable** | The story must deliver clear value to the end user. |
-| **Estimable** | The story must be scoped clearly enough that the team can estimate its size. |
-| **Small** | The story must be small enough to plan, task, and prioritize with certainty. |
-| **Testable** | The story must provide enough detail for test development to be possible. |
+Every story must satisfy the six **INVEST** criteria (Independent, Negotiable, Valuable, Estimable, Small, Testable) before being submitted to Jira.
 
 ---
 
@@ -647,62 +480,6 @@ Scenario: <scenario name>
 ````
 
 Each acceptance criterion from the description must map to at least one scenario. Cover: happy path, alternative paths, empty states, and any security/visibility rules.
-
----
-
-### Example Story (reference)
-
-The following is a canonical example of a well-formed story for this project:
-
-**Story Case:**
-> As a User, when I visit the gallery page, I want to view sightings submitted by all users so that I can explore the broader community's observations, while still being able to filter the gallery to show only my own sightings when I choose.
-
-**Description:**
-Currently, the gallery page displays only the authenticated user's own sightings. This story expands the gallery to show sightings from all users by default, turning it into a community-wide feed. Users retain the ability to filter the gallery down to only their own submissions at any time.
-
-Requirements:
-- Display all sightings from all users by default, sorted by most recent
-- Show relevant attribution on each sighting card (e.g., submitted by username or display name)
-- Provide a filter control (toggle or dropdown) allowing the user to switch between "All Sightings" and "My Sightings"
-- Persist the selected filter for the duration of the session (or until changed)
-- Respect existing visibility/privacy rules — private sightings must not appear in the community view
-
-**Acceptance Criteria (Gherkin):**
-```Gherkin
-Scenario: Default gallery shows all community sightings
-    Given an authenticated user navigates to the gallery page
-    When the page loads with no filter selected
-    Then sightings from all users are displayed
-    And each sighting card shows the submitting user's attribution
-
-Scenario: User filters gallery to their own sightings
-    Given an authenticated user is on the gallery page
-    When the user selects the "My Sightings" filter
-    Then only sightings submitted by the authenticated user are displayed
-    And the filter control reflects the active "My Sightings" state
-
-Scenario: User clears the filter to return to community view
-    Given an authenticated user has the "My Sightings" filter active
-    When the user selects the "All Sightings" filter
-    Then sightings from all users are displayed again
-    And the filter control reflects the active "All Sightings" state
-
-Scenario: Private sightings are excluded from community view
-    Given a user has submitted a sighting marked as private
-    When any other user views the gallery in "All Sightings" mode
-    Then the private sighting is not visible to them
-
-Scenario: Empty state when user has no sightings
-    Given an authenticated user has not submitted any sightings
-    When the user selects the "My Sightings" filter
-    Then an empty state message is displayed
-    And the user is prompted to submit their first sighting
-
-Scenario: Filter persists within the session
-    Given an authenticated user has selected the "My Sightings" filter
-    When the user navigates away and returns to the gallery page within the same session
-    Then the "My Sightings" filter remains active
-```
 
 ---
 
