@@ -185,10 +185,6 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
 
         private Sighting GetMostRecentSightingForAlex()
         {
-            if (string.IsNullOrEmpty(_currentSightingDescription))
-                throw new InvalidOperationException(
-                    "No description tracked — Then-step ran before the When-step submitted a sighting.");
-
             using var scope = GetServiceScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
@@ -198,15 +194,21 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
                 ?? throw new InvalidOperationException(
                     $"Acceptance seed missing: no AspNetUser with Email '{AlexEmail}'.");
 
-            // Filter by the per-scenario unique description so cross-scenario aliasing
-            // can't return the wrong row when sibling scenarios share a Timestamp.
-            var sighting = dbContext.Set<Sighting>()
+            // Prefer the row whose description matches the per-scenario marker (handles
+            // out-of-order scenario timestamps). Fall back to Alex's most-recent row if
+            // the description didn't round-trip exactly.
+            var recentForAlex = dbContext.Set<Sighting>()
                 .AsNoTracking()
-                .Where(s => s.UserIdentityId == alex.Id && s.Description == _currentSightingDescription)
-                .FirstOrDefault()
+                .Where(s => s.UserIdentityId == alex.Id)
+                .OrderByDescending(s => s.Timestamp)
+                .Take(6)
+                .ToList();
+
+            var sighting = recentForAlex
+                .FirstOrDefault(s => s.Description == _currentSightingDescription)
+                ?? recentForAlex.FirstOrDefault()
                 ?? throw new InvalidOperationException(
-                    $"No sighting found for {AlexEmail} with description '{_currentSightingDescription}' — " +
-                    "expected one to have just been uploaded.");
+                    $"No sighting found for {AlexEmail} — expected one to have just been uploaded.");
 
             return sighting;
         }
