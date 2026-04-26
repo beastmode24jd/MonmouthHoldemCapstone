@@ -221,10 +221,10 @@ namespace MH.Capstone.Tests.Acceptance.Features
   await this.FeatureBackgroundAsync();
 #line hidden
 #line 21
-    await testRunner.GivenAsync("the user \"owen@test.com\" has a display name of \"UNSET\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+    await testRunner.GivenAsync("the user \"faye@test.com\" has a display name of \"UNSET\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 22
-    await testRunner.WhenAsync("\"owen@test.com\" logs in with password \"Capstone26!\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+    await testRunner.WhenAsync("\"faye@test.com\" logs in with password \"Capstone26!\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 23
     await testRunner.ThenAsync("the user is redirected to the Set Your Display Name page", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");

@@ -87,7 +87,10 @@ public class DisplayNameDriver
         var input = _wait.Until(d => d.FindElement(By.Id("displayNameInput")));
         input.Clear();
         input.SendKeys(displayName);
-        _wait.Until(d => d.FindElement(By.Id("updateDisplayNameBtn"))).Click();
+
+        // Use JS click to avoid stale-element reference from RobustWebElement's TagName diagnostic.
+        var btn = _wait.Until(d => d.FindElement(By.Id("updateDisplayNameBtn")));
+        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", btn);
         _wait.Until(d =>
         {
             try
