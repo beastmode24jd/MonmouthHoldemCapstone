@@ -107,10 +107,15 @@ public class DisplayNameDriver
     {
         try
         {
-            var nameSpan = _driver.FindElements(By.Id("navDisplayNameText"));
+            var nameSpan = _wait.Until(d => d.FindElements(By.Id("navDisplayNameText")));
+            //var nameSpan = _driver.FindElements(By.Id("navDisplayNameText"));
             return nameSpan.Count > 0 ? nameSpan[0].Text.Trim() : string.Empty;
         }
-        catch { return string.Empty; }
+        catch 
+        { 
+            TestContext.Out.WriteLine($"[{nameof(GetDisplayedDisplayName)}] FindElements(By.Id('navDisplayNameText')) Failed.");
+            return string.Empty; 
+        }
     }
 
     /// <summary>Returns true when the display name success banner is shown on the dashboard.</summary>
