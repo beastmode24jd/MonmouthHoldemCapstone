@@ -37,9 +37,16 @@ namespace MH.Capstone.WebApp.Controllers
                 ? await _leaderboardService.GetUserRankAsync(currentUserId)
                 : 0;
 
+            var entries = users.Select(u => new LeaderboardEntryViewModel
+            {
+                Id          = u.Id,
+                DisplayName = u.DisplayName,
+                Points      = u.Points
+            }).ToList();
+
             var vm = new LeaderboardViewModel
             {
-                Users = users,
+                Users = entries,
                 CurrentPage = page,
                 TotalPages = totalPages,
                 CurrentUserId = currentUserId,

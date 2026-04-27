@@ -1,9 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.IO;
 using MH.Capstone.Tests.Acceptance.Configuration;
 using MH.Capstone.Tests.Acceptance.PageObjects;
 using OpenQA.Selenium;
-using MH.Capstone.Tests.Acceptance.Helpers;
+using OpenQA.Selenium.Support.UI;
 // ReSharper disable SpecifyACultureInStringConversionExplicitly
 
 namespace MH.Capstone.Tests.Acceptance.Drivers;
@@ -12,12 +13,14 @@ namespace MH.Capstone.Tests.Acceptance.Drivers;
 public class SightingsDriver
 {
     private readonly IWebDriver _webDriver;
+    private readonly WebDriverWait _wait;
     private readonly string _baseUrl;
 
-    public SightingsDriver(IWebDriver webDriver, AcceptanceTestSettings settings)
+    public SightingsDriver(IWebDriver webDriver, AcceptanceTestSettings settings, WebDriverWait wait)
     {
         _webDriver = webDriver;
         _baseUrl = settings.BaseUrl.TrimEnd('/');
+        _wait = wait;
     }
 
     public void NavigateToSightingsUpload()
@@ -25,7 +28,15 @@ public class SightingsDriver
         _webDriver.Navigate().GoToUrl($"{_baseUrl}/Sighting/Create");
         try
         {
-            _webDriver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+            _wait.Until(d =>
+            {
+                try
+                {
+                    var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                    return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+                }
+                catch { return false; }
+            });
         }
         catch
         {
@@ -38,24 +49,113 @@ public class SightingsDriver
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
         // ensure the input exists before sending keys
-        var input = _webDriver.WaitForElement(By.CssSelector("input[type='file']"), TimeSpan.FromSeconds(5));
-        input.SendKeys(absoluteFilePath);
+        var input = _wait.Until(d => d.FindElement(By.CssSelector("input[type='file']")));
+        try
+        {
+            input.SendKeys(absoluteFilePath);
+            return;
+        }
+        catch (OpenQA.Selenium.WebDriverException ex)
+        {
+            TestContext.Out.WriteLine($"[SightingsDriver] native SendKeys failed: {ex.GetType().Name}: {ex.Message}. Attempting JS fallback.");
+            try
+            {
+                var bytes = File.ReadAllBytes(absoluteFilePath);
+                var base64 = Convert.ToBase64String(bytes);
+                var fileName = Path.GetFileName(absoluteFilePath);
+                var mime = GetMimeType(fileName);
+                var script = @"(function(el, b64, fname, mime) {
+                    var byteCharacters = atob(b64);
+                    var byteNumbers = new Array(byteCharacters.length);
+                    for (var i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    var byteArray = new Uint8Array(byteNumbers);
+                    var blob = new Blob([byteArray], {type: mime});
+                    var file = new File([blob], fname, {type: mime});
+                    var dt = new DataTransfer();
+                    dt.items.add(file);
+                    el.files = dt.files;
+                    el.dispatchEvent(new Event('input', {bubbles:true}));
+                    el.dispatchEvent(new Event('change', {bubbles:true}));
+                    return true;
+                })(arguments[0], arguments[1], arguments[2], arguments[3]);";
+                ((IJavaScriptExecutor)_webDriver).ExecuteScript(script, input, base64, fileName, mime);
+                return;
+            }
+            catch (Exception jsEx)
+            {
+                TestContext.Out.WriteLine($"[SightingsDriver] JS fallback failed: {jsEx.GetType().Name}: {jsEx.Message}");
+                throw;
+            }
+        }
     }
 
     /// <summary>Sets the image file input and then submits the form.</summary>
     public void UploadFileAndSubmit(string absoluteFilePath)
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
-        var input = _webDriver.WaitForElement(By.CssSelector("input[type='file']"), TimeSpan.FromSeconds(5));
-        input.SendKeys(absoluteFilePath);
+        var input = _wait.Until(d => d.FindElement(By.CssSelector("input[type='file']")));
+        try
+        {
+            input.SendKeys(absoluteFilePath);
+        }
+        catch (OpenQA.Selenium.WebDriverException ex)
+        {
+            TestContext.Out.WriteLine($"[SightingsDriver] native SendKeys failed: {ex.GetType().Name}: {ex.Message}. Attempting JS fallback.");
+            try
+            {
+                var bytes = File.ReadAllBytes(absoluteFilePath);
+                var base64 = Convert.ToBase64String(bytes);
+                var fileName = Path.GetFileName(absoluteFilePath);
+                var mime = GetMimeType(fileName);
+                var script = @"(function(el, b64, fname, mime) {
+                    var byteCharacters = atob(b64);
+                    var byteNumbers = new Array(byteCharacters.length);
+                    for (var i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    var byteArray = new Uint8Array(byteNumbers);
+                    var blob = new Blob([byteArray], {type: mime});
+                    var file = new File([blob], fname, {type: mime});
+                    var dt = new DataTransfer();
+                    dt.items.add(file);
+                    el.files = dt.files;
+                    el.dispatchEvent(new Event('input', {bubbles:true}));
+                    el.dispatchEvent(new Event('change', {bubbles:true}));
+                    return true;
+                })(arguments[0], arguments[1], arguments[2], arguments[3]);";
+                ((IJavaScriptExecutor)_webDriver).ExecuteScript(script, input, base64, fileName, mime);
+            }
+            catch (Exception jsEx)
+            {
+                TestContext.Out.WriteLine($"[SightingsDriver] JS fallback failed: {jsEx.GetType().Name}: {jsEx.Message}");
+                throw;
+            }
+        }
+
         ((IJavaScriptExecutor)_webDriver).ExecuteScript("arguments[0].click();", page.SubmitBtn);
+    }
+
+    private static string GetMimeType(string fileName)
+    {
+        var ext = Path.GetExtension(fileName)?.ToLowerInvariant() ?? string.Empty;
+        return ext switch
+        {
+            ".jpg" => "image/jpeg",
+            ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".gif" => "image/gif",
+            ".txt" => "text/plain",
+            _ => "application/octet-stream",
+        };
     }
 
     /// <summary>Sets the latitude input to the given value.</summary>
     public void SetLatitude(double latitude)
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
-        var input = _webDriver.WaitForElement(By.CssSelector("input[name='Latitude']"), TimeSpan.FromSeconds(5));
+        var input = _wait.Until(d => d.FindElement(By.CssSelector("input[name='Latitude']")));
         input.Clear();
         input.SendKeys(latitude.ToString());
     }
@@ -64,7 +164,7 @@ public class SightingsDriver
     public void SetLongitude(double longitude)
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
-        var input = _webDriver.WaitForElement(By.CssSelector("input[name='Longitude']"), TimeSpan.FromSeconds(5));
+        var input = _wait.Until(d => d.FindElement(By.CssSelector("input[name='Longitude']")));
         input.Clear();
         input.SendKeys(longitude.ToString());
     }
@@ -73,8 +173,8 @@ public class SightingsDriver
     public void SetTimestamp(DateTimeOffset timestamp)
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
-        // Use WaitUntil to ensure the script is executed against an available element.
-        _webDriver.WaitUntil(d =>
+        // Use a short wait to ensure the script is executed against an available element.
+        new WebDriverWait(_webDriver, TimeSpan.FromSeconds(3)).Until(d =>
         {
             try
             {
@@ -88,16 +188,15 @@ public class SightingsDriver
             {
                 return false;
             }
-        }, TimeSpan.FromSeconds(3));
+        });
     }
 
     /// <summary>Sets the description input to the given value.</summary>
     public void SetDescription(string description)
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
-        var input = _webDriver.WaitForElement(
-            By.CssSelector("textarea[name='Description'], input[name='Description']"), 
-            TimeSpan.FromSeconds(5));
+        var input = _wait.Until(d =>
+            d.FindElement(By.CssSelector("textarea[name='Description'], input[name='Description']")));
         input.Clear();
         input.SendKeys(description);
     }
@@ -107,7 +206,7 @@ public class SightingsDriver
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
         ((IJavaScriptExecutor)_webDriver).ExecuteScript("arguments[0].click();", page.SubmitBtn);
-        _webDriver.WaitUntil(d => !IsOnSightingsUploadPage()
+        _wait.Until(d => !IsOnSightingsUploadPage()
             || HasVisibleValidationErrors());
     }
 
@@ -120,10 +219,9 @@ public class SightingsDriver
     {
         try
         {
-            return _webDriver.WaitUntil(d =>
+            return new WebDriverWait(_webDriver, TimeSpan.FromSeconds(3)).Until(d =>
                 d.Url.Contains("/Sighting/Upload", StringComparison.InvariantCultureIgnoreCase) ||
-                d.Url.Contains("/Sighting/Create", StringComparison.InvariantCultureIgnoreCase),
-                TimeSpan.FromSeconds(3));
+                d.Url.Contains("/Sighting/Create", StringComparison.InvariantCultureIgnoreCase));
         }
         catch
         {
@@ -140,11 +238,11 @@ public class SightingsDriver
     {
         try
         {
-            var result = _webDriver.WaitUntil(d =>
+            var result = new WebDriverWait(_webDriver, TimeSpan.FromSeconds(1)).Until(d =>
             {
                 var elements = d.FindElements(By.CssSelector(".field-validation-error"));
                 return elements.Any(e => e.Displayed && !string.IsNullOrWhiteSpace(e.Text));
-            }, TimeSpan.FromSeconds(1));
+            });
 
             if (result)
                 return true;

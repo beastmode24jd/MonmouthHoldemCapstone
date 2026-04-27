@@ -3,9 +3,6 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
-# Local Claude Code instructions (personal/machine-specific; see docs/CLAUDE.md for shared team instructions)
-/CLAUDE.md
-
 # User-specific files
 *.rsuser
 *.suo
@@ -426,6 +423,8 @@ FodyWeavers.xsd
 
 # Claude Code
 **/.claude/
+# Local Claude Code instructions (personal/machine-specific; see docs/CLAUDE.md for shared team instructions)
+/CLAUDE.md
 
 # Team-Added additional ignores
 # JD GitHib CLI PR Helper Files
@@ -440,3 +439,15 @@ newpr
 /MH.Capstone.WebApp/watch.err
 **/watch.log
 **/watch.err.watchlogs/*
+.copilot/jira.env
+.copilot/*.env
+plugins/copilot-jira-mcp/node_modules
+
+# Ignore AI & MCP related things
+**/.claudeignore
+**/.mcp.json
+plugins/*
+scripts/*
+
+# Ignore Reqnroll auto-gen code-behind files
+**/*.feature.cs

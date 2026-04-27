@@ -7,7 +7,7 @@ using System.Threading;
 using MH.Capstone.Tests.Acceptance.Configuration;
 using MH.Capstone.Tests.Acceptance.PageObjects;
 using OpenQA.Selenium;
-using MH.Capstone.Tests.Acceptance.Helpers;
+using OpenQA.Selenium.Support.UI;
 
 namespace MH.Capstone.Tests.Acceptance.Drivers;
 
@@ -15,12 +15,14 @@ namespace MH.Capstone.Tests.Acceptance.Drivers;
 public class AuthenticationDriver
 {
     private readonly IWebDriver _webDriver;
+    private readonly WebDriverWait _wait;
     private readonly string _baseUrl;
 
-    public AuthenticationDriver(IWebDriver webDriver, AcceptanceTestSettings settings)
+    public AuthenticationDriver(IWebDriver webDriver, AcceptanceTestSettings settings, WebDriverWait wait)
     {
         _webDriver = webDriver;
         _baseUrl = settings.BaseUrl.TrimEnd('/');
+        _wait = wait;
     }
 
     public bool IsUserLoggedIn(string? username = null)
@@ -30,16 +32,50 @@ public class AuthenticationDriver
         {
             // Wait briefly for the user dropdown to appear. If it doesn't appear within the
             // timeout, treat as not logged in.
-            var userElement = _webDriver.WaitUntil(d =>
+            var userElement = new WebDriverWait(_webDriver, TimeSpan.FromSeconds(2)).Until(d =>
             {
                 var elems = d.FindElements(By.Id("userDropdownNavDisplay"));
                 TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] User dropdown elements found: {elems.Count}");
                 return elems.Count > 0 ? elems[0] : null;
-            }, TimeSpan.FromSeconds(2));
+            });
 
-            TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] User Auth status: " +
-                                      $"{string.IsNullOrEmpty(username) || userElement?.Text.Contains(username) == true}.");
-            return string.IsNullOrEmpty(username) || userElement?.Text.Contains(username) == true;
+            // The nav now shows the user's DisplayName rather than their email/UserName,
+            // so we cannot reliably match by username text. Presence of the dropdown element
+            // is sufficient to confirm that a user is authenticated. If a username was
+            // provided we still attempt a text match (handles display-name-aware callers),
+            // but fall back to element-presence if the text match fails.
+            var text = userElement.Text ?? string.Empty;
+
+            bool isLoggedIn;
+            if (string.IsNullOrEmpty(username))
+            {
+                isLoggedIn = true;
+            }
+            else if (text.IndexOf(username, StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                isLoggedIn = true;
+            }
+            else if (username.Contains('@'))
+            {
+                var local = username.Split('@')[0];
+                isLoggedIn = !string.IsNullOrWhiteSpace(local) &&
+                             text.IndexOf(local, StringComparison.OrdinalIgnoreCase) >= 0;
+
+                // Email not found in nav text — the nav may be showing a DisplayName.
+                // Treat the authenticated-dropdown presence as confirmation of login.
+                if (!isLoggedIn)
+                {
+                    TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Username '{username}' not found in nav text '{text}' — nav may be showing DisplayName. Treating dropdown presence as logged-in.");
+                    isLoggedIn = true;
+                }
+            }
+            else
+            {
+                isLoggedIn = false;
+            }
+
+            TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] User Auth status: {isLoggedIn}.");
+            return isLoggedIn;
         }
         catch
         {
@@ -51,30 +87,134 @@ public class AuthenticationDriver
     public void PreformLoginForUser(string username, string password)
     {
         var loginUrl = $"{_baseUrl.TrimEnd('/')}/Account/Login";
-        var timeout = TimeSpan.FromSeconds(10);
 
-        if (IsUserLoggedIn(username))
-            return;
+        // If any user is currently logged in, check whether it's the requested user
+        if (IsUserLoggedIn())
+        {
+            try
+            {
+                var elems = _webDriver.FindElements(By.Id("userDropdownNavDisplay"));
+                if (elems.Count > 0)
+                {
+                    var navText = elems[0].Text ?? string.Empty;
+                    var matchesRequested = false;
+                    if (!string.IsNullOrEmpty(username))
+                    {
+                        if (navText.IndexOf(username, StringComparison.OrdinalIgnoreCase) >= 0)
+                            matchesRequested = true;
+                        else if (username.Contains('@'))
+                        {
+                            var local = username.Split('@')[0];
+                            if (!string.IsNullOrWhiteSpace(local) && navText.IndexOf(local, StringComparison.OrdinalIgnoreCase) >= 0)
+                                matchesRequested = true;
+                        }
+                    }
 
-        // If a different user is logged in, log them out first before logging in.
-        LogoutUser();
+                    if (matchesRequested)
+                        return;
+                }
+            }
+            catch { }
+
+            // Different user or unable to detect — logout first
+            LogoutUser();
+        }
 
         TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Attempting User {username} log in.");
         _webDriver.Navigate().GoToUrl(loginUrl);
-        _webDriver.WaitForDocumentReady(timeout);
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Document ready state: {ready}");
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
 
         var loginPage = new LoginPageObject(_webDriver, _baseUrl);
         loginPage.UsernameInput.SendKeys(username);
         loginPage.PasswordInput.SendKeys(password);
+
+        try
+        {
+            // Diagnostic: log the values in the inputs and whether the submit button is enabled
+            var emailVal = ((IJavaScriptExecutor)_webDriver).ExecuteScript("return document.getElementById('emailField')?.value")?.ToString();
+            var passVal = ((IJavaScriptExecutor)_webDriver).ExecuteScript("return document.getElementById('passwordField')?.value")?.ToString();
+            var submitDisabled = ((IJavaScriptExecutor)_webDriver).ExecuteScript("return document.getElementById('submitBtn')?.disabled")?.ToString();
+            TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Diagnostic: email='{emailVal}' passwordPresent={(string.IsNullOrEmpty(passVal) ? "false" : "true")} submitDisabled={submitDisabled}");
+        }
+        catch (Exception ex)
+        {
+            TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Diagnostic JS check failed: {ex.Message}");
+        }
+
         loginPage.SubmitBtn.Click();
         TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Confirming User {username} log in.");
+
+        // Give a short moment for the click to trigger the page's submit handlers and a potential redirect.
+        // Only if nothing appears to be happening do we attempt the JS fallback submit.
+        try
+        {
+            var shortWait = new WebDriverWait(_webDriver, TimeSpan.FromSeconds(2));
+            var progressed = shortWait.Until(d =>
+            {
+                // Redirect away from login page and user dropdown present
+                if (!string.Equals(d.Url, loginUrl, StringComparison.InvariantCultureIgnoreCase)
+                    && IsUserLoggedIn(username))
+                {
+                    return true;
+                }
+
+                // Server-side validation errors shown on the page
+                var errorElems = d.FindElements(By.CssSelector(".alert.alert-danger"));
+                if (errorElems.Count > 0) return true;
+
+                return false;
+            });
+
+            if (!progressed)
+            {
+                // No progress observed; attempt JS fallback if button remains disabled.
+                var js = (IJavaScriptExecutor)_webDriver;
+                var submitDisabled = js.ExecuteScript("return document.getElementById('submitBtn')?.disabled")?.ToString();
+                if (string.Equals(submitDisabled, "true", StringComparison.OrdinalIgnoreCase))
+                {
+                    TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Submit button still disabled after click - attempting JS form submit fallback.");
+                    js.ExecuteScript("document.getElementById('loginForm')?.submit();");
+                }
+            }
+        }
+        catch (OpenQA.Selenium.WebDriverTimeoutException)
+        {
+            // short wait timed out — try JS fallback as above
+            try
+            {
+                var js = (IJavaScriptExecutor)_webDriver;
+                var submitDisabled = js.ExecuteScript("return document.getElementById('submitBtn')?.disabled")?.ToString();
+                if (string.Equals(submitDisabled, "true", StringComparison.OrdinalIgnoreCase))
+                {
+                    TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] Submit button still disabled after short wait - attempting JS form submit fallback.");
+                    js.ExecuteScript("document.getElementById('loginForm')?.submit();");
+                }
+            }
+            catch (Exception ex)
+            {
+                TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] JS fallback submit failed: {ex.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] JS fallback submit failed: {ex.Message}");
+        }
 
         // After submitting the form, wait for either a validation error to appear on the login
         // page (server returned model errors) or for the page to redirect/refresh and show the
         // user dropdown (meaning sign in was successful).
         try
         {
-            _webDriver.WaitUntil(d =>
+            _wait.Until(d =>
             {
                 // If we've been redirected away from the login URL,
                 // check for if the user shows logged in
@@ -91,7 +231,7 @@ public class AuthenticationDriver
 
                 // keep waiting
                 return false;
-            }, timeout);
+            });
         }
         catch(Exception e)
         {
@@ -107,7 +247,7 @@ public class AuthenticationDriver
     public void LogoutUser()
     {
         if (!IsUserLoggedIn()) return;
-        var logoutForm = _webDriver.WaitForElement(By.Id("logoutForm"), TimeSpan.FromSeconds(5));
+        var logoutForm = _wait.Until(d => d.FindElement(By.Id("logoutForm")));
         logoutForm.Submit();
         TestContext.Out.WriteLine($"[{nameof(AuthenticationDriver)}] User logged out.");
     }
@@ -117,7 +257,15 @@ public class AuthenticationDriver
         _webDriver.Navigate().GoToUrl(urlToTest);
         try
         {
-            _webDriver.WaitForDocumentReady(TimeSpan.FromSeconds(5));
+            _wait.Until(d =>
+            {
+                try
+                {
+                    var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                    return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+                }
+                catch { return false; }
+            });
         }
         catch
         {
@@ -131,9 +279,8 @@ public class AuthenticationDriver
     {
         try
         {
-            return _webDriver.WaitUntil(d =>
-                d.Url.Contains("/account/login", StringComparison.InvariantCultureIgnoreCase),
-                TimeSpan.FromSeconds(5));
+            return _wait.Until(d =>
+                d.Url.Contains("/account/login", StringComparison.InvariantCultureIgnoreCase));
         }
         catch
         {

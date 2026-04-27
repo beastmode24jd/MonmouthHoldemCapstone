@@ -22,6 +22,7 @@ namespace MH.Capstone.Domain.DataAccess
         public DbSet<Notification> Notifications { get; set; } = null!;
         public DbSet<Report> Reports { get; set; } = null!;
         public DbSet<EmailQueue> EmailQueue { get; set; } = null!;
+        public DbSet<UserNotificationPreference> UserNotificationPreferences { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -37,6 +38,11 @@ namespace MH.Capstone.Domain.DataAccess
             // Configure EmailQueue table defaults and indexes
             modelBuilder.Entity<EmailQueue>()
                 .HasIndex(e => new { e.IsSent, e.ScheduledAt });
+
+            // Unique constraint: one preference row per user per notification type
+            modelBuilder.Entity<UserNotificationPreference>()
+                .HasIndex(p => new { p.UserId, p.NotificationType })
+                .IsUnique();
         }
     }
 }

@@ -33,5 +33,7 @@ namespace MH.Capstone.Domain.Services.Abstraction
         Task UpdateUserBioAsync(ApplicationUser user, string? newBio);
 
         Task UpdateUserProfileImageAsync(string email, byte[] pictureData, string contentType);
+
+        Task UpdateDisplayNameAsync(ApplicationUser user, string displayName);
     }
 }

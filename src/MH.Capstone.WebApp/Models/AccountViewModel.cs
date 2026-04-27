@@ -9,6 +9,8 @@ namespace MH.Capstone.WebApp.Models
 
         public string? Username { get; set; }
 
+        public string? DisplayName { get; set; }
+
         public string? Email { get; set; }
 
         public bool IsDeactivated { get; set; } = false; // Default to false since the deactivation status is unknown.
@@ -30,6 +32,7 @@ namespace MH.Capstone.WebApp.Models
         {
             Id = Guid.Parse(user.Id);
             Username = user.UserName;
+            DisplayName = user.DisplayName;
             Email = user.Email;
             ProfileImageUrl = user.GetProfileImageUrl();
             IsAuthenticatedUser = isAuthedUser;

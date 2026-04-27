@@ -107,13 +107,30 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `ISightingsService` | `SightingsService` | Submit and query wildlife sightings. `GetAllSightingsAsync()` eager-loads `User` nav property for attribution; `GetUserSightingsAsync(Guid)` filters to one user (no include). |
 | `IScoringService` | `ScoringService` | Award points using rarity multiplier |
 | `IBadgeService` | `BadgeService` | Check and award badges |
-| `ILeaderboardService` | `LeaderboardService` | Ranked user standings |
+| `ILeaderboardService` | `LeaderboardService` | Ranked user standings. `GetLeaderboardPageAsync()` returns `IEnumerable<ApplicationUser>`; controller projects to `LeaderboardEntryViewModel` (CSP-170: excludes `Email` from public view model). |
 | `IReportService` | `ReportService` | Submit and resolve content reports |
-| `INotificationService` | `InAppNotificationService` | Create and deliver in-app notifications |
+| `INotificationService` | `NotificationDispatchService` | Route notifications to in-app and/or email based on user preferences (CSP-169). `SendNotificationAsync(notification, notificationType)` — SystemCritical always delivers to both channels; other types consult `INotificationPreferenceService`. Inherits query/bulk methods from `NotificationServiceBase` (`MarkAllAsReadAsync`, `DeleteAllAsync`). |
+| `INotificationPreferenceService` | `NotificationPreferenceService` | Get and save per-user, per-type notification delivery preferences (CSP-169). `GetPreferencesAsync(user)` returns configurable types only (excludes SystemCritical). `GetDeliveryChannelAsync(user, type)` returns default `InAppOnly` when no preference stored. `SavePreferencesAsync(user, preferences)` silently ignores SystemCritical. |
+| `IUserProfileService` | `UserService` | Extended (CSP-168) with `UpdateDisplayNameAsync(user, displayName)` — validates 2–50 chars, throws `ArgumentOutOfRangeException` if invalid. |
 | `IEmailService` | `AzureCommunicationEmailService` / `NoOpEmailService` | Send emails (toggled by `UseRealEmailerService` feature flag). Used by `AccountController.ForgotPassword` to deliver password-reset links. |
 | `IApiCaller` | `ExternalApiCaller` | HTTP calls to external APIs with SQL caching |
 
 **Background service:** `EmailDispatcherService` (hosted service) processes the `EmailQueue` outbox.
+
+**Bulk notification endpoints (CSP-138):** `PUT /notifications/mark-all-read` and `DELETE /notifications/all` — both require `[ValidateAntiForgeryToken]` and are scoped to the authenticated user.
+
+**Notification preference endpoints (CSP-169):**
+- `GET /dashboard/notification-preferences` — displays the preferences page with per-type delivery dropdowns; `[Authorize]`
+- `POST /dashboard/notification-preferences` — saves preferences via `NotificationPreferencesViewModel`; `[ValidateAntiForgeryToken]`
+- SystemCritical type is enforced server-side — never shown in UI, silently ignored on save
+
+**Notification routing (CSP-169):** `NotificationDispatchService.SendNotificationAsync(notification, notificationType)` — delivery channels: `Silenced`, `InAppOnly`, `EmailOnly`, `InAppAndEmail`. Default (no stored preference): `InAppOnly`. SystemCritical always `InAppAndEmail`. Email delivery writes to `EmailQueue` with HTML body built from `notification.Title` + `notification.Message`.
+
+**Display name endpoints (CSP-168):**
+- `GET/POST /account/SetDisplayName` — forced setup page for users with `DisplayName == "UNSET"`; `[Authorize]`, no ANTIFORGERY needed on GET
+- `POST /dashboard/UpdateDisplayName` — updates display name from dashboard settings; `[Authorize]`
+
+**RequireDisplayNameFilter:** Global `IAsyncActionFilter` that redirects authenticated users with `DisplayName == "UNSET"` to `Account/SetDisplayName` before any other action executes. Exempted actions: `SetDisplayName`, `Login`, `Logout`, `Register`, `RegisterConfirmation`, `VerifyEmail`, `ResendVerification`, `ForgotPassword`, `ResetPassword`, `Reactivate`, `Deactivate`, and the test-only email endpoints.
 
 ---
 
@@ -191,9 +208,10 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 
 | Page | Element ID | Purpose |
 |---|---|---|
-| Any page | `userDropdownNavDisplay` | Detect logged-in user (nav bar) |
+| Any page | `userDropdownNavDisplay` | Detect logged-in user (nav bar) — contains profile image, `navDisplayNameText` span, and notification badge; use `navDisplayNameText` to read the display name in isolation |
+| Any page | `navDisplayNameText` | `<span>` inside `userDropdownNavDisplay` containing only the user's display name text (excludes notification badge count) |
 | Any page | `logoutBtn` | Logout button |
-| `/Account/Login` | `Email` | Username input |
+| `/Account/Login` | `emailField` | Username input |
 | `/Account/Login` | `passwordField` | Password input |
 | `/Account/Login` | `RememberMe` | Remember me checkbox |
 | `/Account/Login` | `submitBtn` | Login submit button |
@@ -230,7 +248,23 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `/Sighting/Gallery` | `sightingsGrid` | Container `div` holding all card wrappers (when sightings exist) |
 | `/Sighting/Gallery` | `currentUserId` | Hidden `<span data-user-id="…">` carrying the logged-in user's identity string ID |
 | `/Sighting/Gallery` | `.sighting-card-wrapper[data-user-id]` | Per-card wrapper; `data-user-id` attribute used by JS to match against current user |
-| `/Sighting/Gallery` | `.sighting-attribution` | `<span>` inside each card showing the submitter's `UserName` |
+| `/Sighting/Gallery` | `.sighting-attribution` | `<span>` inside each card showing the submitter's `DisplayName` (CSP-170: no email or UserName fallback) |
+| `/Account/Register` | `displayNameField` | Display name text input on the registration form |
+| `/Account/SetDisplayName` | `setDisplayNameField` | Display name text input on the forced setup page |
+| `/Account/SetDisplayName` | `setDisplayNameBtn` | Submit button on the forced setup page |
+| `/dashboard` | `displayNameInput` | Display name text input in the Account Settings section |
+| `/dashboard` | `updateDisplayNameBtn` | "Update Display Name" submit button |
+| `/dashboard` | `displayNameSuccessMessage` | Success banner shown after a display name is updated |
+| `/notifications` | `markAllReadForm` | Form wrapping the "Mark All as Read" button; has `d-none` class when no unread notifications exist |
+| `/notifications` | `markAllReadBtn` | "Mark All as Read" submit button |
+| `/notifications` | `deleteAllForm` | Form wrapping the "Delete All" button; has `d-none` class when notification list is empty |
+| `/notifications` | `deleteAllBtn` | "Delete All" submit button |
+| `/notifications` | `notificationsEmptyState` | `div.alert` shown when the user has no notifications |
+| `/dashboard` | `notificationPreferencesLink` | Link button in Account Settings to navigate to notification preferences page |
+| `/dashboard/notification-preferences` | `notificationPreferencesForm` | Form wrapping the per-type delivery dropdowns |
+| `/dashboard/notification-preferences` | `saveNotificationPreferencesBtn` | Save button for notification preferences |
+| `/dashboard/notification-preferences` | `notificationPreferenceSuccess` | Success alert shown after saving preferences |
+| `/dashboard/notification-preferences` | `pref_{NotificationType}` | `<select>` element for each configurable notification type (e.g. `pref_BadgeAwarded`) |
 
 Access-denied detection: checks if `driver.Url` contains `/account/login` (case-insensitive redirect).
 
@@ -261,6 +295,37 @@ For BDD scenarios, implement **one scenario per commit** (write the feature step
 ```
 [CSP-XXX] <what was implemented> (TDD)
 [CSP-XXX] BDD: <scenario name from .feature file>
+```
+
+### Pull Request Conventions
+
+Every PR on this repo must follow these conventions — apply them whenever running `gh pr create`:
+
+- **Base branch:** always target `dev` (`--base dev`) — **never `main`**; feature PRs merge into `dev`, not `main`
+- **Reviewer:** always request `jmcshane22` (`--reviewer jmcshane22`)
+- **Assignees:** always assign both `jmcshane22` and `beastmode24jd` (`--assignee jmcshane22,beastmode24jd`)
+- **Draft:** always open as a draft (`--draft`) — PRs must not be auto-ready for merge
+- **Labels:** apply relevant labels (e.g. `feature`, `bug`, `test`, `docs`) based on PR content; check available labels with `gh label list --repo jmcshane22/MonmouthHoldemCapstone`
+
+#### `gh pr edit` is broken on this repo
+
+`gh pr edit` exits with a GraphQL error due to the GitHub classic Projects API deprecation. Use the REST API directly instead:
+
+```bash
+# Add reviewer
+gh api repos/jmcshane22/MonmouthHoldemCapstone/pulls/{n}/requested_reviewers \
+  --method POST --field 'reviewers[]=jmcshane22'
+
+# Add assignees
+gh api repos/jmcshane22/MonmouthHoldemCapstone/issues/{n}/assignees \
+  --method POST --field 'assignees[]=jmcshane22' --field 'assignees[]=beastmode24jd'
+
+# Add label
+gh api repos/jmcshane22/MonmouthHoldemCapstone/issues/{n}/labels \
+  --method POST --field 'labels[]=enhancement'
+
+# Convert back to draft (if created without --draft by mistake)
+gh pr ready {n} --repo jmcshane22/MonmouthHoldemCapstone --undo
 ```
 
 ### Post-implementation: update this file
@@ -317,61 +382,20 @@ Two GitHub Actions workflows in `.github/workflows/`:
 | Feature flags | `src/MH.Capstone.Domain/Tools/FeatureFlags.cs` |
 | API Ninja contract | `src/MH.Capstone.Domain/ApiContracts/Ninja/` |
 | Acceptance test features | `src/MH.Capstone.Tests.Acceptance/Features/` |
+| Acceptance testing guide | `docs/acceptance_testing.md` |
 | Architectural guidelines | `docs/architectural_guidelines.md` |
 
 ---
 
-## Detailed Database Schema
+## Database Schema
 
-Two EF Core DbContexts, both using the `DataDb` connection string.
+Full column details are in the EF entity classes under `src/MH.Capstone.Domain/DataModels/`. Non-obvious constraints:
 
-### ApplicationDbContext tables
-
-#### `AspNetUsers` (`ApplicationUser : IdentityUser`)
-
-| Column | Type | Notes |
-|---|---|---|
-| `Id` | nvarchar(450) | PK, GUID stored as string |
-| `Email` | nvarchar(256) | |
-| `NormalizedEmail` | nvarchar(256) | Indexed |
-| `UserName` | nvarchar(256) | |
-| `NormalizedUserName` | nvarchar(256) | Unique index (nullable-filtered) |
-| `PasswordHash` | nvarchar(max) | |
-| `EmailConfirmed` | bit | |
-| `ProfileImage` | varbinary(max) | nullable; null = use default avatar |
-| `ProfileImageType` | nvarchar(50) | nullable; e.g. `"image/png"` |
-| `IsDeactivated` | bit | soft-delete flag |
-| `Points` | int | total accumulated points |
-| `Bio` | nvarchar(250) | nullable |
-| `LastLogin` | datetimeoffset | nullable |
-| `LoginStreak` | int | days in current streak |
-| Standard Identity columns | — | `SecurityStamp`, `ConcurrencyStamp`, `LockoutEnabled`, `LockoutEnd`, `AccessFailedCount`, `TwoFactorEnabled`, `PhoneNumber`, `PhoneNumberConfirmed` |
-
-`IsStreakActive` (not mapped): true when `(UtcNow − LastLogin) ≤ 30 days`.
-
-#### `Sighting`
-
-| Column | Type | Constraints |
-|---|---|---|
-| `Id` | uniqueidentifier | PK, identity |
-| `UserId` | nvarchar(450) | FK → AspNetUsers (cascade delete), indexed |
-| `Lat` | decimal(9,6) | -90 to 90 |
-| `Long` | decimal(9,6) | -180 to 180 |
-| `Timestamp` | datetimeoffset | must be in the past (`[PastDateTime]`) |
-| `Description` | nvarchar(500) | nullable |
-| `ImageBuffer` | varbinary(max) | required; 1 byte – 2 MB |
-
-#### `Badge`
-
-| Column | Type | Constraints |
-|---|---|---|
-| `BadgeID` | uniqueidentifier | PK |
-| `Title` | nvarchar(50) | 1–50 chars |
-| `Description` | nvarchar(150) | max 150 |
-| `PointValue` | int | default 10 |
-| `BadgeIcon` | varbinary(max) | nullable |
-
-Three badges are always seeded (idempotent upsert in `ApplicationDbContextSeeding`):
+- `ApplicationUser.DisplayName`: `nvarchar(50)`, required, defaults to `"UNSET"` for migrated rows; 2–50 chars; `IsStreakActive` is a computed (not-mapped) property: true when `(UtcNow − LastLogin) ≤ 30 days`.
+- `Sighting.ImageBuffer`: `varbinary(max)`, required (1 byte – 2 MB); `Timestamp` must be in the past (`[PastDateTime]`).
+- `Report`: unique filtered index on `(ReportingUserId, ReportedPageUrl)` where `IsResolved = 0` — prevents duplicate open reports, allows re-reporting after resolution.
+- `EmailQueue`: composite index on `(IsSent, ScheduledAt)`; `Processing` bit = dispatcher lock flag.
+- Seeded roles: `User`, `Admin`. Three badges always seeded (idempotent upsert):
 
 | Constant | GUID | Title | Points |
 |---|---|---|---|
@@ -379,87 +403,7 @@ Three badges are always seeded (idempotent upsert in `ApplicationDbContextSeedin
 | `BadgeId.CustomBioBadgeGUID` | `91E7773E-F6D7-457E-911E-8246891D65A2` | Custom Bio Badge | 10 |
 | `BadgeId.FirstSightingBadgeGUID` | `B2C3D4E5-F6A7-4890-9B0C-1D2E3F4B5A6F` | First Sighting Badge | 25 |
 
-#### `PersonalBadges` (`UserBadge`)
-
-| Column | Type | Notes |
-|---|---|---|
-| `UserBadgeId` | uniqueidentifier | PK |
-| `User ID` | nvarchar(450) | FK → AspNetUsers (cascade), indexed |
-| `Badge ID` | uniqueidentifier | FK → Badge (cascade), indexed |
-| `BadgeEarned` | datetimeoffset | nullable |
-
-#### `Notification`
-
-| Column | Type | Constraints |
-|---|---|---|
-| `Id` | uniqueidentifier | PK, identity |
-| `RecipientId` | nvarchar(450) | FK → AspNetUsers (cascade), indexed |
-| `Title` | nvarchar(50) | 1–50 chars |
-| `Message` | nvarchar(250) | 1–250 chars |
-| `SentAt` | datetimeoffset | required |
-| `IsRead` | bit | default false |
-
-`IsPostdated` (not mapped): true when `SentAt > UtcNow` — future-dated delivery is supported.
-
-#### `Report`
-
-| Column | Type | Constraints |
-|---|---|---|
-| `Id` | uniqueidentifier | PK, identity |
-| `ReportingUserId` | nvarchar(450) | FK → AspNetUsers (cascade) |
-| `ReportedPageUrl` | nvarchar(2048) | required |
-| `Reason` | nvarchar(100) | required |
-| `Description` | nvarchar(1000) | nullable |
-| `SubmittedAt` | datetime2 | defaults to `DateTime.UtcNow` |
-| `IsResolved` | bit | default false |
-
-Unique filtered index on `(ReportingUserId, ReportedPageUrl)` where `IsResolved = 0` — prevents duplicate open reports, but allows re-reporting after resolution.
-
-#### `EmailQueue`
-
-| Column | Type | Notes |
-|---|---|---|
-| `Id` | uniqueidentifier | PK, identity |
-| `Recipient` | nvarchar(450) | email address |
-| `Subject` | nvarchar(250) | |
-| `HtmlBody` | nvarchar(max) | required |
-| `PlainTextBody` | nvarchar(max) | nullable |
-| `CreatedAt` | datetimeoffset | defaults to `UtcNow` |
-| `ScheduledAt` | datetimeoffset | nullable; null = send immediately |
-| `IsSent` | bit | |
-| `SentAt` | datetimeoffset | nullable |
-| `Attempts` | int | retry count |
-| `LastAttemptAt` | datetimeoffset | nullable |
-| `LastError` | nvarchar(max) | nullable |
-| `Processing` | bit | dispatcher lock flag |
-
-Composite index on `(IsSent, ScheduledAt)` for dispatcher queries.
-
-### Standard ASP.NET Identity tables (auto-managed)
-
-`AspNetRoles`, `AspNetUserRoles`, `AspNetUserClaims`, `AspNetUserLogins`, `AspNetUserTokens`, `AspNetRoleClaims`.
-
-Seeded roles: `User`, `Admin`.
-
-### CacheDbContext tables
-
-`ApiCallerCacheEntity` / `NinjaAnimalCacheEntity` — SQL-backed cache for API-Ninjas Animals API responses. Managed separately; migrations in `src/MH.Capstone.Domain/Migrations/Cache/`.
-
-### FK dependency order for seeding
-
-```
-AspNetRoles
-  ↓
-AspNetUsers (ApplicationUser)
-  ↓
-Badge          (no FK dependencies)
-  ↓
-Sighting       (FK → AspNetUsers)
-PersonalBadges (FK → AspNetUsers + Badge)
-Notification   (FK → AspNetUsers)
-Report         (FK → AspNetUsers)
-EmailQueue     (no FK; standalone outbox)
-```
+FK seeding order: `AspNetRoles` → `AspNetUsers` → `Badge` → `Sighting` / `PersonalBadges` / `Notification` / `Report` → `EmailQueue` (no FK).
 
 ---
 
@@ -488,42 +432,113 @@ These users must exist in `WAID_AppDataDb` for acceptance tests to pass. The pas
 | `newuser@test.com` | User | 0 | (none) | 0 sightings | Baseline new account; exercises empty-state views |
 | `admin@test.com` | Admin | 0 | (none) | 0 sightings | Admin-role user for moderation/report scenarios; also satisfies `AdminAccount:Hidden` config if set to this address |
 
-### Suggested sighting locations (Pacific Northwest theme)
-
-| Label | Latitude | Longitude | User | Notes |
-|---|---|---|---|---|
-| WOU Campus | 44.847600 | -123.234300 | alpha | Within Salem-area bounds |
-| Silver Falls | 44.877000 | -122.654000 | alpha | Common — many global sightings |
-| Crater Lake | 42.944600 | -122.109000 | alice | Rare/mythic — few global sightings |
-| Portland | 45.523100 | -122.676200 | alice | Urban sighting |
-| Eugene | 44.052100 | -123.086800 | alice | Mid-range sighting |
-| Outside Oregon | 34.052200 | -118.243700 | bob | LA — useful for map bounds filtering tests |
-
-### Scoring tier thresholds to seed around
-
-Per `ScoringService`:
-- **Mythic** (≤5 global sightings of a species): 10 pts × 5 = **50 pts**
-- **Rare** (6–50 global sightings): 10 pts × 2 = **20 pts**
-- **Common** (>50 global sightings): 10 pts × 1 = **10 pts**
-
-Seed at least one sighting per tier to exercise all scoring branches.
-
-### Notification scenarios to seed
-
-- At least one **unread** notification for `alpha` — so the notification bell/badge has something to display
-- At least one **read** notification — to verify read-state rendering
-- Optionally one **postdated** notification (`SentAt > UtcNow`) to test `IsPostdated` path
-
-### LoginStreak scenarios to seed
-
-| User | `LastLogin` | `LoginStreak` | `IsStreakActive` |
-|---|---|---|---|
-| `alpha` | `UtcNow - 1 day` | 5 | true |
-| `bob` | `UtcNow - 31 days` | 3 | false (expired) |
-| `newuser` | null | 0 | false (never logged in) |
+> **Note:** The active acceptance test seeder (`AcceptanceTestSeeder.cs`) uses different personas: **Alex** (`alex@test.com`), **Patricia** (`patricia@test.com`), **Lily** (`lily@test.com`), and **Owen** (`owen@test.com` — `DisplayName = "UNSET"`, used for CSP-168 forced setup scenarios). These supersede the old persona names in CI. Password for all: `Capstone26!`.
 
 ### Where to add acceptance seed data
 
 The acceptance-specific seed users should be added to `ApplicationDbContextSeeding.SeedDataAsync` gated on an environment check, **or** in a dedicated acceptance-only seeding method called from `TestWebAppHost.StartAsync`. The latter is preferred so production/staging seeding remains unaffected.
 
 `TestWebAppHost.ResetSeedData()` is currently a `NotImplementedException` stub — implementing it to truncate non-badge rows and re-run seed will be required for true scenario isolation once test count grows.
+
+---
+
+## Jira PBI / User Story Guidelines
+
+> The human-readable version of these guidelines lives at `docs/pbi_guidelines.md`.
+
+This section governs how AI assistants (and developers) should create or update Jira issues in the CSP project. All user stories must conform to the **INVEST** principles and follow the established story structure below.
+
+---
+
+Every story must satisfy the six **INVEST** criteria (Independent, Negotiable, Valuable, Estimable, Small, Testable) before being submitted to Jira.
+
+---
+
+### User Story Structure
+
+Every Jira issue must include the following sections. Use the template below exactly — do not omit sections.
+
+#### Story Case (Summary / Title field)
+
+Write in the standard user story format:
+
+```
+As a <role>, when <context>, I want <goal> so that <benefit>.
+```
+
+#### Description
+
+Provide 2–4 sentences of background explaining the current state and what this story changes. Follow with a bulleted list of specific behavioral requirements the implementation must satisfy.
+
+#### Assumptions / Preconditions
+
+Organize assumptions into four subsections:
+
+- **Functional Assumptions** — what the system already provides that this story depends on
+- **Security Assumptions** — authentication, authorization, and data visibility rules
+- **User Experience Assumptions** — UI behavior, empty states, transitions, labeling
+- **System Behavior Assumptions** — backend/data layer behavior, performance, pagination
+
+#### Acceptance Criteria
+
+Write all acceptance criteria as Gherkin scenarios using `Given / When / Then` format, wrapped in a fenced Gherkin code block:
+
+````
+```Gherkin
+Scenario: <scenario name>
+    Given <precondition>
+    When <action>
+    Then <expected outcome>
+    And <additional assertion>
+```
+````
+
+Each acceptance criterion from the description must map to at least one scenario. Cover: happy path, alternative paths, empty states, and any security/visibility rules.
+
+---
+
+### Required Jira Fields
+
+In addition to the story content, every Jira issue must have the following fields set:
+
+#### Team
+Always assign the team **"MH Development Team"** unless explicitly told otherwise.
+
+#### Story Point Estimate (SPE)
+Use powers of 2 only: **1, 2, 4, 8, …**. Target ≤ 4 points per story — if a story feels larger, consider splitting it.
+
+| Points | When to use |
+|---|---|
+| **1** | Minor bug fix; UI-only update; no new testing or back-end code, or only minimal/routine changes to existing tests and back-end. |
+| **2** | Larger full-stack bug fix; larger UI-only or back-end-only update or new design; little to moderate testing updates or implementation. |
+| **4** | New full-stack feature; heavy back-end work; requires new or large overhauls of all test types (unit, acceptance, etc.). |
+
+> Estimates may vary depending on whether existing infrastructure or prior experience is available to support the story's implementation. Use the table as a guide, not a rule — the same work can reasonably land at a different point value given context.
+
+---
+
+### AI Agent Attribution
+
+When an AI agent creates or modifies a Jira PBI description, it must append the following note at the very bottom of the description field:
+
+```
+---
+AI Agent <Agent Name> assisted in the creation and/or modification of this PBI.
+```
+
+Replace `<Agent Name>` with the name of the AI agent or model used (e.g., `Claude Sonnet 4.6`).
+
+---
+
+### Checklist before creating or updating a Jira issue
+
+- [ ] Story case follows `As a / when / I want / so that` format
+- [ ] All six INVEST criteria are satisfied
+- [ ] Description includes background context and a bulleted requirements list
+- [ ] Assumptions are organized into the four subsections
+- [ ] Every requirement maps to at least one Gherkin scenario
+- [ ] Gherkin scenarios cover happy path, alternative paths, empty states, and security rules
+- [ ] Story is small enough to be completed within a single sprint
+- [ ] Team is set to **MH Development Team**
+- [ ] Story point estimate is set (1, 2, or 4) using the SPE guidelines above
+- [ ] AI agent attribution note appended to the bottom of the description (if created or modified by an AI agent)

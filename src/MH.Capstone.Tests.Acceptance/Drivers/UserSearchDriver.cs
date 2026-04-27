@@ -1,7 +1,6 @@
 // Sprint 5, CSP-54
 using System.Diagnostics.CodeAnalysis;
 using MH.Capstone.Tests.Acceptance.Configuration;
-using MH.Capstone.Tests.Acceptance.Helpers;
 using MH.Capstone.Tests.Acceptance.PageObjects;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
