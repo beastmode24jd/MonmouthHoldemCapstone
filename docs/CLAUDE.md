@@ -128,7 +128,10 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 
 **Display name endpoints (CSP-168):**
 - `GET/POST /account/SetDisplayName` — forced setup page for users with `DisplayName == "UNSET"`; `[Authorize]`, no ANTIFORGERY needed on GET
-- `POST /dashboard/UpdateDisplayName` — updates display name from dashboard settings; `[Authorize]`
+- `POST /dashboard/UpdateDisplayName` — updates display name from account settings page; `[Authorize]`; redirects to `GET /dashboard/settings`
+
+**Account Settings page (CSP-188):**
+- `GET /dashboard/settings` — dedicated account settings page; `[Authorize]`; hosts display name, profile picture, bio, notification preferences link, and deactivation link
 
 **RequireDisplayNameFilter:** Global `IAsyncActionFilter` that redirects authenticated users with `DisplayName == "UNSET"` to `Account/SetDisplayName` before any other action executes. Exempted actions: `SetDisplayName`, `Login`, `Logout`, `Register`, `RegisterConfirmation`, `VerifyEmail`, `ResendVerification`, `ForgotPassword`, `ResetPassword`, `Reactivate`, `Deactivate`, and the test-only email endpoints.
 
@@ -252,15 +255,16 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `/Account/Register` | `displayNameField` | Display name text input on the registration form |
 | `/Account/SetDisplayName` | `setDisplayNameField` | Display name text input on the forced setup page |
 | `/Account/SetDisplayName` | `setDisplayNameBtn` | Submit button on the forced setup page |
-| `/dashboard` | `displayNameInput` | Display name text input in the Account Settings section |
-| `/dashboard` | `updateDisplayNameBtn` | "Update Display Name" submit button |
-| `/dashboard` | `displayNameSuccessMessage` | Success banner shown after a display name is updated |
+| `/dashboard/settings` | `displayNameInput` | Display name text input in the Account Settings section |
+| `/dashboard/settings` | `updateDisplayNameBtn` | "Update Display Name" submit button |
+| `/dashboard/settings` | `displayNameSuccessMessage` | Success banner shown after a display name is updated |
 | `/notifications` | `markAllReadForm` | Form wrapping the "Mark All as Read" button; has `d-none` class when no unread notifications exist |
 | `/notifications` | `markAllReadBtn` | "Mark All as Read" submit button |
 | `/notifications` | `deleteAllForm` | Form wrapping the "Delete All" button; has `d-none` class when notification list is empty |
 | `/notifications` | `deleteAllBtn` | "Delete All" submit button |
 | `/notifications` | `notificationsEmptyState` | `div.alert` shown when the user has no notifications |
-| `/dashboard` | `notificationPreferencesLink` | Link button in Account Settings to navigate to notification preferences page |
+| `/dashboard` | `accountSettingsLink` | Link/button to navigate to the Account Settings page |
+| `/dashboard/settings` | `notificationPreferencesLink` | Link button in Account Settings to navigate to notification preferences page |
 | `/dashboard/notification-preferences` | `notificationPreferencesForm` | Form wrapping the per-type delivery dropdowns |
 | `/dashboard/notification-preferences` | `saveNotificationPreferencesBtn` | Save button for notification preferences |
 | `/dashboard/notification-preferences` | `notificationPreferenceSuccess` | Success alert shown after saving preferences |
