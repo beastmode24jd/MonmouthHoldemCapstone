@@ -426,8 +426,94 @@ public class ClubServiceTests
 
     #endregion
 
-    #region MessageClubAsync
+    #region SendMessageAsync Tests
 
+    [Test]
+    public async Task SendMessageAsync_ValidInput_SavesMessageWithTrimmedContent()
+    {
+        // Arrange
+        var clubId = Guid.NewGuid();
+        var senderId = Guid.NewGuid();
+        var rawContent = "   Hello, this is a test message!   ";
+        var expectedContent = "Hello, this is a test message!";
 
+        _messageRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<Message>()))
+            .ReturnsAsync((Message m) => m)
+            .Verifiable();
+
+        // Act
+        await _clubService.SendMessageAsync(clubId, senderId, rawContent);
+
+        // Assert
+        _messageRepoMock.Verify(r => r.AddOrUpdateAsync(It.Is<Message>(m =>
+            m.ClubId == clubId &&
+            m.AuthorId == senderId &&
+            m.Content == expectedContent &&
+            m.SentAt <= DateTimeOffset.UtcNow
+        )), Times.Once);
+    }
+
+    [Test]
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("   ")]
+    public void SendMessageAsync_InvalidContent_ThrowsArgumentException(string? content)
+    {
+        // Act & Assert
+        Assert.ThrowsAsync<ArgumentException>(() => 
+            _clubService.SendMessageAsync(Guid.NewGuid(), Guid.NewGuid(), content!));
+    }
+
+    #endregion
+    #region GetClubMessagesAsync Tests
+
+    [Test]
+    public async Task GetClubMessagesAsync_ReturnsOnlyMessagesForRequestedClub_OrderedByDate()
+    {
+        // Arrange
+        var targetClubId = Guid.NewGuid();
+        var otherClubId = Guid.NewGuid();
+        var now = DateTimeOffset.UtcNow;
+
+        var messages = new List<Message>
+        {
+            // Message 2: Target club, sent later
+            new Message(targetClubId, Guid.NewGuid(), "Second Message", now.AddMinutes(10)),
+            // Message 1: Target club, sent first
+            new Message(targetClubId, Guid.NewGuid(), "First Message", now),
+            // Message 3: Different club (should be filtered out)
+            new Message(otherClubId, Guid.NewGuid(), "Wrong Club", now)
+        }.AsQueryable();
+
+        // Setup mock to return the list when GetAllAsync is called with an include expression
+        _messageRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Message, object>>>()))
+            .ReturnsAsync(messages);
+
+        // Act
+        var result = await _clubService.GetClubMessagesAsync(targetClubId);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Has.Count.EqualTo(2), "Should only return messages for the specified club.");
+            Assert.That(result[0].Content, Is.EqualTo("First Message"), "Messages should be sorted by SentAt ascending.");
+            Assert.That(result[1].Content, Is.EqualTo("Second Message"));
+            Assert.That(result.All(m => m.ClubId == targetClubId), Is.True);
+        });
+    }
+
+    [Test]
+    public async Task GetClubMessagesAsync_NoMessagesFound_ReturnsEmptyList()
+    {
+        // Arrange
+        _messageRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Message, object>>>()))
+            .ReturnsAsync(Enumerable.Empty<Message>().AsQueryable());
+
+        // Act
+        var result = await _clubService.GetClubMessagesAsync(Guid.NewGuid());
+
+        // Assert
+        Assert.That(result, Is.Empty);
+    }
     #endregion
 }

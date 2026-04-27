@@ -8,12 +8,10 @@ namespace MH.Capstone.Domain.Services
     public class ClubService : IClubService
     {
         /* 
-            
             Important note for if we build out future permanent account deletion:
-
+            
             "Deleting a user will now throw if they still have club memberships or messages.
             Your service layer will need to clean those up before deleting a user."
-
         */
         private readonly IRepository<Club, ApplicationDbContext> _clubRepo;
         private readonly IRepository<ClubMembership, ApplicationDbContext> _membershipRepo;
