@@ -17,13 +17,16 @@ namespace MH.Capstone.Domain.Services
         */
         private readonly IRepository<Club, ApplicationDbContext> _clubRepo;
         private readonly IRepository<ClubMembership, ApplicationDbContext> _membershipRepo;
+        private readonly IRepository<Message, ApplicationDbContext> _messageRepo;
 
         public ClubService(
             IRepository<Club, ApplicationDbContext> clubRepo,
-            IRepository<ClubMembership, ApplicationDbContext> membershipRepo)
+            IRepository<ClubMembership, ApplicationDbContext> membershipRepo,
+            IRepository<Message, ApplicationDbContext> messageRepo)
         {
             _clubRepo = clubRepo;
             _membershipRepo = membershipRepo;
+            _messageRepo = messageRepo;
         }
 
         public async Task<IEnumerable<Club>> GetPublicClubsAsync()
@@ -147,8 +150,20 @@ namespace MH.Capstone.Domain.Services
 
         public async Task SendMessageAsync(Guid clubId, Guid senderId, string content)
         {
-            // Initialize new Message
-            var message = new Message(clubId, senderId, content, DateTimeOffset.UtcNow);
+            if (string.IsNullOrWhiteSpace(content))
+                throw new ArgumentException("Message content cannot be empty.", nameof(content));
+
+            var message = new Message(clubId, senderId, content.Trim(), DateTimeOffset.UtcNow);
+            await _messageRepo.AddOrUpdateAsync(message);
         }
+
+        public async Task<List<Message>> GetClubMessagesAsync(Guid clubId)
+        {
+            return (await _messageRepo.GetAllAsync(m => m.Author))
+                .Where(m => m.ClubId == clubId)
+                .OrderBy(m => m.SentAt)
+                .ToList();
+        }
+
     }
 }

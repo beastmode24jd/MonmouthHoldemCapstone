@@ -522,6 +522,8 @@ Constructors: `Message()` (default) and `Message(Guid clubId, Guid authorId, str
 | `AcceptInviteAsync(Guid clubId, Guid userId)` | Finds the pending membership row, flips `AcceptedInvite = true`, saves; throws `InvalidOperationException` if no pending invite exists |
 | `DeclineInviteAsync(Guid clubId, Guid userId)` | Finds and deletes the pending membership row; throws `InvalidOperationException` if no pending invite exists |
 | `LeaveClubAsync(Guid clubId, Guid userId)` | Deletes the accepted membership row; throws `InvalidOperationException` if user is the owner or is not a member |
+| `SendMessageAsync(Guid clubId, Guid senderId, string content)` | Saves a new `Message` row via the message repo; throws `ArgumentException` if content is empty/whitespace |
+| `GetClubMessagesAsync(Guid clubId)` | Returns all messages for a club ordered oldest-first (`SentAt ASC`) with `Author` nav property eagerly loaded |
 
 ---
 
@@ -535,7 +537,8 @@ Injects: `IClubService`, `UserManager<ApplicationUser>`, `INotificationService`,
 |---|---|---|
 | `Index()` | `GET /Clubs` | **Done** — loads `ClubListViewModel` (public clubs + user clubs + pending invites), renders `LandingPage` view |
 | `ClubPage(Guid id)` | `GET /Clubs/ClubPage/{id}` | **Done** — fetches club via `GetClubByIdAsync` (Owner eagerly loaded); checks membership via `GetUserClubsAsync`; returns 404 if club not found, 403 if private and non-member; renders `ClubPage` view with `ClubPageViewModel` |
-| `Chatroom(Guid id)` | `GET /Clubs/Chatroom/{id}` | **Stub** — returns the `Chatroom` view; no data passed yet |
+| `Chatroom(Guid id)` | `GET /Clubs/Chatroom/{id}` | **Done** — loads club + messages via `GetClubMessagesAsync`; enforces private-club access; passes `ClubMessageViewModel` |
+| `SendMessage(Guid clubId, string content)` | `POST /Clubs/SendMessage` | **Done** — calls `SendMessageAsync`; sets `TempData["MessageError"]` on empty content; redirects to `Chatroom` |
 | `CreateClub(string name, string? description, bool isPublic)` | `POST /Clubs/CreateClub` | **Done** — saves club via `CreateClubAsync`; sends `ClubActivity` in-app notification to the owner; redirects to `GET /Clubs/ClubPage/{id}` |
 | `SearchUsers(Guid clubId, string query)` | `GET /Clubs/SearchUsers` | **Done** — returns JSON `[{id, displayName}]` of up to 10 users matching query; excludes current club members (accepted + pending) and users with `DisplayName == "UNSET"` |
 | `SendInvite(Guid clubId, string receiverId)` | `POST /Clubs/SendInvite` | **Done** — calls `SendInviteAsync`; sends `ClubActivity` notification to the invitee; sets `TempData["InviteSuccess"/"InviteError"]`; redirects to `ClubPage` |
@@ -576,7 +579,7 @@ Constructor: `ClubPageViewModel(Club club, bool isOwner, bool isMember)`.
 |---|---|---|
 | `LandingPage.cshtml` | `Views/Clubs/LandingPage.cshtml` | Done — pending invites section (Accept/Decline per club), filter UI, club cards grid (public + private user clubs), "View Club" links on each card, create-club modal |
 | `ClubPage.cshtml` | `Views/Clubs/ClubPage.cshtml` | Done — club name, visibility badge, description, owner username, created date, "Go to Chatroom" button, "Invite Member" button + search modal (all accepted members), "Leave Club" button + confirm modal (non-owner members only), "Back to Clubs" link; TempData banners for invite/leave success/error |
-| `Chatroom.cshtml` | `Views/Clubs/Chatroom.cshtml` | Stub — wired to `GET /Clubs/Chatroom/{id}`, no content yet |
+| `Chatroom.cshtml` | `Views/Clubs/Chatroom.cshtml` | Done — scrollable message list (own messages right-aligned/blue, others left-aligned/grey); member-only message input with 2000-char counter and Ctrl+Enter submit; non-member read-only notice; empty-state when no messages |
 
 ---
 
@@ -655,7 +658,7 @@ Filter state is persisted with `sessionStorage` key `'clubsFilter'` (`'all'` or 
 
 ### What Is Still Incomplete
 
-- `Chatroom.cshtml` is a stub — the GET route exists (`/Clubs/Chatroom/{id}`) but the view has no content, and there is no service method for messages yet
+- `ClubService` now injects three repos: `IRepository<Club>`, `IRepository<ClubMembership>`, `IRepository<Message>` — unit test `Setup()` must mock all three
 - No acceptance tests (`.feature` files) exist yet for any Club scenarios
 - User-deletion flow must be updated to clean up `ClubMembership` and `Message` rows before removing a user
 - `ClubMembership.AcceptedInvite` is seeded as `true` for all existing rows; after running EF migrations + the app once, the default should be switched to `false` to enforce the invite flow for new rows

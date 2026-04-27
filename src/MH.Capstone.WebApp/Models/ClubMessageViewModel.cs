@@ -4,19 +4,21 @@ namespace MH.Capstone.WebApp.Models
 {
     public class ClubMessageViewModel
     {
-        // For title and ID data
         public Club Club { get; set; } = null!;
-
-        // User GUID for message init
+        public List<Message> Messages { get; set; } = new();
         public string CurrentUserId { get; set; } = string.Empty;
+        public bool IsCurrentUserMember { get; set; }
 
-        public List<Message> Messages { get; set; } = new List<Message>();
+        public bool HasMessages => Messages.Any();
+
         public ClubMessageViewModel() { }
-        public ClubMessageViewModel(Club club, List<Message> messages, string currentUserId = "")
+
+        public ClubMessageViewModel(Club club, List<Message> messages, string currentUserId, bool isCurrentUserMember)
         {
             Club = club;
             Messages = messages;
             CurrentUserId = currentUserId;
+            IsCurrentUserMember = isCurrentUserMember;
         }
     }
 }

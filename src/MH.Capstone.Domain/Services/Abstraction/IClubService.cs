@@ -37,7 +37,11 @@ namespace MH.Capstone.Domain.Services.Abstraction
         // Throws InvalidOperationException if userId is the club owner or is not a member.
         Task LeaveClubAsync(Guid clubId, Guid userId);
 
-        // Sends a message from a club member to their club's chatroom page.
+        // Saves a new message to the club's chatroom log.
+        // Throws ArgumentException if content is empty.
         Task SendMessageAsync(Guid clubId, Guid senderId, string content);
+
+        // Returns all messages for a club, ordered oldest-first, with Author eagerly loaded.
+        Task<List<Message>> GetClubMessagesAsync(Guid clubId);
     }
 }

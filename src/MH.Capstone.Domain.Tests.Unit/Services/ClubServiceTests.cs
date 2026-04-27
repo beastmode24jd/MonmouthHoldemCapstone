@@ -15,18 +15,21 @@ namespace MH.Capstone.Domain.Tests.Unit.Services;
 public class ClubServiceTests
 {
     private Mock<IRepository<Club, ApplicationDbContext>> _clubRepoMock;
-    private IClubService _clubService;
     private Mock<IRepository<ClubMembership, ApplicationDbContext>> _clubMembershipRepoMock;
+    private Mock<IRepository<Message, ApplicationDbContext>> _messageRepoMock;
+    private IClubService _clubService;
 
     [SetUp]
     public void Setup()
     {
         _clubRepoMock = new Mock<IRepository<Club, ApplicationDbContext>>();
         _clubMembershipRepoMock = new Mock<IRepository<ClubMembership, ApplicationDbContext>>();
+        _messageRepoMock = new Mock<IRepository<Message, ApplicationDbContext>>();
 
         _clubService = new ClubService(
             _clubRepoMock.Object,
-            _clubMembershipRepoMock.Object);
+            _clubMembershipRepoMock.Object,
+            _messageRepoMock.Object);
     }
 
     #region GetClubsMethods

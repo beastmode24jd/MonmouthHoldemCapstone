@@ -64,9 +64,50 @@ namespace MH.Capstone.WebApp.Controllers
         }
 
         [HttpGet]
-        public IActionResult Chatroom(Guid id)
+        public async Task<IActionResult> Chatroom(Guid id)
         {
-            return View("Chatroom");
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return StatusCode((int)HttpStatusCode.InternalServerError);
+
+            var club = await _clubService.GetClubByIdAsync(id);
+            if (club == null)
+                return NotFound();
+
+            var userClubs = await _clubService.GetUserClubsAsync(user.GuidId);
+            bool isMember = userClubs.Any(c => c.Id == id);
+
+            if (!club.IsPublic && !isMember)
+                return Forbid();
+
+            var messages = await _clubService.GetClubMessagesAsync(id);
+            return View("Chatroom", new ClubMessageViewModel(club, messages, user.Id, isMember));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SendMessage(Guid clubId, string content)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return StatusCode((int)HttpStatusCode.InternalServerError);
+
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                TempData["MessageError"] = "Message cannot be empty.";
+                return RedirectToAction(nameof(Chatroom), new { id = clubId });
+            }
+
+            try
+            {
+                await _clubService.SendMessageAsync(clubId, user.GuidId, content);
+            }
+            catch (ArgumentException ex)
+            {
+                TempData["MessageError"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(Chatroom), new { id = clubId });
         }
 
         [HttpPost]
