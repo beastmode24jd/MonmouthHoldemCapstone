@@ -425,7 +425,6 @@ FodyWeavers.xsd
 **/.claude/
 # Local Claude Code instructions (personal/machine-specific; see docs/CLAUDE.md for shared team instructions)
 /CLAUDE.md
-src/claude/
 
 # Team-Added additional ignores
 # JD GitHib CLI PR Helper Files
