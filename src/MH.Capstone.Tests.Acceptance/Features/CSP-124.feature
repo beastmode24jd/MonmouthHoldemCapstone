@@ -28,9 +28,9 @@ Scenario: Alex has a new club, and wants to add Lily to it.
     Then I should be able to invite another user
     And they should see the Club invite on their Clubs page
 
-#@clubs
-#Scenario: Lily has created a private club, and Alex is not added to it.
-    #Given I am on the Clubs page
-    #When I select private for the Club
-    #And do not add other users
-    #Then my Club should not be visible on Alex's Club page
+@clubs
+Scenario: Alex has created a private club, and Lily is not added to it.
+    Given I am on the Clubs page
+    When I select private for the Club
+    And do not add other users
+    Then my Club should not be visible on Lily's Club page

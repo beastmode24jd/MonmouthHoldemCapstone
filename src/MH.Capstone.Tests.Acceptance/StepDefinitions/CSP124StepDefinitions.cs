@@ -29,9 +29,7 @@ public class CSP124StepDefinitions
         _clubsDriver = clubsDriver;
     }
 
-    // -------------------------------------------------------------------------
-    // Scenario 1: James (unauthenticated) should not see the Clubs nav link
-    // -------------------------------------------------------------------------
+    // Scenario 1: James should not see the Clubs nav link
 
     [Given("I am on the front page")]
     [When("I look at the nav bar")]
@@ -52,9 +50,7 @@ public class CSP124StepDefinitions
         clubLinks.Should().BeEmpty("unauthenticated users should not see the Clubs nav link");
     }
 
-    // -------------------------------------------------------------------------
     // Scenario 2: Alex creates a new club
-    // -------------------------------------------------------------------------
 
     [Given("I am on the Clubs page")]
     public void GivenIAmOnTheClubsPage()
@@ -102,4 +98,73 @@ public class CSP124StepDefinitions
         _clubsDriver.IsClubCardVisible(_newClubName).Should().BeTrue(
             $"the newly created club '{_newClubName}' should appear under 'My Clubs'");
     }
+
+    // Scenario 3: Alex makes a new club and invites Lily to it
+
+    [Then("I should be able to invite another user")]
+    public void ThenIShouldBeAbleToInviteAnotherUser()
+    {
+        
+    }
+
+    [Then("they should see the Club invite on their Clubs page")]
+    public void ThenTheyShouldSeeTheClubInviteOnTheirClubsPage()
+    {
+        _authDriver.PreformLoginForUser("lily@test.com", "Capstone26!");
+        _clubsDriver.NavigateToLandingPage();
+
+        // Check for Alex's Club invite on Lily's Landing Page.
+    }
+
+    // Scenario 4: Alex creates a private club, Lily is not added as a member.
+
+    [When("I select private for the Club")]
+    public void WhenISelectPrivateForTheClub()
+    {
+        _clubsDriver.OpenCreateClubModal();
+
+        // Use a unique suffix so re-runs do not conflict with clubs from prior runs.
+        _newClubName = $"Acceptance Club {Guid.NewGuid().ToString()[..8]}";
+        _clubsDriver.FillCreateClubModal(
+            name: _newClubName,
+            description: "Created by CSP-124 acceptance tests.",
+            isPublic: false);
+
+        _clubsDriver.SubmitCreateClubModal();
+    }
+    
+    [When("do not add other users")]
+    public void WhenDoNotAddOtherUsers()
+    {
+        _clubsDriver.IsOnClubPage().Should().BeTrue(
+            "submitting the Create Club form should redirect to /Clubs/ClubPage/{id}");
+
+        // Check club page for member list?
+    }
+
+    [Then("my Club should not be visible on Lily's Club page")]
+    public void ThenMyClubShouldNotBeVisibleOnLilysClubPage()
+    {
+        _authDriver.PreformLoginForUser("lily@test.com", "Capstone26!");
+        _clubsDriver.NavigateToLandingPage();
+
+        // Check for Alex's Club on Lily's Landing Page.
+        _clubsDriver.IsClubCardVisible(_newClubName).Should().BeFalse(
+            $"the newly created club '{_newClubName}' should NOT appear under Lily's 'My Clubs'");
+    }
+
+    /*
+    Scenario: Alex has a new club, and wants to add Lily to it.
+        Given I am on the Clubs page -- DONE
+        When I select valid options -- DONE
+        And I click the Create New Club button -- DONE
+        Then I should be able to invite another user
+        And they should see the Club invite on their Clubs page
+
+    Scenario: Alex has created a private club, and Lily is not added to it.
+        Given I am on the Clubs page -- DONE
+        When I select private for the Club -- DONE
+        And do not add other users
+        Then my Club should not be visible on Lily's Club page -- DONE
+    */
 }
