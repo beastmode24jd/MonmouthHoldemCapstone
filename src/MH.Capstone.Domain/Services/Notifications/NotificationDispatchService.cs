@@ -44,10 +44,10 @@ namespace MH.Capstone.Domain.Services.Notifications
                 channel = await _preferenceService.GetDeliveryChannelAsync(user, notificationType);
             }
 
-            if (channel == NotificationDeliveryChannel.InAppOnly || channel == NotificationDeliveryChannel.InAppAndEmail)
+            if (channel.HasFlag(NotificationDeliveryChannel.InAppOnly))
                 await DeliverInAppAsync(notification);
 
-            if (channel == NotificationDeliveryChannel.EmailOnly || channel == NotificationDeliveryChannel.InAppAndEmail)
+            if (channel.HasFlag(NotificationDeliveryChannel.EmailOnly))
                 await DeliverEmailAsync(user, notification);
         }
 
