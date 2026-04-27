@@ -36,5 +36,8 @@ namespace MH.Capstone.Domain.Services.Abstraction
         // Deletes the accepted membership row for userId.
         // Throws InvalidOperationException if userId is the club owner or is not a member.
         Task LeaveClubAsync(Guid clubId, Guid userId);
+
+        // Sends a message from a club member to their club's chatroom page.
+        Task SendMessageAsync(Guid clubId, Guid senderId, string content);
     }
 }

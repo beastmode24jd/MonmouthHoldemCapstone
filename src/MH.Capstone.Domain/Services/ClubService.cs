@@ -7,7 +7,9 @@ namespace MH.Capstone.Domain.Services
 {
     public class ClubService : IClubService
     {
-        /* IMPORTANT FUTURE CLUB SERVICE FILE NOTE!!!
+        /* 
+            
+            Important note for if we build out future permanent account deletion:
 
             "Deleting a user will now throw if they still have club memberships or messages.
             Your service layer will need to clean those up before deleting a user."
@@ -137,6 +139,12 @@ namespace MH.Capstone.Domain.Services
                 throw new InvalidOperationException("User is not a member of this club.");
 
             await _membershipRepo.DeleteAsync(membership);
+        }
+
+        public async Task SendMessageAsync(Guid clubId, Guid senderId, string content)
+        {
+            // Initialize new Message
+            var message = new Message(clubId, senderId, content, DateTimeOffset.UtcNow);
         }
     }
 }
