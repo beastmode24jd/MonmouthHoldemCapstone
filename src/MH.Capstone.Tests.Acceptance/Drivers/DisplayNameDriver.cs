@@ -70,10 +70,10 @@ public class DisplayNameDriver
         catch { return string.Empty; }
     }
 
-    /// <summary>Updates the display name via the dashboard settings form.</summary>
+    /// <summary>Updates the display name via the account settings form.</summary>
     public void UpdateDisplayNameFromDashboard(string displayName)
     {
-        _driver.Navigate().GoToUrl($"{_baseUrl}/dashboard");
+        _driver.Navigate().GoToUrl($"{_baseUrl}/dashboard/settings");
         _wait.Until(d =>
         {
             try

@@ -8,6 +8,7 @@ using MH.Capstone.WebApp.Controllers;
 using MH.Capstone.WebApp.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -56,6 +57,9 @@ public class DashboardControllerTests
         {
             HttpContext = new DefaultHttpContext() { User = user }
         };
+
+        var tempDataProvider = new Mock<ITempDataProvider>();
+        _controller.TempData = new TempDataDictionary(_controller.HttpContext, tempDataProvider.Object);
     }
 
     [TearDown]
@@ -63,6 +67,41 @@ public class DashboardControllerTests
     {
         // Dispose of controller to satisfy line 20 being unhappy
         _controller?.Dispose();
+    }
+
+    [Test]
+    public void Settings_ReturnsView()
+    {
+        var result = _controller.Settings();
+
+        Assert.That(result, Is.InstanceOf<ViewResult>());
+    }
+
+    [Test]
+    public async Task UpdateDisplayName_ValidName_RedirectsToSettings()
+    {
+        var user = new ApplicationUser { Email = TestEmail, DisplayName = "OldName" };
+        _mockUserService.Setup(s => s.GetUserByEmailAsync(TestEmail)).ReturnsAsync(user);
+
+        var result = await _controller.UpdateDisplayName("NewName");
+
+        var redirect = result as RedirectToActionResult;
+        Assert.That(redirect, Is.Not.Null);
+        Assert.That(redirect!.ActionName, Is.EqualTo("Settings"));
+    }
+
+    [Test]
+    public async Task UpdateDisplayName_TooShort_RedirectsToSettings()
+    {
+        var user = new ApplicationUser { Email = TestEmail, DisplayName = "OldName" };
+        _mockUserService.Setup(s => s.GetUserByEmailAsync(TestEmail)).ReturnsAsync(user);
+
+        var result = await _controller.UpdateDisplayName("X");
+
+        var redirect = result as RedirectToActionResult;
+        Assert.That(redirect, Is.Not.Null);
+        Assert.That(redirect!.ActionName, Is.EqualTo("Settings"));
+        Assert.That(_controller.TempData["DisplayNameError"], Is.Not.Null);
     }
 
     [Test]

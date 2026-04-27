@@ -1,0 +1,103 @@
+@inject Microsoft.AspNetCore.Identity.UserManager<MH.Capstone.Domain.DataModels.ApplicationUser> _userManager
+@{
+    ViewData["Title"] = "Account Settings";
+    var user = await _userManager.GetUserAsync(User);
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex align-items-center mb-4">
+                <a href="/dashboard" class="btn btn-outline-secondary btn-sm me-3">
+                    <i class="bi bi-arrow-left"></i> Back to Dashboard
+                </a>
+                <h2 class="mb-0"><i class="bi bi-gear"></i> Account Settings</h2>
+            </div>
+
+            @if (TempData["DisplayNameSuccess"] != null)
+            {
+                <div class="alert alert-success mt-2 mb-3" id="displayNameSuccessMessage">@TempData["DisplayNameSuccess"]</div>
+            }
+            @if (TempData["DisplayNameError"] != null)
+            {
+                <div class="alert alert-danger mt-2 mb-3">@TempData["DisplayNameError"]</div>
+            }
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Display Name</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text mb-1">Update your display name:</p>
+                    <form id="displayNameForm" asp-action="UpdateDisplayName" method="Post">
+                        <div class="mb-3 mt-1">
+                            <input id="displayNameInput" name="newDisplayName" class="form-control"
+                                   type="text" maxlength="50" minlength="2"
+                                   placeholder="Display name (2–50 characters)"
+                                   value="@(user?.DisplayName != "UNSET" ? user?.DisplayName : "")" />
+                            <div class="form-text">Letters, numbers, spaces, hyphens, apostrophes, and periods only.</div>
+                            <div id="displayNameErrorMsg" class="text-danger fw-bold small mt-1" style="display:none;"></div>
+                        </div>
+                        <button type="submit" class="btnDark" id="updateDisplayNameBtn">Update Display Name</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Profile Picture</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text mb-1">Upload your profile picture:</p>
+                    <form id="uploadForm" asp-action="UploadProfileImage" method="Post" enctype="multipart/form-data">
+                        <input id="fileInput" class="form-control form-control-sm mb-3 mt-2" type="file" accept="image/*" name="profilePicture" />
+                        <button type="submit" class="btnDark">Upload Image</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Profile Bio</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text mb-1">Update your profile bio:</p>
+                    <form id="bioForm" asp-action="UpdateUserBio" method="Post">
+                        <div class="mb-3 mt-1">
+                            <textarea id="bioInput" name="newBio" class="form-control" rows="3" maxlength="250" placeholder="Tell us about yourself..."></textarea>
+                            <div class="form-text">Profile bio should be 250 characters or less.</div>
+                            <span id="charCount" class="form-text">0/250</span>
+                            <div id="bioErrorMsg" class="text-danger fw-bold small mt-1" style="display:none;"></div>
+                        </div>
+                        <button type="submit" class="btnDark">Update Bio</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Notification Preferences</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text mb-1">Choose how you want to receive each type of notification.</p>
+                    <a id="notificationPreferencesLink" asp-action="NotificationPreferences" asp-controller="Dashboard"
+                       class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-bell"></i> Manage Notification Preferences
+                    </a>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4 border-danger">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0 text-danger">Danger Zone</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text mb-2">Deactivate your account:</p>
+                    <a asp-action="Deactivate" asp-controller="Account" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-person-x"></i> Deactivate Account
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

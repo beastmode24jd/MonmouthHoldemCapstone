@@ -136,7 +136,7 @@ public class CSP168StepDefinitions
     [When("the user views the dashboard account settings")]
     public void WhenTheUserViewsDashboardSettings()
     {
-        _driver.Navigate().GoToUrl($"{_baseUrl}/dashboard");
+        _driver.Navigate().GoToUrl($"{_baseUrl}/dashboard/settings");
         _wait.Until(d =>
         {
             try
