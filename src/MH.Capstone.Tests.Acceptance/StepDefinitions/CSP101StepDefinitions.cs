@@ -561,7 +561,11 @@ public class CSP101StepDefinitions
         {
             var el = d.FindElement(By.Id("reportMessage"));
             var classes = el.GetAttribute("class") ?? string.Empty;
-            return classes.Contains("alert-success");
+            var text = el.Text ?? string.Empty;
+            if (classes.Contains("alert-success")) return true;
+            if (classes.Contains("alert-danger"))
+                throw new Exception($"Report submission error: '{text}' (classes: {classes})");
+            return false;
         });
     }
 

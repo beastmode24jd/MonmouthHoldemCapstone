@@ -107,14 +107,21 @@ public class DisplayNameDriver
     {
         try
         {
-            var nameSpan = _wait.Until(d => d.FindElements(By.Id("navDisplayNameText")));
-            //var nameSpan = _driver.FindElements(By.Id("navDisplayNameText"));
-            return nameSpan.Count > 0 ? nameSpan[0].Text.Trim() : string.Empty;
+            // Wait until the nav display name element is present and contains non-empty text
+            var text = _wait.Until(d =>
+            {
+                var els = d.FindElements(By.Id("navDisplayNameText"));
+                if (els.Count == 0) return null;
+                var t = els[0].Text?.Trim() ?? string.Empty;
+                return t.Length > 0 ? t : null;
+            });
+
+            return text ?? string.Empty;
         }
-        catch 
-        { 
-            TestContext.Out.WriteLine($"[{nameof(GetDisplayedDisplayName)}] FindElements(By.Id('navDisplayNameText')) Failed.");
-            return string.Empty; 
+        catch
+        {
+            TestContext.Out.WriteLine($"[{nameof(GetDisplayedDisplayName)}] FindElements(By.Id('navDisplayNameText')) Failed or text empty.");
+            return string.Empty;
         }
     }
 
