@@ -31,20 +31,33 @@ namespace MH.Capstone.Domain.Services
 
         public async Task<IEnumerable<Club>> GetUserClubsAsync(Guid userId)
         {
-            // Fetch the clubs this user is a member of.
-            // Mirrors GetUserSightingsAsync:
-            //      Uses the predicate overload to push filtering to the DB layer.
-            var membershipQuery = await _membershipRepo.GetAllAsync(m => m.MemberIdentityId == userId.ToString());
-            var memberClubIds = membershipQuery.Select(m => m.ClubId).ToHashSet();
+            var memberships = await _membershipRepo.GetAllAsync(
+                m => m.MemberIdentityId == userId.ToString() && m.AcceptedInvite);
+            var memberClubIds = memberships.Select(m => m.ClubId).ToHashSet();
 
-            var clubQuery = await _clubRepo.GetAllAsync(c => memberClubIds.Contains(c.Id));
-            return clubQuery.OrderBy(c => c.Name).ToList();
+            var clubs = await _clubRepo.GetAllAsync(c => memberClubIds.Contains(c.Id));
+            return clubs.OrderBy(c => c.Name).ToList();
+        }
+
+        public async Task<IEnumerable<Club>> GetPendingInvitesAsync(Guid userId)
+        {
+            var pending = await _membershipRepo.GetAllAsync(
+                m => m.MemberIdentityId == userId.ToString() && !m.AcceptedInvite);
+            var pendingClubIds = pending.Select(m => m.ClubId).ToHashSet();
+
+            if (!pendingClubIds.Any())
+                return Enumerable.Empty<Club>();
+
+            return await _clubRepo.GetAllAsync(c => pendingClubIds.Contains(c.Id));
+        }
+
+        public async Task<IEnumerable<ClubMembership>> GetClubMembershipsAsync(Guid clubId)
+        {
+            return await _membershipRepo.GetAllAsync(m => m.ClubId == clubId);
         }
 
         public async Task<Club?> GetClubByIdAsync(Guid id)
         {
-            // Includes Owner so the controller/view can display the owner's username
-            // without relying on lazy loading.
             return (await _clubRepo.GetAllAsync(c => c.Owner))
                 .FirstOrDefault(c => c.Id == id);
         }
@@ -56,30 +69,74 @@ namespace MH.Capstone.Domain.Services
 
             var savedClub = await _clubRepo.AddOrUpdateAsync(club);
 
-            // Auto-enroll the owner as the first member so they appear in their own "My Clubs" list.
             var ownerMembership = new ClubMembership(savedClub.OwnerId, savedClub.Id, savedClub.CreatedAt);
             await _membershipRepo.AddOrUpdateAsync(ownerMembership);
 
             return savedClub;
         }
 
-        // Sends an invite from a member of a club to a non-member user.
         public async Task SendInviteAsync(Club club, Guid senderId, Guid receiverId)
         {
-            
+            var clubMemberships = (await _membershipRepo.GetAllAsync(
+                m => m.ClubId == club.Id)).ToList();
+
+            bool senderIsMember = clubMemberships.Any(m => m.MemberId == senderId && m.AcceptedInvite);
+            if (!senderIsMember)
+                throw new InvalidOperationException("Sender is not a member of this club.");
+
+            bool receiverAlreadyPresent = clubMemberships.Any(m => m.MemberId == receiverId);
+            if (receiverAlreadyPresent)
+                throw new InvalidOperationException("User is already a member or has a pending invite.");
+
+            var invite = new ClubMembership(receiverId, club.Id, DateTimeOffset.UtcNow)
+            {
+                AcceptedInvite = false
+            };
+            await _membershipRepo.AddOrUpdateAsync(invite);
         }
 
-        // Accepts an invite from a member of a club as a former non-member user.
-        public async Task AcceptInviteAsync(Club club, Guid senderId, Guid receiverId)
+        public async Task AcceptInviteAsync(Guid clubId, Guid userId)
         {
-            
+            var pending = (await _membershipRepo.GetAllAsync(
+                m => m.ClubId == clubId && m.MemberIdentityId == userId.ToString() && !m.AcceptedInvite))
+                .FirstOrDefault();
+
+            if (pending == null)
+                throw new InvalidOperationException("No pending invite found.");
+
+            pending.AcceptedInvite = true;
+            await _membershipRepo.AddOrUpdateAsync(pending);
         }
 
-        // Declines an invite from a member of a club as the non-member user.
-        public async Task DeclineInviteAsync(Club club, Guid senderId, Guid receiverId)
+        public async Task DeclineInviteAsync(Guid clubId, Guid userId)
         {
-            
+            var pending = (await _membershipRepo.GetAllAsync(
+                m => m.ClubId == clubId && m.MemberIdentityId == userId.ToString() && !m.AcceptedInvite))
+                .FirstOrDefault();
+
+            if (pending == null)
+                throw new InvalidOperationException("No pending invite found.");
+
+            await _membershipRepo.DeleteAsync(pending);
         }
 
+        public async Task LeaveClubAsync(Guid clubId, Guid userId)
+        {
+            var club = await _clubRepo.FindByIdAsync(clubId);
+            if (club == null)
+                throw new InvalidOperationException("Club not found.");
+
+            if (club.OwnerId == userId)
+                throw new InvalidOperationException("The club owner cannot leave their own club.");
+
+            var membership = (await _membershipRepo.GetAllAsync(
+                m => m.ClubId == clubId && m.MemberIdentityId == userId.ToString() && m.AcceptedInvite))
+                .FirstOrDefault();
+
+            if (membership == null)
+                throw new InvalidOperationException("User is not a member of this club.");
+
+            await _membershipRepo.DeleteAsync(membership);
+        }
     }
 }

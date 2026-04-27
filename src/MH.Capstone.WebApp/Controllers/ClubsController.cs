@@ -13,13 +13,11 @@ namespace MH.Capstone.WebApp.Controllers
     {
         private readonly IClubService _clubService;
         private readonly UserManager<ApplicationUser> _userManager;
-
-        // To notify user if they have been added to/invited to a Club.
         private readonly INotificationService _notificationService;
-
         private readonly ILogger<ClubsController> _logger;
 
-        public ClubsController(ILogger<ClubsController> logger,
+        public ClubsController(
+            ILogger<ClubsController> logger,
             IClubService clubService,
             UserManager<ApplicationUser> userManager,
             INotificationService notificationService)
@@ -33,15 +31,14 @@ namespace MH.Capstone.WebApp.Controllers
         public async Task<IActionResult> Index()
         {
             var user = await _userManager.GetUserAsync(User);
-
             if (user == null)
                 return StatusCode((int)HttpStatusCode.InternalServerError);
 
             var publicClubs = await _clubService.GetPublicClubsAsync();
             var userClubs = await _clubService.GetUserClubsAsync(user.GuidId);
+            var pendingInvites = await _clubService.GetPendingInvitesAsync(user.GuidId);
 
-            var viewModel = new ClubListViewModel(publicClubs, userClubs, user.Id);
-
+            var viewModel = new ClubListViewModel(publicClubs, userClubs, user.Id, pendingInvites);
             return View("LandingPage", viewModel);
         }
 
@@ -94,12 +91,145 @@ namespace MH.Capstone.WebApp.Controllers
             if (!newClub.IsPublic)
                 _logger.LogInformation("Saved user {Email}'s private Club {Name}.", user.Email, newClub.Name);
 
-            await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId,
-                $"Made the {newClub.Name} Club",
-                "Good work. Keep at it!"),
+            await _notificationService.SendNotificationAsync(
+                Notification.Create(user.GuidId,
+                    $"Made the {newClub.Name} Club",
+                    "Good work. Keep at it!"),
                 NotificationType.ClubActivity);
 
             return RedirectToAction(nameof(ClubPage), new { id = newClub.Id });
+        }
+
+        // Returns JSON [{id, displayName}] of users matching the query, excluding current club members.
+        [HttpGet]
+        public async Task<IActionResult> SearchUsers(Guid clubId, string query)
+        {
+            if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
+                return Json(Array.Empty<object>());
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
+                return StatusCode((int)HttpStatusCode.InternalServerError);
+
+            var existingMemberships = await _clubService.GetClubMembershipsAsync(clubId);
+            var excludedIds = existingMemberships.Select(m => m.MemberIdentityId).ToHashSet();
+            excludedIds.Add(currentUser.Id);
+
+            var results = _userManager.Users
+                .Where(u => !excludedIds.Contains(u.Id)
+                         && u.DisplayName != "UNSET"
+                         && u.DisplayName.Contains(query))
+                .Take(10)
+                .Select(u => new { id = u.Id, displayName = u.DisplayName })
+                .ToList();
+
+            return Json(results);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SendInvite(Guid clubId, string receiverId)
+        {
+            var sender = await _userManager.GetUserAsync(User);
+            if (sender == null)
+                return StatusCode((int)HttpStatusCode.InternalServerError);
+
+            var club = await _clubService.GetClubByIdAsync(clubId);
+            if (club == null)
+                return NotFound();
+
+            var receiver = await _userManager.FindByIdAsync(receiverId);
+            if (receiver == null)
+            {
+                TempData["InviteError"] = "User not found.";
+                return RedirectToAction(nameof(ClubPage), new { id = clubId });
+            }
+
+            try
+            {
+                await _clubService.SendInviteAsync(club, sender.GuidId, receiver.GuidId);
+
+                await _notificationService.SendNotificationAsync(
+                    Notification.Create(receiver.GuidId,
+                        $"You've been invited to join {club.Name}",
+                        $"{sender.DisplayName} has invited you to their club. Visit Clubs to accept or decline."),
+                    NotificationType.ClubActivity);
+
+                TempData["InviteSuccess"] = $"Invite sent to {receiver.DisplayName}.";
+            }
+            catch (InvalidOperationException ex)
+            {
+                TempData["InviteError"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(ClubPage), new { id = clubId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AcceptInvite(Guid clubId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return StatusCode((int)HttpStatusCode.InternalServerError);
+
+            try
+            {
+                await _clubService.AcceptInviteAsync(clubId, user.GuidId);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning("AcceptInvite failed for user {UserId} on club {ClubId}: {Message}",
+                    user.Id, clubId, ex.Message);
+                TempData["InviteError"] = "Could not accept invite.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            return RedirectToAction(nameof(ClubPage), new { id = clubId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeclineInvite(Guid clubId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return StatusCode((int)HttpStatusCode.InternalServerError);
+
+            try
+            {
+                await _clubService.DeclineInviteAsync(clubId, user.GuidId);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning("DeclineInvite failed for user {UserId} on club {ClubId}: {Message}",
+                    user.Id, clubId, ex.Message);
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> LeaveClub(Guid clubId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return StatusCode((int)HttpStatusCode.InternalServerError);
+
+            try
+            {
+                await _clubService.LeaveClubAsync(clubId, user.GuidId);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning("LeaveClub failed for user {UserId} on club {ClubId}: {Message}",
+                    user.Id, clubId, ex.Message);
+                TempData["LeaveError"] = ex.Message;
+                return RedirectToAction(nameof(ClubPage), new { id = clubId });
+            }
+
+            return RedirectToAction(nameof(Index));
         }
     }
 }

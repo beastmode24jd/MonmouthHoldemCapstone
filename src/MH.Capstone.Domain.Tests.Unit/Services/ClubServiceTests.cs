@@ -25,7 +25,7 @@ public class ClubServiceTests
         _clubMembershipRepoMock = new Mock<IRepository<ClubMembership, ApplicationDbContext>>();
 
         _clubService = new ClubService(
-            _clubRepoMock.Object, 
+            _clubRepoMock.Object,
             _clubMembershipRepoMock.Object);
     }
 
@@ -53,13 +53,10 @@ public class ClubServiceTests
     }
 
     [Test]
-    public async Task GetUserClubsAsync_ReturnsOnlyUserClubs_SortedByClubName()
+    public async Task GetUserClubsAsync_ReturnsOnlyAcceptedMemberClubs_SortedByClubName()
     {
         // Arrange
-
-        // Alex should not be able to see Private Club B in his personal Club list.
         Guid alexId = Guid.NewGuid();
-
         var clubAId = Guid.NewGuid();
         var clubBId = Guid.NewGuid();
         var clubCId = Guid.NewGuid();
@@ -71,7 +68,7 @@ public class ClubServiceTests
             new Club { Id = clubCId, Name = "Private Club C", IsPublic = false, OwnerIdentityId = "Alex", CreatedAt = DateTimeOffset.UtcNow },
         }.AsQueryable();
 
-        // Alex is a member of Club A and Club C, but not Club B (Lily's).
+        // Alex has accepted memberships for Club A and Club C; Club B predicate returns nothing.
         var alexMemberships = new List<ClubMembership>
         {
             new ClubMembership(alexId, clubAId, DateTimeOffset.UtcNow),
@@ -91,15 +88,63 @@ public class ClubServiceTests
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(2));
-        Assert.That(result[0].OwnerIdentityId, Is.EqualTo("Alex"));
-        Assert.That(result[1].OwnerIdentityId, Is.EqualTo("Alex"));
+        Assert.That(result[0].Name, Is.EqualTo("Private Club C"));
+        Assert.That(result[1].Name, Is.EqualTo("Public Club A"));
+    }
 
+    [Test]
+    public async Task GetPendingInvitesAsync_ReturnsPendingInviteClubs()
+    {
+        // Arrange
+        Guid userId = Guid.NewGuid();
+        var clubAId = Guid.NewGuid();
+        var clubBId = Guid.NewGuid();
+
+        var pendingMemberships = new List<ClubMembership>
+        {
+            new ClubMembership(userId, clubAId, DateTimeOffset.UtcNow) { AcceptedInvite = false },
+        }.AsQueryable();
+
+        var pendingClub = new Club { Id = clubAId, Name = "Bird Watchers", IsPublic = false, OwnerIdentityId = "other", CreatedAt = DateTimeOffset.UtcNow };
+
+        _clubMembershipRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<ClubMembership, bool>>>()))
+            .ReturnsAsync(pendingMemberships);
+
+        _clubRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Club, bool>>>()))
+            .ReturnsAsync(new List<Club> { pendingClub }.AsQueryable());
+
+        // Act
+        var result = (await _clubService.GetPendingInvitesAsync(userId)).ToList();
+
+        // Assert
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(result[0].Id, Is.EqualTo(clubAId));
+    }
+
+    [Test]
+    public async Task GetPendingInvitesAsync_NoPendingInvites_ReturnsEmpty()
+    {
+        // Arrange
+        Guid userId = Guid.NewGuid();
+
+        _clubMembershipRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<ClubMembership, bool>>>()))
+            .ReturnsAsync(Enumerable.Empty<ClubMembership>().AsQueryable());
+
+        // Act
+        var result = (await _clubService.GetPendingInvitesAsync(userId)).ToList();
+
+        // Assert
+        Assert.That(result, Is.Empty);
+        _clubRepoMock.Verify(r => r.GetAllAsync(It.IsAny<Expression<Func<Club, bool>>>()), Times.Never);
     }
 
     #endregion
 
     #region CreateClubAsync
-    
+
     [Test]
     public async Task CreateClubAsync_ValidClub_SavesClubAndOwnerMembershipReturnsClub()
     {
@@ -137,51 +182,244 @@ public class ClubServiceTests
 
     #endregion
 
-    /*
-    Need methods to:
-        - Invite a user to a club / accept the invitation to a club
-        - Leave a club
-        - Message on a club message board
-    */
-
     #region ClubInviteMethods
 
     [Test]
-    public void SendInviteAsync_ValidUsers_SendsClubInvite()
+    public async Task SendInviteAsync_ValidUsers_CreatesPendingMembership()
     {
         // Arrange
+        var senderId = Guid.NewGuid();
         var receiverId = Guid.NewGuid();
-        var ownerId = Guid.NewGuid();
-        var newClub = new Club(ownerId, "Bird Watchers", "A club for birding enthusiasts", DateTimeOffset.UtcNow)
-        {
-            IsPublic = true
-        };
+        var clubId = Guid.NewGuid();
 
-        // Need to flesh out method more...
+        var club = new Club(senderId, "Bird Watchers", null, DateTimeOffset.UtcNow) { Id = clubId };
+
+        // Sender is an accepted member; receiver has no membership row.
+        var existingMemberships = new List<ClubMembership>
+        {
+            new ClubMembership(senderId, clubId, DateTimeOffset.UtcNow) { AcceptedInvite = true },
+        }.AsQueryable();
+
+        _clubMembershipRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<ClubMembership, bool>>>()))
+            .ReturnsAsync(existingMemberships);
+
+        _clubMembershipRepoMock
+            .Setup(r => r.AddOrUpdateAsync(It.Is<ClubMembership>(m => m.MemberId == receiverId && !m.AcceptedInvite)))
+            .ReturnsAsync(new ClubMembership(receiverId, clubId, DateTimeOffset.UtcNow) { AcceptedInvite = false })
+            .Verifiable(Times.Once);
 
         // Act
-        _clubService.SendInviteAsync(newClub, ownerId, receiverId);
+        await _clubService.SendInviteAsync(club, senderId, receiverId);
 
         // Assert
-        // .........
+        _clubMembershipRepoMock.Verify(
+            r => r.AddOrUpdateAsync(It.Is<ClubMembership>(m => m.MemberId == receiverId && !m.AcceptedInvite)),
+            Times.Once);
     }
 
     [Test]
-    public void AcceptInviteAsync_ValidUsers_AddsUserToClubMembers()
+    public async Task SendInviteAsync_SenderNotMember_ThrowsInvalidOperationException()
     {
-        
+        // Arrange
+        var senderId = Guid.NewGuid();
+        var receiverId = Guid.NewGuid();
+        var clubId = Guid.NewGuid();
+
+        var club = new Club { Id = clubId };
+
+        _clubMembershipRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<ClubMembership, bool>>>()))
+            .ReturnsAsync(Enumerable.Empty<ClubMembership>().AsQueryable());
+
+        // Act & Assert
+        Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _clubService.SendInviteAsync(club, senderId, receiverId));
     }
 
     [Test]
-    public void DeclineInviteAsync_ValidUsers_DeletesPendingStatus()
+    public async Task SendInviteAsync_ReceiverAlreadyMember_ThrowsInvalidOperationException()
     {
-        
+        // Arrange
+        var senderId = Guid.NewGuid();
+        var receiverId = Guid.NewGuid();
+        var clubId = Guid.NewGuid();
+
+        var club = new Club { Id = clubId };
+
+        var memberships = new List<ClubMembership>
+        {
+            new ClubMembership(senderId, clubId, DateTimeOffset.UtcNow) { AcceptedInvite = true },
+            new ClubMembership(receiverId, clubId, DateTimeOffset.UtcNow) { AcceptedInvite = true },
+        }.AsQueryable();
+
+        _clubMembershipRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<ClubMembership, bool>>>()))
+            .ReturnsAsync(memberships);
+
+        // Act & Assert
+        Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _clubService.SendInviteAsync(club, senderId, receiverId));
+    }
+
+    [Test]
+    public async Task AcceptInviteAsync_ValidPendingInvite_SetsAcceptedInviteTrue()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var clubId = Guid.NewGuid();
+
+        var pendingMembership = new ClubMembership(userId, clubId, DateTimeOffset.UtcNow)
+        {
+            AcceptedInvite = false
+        };
+
+        _clubMembershipRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<ClubMembership, bool>>>()))
+            .ReturnsAsync(new List<ClubMembership> { pendingMembership }.AsQueryable());
+
+        _clubMembershipRepoMock
+            .Setup(r => r.AddOrUpdateAsync(It.IsAny<ClubMembership>()))
+            .ReturnsAsync(pendingMembership)
+            .Verifiable(Times.Once);
+
+        // Act
+        await _clubService.AcceptInviteAsync(clubId, userId);
+
+        // Assert
+        Assert.That(pendingMembership.AcceptedInvite, Is.True);
+        _clubMembershipRepoMock.Verify(r => r.AddOrUpdateAsync(pendingMembership), Times.Once);
+    }
+
+    [Test]
+    public void AcceptInviteAsync_NoPendingInvite_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        _clubMembershipRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<ClubMembership, bool>>>()))
+            .ReturnsAsync(Enumerable.Empty<ClubMembership>().AsQueryable());
+
+        // Act & Assert
+        Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _clubService.AcceptInviteAsync(Guid.NewGuid(), Guid.NewGuid()));
+    }
+
+    [Test]
+    public async Task DeclineInviteAsync_ValidPendingInvite_DeletesMembershipRow()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var clubId = Guid.NewGuid();
+
+        var pendingMembership = new ClubMembership(userId, clubId, DateTimeOffset.UtcNow)
+        {
+            AcceptedInvite = false
+        };
+
+        _clubMembershipRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<ClubMembership, bool>>>()))
+            .ReturnsAsync(new List<ClubMembership> { pendingMembership }.AsQueryable());
+
+        _clubMembershipRepoMock
+            .Setup(r => r.DeleteAsync(pendingMembership))
+            .Returns(Task.CompletedTask)
+            .Verifiable(Times.Once);
+
+        // Act
+        await _clubService.DeclineInviteAsync(clubId, userId);
+
+        // Assert
+        _clubMembershipRepoMock.Verify(r => r.DeleteAsync(pendingMembership), Times.Once);
+    }
+
+    [Test]
+    public void DeclineInviteAsync_NoPendingInvite_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        _clubMembershipRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<ClubMembership, bool>>>()))
+            .ReturnsAsync(Enumerable.Empty<ClubMembership>().AsQueryable());
+
+        // Act & Assert
+        Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _clubService.DeclineInviteAsync(Guid.NewGuid(), Guid.NewGuid()));
     }
 
     #endregion
 
     #region LeaveClubAsync
 
+    [Test]
+    public async Task LeaveClubAsync_ValidMember_DeletesMembershipRow()
+    {
+        // Arrange
+        var ownerId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
+        var clubId = Guid.NewGuid();
+
+        var club = new Club(ownerId, "Bird Watchers", null, DateTimeOffset.UtcNow) { Id = clubId };
+        var membership = new ClubMembership(memberId, clubId, DateTimeOffset.UtcNow);
+
+        _clubRepoMock
+            .Setup(r => r.FindByIdAsync(clubId))
+            .ReturnsAsync(club);
+
+        _clubMembershipRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<ClubMembership, bool>>>()))
+            .ReturnsAsync(new List<ClubMembership> { membership }.AsQueryable());
+
+        _clubMembershipRepoMock
+            .Setup(r => r.DeleteAsync(membership))
+            .Returns(Task.CompletedTask)
+            .Verifiable(Times.Once);
+
+        // Act
+        await _clubService.LeaveClubAsync(clubId, memberId);
+
+        // Assert
+        _clubMembershipRepoMock.Verify(r => r.DeleteAsync(membership), Times.Once);
+    }
+
+    [Test]
+    public async Task LeaveClubAsync_UserIsOwner_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var ownerId = Guid.NewGuid();
+        var clubId = Guid.NewGuid();
+
+        var club = new Club(ownerId, "Bird Watchers", null, DateTimeOffset.UtcNow) { Id = clubId };
+
+        _clubRepoMock
+            .Setup(r => r.FindByIdAsync(clubId))
+            .ReturnsAsync(club);
+
+        // Act & Assert
+        Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _clubService.LeaveClubAsync(clubId, ownerId));
+    }
+
+    [Test]
+    public async Task LeaveClubAsync_UserNotMember_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var ownerId = Guid.NewGuid();
+        var nonMemberId = Guid.NewGuid();
+        var clubId = Guid.NewGuid();
+
+        var club = new Club(ownerId, "Bird Watchers", null, DateTimeOffset.UtcNow) { Id = clubId };
+
+        _clubRepoMock
+            .Setup(r => r.FindByIdAsync(clubId))
+            .ReturnsAsync(club);
+
+        _clubMembershipRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<ClubMembership, bool>>>()))
+            .ReturnsAsync(Enumerable.Empty<ClubMembership>().AsQueryable());
+
+        // Act & Assert
+        Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _clubService.LeaveClubAsync(clubId, nonMemberId));
+    }
 
     #endregion
 
