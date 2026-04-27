@@ -66,7 +66,7 @@ namespace MH.Capstone.Domain.Services.Notifications
             {
                 Recipient = user.Email,
                 Subject = notification.Title,
-                HtmlBody = $"<p>{notification.Message}</p>",
+                HtmlBody = notification.HtmlEmailBody ?? $"<p>{notification.Message}</p>",
                 CreatedAt = DateTimeOffset.UtcNow
             };
 
