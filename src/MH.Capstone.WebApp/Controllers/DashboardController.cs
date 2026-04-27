@@ -442,6 +442,13 @@ namespace MH.Capstone.WebApp.Controllers
                     DisplayName = "New Sighting Activity",
                     Description = "Sent when you successfully upload a new wildlife sighting.",
                     SelectedChannel = stored.GetValueOrDefault(NotificationType.NewSightingActivity, NotificationDeliveryChannel.InAppOnly)
+                },
+                new NotificationPreferenceEntryViewModel
+                {
+                    NotificationType = NotificationType.AccountActivity,
+                    DisplayName = "Account Activity",
+                    Description = "Sent when your account records a login or active streak.",
+                    SelectedChannel = stored.GetValueOrDefault(NotificationType.AccountActivity, NotificationDeliveryChannel.InAppOnly)
                 }
             };
 

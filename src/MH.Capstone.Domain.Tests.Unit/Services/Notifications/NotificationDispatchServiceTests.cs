@@ -196,5 +196,60 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
         }
 
         #endregion
+
+        #region SendNotificationAsync – AccountActivity (preference-driven, not system-critical)
+
+        [Test]
+        public async Task SendNotificationAsync_AccountActivity_ConsultsPreferencesInsteadOfDefaultingToInAppAndEmail()
+        {
+            var user = new ApplicationUser { Id = Guid.NewGuid().ToString(), Email = "test@test.com" };
+            var notif = NotificationValidValuesSource.GetValidNotification(user.GuidId);
+
+            _mockUserService
+                .Setup(s => s.GetUserByIdAsync(It.IsAny<Guid>()))
+                .ReturnsAsync(user);
+
+            _mockPreferenceService
+                .Setup(s => s.GetDeliveryChannelAsync(user, NotificationType.AccountActivity))
+                .ReturnsAsync(NotificationDeliveryChannel.Silenced);
+
+            var sut = CreateSut();
+            await sut.SendNotificationAsync(notif, NotificationType.AccountActivity);
+
+            _mockPreferenceService.Verify(s => s.GetDeliveryChannelAsync(user, NotificationType.AccountActivity), Times.Once);
+            _mockNotificationRepository.Verify(r => r.AddOrUpdateAsync(It.IsAny<Notification>()), Times.Never);
+            _mockEmailQueueRepo.Verify(r => r.AddOrUpdateAsync(It.IsAny<EmailQueue>()), Times.Never);
+        }
+
+        [Test]
+        public async Task SendNotificationAsync_AccountActivity_InAppAndEmailFlag_DeliversToBothChannels()
+        {
+            var user = new ApplicationUser { Id = Guid.NewGuid().ToString(), Email = "test@test.com" };
+            var notif = NotificationValidValuesSource.GetValidNotification(user.GuidId);
+
+            _mockUserService
+                .Setup(s => s.GetUserByIdAsync(It.IsAny<Guid>()))
+                .ReturnsAsync(user);
+
+            _mockPreferenceService
+                .Setup(s => s.GetDeliveryChannelAsync(user, NotificationType.AccountActivity))
+                .ReturnsAsync(NotificationDeliveryChannel.InAppAndEmail);
+
+            _mockNotificationRepository
+                .Setup(r => r.AddOrUpdateAsync(It.IsAny<Notification>()))
+                .ReturnsAsync(notif);
+
+            _mockEmailQueueRepo
+                .Setup(r => r.AddOrUpdateAsync(It.IsAny<EmailQueue>()))
+                .ReturnsAsync(new EmailQueue());
+
+            var sut = CreateSut();
+            await sut.SendNotificationAsync(notif, NotificationType.AccountActivity);
+
+            _mockNotificationRepository.Verify(r => r.AddOrUpdateAsync(It.IsAny<Notification>()), Times.Once);
+            _mockEmailQueueRepo.Verify(r => r.AddOrUpdateAsync(It.IsAny<EmailQueue>()), Times.Once);
+        }
+
+        #endregion
     }
 }

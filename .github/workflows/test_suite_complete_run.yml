@@ -24,9 +24,33 @@ jobs:
 
   system_tests:
     needs: build
-    if: > 
-      github.repository == 'jmcshane22/MonmouthHoldemCapstone' && 
+    if: >
+      github.repository == 'jmcshane22/MonmouthHoldemCapstone' &&
       vars.SKIP_SYSTEM_TESTS != 'true' &&
       (github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false)
     uses: ./.github/workflows/system_tests.yml
     secrets: inherit  # so the system_tests workflow can access secrets
+
+  cleanup_build_artifact:
+    name: Delete build artifact
+    needs: [limited_test_suite_run, system_tests]
+    if: always() && github.repository == 'jmcshane22/MonmouthHoldemCapstone'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Delete build artifact for ${{ github.sha }}
+        run: |
+          artifact_ids=$(gh api \
+            "repos/${{ github.repository }}/actions/artifacts?name=${{ github.sha }}&per_page=10" \
+            --jq '[.artifacts[] | select(.expired == false)] | .[].id')
+          if [ -n "$artifact_ids" ]; then
+            for id in $artifact_ids; do
+              gh api "repos/${{ github.repository }}/actions/artifacts/$id" --method DELETE
+              echo "::notice::Deleted build artifact $id (${{ github.sha }})"
+            done
+          else
+            echo "::notice::No active artifact found for ${{ github.sha }} — already expired or deleted."
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
