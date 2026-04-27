@@ -35,7 +35,7 @@ namespace MH.Capstone.Domain.DataModels
         public DateTimeOffset JoinedAt { get; set; }
 
         [Required]
-        public bool AcceptedInvite { get; set; } = true;
+        public bool AcceptedInvite { get; set; } = false;
 
         public ClubMembership() { }
 
