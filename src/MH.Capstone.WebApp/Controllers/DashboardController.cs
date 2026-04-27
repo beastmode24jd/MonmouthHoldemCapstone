@@ -151,7 +151,7 @@ namespace MH.Capstone.WebApp.Controllers
                 {
                     _logger.LogWarning("Rejecting upload: File size {Size} exceeds 2MB limit.", profilePicture.Length);
                     ModelState.AddModelError(nameof(profilePicture), "File size exceeds the 2MB limit.");
-                    return RedirectToAction("Index");
+                    return RedirectToAction("Settings");
                 }
 
                 // Reject if not an image file based on content type
@@ -163,7 +163,7 @@ namespace MH.Capstone.WebApp.Controllers
                     _logger.LogWarning("Rejecting upload: Invalid content type {ContentType}.",
                         profilePicture.ContentType);
                     ModelState.AddModelError(nameof(profilePicture), "Invalid file type. Please upload an image.");
-                    return RedirectToAction("Index");
+                    return RedirectToAction("Settings");
                 }
 
                 // Delegate to ProfileImageService

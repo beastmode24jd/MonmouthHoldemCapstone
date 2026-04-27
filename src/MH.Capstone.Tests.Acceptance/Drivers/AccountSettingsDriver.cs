@@ -58,7 +58,7 @@ public class AccountSettingsDriver
     public void ClickAccountSettingsLink()
     {
         var link = _wait.Until(d => d.FindElement(By.Id("accountSettingsLink")));
-        link.Click();
+        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", link);
         _wait.Until(d =>
         {
             try
