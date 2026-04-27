@@ -134,7 +134,7 @@ namespace MH.Capstone.WebApp.Controllers
 
             await _notificationService.SendNotificationAsync(
                 Notification.Create(user.GuidId,
-                    $"Made the {newClub.Name} Club",
+                    ClubNotificationTitle($"Made the {newClub.Name} Club"),
                     "Good work. Keep at it!"),
                 NotificationType.ClubActivity);
 
@@ -192,7 +192,7 @@ namespace MH.Capstone.WebApp.Controllers
 
                 await _notificationService.SendNotificationAsync(
                     Notification.Create(receiver.GuidId,
-                        $"You've been invited to join {club.Name}",
+                        ClubNotificationTitle($"You've been invited to join {club.Name}"),
                         $"{sender.DisplayName} has invited you to their club. Visit Clubs to accept or decline."),
                     NotificationType.ClubActivity);
 
@@ -272,5 +272,9 @@ namespace MH.Capstone.WebApp.Controllers
 
             return RedirectToAction(nameof(Index));
         }
+
+        // Notification.Title is nvarchar(50) — truncate club-related titles to fit.
+        private static string ClubNotificationTitle(string title) =>
+            title.Length <= 50 ? title : string.Concat(title.AsSpan(0, 47), "...");
     }
 }
