@@ -18,19 +18,27 @@ public class CSP26StepDefinitions
     private readonly WebDriverWait _wait;
     private readonly string _baseUrl;
     private readonly PasswordResetDriver _passwordResetDriver;
+    private readonly AuthenticationDriver _authDriver;
 
     public CSP26StepDefinitions(IWebDriver driver, WebDriverWait wait,
-        AcceptanceTestSettings settings, PasswordResetDriver passwordResetDriver)
+        AcceptanceTestSettings settings, PasswordResetDriver passwordResetDriver,
+        AuthenticationDriver authDriver)
     {
         _driver = driver;
         _wait = wait;
         _baseUrl = settings.BaseUrl.TrimEnd('/');
         _passwordResetDriver = passwordResetDriver;
+        _authDriver = authDriver;
     }
 
     [Given(@"an anonymous user navigates to the login page")]
     public void GivenAnAnonymousUserNavigatesToTheLoginPage()
     {
+        // Ensure the browser is not carrying a logged-in session from a previous
+        // scenario; a logged-in user navigating to /Account/Login is redirected
+        // to the Dashboard, which would cause loginForm lookups to time out.
+        try { _authDriver.LogoutUser(); } catch { /* already logged out */ }
+
         _driver.Navigate().GoToUrl($"{_baseUrl}/Account/Login");
         _wait.Until(d =>
         {

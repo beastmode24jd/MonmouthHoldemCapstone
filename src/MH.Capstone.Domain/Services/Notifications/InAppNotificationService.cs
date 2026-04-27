@@ -20,7 +20,7 @@ namespace MH.Capstone.Domain.Services.Notifications
             IUserService userService, ILogger<INotificationService> logger) 
             : base(repo, userService, logger) { }
 
-        public override async Task SendNotificationAsync(Notification notification)
+        public override async Task SendNotificationAsync(Notification notification, NotificationType notificationType)
         {
             if (!notification.TryValidateEntity(out var errors))
             {

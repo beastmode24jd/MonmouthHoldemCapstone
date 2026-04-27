@@ -25,6 +25,7 @@ namespace MH.Capstone.Domain.DataAccess
         public DbSet<Club> Clubs { get; set; } = null!;
         public DbSet<ClubMembership> ClubMemberships { get; set; } = null!;
         public DbSet<Message> Messages { get; set; } = null!;
+        public DbSet<UserNotificationPreference> UserNotificationPreferences { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -61,6 +62,10 @@ namespace MH.Capstone.Domain.DataAccess
                 .WithMany()
                 .HasForeignKey(m => m.AuthorIdentityId)
                 .OnDelete(DeleteBehavior.NoAction);
+            // Unique constraint: one preference row per user per notification type
+            modelBuilder.Entity<UserNotificationPreference>()
+                .HasIndex(p => new { p.UserId, p.NotificationType })
+                .IsUnique();
         }
     }
 }

@@ -41,6 +41,11 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -445,6 +450,31 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.ToTable("PersonalBadges");
                 });
 
+            modelBuilder.Entity("MH.Capstone.Domain.DataModels.UserNotificationPreference", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("DeliveryChannel")
+                        .HasColumnType("int");
+
+                    b.Property<int>("NotificationType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "NotificationType")
+                        .IsUnique();
+
+                    b.ToTable("UserNotificationPreference");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
                     b.Property<string>("Id")
@@ -675,6 +705,17 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .IsRequired();
 
                     b.Navigation("Badge");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MH.Capstone.Domain.DataModels.UserNotificationPreference", b =>
+                {
+                    b.HasOne("MH.Capstone.Domain.DataModels.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });

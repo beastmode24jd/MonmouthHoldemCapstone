@@ -129,7 +129,8 @@
                                              alt="Profile Image"
                                              class="navProfile"
                                              id="navProfile"
-                                             role="img"/> @User.Identity.Name
+                                             role="img"/>
+                                        <span id="navDisplayNameText">@(user?.DisplayName != "UNSET" ? user?.DisplayName : User.Identity.Name)</span>
                                         <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-danger d-none"
                                             id="pendingNotifBadge">
                                             <span id="pendingNotifBadgeNum"></span>

@@ -77,6 +77,15 @@ namespace MH.Capstone.Domain.Services
             }
         }
 
+        public async Task UpdateDisplayNameAsync(ApplicationUser user, string displayName)
+        {
+            if (string.IsNullOrWhiteSpace(displayName) || displayName.Length < 2 || displayName.Length > 50)
+                throw new ArgumentOutOfRangeException(nameof(displayName), "Display name must be between 2 and 50 characters.");
+
+            user.DisplayName = displayName;
+            await user.SaveModelAsync(_userRepo);
+        }
+
         public async Task<int> GetTotalUserCountAsync()
         {
             // Count only active (non-deactivated) users.

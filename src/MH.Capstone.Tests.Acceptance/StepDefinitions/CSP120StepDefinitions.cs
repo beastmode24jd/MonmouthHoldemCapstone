@@ -297,6 +297,7 @@ public class CSP120StepDefinitions
             UserName       = email,
             Email          = email,
             EmailConfirmed = true,
+            DisplayName    = $"Test{name}",
             Points         = 0,
             IsDeactivated  = false
         };

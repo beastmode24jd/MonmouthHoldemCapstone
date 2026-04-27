@@ -77,6 +77,10 @@ public class CSP47AccountDeactivationSteps
     [When(@"I navigate to the deactivate page without logging in")]
     public void WhenINavigateToTheDeactivatePageWithoutLoggingIn()
     {
+        // Ensure no active session — a logged-in user can access /Account/Deactivate
+        // directly and would not be redirected, causing the redirect assertion to fail.
+        try { _authDriver.LogoutUser(); } catch { /* already logged out */ }
+
         _driver.Navigate().GoToUrl($"{_baseUrl}/Account/Deactivate");
         _wait.Until(d =>
         {

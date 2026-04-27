@@ -52,10 +52,10 @@
                         <div class="alert alert-success" role="alert">
                             <h4 class="alert-heading mb-3">
                                 <img src="@user.GetProfileImageUrl()"
-                                     class="dashboardProfile" 
+                                     class="dashboardProfile"
                                 role="img" />
 
-                                 Hello, @User.Identity.Name!
+                                 Hello, @(user?.DisplayName ?? User.Identity.Name)!
                             </h4>
                             @Html.Raw(ViewData["statusMsgHtml"])
                         </div>
@@ -206,6 +206,27 @@
                     <h5 class="card-title">
                         <i class="bi bi-gear"></i> Account Settings
                     </h5>
+                    @if (TempData["DisplayNameSuccess"] != null)
+                    {
+                        <div class="alert alert-success mt-2 mb-2" id="displayNameSuccessMessage">@TempData["DisplayNameSuccess"]</div>
+                    }
+                    @if (TempData["DisplayNameError"] != null)
+                    {
+                        <div class="alert alert-danger mt-2 mb-2">@TempData["DisplayNameError"]</div>
+                    }
+                    <p class="card-text mb-1 mt-3">Update your display name:</p>
+                    <form id="displayNameForm" asp-action="UpdateDisplayName" method="Post">
+                        <div class="mb-3 mt-1">
+                            <input id="displayNameInput" name="newDisplayName" class="form-control"
+                                   type="text" maxlength="50" minlength="2"
+                                   placeholder="Display name (2–50 characters)"
+                                   value="@(user?.DisplayName != "UNSET" ? user?.DisplayName : "")" />
+                            <div class="form-text">Letters, numbers, spaces, hyphens, apostrophes, and periods only.</div>
+                            <div id="displayNameErrorMsg" class="text-danger fw-bold small mt-1" style="display:none;"></div>
+                        </div>
+                        <button type="submit" class="btnDark" id="updateDisplayNameBtn">Update Display Name</button>
+                    </form>
+                    <br>
                     <p class="card-text mb-1 mt-3">Upload your profile picture:</p>
                     <form id="uploadForm" asp-action="UploadProfileImage" method="Post" enctype="multipart/form-data">
                         <input id="fileInput" class="form-control form-control-sm mb-3 mt-2" type="file" accept="image/*" name="profilePicture" />
@@ -223,6 +244,12 @@
                         <button type="submit" class="btnDark">Update Bio</button>
                     </form>
                     <br>
+                    <p class="card-text mb-1">Notification Preferences:</p>
+                    <a id="notificationPreferencesLink" asp-action="NotificationPreferences" asp-controller="Dashboard"
+                       class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-bell"></i> Manage Notification Preferences
+                    </a>
+                    <br><br>
                     <p class="card-text mb-2">Account Deactivation:</p>
                     <a asp-action="Deactivate" asp-controller="Account" class="btn btn-outline-danger btn-sm">
                         <i class="bi bi-person-x"></i> Deactivate Account

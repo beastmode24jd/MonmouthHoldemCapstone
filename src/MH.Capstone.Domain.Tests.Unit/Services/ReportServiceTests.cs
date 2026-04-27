@@ -57,7 +57,7 @@ public class ReportServiceTests
             .Verifiable(Times.Once);
 
         _notificationServiceMock.Setup(n => n.SendNotificationAsync(
-                It.Is<Notification>(notif => notif.RecipientId == userId)))
+                It.Is<Notification>(notif => notif.RecipientId == userId), It.IsAny<NotificationType>()))
             .Verifiable(Times.Once);
 
         var sut = CreateSut();
@@ -123,7 +123,7 @@ public class ReportServiceTests
 
         // notification must go to the reporting user
         _notificationServiceMock.Setup(n => n.SendNotificationAsync(
-                It.Is<Notification>(notif => notif.RecipientId == userId)))
+                It.Is<Notification>(notif => notif.RecipientId == userId), It.IsAny<NotificationType>()))
             .Verifiable(Times.Once);
 
         var sut = CreateSut();

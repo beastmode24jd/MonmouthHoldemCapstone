@@ -316,6 +316,7 @@ public class CSP101StepDefinitions
             UserName      = email,
             Email         = email,
             EmailConfirmed = true,
+            DisplayName   = username,
             Points        = 0,
             IsDeactivated = false
         };

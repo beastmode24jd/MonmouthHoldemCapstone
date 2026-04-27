@@ -116,7 +116,8 @@ namespace MH.Capstone.Domain.DataAccess
                         NormalizedUserName = normalizedEmail,
                         Email = adminEmail,
                         NormalizedEmail = normalizedEmail,
-                        EmailConfirmed = true
+                        EmailConfirmed = true,
+                        DisplayName = "Admin"
                     };
 
                     // Manually hash the password
