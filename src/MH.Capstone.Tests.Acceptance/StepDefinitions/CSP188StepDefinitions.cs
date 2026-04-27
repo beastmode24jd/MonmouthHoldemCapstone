@@ -49,7 +49,7 @@ public class CSP188StepDefinitions
         _accountSettingsDriver.NavigateToSettings();
     }
 
-    [When("an unauthenticated user navigates to /dashboard/settings")]
+    [When("an unauthenticated user navigates to the account settings page")]
     public void WhenUnauthenticatedUserNavigatesToSettings()
     {
         _accountSettingsDriver.NavigateToSettings();

@@ -26,5 +26,5 @@ Scenario: Dashboard no longer shows account settings forms
 @csp188
 Scenario: Settings page requires authentication
     Given Alex is logged out
-    When an unauthenticated user navigates to /dashboard/settings
+    When an unauthenticated user navigates to the account settings page
     Then they are redirected to the login page
