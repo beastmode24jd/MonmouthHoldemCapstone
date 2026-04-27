@@ -65,6 +65,32 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
             _mockPreferenceService.VerifyNoOtherCalls();
         }
 
+        [Test]
+        public async Task SendNotificationAsync_WhenHtmlEmailBodySet_UsesItAsEmailBody()
+        {
+            var user = new ApplicationUser { Id = Guid.NewGuid().ToString(), Email = "test@test.com" };
+            var notif = NotificationValidValuesSource.GetValidNotification(user.GuidId);
+            notif.HtmlEmailBody = "<p>Custom <a href='https://example.com'>link</a></p>";
+
+            _mockUserService
+                .Setup(s => s.GetUserByIdAsync(It.IsAny<Guid>()))
+                .ReturnsAsync(user);
+
+            _mockNotificationRepository
+                .Setup(r => r.AddOrUpdateAsync(It.IsAny<Notification>()))
+                .ReturnsAsync(notif);
+
+            _mockEmailQueueRepo
+                .Setup(r => r.AddOrUpdateAsync(It.Is<EmailQueue>(e => e.HtmlBody == notif.HtmlEmailBody)))
+                .ReturnsAsync(new EmailQueue());
+
+            var sut = CreateSut();
+            await sut.SendNotificationAsync(notif, NotificationType.SystemCritical);
+
+            _mockEmailQueueRepo.Verify(r => r.AddOrUpdateAsync(
+                It.Is<EmailQueue>(e => e.HtmlBody == notif.HtmlEmailBody)), Times.Once);
+        }
+
         #endregion
 
         #region SendNotificationAsync – preference-based routing
