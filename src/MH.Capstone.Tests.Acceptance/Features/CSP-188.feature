@@ -16,3 +16,9 @@ Scenario: Settings page displays all account settings sections
     When Alex navigates to the account settings page
     Then the display name form is visible
     And the notification preferences link is visible
+
+@csp188
+Scenario: Dashboard no longer shows account settings forms
+    When Alex visits the dashboard
+    Then the account settings forms are not shown on the dashboard
+    And the Account Settings link is visible on the dashboard
