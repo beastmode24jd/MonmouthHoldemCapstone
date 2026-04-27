@@ -71,8 +71,8 @@ public class ClubServiceTests
         // Alex has accepted memberships for Club A and Club C; Club B predicate returns nothing.
         var alexMemberships = new List<ClubMembership>
         {
-            new ClubMembership(alexId, clubAId, DateTimeOffset.UtcNow),
-            new ClubMembership(alexId, clubCId, DateTimeOffset.UtcNow),
+            new ClubMembership(alexId, clubAId, DateTimeOffset.UtcNow) { AcceptedInvite = true },
+            new ClubMembership(alexId, clubCId, DateTimeOffset.UtcNow) { AcceptedInvite = true },
         }.AsQueryable();
 
         _clubMembershipRepoMock
@@ -160,8 +160,8 @@ public class ClubServiceTests
             .Verifiable(Times.Once);
 
         _clubMembershipRepoMock
-            .Setup(r => r.AddOrUpdateAsync(It.IsAny<ClubMembership>()))
-            .ReturnsAsync(new ClubMembership(ownerId, newClub.Id, DateTimeOffset.UtcNow))
+            .Setup(r => r.AddOrUpdateAsync(It.Is<ClubMembership>(m => m.AcceptedInvite)))
+            .ReturnsAsync(new ClubMembership(ownerId, newClub.Id, DateTimeOffset.UtcNow) { AcceptedInvite = true })
             .Verifiable(Times.Once);
 
         // Act
@@ -170,7 +170,7 @@ public class ClubServiceTests
         // Assert
         Assert.That(result, Is.EqualTo(newClub));
         _clubRepoMock.Verify(r => r.AddOrUpdateAsync(newClub), Times.Once);
-        _clubMembershipRepoMock.Verify(r => r.AddOrUpdateAsync(It.IsAny<ClubMembership>()), Times.Once);
+        _clubMembershipRepoMock.Verify(r => r.AddOrUpdateAsync(It.Is<ClubMembership>(m => m.AcceptedInvite)), Times.Once);
     }
 
     [Test]
@@ -358,7 +358,7 @@ public class ClubServiceTests
         var clubId = Guid.NewGuid();
 
         var club = new Club(ownerId, "Bird Watchers", null, DateTimeOffset.UtcNow) { Id = clubId };
-        var membership = new ClubMembership(memberId, clubId, DateTimeOffset.UtcNow);
+        var membership = new ClubMembership(memberId, clubId, DateTimeOffset.UtcNow) { AcceptedInvite = true };
 
         _clubRepoMock
             .Setup(r => r.FindByIdAsync(clubId))

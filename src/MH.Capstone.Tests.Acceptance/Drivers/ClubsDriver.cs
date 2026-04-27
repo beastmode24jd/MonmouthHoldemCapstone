@@ -93,6 +93,100 @@ public class ClubsDriver
         TestContext.Out.WriteLine($"[{nameof(ClubsDriver)}] Redirected to club page: {_webDriver.Url}");
     }
 
+    /// <summary>
+    /// Opens the create-club modal only when it is not already visible.
+    /// Safe to call when the modal may already be open (Scenario 2 opens it first,
+    /// then WhenISelectValidOptions calls this as a guard).
+    /// </summary>
+    public void EnsureCreateClubModalOpen()
+    {
+        try
+        {
+            var isAlreadyOpen = _webDriver.FindElement(By.Id("newClubModal"))
+                .GetAttribute("class")?.Contains("show") == true;
+
+            if (!isAlreadyOpen)
+                OpenCreateClubModal();
+            else
+                TestContext.Out.WriteLine($"[{nameof(ClubsDriver)}] Create-Club modal already open — skipping open.");
+        }
+        catch
+        {
+            OpenCreateClubModal();
+        }
+    }
+
+    /// <summary>
+    /// Opens the Invite Member modal on a ClubPage, searches by display name,
+    /// selects the first matching result, and submits the invite form.
+    /// Waits for the success banner to confirm the POST completed.
+    /// </summary>
+    public void InviteMemberByDisplayName(string displayName)
+    {
+        var inviteBtn = _wait.Until(d => d.FindElement(By.Id("inviteMemberBtn")));
+        ((IJavaScriptExecutor)_webDriver).ExecuteScript("arguments[0].click();", inviteBtn);
+        TestContext.Out.WriteLine($"[{nameof(ClubsDriver)}] Clicked 'Invite Member' button.");
+
+        _wait.Until(d =>
+            d.FindElement(By.Id("inviteMemberModal"))
+             .GetAttribute("class")?.Contains("show") == true);
+        TestContext.Out.WriteLine($"[{nameof(ClubsDriver)}] Invite modal visible.");
+
+        var searchInput = _wait.Until(d => d.FindElement(By.Id("memberSearchInput")));
+        searchInput.Clear();
+        searchInput.SendKeys(displayName);
+        TestContext.Out.WriteLine($"[{nameof(ClubsDriver)}] Typed '{displayName}' into search input.");
+
+        // Wait for the debounce + API call to populate results.
+        var resultBtn = _wait.Until(d =>
+        {
+            var results = d.FindElements(By.CssSelector("#memberSearchResults .list-group-item"));
+            return results.FirstOrDefault(r =>
+                r.Text.Contains(displayName, StringComparison.OrdinalIgnoreCase) && r.Displayed);
+        });
+
+        resultBtn.Click();
+        TestContext.Out.WriteLine($"[{nameof(ClubsDriver)}] Selected search result for '{displayName}'.");
+
+        // Wait for the "Sending invite to: X" confirmation banner inside the modal.
+        _wait.Until(d =>
+        {
+            var display = d.FindElement(By.Id("selectedUserDisplay"));
+            return !(display.GetAttribute("class")?.Contains("d-none") ?? true);
+        });
+
+        var sendBtn = _wait.Until(d => d.FindElement(By.Id("sendInviteBtn")));
+        sendBtn.Click();
+        TestContext.Out.WriteLine($"[{nameof(ClubsDriver)}] Clicked 'Send Invite'.");
+
+        // POST redirects back to ClubPage with a TempData success banner.
+        _wait.Until(d => d.FindElements(By.CssSelector(".alert-success")).Count > 0);
+        TestContext.Out.WriteLine($"[{nameof(ClubsDriver)}] Invite success banner confirmed.");
+    }
+
+    /// <summary>
+    /// Returns true when a pending-invite card on the clubs landing page has a
+    /// club name matching <paramref name="clubName"/> (case-insensitive).
+    /// </summary>
+    public bool IsPendingInviteVisible(string clubName)
+    {
+        try
+        {
+            return new WebDriverWait(_webDriver, TimeSpan.FromSeconds(5)).Until(d =>
+            {
+                var cards = d.FindElements(By.CssSelector("[id^='pendingInvite_']"));
+                return cards.Any(card =>
+                    card.Displayed &&
+                    card.FindElements(By.CssSelector("strong"))
+                        .Any(t => t.Text.Contains(clubName, StringComparison.OrdinalIgnoreCase)));
+            });
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     /// <summary>Returns true when the browser is on a ClubPage URL.</summary>
     public bool IsOnClubPage()
     {

@@ -71,7 +71,11 @@ namespace MH.Capstone.Domain.Services
 
             var savedClub = await _clubRepo.AddOrUpdateAsync(club);
 
-            var ownerMembership = new ClubMembership(savedClub.OwnerId, savedClub.Id, savedClub.CreatedAt);
+            // Owner is always an accepted member of their own club.
+            var ownerMembership = new ClubMembership(savedClub.OwnerId, savedClub.Id, savedClub.CreatedAt)
+            {
+                AcceptedInvite = true
+            };
             await _membershipRepo.AddOrUpdateAsync(ownerMembership);
 
             return savedClub;

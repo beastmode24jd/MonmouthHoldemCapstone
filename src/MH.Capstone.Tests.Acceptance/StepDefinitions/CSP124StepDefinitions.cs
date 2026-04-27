@@ -62,12 +62,24 @@ public class CSP124StepDefinitions
     [When("I click the Create New Club button")]
     public void WhenIClickTheCreateNewClubButton()
     {
+        // Scenario 3 calls this step AFTER "I select valid options" has already created
+        // the club and redirected to the ClubPage — the create-club modal no longer
+        // exists on that page. Guard so the step is a no-op in that ordering.
+        if (_driver.Url.Contains("/Clubs/ClubPage/", StringComparison.OrdinalIgnoreCase))
+        {
+            TestContext.Out.WriteLine("[CSP124] Skipping OpenCreateClubModal — already on ClubPage.");
+            return;
+        }
         _clubsDriver.OpenCreateClubModal();
     }
 
     [When("I select valid options")]
     public void WhenISelectValidOptions()
     {
+        // Scenario 3 calls this step before "I click the Create New Club button",
+        // so the modal may not be open yet — ensure it is before filling.
+        _clubsDriver.EnsureCreateClubModalOpen();
+
         // Use a unique suffix so re-runs do not conflict with clubs from prior runs.
         _newClubName = $"Acceptance Club {Guid.NewGuid().ToString()[..8]}";
         _clubsDriver.FillCreateClubModal(
