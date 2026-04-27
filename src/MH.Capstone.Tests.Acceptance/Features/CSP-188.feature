@@ -22,3 +22,9 @@ Scenario: Dashboard no longer shows account settings forms
     When Alex visits the dashboard
     Then the account settings forms are not shown on the dashboard
     And the Account Settings link is visible on the dashboard
+
+@csp188
+Scenario: Settings page requires authentication
+    Given Alex is logged out
+    When an unauthenticated user navigates to /dashboard/settings
+    Then they are redirected to the login page
