@@ -19,7 +19,7 @@ public class AccountControllerTests
     private Mock<IAuthenticationService> _mockAuthService;
     private Mock<IUserService> _mockUserService;
     private Mock<ILogger<AccountController>> _mockLogger;
-    private Mock<IEmailService> _mockEmailService;
+    private Mock<INotificationService> _mockNotificationService;
     private AccountController _controller;
     private Mock<UserManager<ApplicationUser>> _mockUserManager;
     private Mock<IUrlHelper> _mockUrlHelper;
@@ -30,7 +30,7 @@ public class AccountControllerTests
         _mockAuthService = new Mock<IAuthenticationService>();
         _mockUserService = new Mock<IUserService>();
         _mockLogger = new Mock<ILogger<AccountController>>();
-        _mockEmailService = new Mock<IEmailService>();
+        _mockNotificationService = new Mock<INotificationService>();
         _mockUrlHelper = new Mock<IUrlHelper>();
 
         // Mock UserManager (requires a Mock UserStore)
@@ -42,7 +42,7 @@ public class AccountControllerTests
             _mockAuthService.Object,
             _mockUserService.Object,
             _mockUserManager.Object,
-            _mockEmailService.Object,
+            _mockNotificationService.Object,
             new FeatureFlags(),
             _mockLogger.Object);
 
@@ -187,6 +187,71 @@ public class AccountControllerTests
         Assert.That(viewResult, Is.Not.Null);
         Assert.That(_controller.ModelState.IsValid, Is.False);
         _mockAuthService.Verify(s => s.SignInUserAsync(It.IsAny<HttpContext>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Test]
+    public async Task Register_Post_SendsVerificationNotification_WhenUserFound()
+    {
+        var registerModel = new RegisterViewModel
+        {
+            Email = "newuser@example.com",
+            Password = "Test@123",
+            ConfirmPassword = "Test@123",
+            DisplayName = "TestUser"
+        };
+        var user = new ApplicationUser { Id = Guid.NewGuid().ToString(), Email = registerModel.Email };
+
+        _mockAuthService.Setup(s => s.RegisterUserAsync(registerModel.Email, registerModel.Password, registerModel.DisplayName)).ReturnsAsync(true);
+        _mockUserManager.Setup(m => m.FindByEmailAsync(registerModel.Email)).ReturnsAsync(user);
+        _mockUserManager.Setup(m => m.GenerateEmailConfirmationTokenAsync(user)).ReturnsAsync("test-token");
+        _mockNotificationService.Setup(s => s.SendNotificationAsync(It.IsAny<Notification>(), NotificationType.SystemCritical)).Returns(Task.CompletedTask);
+
+        await _controller.Register(registerModel);
+
+        _mockNotificationService.Verify(s => s.SendNotificationAsync(
+            It.Is<Notification>(n => n.Title == "Verify Your Email"),
+            NotificationType.SystemCritical), Times.Once);
+    }
+
+    [Test]
+    public async Task ForgotPassword_Post_SendsResetNotification_WhenUserExistsAndIsActive()
+    {
+        var model = new ForgotPasswordViewModel { Email = "test@example.com" };
+        var user = new ApplicationUser { Id = Guid.NewGuid().ToString(), Email = model.Email, IsDeactivated = false };
+
+        _mockUserManager.Setup(m => m.FindByEmailAsync(model.Email)).ReturnsAsync(user);
+        _mockUserManager.Setup(m => m.UpdateSecurityStampAsync(user)).ReturnsAsync(IdentityResult.Success);
+        _mockUserManager.Setup(m => m.GeneratePasswordResetTokenAsync(user)).ReturnsAsync("test-reset-token");
+        _mockNotificationService.Setup(s => s.SendNotificationAsync(It.IsAny<Notification>(), NotificationType.SystemCritical)).Returns(Task.CompletedTask);
+
+        var result = await _controller.ForgotPassword(model);
+
+        _mockNotificationService.Verify(s => s.SendNotificationAsync(
+            It.Is<Notification>(n => n.Title == "Password Reset Requested"),
+            NotificationType.SystemCritical), Times.Once);
+        var viewResult = result as ViewResult;
+        Assert.That(viewResult, Is.Not.Null);
+        Assert.That(((ForgotPasswordViewModel)viewResult!.Model!).EmailSent, Is.True);
+    }
+
+    [Test]
+    public async Task ResendVerification_Post_SendsVerificationNotification_WhenUserExistsAndNotConfirmed()
+    {
+        var model = new ResendVerificationViewModel { Email = "test@example.com" };
+        var user = new ApplicationUser { Id = Guid.NewGuid().ToString(), Email = model.Email, EmailConfirmed = false };
+
+        _mockUserManager.Setup(m => m.FindByEmailAsync(model.Email)).ReturnsAsync(user);
+        _mockUserManager.Setup(m => m.GenerateEmailConfirmationTokenAsync(user)).ReturnsAsync("test-token");
+        _mockNotificationService.Setup(s => s.SendNotificationAsync(It.IsAny<Notification>(), NotificationType.SystemCritical)).Returns(Task.CompletedTask);
+
+        var result = await _controller.ResendVerification(model);
+
+        _mockNotificationService.Verify(s => s.SendNotificationAsync(
+            It.Is<Notification>(n => n.Title == "Verify Your Email"),
+            NotificationType.SystemCritical), Times.Once);
+        var viewResult = result as ViewResult;
+        Assert.That(viewResult, Is.Not.Null);
+        Assert.That(((ResendVerificationViewModel)viewResult!.Model!).EmailSent, Is.True);
     }
 
     [Test]

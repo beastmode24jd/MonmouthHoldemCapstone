@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
+using NotificationType = MH.Capstone.Domain.DataModels.NotificationType;
 
 namespace MH.Capstone.WebApp.Controllers
 {
@@ -17,7 +18,7 @@ namespace MH.Capstone.WebApp.Controllers
         private readonly IAuthenticationService _authService;
         private readonly IUserService _userService;
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly IEmailService _emailService;
+        private readonly INotificationService _notificationService;
         private readonly FeatureFlags _featureFlags;
 
         // Logger for tracking authentication-related events
@@ -28,14 +29,14 @@ namespace MH.Capstone.WebApp.Controllers
             IAuthenticationService authService,
             IUserService userService,
             UserManager<ApplicationUser> userManager,
-            IEmailService emailService,
+            INotificationService notificationService,
             FeatureFlags featureFlags,
             ILogger<AccountController> logger)
         {
             _authService = authService;
             _userService = userService;
             _userManager = userManager;
-            _emailService = emailService;
+            _notificationService = notificationService;
             _featureFlags = featureFlags;
             _logger = logger;
         }
@@ -272,14 +273,16 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
                         new { email = model.Email, token = encodedToken },
                         Request.Scheme);
 
-                    await _emailService.SendAsync(
-                        model.Email,
-                        "Verify your WildlifeAID email address",
+                    var verifyNotification = Notification.Create(
+                        user.GuidId,
+                        "Verify Your Email",
+                        "A verification link has been sent to your email address.");
+                    verifyNotification.HtmlEmailBody =
                         $"<p>Thanks for registering! Please verify your email to activate your account.</p>" +
                         $"<p><a href='{confirmLink}'>Verify Email Address</a></p>" +
-                        $"<p>If you did not register for WildlifeAID, ignore this email.</p>",
-                        $"Verify your WildlifeAID account: {confirmLink}",
-                        HttpContext.RequestAborted);
+                        $"<p>If you did not register for WildlifeAID, ignore this email.</p>";
+
+                    await _notificationService.SendNotificationAsync(verifyNotification, NotificationType.SystemCritical);
 
                     _logger.LogInformation("Email verification link queued for {Email}", model.Email);
                 }
@@ -328,14 +331,16 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
                     new { email = model.Email, token = encodedToken },
                     Request.Scheme);
 
-                await _emailService.SendAsync(
-                    model.Email,
-                    "Reset your WildlifeAID password",
+                var resetNotification = Notification.Create(
+                    user.GuidId,
+                    "Password Reset Requested",
+                    "A password reset link has been sent to your email address.");
+                resetNotification.HtmlEmailBody =
                     $"<p>We received a request to reset the password for your WildlifeAID account.</p>" +
                     $"<p><a href='{resetLink}'>Click here to reset your password</a></p>" +
-                    $"<p>This link expires shortly. If you did not request a reset, ignore this email.</p>",
-                    $"Reset your password: {resetLink}",
-                    HttpContext.RequestAborted);
+                    $"<p>This link expires shortly. If you did not request a reset, ignore this email.</p>";
+
+                await _notificationService.SendNotificationAsync(resetNotification, NotificationType.SystemCritical);
 
                 _logger.LogInformation("Password reset email queued for {Email}", model.Email);
             }
@@ -488,13 +493,15 @@ public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl =
                     new { email = model.Email, token = encodedToken },
                     Request.Scheme);
 
-                await _emailService.SendAsync(
-                    model.Email,
-                    "Verify your WildlifeAID email address",
+                var resendNotification = Notification.Create(
+                    user.GuidId,
+                    "Verify Your Email",
+                    "A new verification link has been sent to your email address.");
+                resendNotification.HtmlEmailBody =
                     $"<p>Here is your new verification link:</p>" +
-                    $"<p><a href='{confirmLink}'>Verify Email Address</a></p>",
-                    $"Verify your WildlifeAID account: {confirmLink}",
-                    HttpContext.RequestAborted);
+                    $"<p><a href='{confirmLink}'>Verify Email Address</a></p>";
+
+                await _notificationService.SendNotificationAsync(resendNotification, NotificationType.SystemCritical);
 
                 _logger.LogInformation("Verification email re-sent for {Email}", model.Email);
             }

@@ -47,8 +47,15 @@ namespace MH.Capstone.Domain.DataModels
 
         public bool IsRead { get; set; } = false;
 
-        [NotMapped] 
+        [NotMapped]
         public bool IsPostdated => SentAt.UtcDateTime > DateTime.UtcNow;
+
+        /// <summary>
+        /// Optional rich HTML body for the email channel. When set, overrides the default
+        /// <c>&lt;p&gt;{Message}&lt;/p&gt;</c> email body. Not persisted to the database.
+        /// </summary>
+        [NotMapped]
+        public string? HtmlEmailBody { get; set; }
 
         [JsonIgnore]
         public virtual ApplicationUser Recipient { get; set; } = null!;
