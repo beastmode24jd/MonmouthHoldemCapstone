@@ -103,7 +103,7 @@ namespace MH.Capstone.Domain.Services
                         "New Sighting Uploaded & Created!",
                         $"Congratulations! You uploaded a new sighting at {timeDisplay} and " +
                         $"earned {pointsEarned} points!"
-                        ));
+                        ), NotificationType.NewSightingActivity);
 
                     _logger.LogInformation("Awarded {Points} points to user {UserId} for sighting", pointsEarned, entity.UserId);
                     

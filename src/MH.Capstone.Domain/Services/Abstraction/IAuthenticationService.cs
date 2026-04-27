@@ -18,7 +18,7 @@ namespace MH.Capstone.Domain.Services.Abstraction
 
 	    Task<bool> ReactivateAccountAsync(string email, string password);
 
-        Task<bool> RegisterUserAsync(string email, string password);
+        Task<bool> RegisterUserAsync(string email, string password, string displayName = "UNSET");
 
         Task SignInUserAsync(HttpContext httpContext, string email, bool rememberMe);
 

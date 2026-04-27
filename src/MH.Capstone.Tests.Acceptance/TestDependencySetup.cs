@@ -48,6 +48,8 @@ public static class TestDependencySetup
         services.AddTransient<PasswordResetDriver>();
         services.AddTransient<EmailVerificationDriver>();
         services.AddTransient<NotificationsDriver>();
+        services.AddTransient<DisplayNameDriver>();
+        services.AddTransient<NotificationPreferencesDriver>();
 
         return services;
     }

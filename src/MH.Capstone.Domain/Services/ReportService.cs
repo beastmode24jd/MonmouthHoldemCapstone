@@ -40,7 +40,7 @@ namespace MH.Capstone.Domain.Services
                     report.ReportingUserId,
                     "Report Received",
                     $"Thank you. Your report for '{report.ReportedPageUrl}' has been received and is under review."
-                ));
+                ), NotificationType.ReportStatusUpdate);
 
                 return true;
             }

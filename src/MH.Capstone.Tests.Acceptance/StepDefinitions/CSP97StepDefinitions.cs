@@ -348,6 +348,7 @@ public class CSP97StepDefinitions
             UserName       = username,
             Email          = $"{username}@test.com",
             EmailConfirmed = true,
+            DisplayName    = username,
             Points         = points,
             IsDeactivated  = false
         };

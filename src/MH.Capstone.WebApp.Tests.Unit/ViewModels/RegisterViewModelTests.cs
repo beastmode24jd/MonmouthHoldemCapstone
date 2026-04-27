@@ -20,6 +20,7 @@ public class RegisterViewModelTests
         // Arrange
         var model = new RegisterViewModel
         {
+            DisplayName = "Test User",
             Email = "test@example.com",
             Password = "Test@123",
             ConfirmPassword = "Test@123"

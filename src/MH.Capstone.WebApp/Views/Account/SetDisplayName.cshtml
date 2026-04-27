@@ -1,0 +1,53 @@
+@model SetDisplayNameViewModel
+@{
+    ViewData["Title"] = "Set Your Display Name";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-3">
+                    <i class="bi bi-person-badge"></i> Set Your Display Name
+                </h2>
+                <p class="text-muted text-center mb-4">
+                    Choose a display name before you continue. This is the name other users will see across the site.
+                </p>
+
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    var modelErrors = ViewData.ModelState[string.Empty]?.Errors;
+                    if (modelErrors != null && modelErrors.Any())
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            @foreach (var error in modelErrors)
+                            {
+                                <div>@error.ErrorMessage</div>
+                            }
+                        </div>
+                    }
+                }
+
+                <form asp-action="SetDisplayName" asp-controller="Account" method="post" id="setDisplayNameForm">
+                    <div class="mb-4">
+                        <label asp-for="DisplayName" class="form-label">Display Name</label>
+                        <input asp-for="DisplayName" class="form-control" type="text" id="setDisplayNameField"
+                               placeholder="e.g. Jane Smith" required autocomplete="nickname" />
+                        <div class="form-text">2–50 characters. Letters, numbers, spaces, hyphens, apostrophes, and periods only.</div>
+                        <span asp-validation-for="DisplayName" class="text-danger"></span>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary" id="setDisplayNameBtn">
+                            Save Display Name
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

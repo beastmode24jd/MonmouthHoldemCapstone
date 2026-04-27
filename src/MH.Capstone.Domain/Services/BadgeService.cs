@@ -103,7 +103,7 @@ namespace MH.Capstone.Domain.Services
                     $"Earned the {badgeTemplate.Title}",
                     $"Congratulations! You earned the {badgeTemplate.Title} at {timeDisplay} and " +
                     $"won {badgePointTotal} points!"
-                    ));
+                    ), NotificationType.BadgeAwarded);
             }
 
             // If the loop completes without badgeID found,
