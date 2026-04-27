@@ -115,7 +115,8 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<IProfileImageService, ProfileImageService>();
 
             // Register Additional Services - Business Logic Layer
-            builder.Services.AddScoped<INotificationService, InAppNotificationService>();
+            builder.Services.AddScoped<INotificationService, NotificationDispatchService>();
+            builder.Services.AddScoped<INotificationPreferenceService, NotificationPreferenceService>();
             builder.Services.AddScoped<IBadgeService, BadgeService>();
             builder.Services.AddScoped<IScoringService, ScoringService>();
             builder.Services.AddScoped<ISightingsService, SightingsService>();

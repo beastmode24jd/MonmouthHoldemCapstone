@@ -244,6 +244,12 @@
                         <button type="submit" class="btnDark">Update Bio</button>
                     </form>
                     <br>
+                    <p class="card-text mb-1">Notification Preferences:</p>
+                    <a id="notificationPreferencesLink" asp-action="NotificationPreferences" asp-controller="Dashboard"
+                       class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-bell"></i> Manage Notification Preferences
+                    </a>
+                    <br><br>
                     <p class="card-text mb-2">Account Deactivation:</p>
                     <a asp-action="Deactivate" asp-controller="Account" class="btn btn-outline-danger btn-sm">
                         <i class="bi bi-person-x"></i> Deactivate Account

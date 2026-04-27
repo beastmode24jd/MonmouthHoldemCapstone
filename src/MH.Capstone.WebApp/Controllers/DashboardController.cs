@@ -1,9 +1,11 @@
+using System.Linq;
 using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Constants;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.WebApp.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -35,11 +37,14 @@ namespace MH.Capstone.WebApp.Controllers
 
         private readonly IBadgeService _badgeService;
 
+        private readonly INotificationPreferenceService _notificationPreferenceService;
+
         // Constructor that injects the logger dependency
-        public DashboardController(ILogger<DashboardController> logger, 
-            IProfileImageService imageService, IAuthenticationService authService, 
-            IBadgeService badgeService, INotificationService notificationService, 
-            IUserService userService, IRepository<Notification, ApplicationDbContext> notificationRepo)
+        public DashboardController(ILogger<DashboardController> logger,
+            IProfileImageService imageService, IAuthenticationService authService,
+            IBadgeService badgeService, INotificationService notificationService,
+            IUserService userService, IRepository<Notification, ApplicationDbContext> notificationRepo,
+            INotificationPreferenceService notificationPreferenceService)
         {
             _logger = logger;
             _imageService = imageService;
@@ -48,6 +53,7 @@ namespace MH.Capstone.WebApp.Controllers
             _notificationService = notificationService;
             _userService = userService;
             _notificationRepo = notificationRepo;
+            _notificationPreferenceService = notificationPreferenceService;
         }
 
         // Displays the main dashboard page for authenticated users. 
@@ -380,6 +386,73 @@ namespace MH.Capstone.WebApp.Controllers
 
             // Return a success response. The frontend can use this to remove the notification from the UI without a full page refresh.
             return Ok(new { message = "Notification deleted successfully." });
+        }
+
+        [HttpGet("notification-preferences")]
+        public async Task<IActionResult> NotificationPreferences()
+        {
+            var user = await _userService.GetUserByClaimsPrincipleAsync(User);
+            if (user == null) return Forbid();
+
+            var viewModel = await BuildPreferencesViewModelAsync(user);
+            return View(viewModel);
+        }
+
+        [HttpPost("notification-preferences")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveNotificationPreferences(NotificationPreferencesViewModel model)
+        {
+            var user = await _userService.GetUserByClaimsPrincipleAsync(User);
+            if (user == null) return Forbid();
+
+            var updates = model.Preferences
+                .Select(p => (p.NotificationType, p.SelectedChannel));
+
+            await _notificationPreferenceService.SavePreferencesAsync(user, updates);
+
+            _logger.LogInformation("User {Email} updated notification preferences", User.Identity?.Name);
+            TempData["NotificationPreferencesSuccess"] = "Notification preferences saved.";
+            return RedirectToAction(nameof(NotificationPreferences));
+        }
+
+        private async Task<NotificationPreferencesViewModel> BuildPreferencesViewModelAsync(ApplicationUser user)
+        {
+            var stored = (await _notificationPreferenceService.GetPreferencesAsync(user))
+                .ToDictionary(p => p.NotificationType, p => p.DeliveryChannel);
+
+            var entries = new[]
+            {
+                new NotificationPreferenceEntryViewModel
+                {
+                    NotificationType = NotificationType.BadgeAwarded,
+                    DisplayName = "Badge Awarded",
+                    Description = "Sent when you earn a new achievement badge.",
+                    SelectedChannel = stored.GetValueOrDefault(NotificationType.BadgeAwarded, NotificationDeliveryChannel.InAppOnly)
+                },
+                new NotificationPreferenceEntryViewModel
+                {
+                    NotificationType = NotificationType.ReportStatusUpdate,
+                    DisplayName = "Report Status Update",
+                    Description = "Sent when a content report you submitted is received or updated.",
+                    SelectedChannel = stored.GetValueOrDefault(NotificationType.ReportStatusUpdate, NotificationDeliveryChannel.InAppOnly)
+                },
+                new NotificationPreferenceEntryViewModel
+                {
+                    NotificationType = NotificationType.NewSightingActivity,
+                    DisplayName = "New Sighting Activity",
+                    Description = "Sent when you successfully upload a new wildlife sighting.",
+                    SelectedChannel = stored.GetValueOrDefault(NotificationType.NewSightingActivity, NotificationDeliveryChannel.InAppOnly)
+                },
+                new NotificationPreferenceEntryViewModel
+                {
+                    NotificationType = NotificationType.AccountActivity,
+                    DisplayName = "Account Activity",
+                    Description = "Sent when your account records a login or active streak.",
+                    SelectedChannel = stored.GetValueOrDefault(NotificationType.AccountActivity, NotificationDeliveryChannel.InAppOnly)
+                }
+            };
+
+            return new NotificationPreferencesViewModel { Preferences = entries.ToList() };
         }
     }
 }

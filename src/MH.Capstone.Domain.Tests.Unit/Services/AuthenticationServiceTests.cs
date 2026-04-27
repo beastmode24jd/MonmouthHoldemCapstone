@@ -98,7 +98,7 @@ public class AuthenticationServiceTests
             .ReturnsAsync(IdentityResult.Success).Verifiable(Times.Once);
 
         _notificationServiceMock.Setup(s => s.SendNotificationAsync(
-            It.IsAny<Notification>())).Verifiable(Times.Once);
+            It.IsAny<Notification>(), It.IsAny<NotificationType>())).Verifiable(Times.Once);
 
         // ACT - Try to register the user ********************
         var result = await _authService.RegisterUserAsync(email, password);
@@ -127,7 +127,7 @@ public class AuthenticationServiceTests
             .ReturnsAsync(IdentityResult.Success).Verifiable(Times.Once);
 
         _notificationServiceMock.Setup(s => s.SendNotificationAsync(
-            It.IsAny<Notification>())).Verifiable(Times.Once);
+            It.IsAny<Notification>(), It.IsAny<NotificationType>())).Verifiable(Times.Once);
 
         // Act
         var result = await _authService.RegisterUserAsync(email, password, displayName);

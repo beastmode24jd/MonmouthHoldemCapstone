@@ -25,6 +25,7 @@ public class DashboardControllerTests
     private Mock<ILogger<DashboardController>> _mockLogger;
     private DashboardController _controller;
     private Mock<IBadgeService> _mockBadgeService;
+    private Mock<INotificationPreferenceService> _mockNotificationPreferenceService;
     private const string TestEmail = "namesNameington@mail.wou";
 
     [SetUp]
@@ -37,11 +38,13 @@ public class DashboardControllerTests
         _mockNotificationService = new Mock<INotificationService>();
         _mockNotificationRepo = new Mock<IRepository<Notification, ApplicationDbContext>>();
         _mockBadgeService = new Mock<IBadgeService>();
+        _mockNotificationPreferenceService = new Mock<INotificationPreferenceService>();
 
         _controller = new DashboardController(_mockLogger.Object,
             _mockProfileImageService.Object, _mockAuthService.Object,
             _mockBadgeService.Object, _mockNotificationService.Object,
-            _mockUserService.Object, _mockNotificationRepo.Object);
+            _mockUserService.Object, _mockNotificationRepo.Object,
+            _mockNotificationPreferenceService.Object);
         
         // Mock the user, so the display name isn't null while testing
         var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
