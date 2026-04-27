@@ -618,8 +618,26 @@ Filter state is persisted with `sessionStorage` key `'clubsFilter'` (`'all'` or 
 
 ---
 
+### Notification Integration — Known Gap
+
+`ClubsController.CreateClub` currently calls `_notificationService.SendNotificationAsync` with **only one argument** (the `Notification`), but `INotificationService.SendNotificationAsync` requires two: `(Notification notification, NotificationType notificationType)`. This is a compile-breaking mismatch that must be fixed before merging.
+
+The `NotificationType` enum (`src/MH.Capstone.Domain/DataModels/NotificationType.cs`) currently has no club-specific value:
+
+| Value | Int |
+|---|---|
+| `SystemCritical` | 0 |
+| `BadgeAwarded` | 1 |
+| `ReportStatusUpdate` | 2 |
+| `NewSightingActivity` | 3 |
+
+A new `ClubActivity` (or similar) enum member must be added to `NotificationType` before the `CreateClub` notification call can be completed correctly.
+
+---
+
 ### What Is Still Incomplete
 
+- **`SendNotificationAsync` call in `CreateClub` is broken** — missing the required `notificationType` argument; needs a new `NotificationType.ClubActivity` (or similar) enum value added first
 - `Chatroom.cshtml` is a stub — the GET route exists (`/Clubs/Chatroom/{id}`) but the view has no content, and there is no service method for messages yet
 - Invite feature: `memberSearchInput` in `ClubPage.cshtml` is non-functional; `SendInviteAsync` / `AcceptInviteAsync` / `DeclineInviteAsync` in `ClubService` are empty stubs
 - No acceptance tests (`.feature` files) exist yet for any Club scenarios

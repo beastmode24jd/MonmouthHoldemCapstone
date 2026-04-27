@@ -96,7 +96,8 @@ namespace MH.Capstone.WebApp.Controllers
 
             await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId,
                 $"Made the {newClub.Name} Club",
-                "Good work. Keep at it!"));
+                "Good work. Keep at it!"),
+                NotificationType.ClubActivity);
 
             return RedirectToAction(nameof(ClubPage), new { id = newClub.Id });
         }
