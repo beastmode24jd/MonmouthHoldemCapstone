@@ -3,8 +3,6 @@ using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Tests.Acceptance.Configuration;
 using MH.Capstone.Tests.Acceptance.Drivers;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OpenQA.Selenium;
@@ -12,7 +10,6 @@ using OpenQA.Selenium.Support.UI;
 using Reqnroll;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using System.Text.Json;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions
 {
@@ -35,8 +32,6 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
         // exactly the sighting that was just submitted (avoids cross-scenario aliasing
         // when the seeder isn't reset between scenarios).
         private string? _currentSightingDescription;
-
-        private static readonly Lazy<string?> _connectionString = new(LoadConnectionString);
 
         public CSP122StepDefinitions(IWebDriver webDriver, WebDriverWait wait,
             AcceptanceTestSettings settings, SightingsDriver sightingsDriver)
@@ -222,58 +217,15 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
             return sighting;
         }
 
+        // Reuse the live WebApp's DI container — it already has ApplicationDbContext
+        // configured with whichever connection string the host resolved (file or env var),
+        // so this works equally well in CI (env vars) and locally (appsettings file).
         private static IServiceScope GetServiceScope()
         {
-            var connectionString = _connectionString.Value
+            var appServices = TestWebAppHost.Services
                 ?? throw new InvalidOperationException(
-                    "Connection string unavailable. CSP-122 BDD tests require " +
-                    "MH.Capstone.WebApp/appsettings.Acceptance.json with ConnectionStrings:DataDb set.");
-
-            // Match CSP-101's resilience knobs: Azure SQL serverless can take ~30s to wake.
-            var builder = new SqlConnectionStringBuilder(connectionString) { ConnectTimeout = 120 };
-
-            var services = new ServiceCollection();
-            services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(builder.ConnectionString, sql =>
-                {
-                    sql.CommandTimeout(120);
-                    sql.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(15), errorNumbersToAdd: null);
-                }));
-            services.AddIdentityCore<ApplicationUser>().AddEntityFrameworkStores<ApplicationDbContext>();
-            services.AddLogging();
-
-            return services.BuildServiceProvider().CreateScope();
-        }
-
-        private static string? LoadConnectionString()
-        {
-            var settingsPath = FindWebAppDevSettings();
-            if (settingsPath is null)
-                return null;
-
-            using var stream = File.OpenRead(settingsPath);
-            using var doc = JsonDocument.Parse(stream);
-
-            if (doc.RootElement.TryGetProperty("ConnectionStrings", out var conn) &&
-                conn.TryGetProperty("DataDb", out var dataDb) &&
-                dataDb.ValueKind == JsonValueKind.String)
-            {
-                return dataDb.GetString();
-            }
-            return null;
-        }
-
-        private static string? FindWebAppDevSettings()
-        {
-            var dir = new DirectoryInfo(AppContext.BaseDirectory);
-            while (dir is not null)
-            {
-                var candidate = Path.Combine(dir.FullName, "MH.Capstone.WebApp", "appsettings.Acceptance.json");
-                if (File.Exists(candidate))
-                    return candidate;
-                dir = dir.Parent;
-            }
-            return null;
+                    "TestWebAppHost has not started; cannot resolve web app services.");
+            return appServices.CreateScope();
         }
 
         #endregion
