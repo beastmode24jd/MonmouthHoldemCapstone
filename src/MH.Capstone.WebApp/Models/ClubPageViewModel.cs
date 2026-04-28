@@ -14,11 +14,11 @@ namespace MH.Capstone.WebApp.Models
         public ClubPageViewModel() { }
 
         public ClubPageViewModel(Club club, List<ClubMembership> clubMembers,
-            List<SightingCardViewModel> sightings, bool isOwner, bool isMember)
+            IEnumerable<Sighting> sightings, bool isOwner, bool isMember)
         {
             Club = club;
             ClubMembers = clubMembers;
-            Sightings = sightings;
+            Sightings = sightings.Select(s => new SightingCardViewModel(s)).ToList();
             IsCurrentUserOwner = isOwner;
             IsCurrentUserMember = isMember;
         }
