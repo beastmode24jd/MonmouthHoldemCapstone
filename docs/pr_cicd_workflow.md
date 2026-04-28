@@ -35,6 +35,10 @@ This is the preferred method because the bot review counts toward the approval r
 
 This triggers the same full test suite and posts a comment + status check, but does **not** post a review. Use this when you want a test run without automatically affecting review state.
 
+In both cases, the PR comment is updated with the final result once the run completes:
+- **Pass:** a success message with a link to the run.
+- **Fail:** a failure message with a link to the run and a direct link to the specific failed job.
+
 In both cases, the triggered run appears in the Actions tab under **"Run Complete Test Suite (All Tests)"**.
 
 ---
@@ -69,6 +73,9 @@ Once all conditions are met, the pipeline runs in order:
    - `main`-targeted PRs → `azure_prod` environment (non-prerelease release)
 4. **Auto-merge** — PR is merged into its base branch. **This step only runs if the deployment succeeds.** If the deploy fails, the PR is not merged.
 5. **GitHub Release** — a versioned release is created. Only runs if auto-merge succeeded.
+6. **PR comment** — always posted regardless of outcome:
+   - **Pass:** success message with a link to the run.
+   - **Fail:** failure message naming the stage that failed, with a link to the run and a direct link to the specific failed job.
 
 No manual action is needed after approval, provided the PR is up-to-date with its base branch.
 

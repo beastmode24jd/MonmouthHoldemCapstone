@@ -13,7 +13,8 @@ on:
 permissions:
   contents: read
   actions: write
-  pull-requests: read
+  pull-requests: write
+  issues: write
 
 jobs:
   check_conditions:
@@ -290,6 +291,80 @@ jobs:
           else
             echo "Successfully transitioned ${{ steps.jira.outputs.key }} to PR Changes Requested"
           fi
+
+  comment_result:
+    name: Comment PR Result
+    needs: [check_conditions, test, publish, deploy, auto_merge]
+    if: always() && needs.check_conditions.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      actions: read
+    steps:
+      - name: Post result comment to PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const runUrl   = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            const testResult    = '${{ needs.test.result }}';
+            const publishResult = '${{ needs.publish.result }}';
+            const deployResult  = '${{ needs.deploy.result }}';
+            const mergeResult   = '${{ needs.auto_merge.result }}';
+
+            const overallSuccess = mergeResult === 'success';
+
+            let body;
+            if (overallSuccess) {
+              body = [
+                '<!-- pr-deploy-comment -->',
+                '## ✅ Deploy Pipeline Passed',
+                '',
+                'All tests passed. The PR has been deployed and auto-merged.',
+                '',
+                `**[View Run →](${runUrl})**`
+              ].join('\n');
+            } else {
+              let failedStage = 'unknown stage';
+              if      (testResult    === 'failure') failedStage = 'Full Test Suite';
+              else if (publishResult === 'failure') failedStage = 'Publish';
+              else if (deployResult  === 'failure') failedStage = 'Deploy to Environment';
+              else if (mergeResult   === 'failure') failedStage = 'Auto-Merge PR';
+
+              // Attempt to find the specific failed job URL
+              let jobUrl = runUrl;
+              try {
+                const { data } = await github.rest.actions.listJobsForWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: context.runId,
+                  filter: 'all'
+                });
+                const failedJob = data.jobs.find(j => j.conclusion === 'failure');
+                if (failedJob) jobUrl = failedJob.html_url;
+              } catch (err) {
+                core.warning(`Could not fetch jobs list: ${err.message}`);
+              }
+
+              body = [
+                '<!-- pr-deploy-comment -->',
+                `## ❌ Deploy Pipeline Failed — ${failedStage}`,
+                '',
+                `The pipeline failed at the **${failedStage}** stage. Please fix the issues and re-request review.`,
+                '',
+                `**[View Run →](${runUrl})** | **[View Failed Job →](${jobUrl})**`
+              ].join('\n');
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body
+            });
+            core.info(`Posted ${overallSuccess ? 'success' : 'failure'} comment on PR #${prNumber}`);
 
   release:
     name: Create GitHub Release
