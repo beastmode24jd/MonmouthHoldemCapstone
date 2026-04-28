@@ -16,15 +16,18 @@ namespace MH.Capstone.Domain.Services
         private readonly IRepository<Club, ApplicationDbContext> _clubRepo;
         private readonly IRepository<ClubMembership, ApplicationDbContext> _membershipRepo;
         private readonly IRepository<Message, ApplicationDbContext> _messageRepo;
+        private readonly IRepository<Sighting, ApplicationDbContext> _sightingsRepo;
 
         public ClubService(
             IRepository<Club, ApplicationDbContext> clubRepo,
             IRepository<ClubMembership, ApplicationDbContext> membershipRepo,
-            IRepository<Message, ApplicationDbContext> messageRepo)
+            IRepository<Message, ApplicationDbContext> messageRepo,
+            IRepository<Sighting, ApplicationDbContext> sightingsRepo)
         {
             _clubRepo = clubRepo;
             _membershipRepo = membershipRepo;
             _messageRepo = messageRepo;
+            _sightingsRepo = sightingsRepo;
         }
 
         public async Task<IEnumerable<Club>> GetPublicClubsAsync()
@@ -163,6 +166,20 @@ namespace MH.Capstone.Domain.Services
             return (await _messageRepo.GetAllAsync(m => m.Author))
                 .Where(m => m.ClubId == clubId)
                 .OrderBy(m => m.SentAt)
+                .ToList();
+        }
+
+        public async Task<List<Sighting>> GetClubSightingsAsync(Guid clubId)
+        {
+            var memberships = await _membershipRepo.GetAllAsync(m => m.ClubId == clubId && m.AcceptedInvite);
+            var memberIds = memberships.Select(m => m.MemberIdentityId).ToHashSet();
+
+            if (memberIds.Count == 0)
+                return new List<Sighting>();
+
+            return (await _sightingsRepo.GetAllAsync(s => s.User))
+                .Where(s => memberIds.Contains(s.UserIdentityId))
+                .OrderByDescending(s => s.Timestamp)
                 .ToList();
         }
 

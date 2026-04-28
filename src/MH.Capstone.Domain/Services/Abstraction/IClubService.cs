@@ -43,5 +43,8 @@ namespace MH.Capstone.Domain.Services.Abstraction
 
         // Returns all messages for a club, ordered oldest-first, with Author eagerly loaded.
         Task<List<Message>> GetClubMessagesAsync(Guid clubId);
+
+        // CSP 125: Need to get user Sightings through Club filtering.
+        Task<List<Sighting>> GetClubSightingsAsync(Guid clubId);
     }
 }

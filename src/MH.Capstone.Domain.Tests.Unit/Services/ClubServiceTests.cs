@@ -18,6 +18,7 @@ public class ClubServiceTests
     private Mock<IRepository<ClubMembership, ApplicationDbContext>> _clubMembershipRepoMock;
     private Mock<IRepository<Message, ApplicationDbContext>> _messageRepoMock;
     private IClubService _clubService;
+    private Mock<IRepository<Sighting, ApplicationDbContext>> _sightingsRepoMock;
 
     [SetUp]
     public void Setup()
@@ -25,11 +26,13 @@ public class ClubServiceTests
         _clubRepoMock = new Mock<IRepository<Club, ApplicationDbContext>>();
         _clubMembershipRepoMock = new Mock<IRepository<ClubMembership, ApplicationDbContext>>();
         _messageRepoMock = new Mock<IRepository<Message, ApplicationDbContext>>();
+        _sightingsRepoMock = new Mock<IRepository<Sighting, ApplicationDbContext>>();
 
         _clubService = new ClubService(
             _clubRepoMock.Object,
             _clubMembershipRepoMock.Object,
-            _messageRepoMock.Object);
+            _messageRepoMock.Object,
+            _sightingsRepoMock.Object);
     }
 
     #region GetClubsMethods
