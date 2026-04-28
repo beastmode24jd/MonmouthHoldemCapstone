@@ -151,6 +151,9 @@ namespace MH.Capstone.Domain.Services
             if (string.IsNullOrWhiteSpace(content))
                 throw new ArgumentException("Message content cannot be empty.", nameof(content));
 
+            if (content.Trim().Length > 2000)
+                throw new ArgumentException("Message cannot exceed 2000 characters.", nameof(content));
+
             var message = new Message(clubId, senderId, content.Trim(), DateTimeOffset.UtcNow);
             await _messageRepo.AddOrUpdateAsync(message);
         }

@@ -92,6 +92,8 @@ public class CSP125StepDefinitions
 
         // Go back to Clubs Landing Page
         _clubsDriver.NavigateToLandingPage();
+
+        // Check for updated Clubs feed.
     }
 
     // Scenario 2: Lily leaves the Club, and Alex is on the front Club page
