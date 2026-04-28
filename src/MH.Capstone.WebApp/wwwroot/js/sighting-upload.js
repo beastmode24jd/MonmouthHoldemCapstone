@@ -1,4 +1,4 @@
-﻿// sighting-upload.js - Handles lat/long automation from photo EXIF or current location
+// sighting-upload.js - Handles lat/long automation from photo EXIF or current location
 
 document.addEventListener("DOMContentLoaded", function () {
     const imageInput = document.getElementById("imageUploadInput");
@@ -142,6 +142,83 @@ document.addEventListener("DOMContentLoaded", function () {
                     maximumAge: 0
                 }
             );
+        });
+    }
+
+    // ── CSP-144: AI Photo Recognition ────────────────────────────────────────
+    const identifyAIBtn = document.getElementById("identifyAIBtn");
+    const aiSuggestionBadge = document.getElementById("aiSuggestionBadge");
+    const aiSuggestionSpecies = document.getElementById("aiSuggestionSpecies");
+    const aiNotIdentifiedMessage = document.getElementById("aiNotIdentifiedMessage");
+    const aiErrorToast = document.getElementById("aiErrorToast");
+    const aiErrorMessage = document.getElementById("aiErrorMessage");
+    const descriptionInput = document.getElementById("Description");
+
+    function hideAllAiStatuses() {
+        aiSuggestionBadge.classList.add("d-none");
+        aiNotIdentifiedMessage.classList.add("d-none");
+        aiErrorToast.classList.add("d-none");
+    }
+
+    if (identifyAIBtn && imageInput) {
+        // Enable the button only when a file has been chosen
+        imageInput.addEventListener("change", function () {
+            identifyAIBtn.disabled = !imageInput.files || imageInput.files.length === 0;
+        });
+
+        identifyAIBtn.addEventListener("click", async function () {
+            const file = imageInput.files && imageInput.files[0];
+            if (!file) return;
+
+            hideAllAiStatuses();
+
+            const originalText = identifyAIBtn.innerHTML;
+            identifyAIBtn.disabled = true;
+            identifyAIBtn.innerHTML =
+                '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Identifying...';
+
+            try {
+                const formData = new FormData();
+                formData.append("image", file);
+
+                const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+                if (tokenInput) {
+                    formData.append("__RequestVerificationToken", tokenInput.value);
+                }
+
+                const response = await fetch("/SightingAI/Identify", {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errBody = await response.json().catch(function () {
+                        return { message: "AI service error." };
+                    });
+                    aiErrorMessage.textContent = errBody.message || "AI service error.";
+                    aiErrorToast.classList.remove("d-none");
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.identified) {
+                    aiSuggestionSpecies.textContent = data.species;
+                    aiSuggestionBadge.classList.remove("d-none");
+                    if (descriptionInput && data.description) {
+                        descriptionInput.value = data.description;
+                    }
+                } else {
+                    aiNotIdentifiedMessage.classList.remove("d-none");
+                }
+            } catch (err) {
+                aiErrorMessage.textContent =
+                    "Could not reach the AI service. Please try again or describe the photo manually.";
+                aiErrorToast.classList.remove("d-none");
+            } finally {
+                identifyAIBtn.innerHTML = originalText;
+                identifyAIBtn.disabled = !imageInput.files || imageInput.files.length === 0;
+            }
         });
     }
 });
