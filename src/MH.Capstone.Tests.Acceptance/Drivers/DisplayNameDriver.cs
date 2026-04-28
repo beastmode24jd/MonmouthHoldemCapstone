@@ -99,9 +99,11 @@ public class DisplayNameDriver
         input.Clear();
         input.SendKeys(displayName);
 
-        // Use JS click to avoid stale-element reference from RobustWebElement's TagName diagnostic.
-        var btn = _wait.Until(d => d.FindElement(By.Id("updateDisplayNameBtn")));
-        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", btn);
+        // Submit via form.submit() to bypass the HTML5 minlength constraint on the input
+        // so that server-side validation is always reached. Clicking the button triggers
+        // browser constraint validation which silently blocks short values (e.g. "X")
+        // from ever POSTing, causing the wait below to time out.
+        ((IJavaScriptExecutor)_driver).ExecuteScript("document.getElementById('displayNameForm').submit();");
 
         // Wait for the server to process the POST and redirect back. Both success
         // (displayNameSuccessMessage) and validation failure (.alert-danger) indicate
