@@ -103,10 +103,10 @@ public class DisplayNameDriver
         var btn = _wait.Until(d => d.FindElement(By.Id("updateDisplayNameBtn")));
         ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", btn);
 
-        // Wait for the success banner. It only appears after the server processes the
-        // update and redirects back to /dashboard/settings with TempData set. Waiting
-        // for the old nav text to be non-empty was unreliable because the nav already
-        // contained the previous display name before the form was ever submitted.
+        // Wait for the server to process the POST and redirect back. Both success
+        // (displayNameSuccessMessage) and validation failure (.alert-danger) indicate
+        // the redirect has completed. Waiting for nav text non-empty was unreliable
+        // because the nav already contained the previous name before submission.
         _wait.Until(d =>
         {
             try
@@ -115,7 +115,8 @@ public class DisplayNameDriver
                 if (!string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase))
                     return false;
 
-                return d.FindElements(By.Id("displayNameSuccessMessage")).Count > 0;
+                return d.FindElements(By.Id("displayNameSuccessMessage")).Count > 0
+                    || d.FindElements(By.CssSelector(".alert-danger")).Count > 0;
             }
             catch { return false; }
         });
