@@ -14,6 +14,7 @@ jobs:
     uses: ./.github/workflows/build.yml
 
   unit_tests:
+    name: Dotnet Unit Tests
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -43,3 +44,31 @@ jobs:
           ls -a ./src ;
           dotnet test ./src/MH.Capstone.WebApp.Tests.Unit --no-restore --no-build --configuration Release --verbosity ${{ vars.DOTNET_VERBOSE_LVL }} ;
           dotnet test ./src/MH.Capstone.Domain.Tests.Unit --no-restore --no-build --configuration Release --verbosity ${{ vars.DOTNET_VERBOSE_LVL }}
+
+  js_unit_tests:
+    name: Jest Unit Tests
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    steps:
+      - name: Download artifact from build job
+        id: js_artifact_download
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ github.sha }}
+          run-id: ${{ needs.build.outputs.source_run_id }}
+          github-token: ${{ github.token }}
+          path: ./src
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+
+      - name: Install dependencies and run Jest
+        run: |
+          cd ./src/MH.Capstone.Tests.JavaScript
+          npm ci
+          npm test
