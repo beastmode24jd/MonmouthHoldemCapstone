@@ -23,6 +23,7 @@ jobs:
     uses: ./.github/workflows/test_suite_limited_run.yml
 
   system_tests:
+    name: Integration, System and Acceptance Tests
     needs: build
     if: >
       github.repository == 'jmcshane22/MonmouthHoldemCapstone' &&
