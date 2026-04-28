@@ -14,7 +14,7 @@ Discord: [jmcshane22](https://discord.com/users/1427371392600641538)
 Email (WOU): [aporter23@wou.edu](mailto:aporter23@wou.edu)  
 Discord: [sleepcrash_46130](https://discord.com/users/1372275505570644088)
 
-**Marquis Bowels, Software Engineer**  
+**Marquis Bowles, Software Engineer**  
 [Resume](./resumes/marquis-bowles_resume.pdf) \| [Buisness Card](./bcards/marquis-bowles.png) \| [GitHub (WOU)](https://github.com/Marquis-Bowles)  
 Email (WOU): [mbowles23@wou.edu](mailto:mbowles23@wou.edu)  
 Discord: [quis4552](https://discord.com/users/748412821221539840)

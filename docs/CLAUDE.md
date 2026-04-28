@@ -114,6 +114,7 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `IUserProfileService` | `UserService` | Extended (CSP-168) with `UpdateDisplayNameAsync(user, displayName)` — validates 2–50 chars, throws `ArgumentOutOfRangeException` if invalid. |
 | `IEmailService` | `AzureCommunicationEmailService` / `NoOpEmailService` | Send emails (toggled by `UseRealEmailerService` feature flag). Used by `AccountController.ForgotPassword` to deliver password-reset links. |
 | `IApiCaller` | `ExternalApiCaller` | HTTP calls to external APIs with SQL caching |
+| `IClubService` | `ClubService` | List public/user clubs (accepted only), list pending invites, get all memberships for a club, create a club, send/accept/decline invites, leave a club |
 
 **Background service:** `EmailDispatcherService` (hosted service) processes the `EmailQueue` outbox.
 
@@ -128,7 +129,10 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 
 **Display name endpoints (CSP-168):**
 - `GET/POST /account/SetDisplayName` — forced setup page for users with `DisplayName == "UNSET"`; `[Authorize]`, no ANTIFORGERY needed on GET
-- `POST /dashboard/UpdateDisplayName` — updates display name from dashboard settings; `[Authorize]`
+- `POST /dashboard/UpdateDisplayName` — updates display name from account settings page; `[Authorize]`; redirects to `GET /dashboard/settings`
+
+**Account Settings page (CSP-188):**
+- `GET /dashboard/settings` — dedicated account settings page; `[Authorize]`; hosts display name, profile picture, bio, notification preferences link, and deactivation link
 
 **RequireDisplayNameFilter:** Global `IAsyncActionFilter` that redirects authenticated users with `DisplayName == "UNSET"` to `Account/SetDisplayName` before any other action executes. Exempted actions: `SetDisplayName`, `Login`, `Logout`, `Register`, `RegisterConfirmation`, `VerifyEmail`, `ResendVerification`, `ForgotPassword`, `ResetPassword`, `Reactivate`, `Deactivate`, and the test-only email endpoints.
 
@@ -159,6 +163,7 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `ReportControllers` | Submit and view content reports |
 | `SightingController` | Submit and view wildlife sightings |
 | `SpeciesController` | Anidex species catalog (Ninja API backed) |
+| `ClubsController` | Club listing, creation (POST with notification + timezone); club page and chatroom (stubs) |
 
 ---
 
@@ -252,15 +257,16 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `/Account/Register` | `displayNameField` | Display name text input on the registration form |
 | `/Account/SetDisplayName` | `setDisplayNameField` | Display name text input on the forced setup page |
 | `/Account/SetDisplayName` | `setDisplayNameBtn` | Submit button on the forced setup page |
-| `/dashboard` | `displayNameInput` | Display name text input in the Account Settings section |
-| `/dashboard` | `updateDisplayNameBtn` | "Update Display Name" submit button |
-| `/dashboard` | `displayNameSuccessMessage` | Success banner shown after a display name is updated |
+| `/dashboard/settings` | `displayNameInput` | Display name text input in the Account Settings section |
+| `/dashboard/settings` | `updateDisplayNameBtn` | "Update Display Name" submit button |
+| `/dashboard/settings` | `displayNameSuccessMessage` | Success banner shown after a display name is updated |
 | `/notifications` | `markAllReadForm` | Form wrapping the "Mark All as Read" button; has `d-none` class when no unread notifications exist |
 | `/notifications` | `markAllReadBtn` | "Mark All as Read" submit button |
 | `/notifications` | `deleteAllForm` | Form wrapping the "Delete All" button; has `d-none` class when notification list is empty |
 | `/notifications` | `deleteAllBtn` | "Delete All" submit button |
 | `/notifications` | `notificationsEmptyState` | `div.alert` shown when the user has no notifications |
-| `/dashboard` | `notificationPreferencesLink` | Link button in Account Settings to navigate to notification preferences page |
+| `/dashboard` | `accountSettingsLink` | Link/button to navigate to the Account Settings page |
+| `/dashboard/settings` | `notificationPreferencesLink` | Link button in Account Settings to navigate to notification preferences page |
 | `/dashboard/notification-preferences` | `notificationPreferencesForm` | Form wrapping the per-type delivery dropdowns |
 | `/dashboard/notification-preferences` | `saveNotificationPreferencesBtn` | Save button for notification preferences |
 | `/dashboard/notification-preferences` | `notificationPreferenceSuccess` | Success alert shown after saving preferences |
@@ -344,19 +350,52 @@ The goal is that any developer — human or AI — can pick up the next feature 
 
 ## CI/CD
 
-Two GitHub Actions workflows in `.github/workflows/`:
+Workflows live in `.github/workflows/`. Key workflows:
 
-**`build_test_ci.yml`** (runs on every PR):
-1. `validate-ef` job — checks both DbContexts have no pending migrations
-2. `buildtest` job — restore, build (Release), `dotnet test` all projects, publish WebApp
-3. When called with `deploy: true`: bundles EF migration executables for both contexts and uploads as artifact
+**`pr_deploy_and_merge.yml`** — the primary PR lifecycle workflow (triggered by PR review or push events):
+- Fires when a PR targeting `dev` or `main` receives an **Approved** review (and is not a draft, not behind base, no merge conflicts)
+- Runs the full test suite → publishes → deploys to the matching Azure environment → auto-merges the PR → creates a GitHub Release
+- `dev`-targeted PRs → `azure_staging` environment (prerelease)
+- `main`-targeted PRs → `azure_prod` environment (non-prerelease)
+- Required branch protection status check: `PR Deploy and Auto-Merge / Deploy to Environment`
 
-**`deploy.yml`** (triggered on push to `main` or `dev`):
-- Calls `build_test_ci.yml` with `deploy: true`
-- `main` → production Azure App Service + non-prerelease GitHub Release
-- `dev` → staging Azure App Service + prerelease GitHub Release
-- After deploy: runs EF migration bundles against Azure SQL using OIDC passwordless auth
-- Build versioning: `YYYY.M.<run_number>.<run_attempt>`
+**`deploy.yml`** — manual-only deploy (`workflow_dispatch`):
+- Run from the Actions tab; select `dev` for staging or `main` for prod
+- Same build → publish → deploy → release pipeline as the PR workflow
+- Use when a hotfix or direct deploy is needed outside the PR flow
+
+**`test_suite_complete_run.yml`** — full test suite (`workflow_dispatch` or `workflow_call`):
+- Runs build, unit tests, EF Core validation, integration tests, and acceptance tests
+- Called automatically by `pr_deploy_and_merge.yml` before every deploy
+- Can be triggered manually via the Actions tab for one-off test runs
+
+**`manual_pr_test_run.yml`** — trigger the full test suite against a specific PR (`workflow_dispatch`):
+- Use this to run tests on an unapproved PR (before the approval-triggered pipeline fires)
+- See `docs/manual_pr_test_run.md` for usage instructions and the direct link
+
+**`build.yml`**, **`test_suite_limited_run.yml`**, **`system_tests.yml`**, **`unit_tests.yml`**, **`ef_core_tests.yml`** — reusable sub-workflows called by the workflows above.
+
+Build versioning: `YYYY.M.<run_number>.<run_attempt>`
+
+### Running tests via the CI pipeline (for AI agents)
+
+Tests do **not** run automatically when commits are pushed or PRs are opened. To validate code via the pipeline, an AI agent should use the manual dispatch workflow:
+
+```bash
+# Trigger the full test suite against a specific PR number
+gh workflow run manual_pr_test_run.yml \
+  --repo jmcshane22/MonmouthHoldemCapstone \
+  --ref dev \
+  --field pr_number=<PR_NUMBER>
+```
+
+The triggered run appears under **"Run Complete Test Suite (All Tests)"** in the Actions tab, not under the manual dispatch workflow. **The full suite takes 10+ minutes to complete.** Poll for completion with:
+
+```bash
+# List recent runs of the complete test suite and their conclusions
+gh run list --repo jmcshane22/MonmouthHoldemCapstone \
+  --workflow test_suite_complete_run.yml --limit 5
+```
 
 ---
 

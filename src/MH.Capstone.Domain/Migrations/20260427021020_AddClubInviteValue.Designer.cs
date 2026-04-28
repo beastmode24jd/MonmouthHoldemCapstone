@@ -4,16 +4,19 @@ using MH.Capstone.Domain.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace MH.Capstone.Domain.DataAccess.Migrations
+namespace MH.Capstone.Domain.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260427021020_AddClubInviteValue")]
+    partial class AddClubInviteValue
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -382,9 +385,6 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<bool>("FlaggedForReview")
-                        .HasColumnType("bit");
-
                     b.Property<byte[]>("ImageBuffer")
                         .IsRequired()
                         .HasColumnType("varbinary(max)");
@@ -402,13 +402,7 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .HasColumnType("decimal(9,6)")
                         .HasColumnName("Long");
 
-                    b.Property<double?>("LuminanceAverage")
-                        .HasColumnType("float");
-
                     b.Property<int>("PointValue")
-                        .HasColumnType("int");
-
-                    b.Property<int>("QualityTier")
                         .HasColumnType("int");
 
                     b.Property<string>("Rarity")
@@ -416,15 +410,6 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<double>("RarityMultiplier")
-                        .HasColumnType("float");
-
-                    b.Property<int?>("ResolutionHeight")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ResolutionWidth")
-                        .HasColumnType("int");
-
-                    b.Property<double?>("SharpnessScore")
                         .HasColumnType("float");
 
                     b.Property<DateTimeOffset>("Timestamp")

@@ -13,6 +13,7 @@ on:
 permissions:
   contents: read
   actions: write
+  pull-requests: read
 
 jobs:
   check_conditions:
@@ -94,6 +95,7 @@ jobs:
     if: needs.check_conditions.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       actions: write
     outputs:
       version: ${{ steps.get_build_version.outputs.version }}

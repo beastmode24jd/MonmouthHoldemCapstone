@@ -214,59 +214,15 @@
         </div>
     </div>
     <div class="row mt-4 mb-4">
-        <div class="col-mb-4">
-            <div class="card shadow">
+        <div class="col-md-4">
+            <div class="card h-100">
                 <div class="card-body">
                     <h5 class="card-title">
                         <i class="bi bi-gear"></i> Account Settings
                     </h5>
-                    @if (TempData["DisplayNameSuccess"] != null)
-                    {
-                        <div class="alert alert-success mt-2 mb-2" id="displayNameSuccessMessage">@TempData["DisplayNameSuccess"]</div>
-                    }
-                    @if (TempData["DisplayNameError"] != null)
-                    {
-                        <div class="alert alert-danger mt-2 mb-2">@TempData["DisplayNameError"]</div>
-                    }
-                    <p class="card-text mb-1 mt-3">Update your display name:</p>
-                    <form id="displayNameForm" asp-action="UpdateDisplayName" method="Post">
-                        <div class="mb-3 mt-1">
-                            <input id="displayNameInput" name="newDisplayName" class="form-control"
-                                   type="text" maxlength="50" minlength="2"
-                                   placeholder="Display name (2–50 characters)"
-                                   value="@(user?.DisplayName != "UNSET" ? user?.DisplayName : "")" />
-                            <div class="form-text">Letters, numbers, spaces, hyphens, apostrophes, and periods only.</div>
-                            <div id="displayNameErrorMsg" class="text-danger fw-bold small mt-1" style="display:none;"></div>
-                        </div>
-                        <button type="submit" class="btnDark" id="updateDisplayNameBtn">Update Display Name</button>
-                    </form>
-                    <br>
-                    <p class="card-text mb-1 mt-3">Upload your profile picture:</p>
-                    <form id="uploadForm" asp-action="UploadProfileImage" method="Post" enctype="multipart/form-data">
-                        <input id="fileInput" class="form-control form-control-sm mb-3 mt-2" type="file" accept="image/*" name="profilePicture" />
-                        <button type="submit" class="btnDark">Upload Image</button>
-                    </form>
-                    <br>
-                    <p class="card-text mb-1">Update your profile bio:</p>
-                    <form id="bioForm" asp-action="UpdateUserBio" method="Post">
-                        <div class="mb-3 mt-1">
-                            <textarea id="bioInput" name="newBio" class="form-control" rows="3" maxlength="250" placeholder="Tell us about yourself..."></textarea>
-                            <div class="form-text">Profile bio should be 250 characters or less.</div>
-                            <span id="charCount" class="form-text">0/250</span>
-                            <div id="bioErrorMsg" class="text-danger fw-bold small mt-1" style="display:none;"></div>
-                        </div>
-                        <button type="submit" class="btnDark">Update Bio</button>
-                    </form>
-                    <br>
-                    <p class="card-text mb-1">Notification Preferences:</p>
-                    <a id="notificationPreferencesLink" asp-action="NotificationPreferences" asp-controller="Dashboard"
-                       class="btn btn-outline-secondary btn-sm">
-                        <i class="bi bi-bell"></i> Manage Notification Preferences
-                    </a>
-                    <br><br>
-                    <p class="card-text mb-2">Account Deactivation:</p>
-                    <a asp-action="Deactivate" asp-controller="Account" class="btn btn-outline-danger btn-sm">
-                        <i class="bi bi-person-x"></i> Deactivate Account
+                    <p class="card-text text-muted small">Manage your display name, profile picture, bio, and notification preferences.</p>
+                    <a id="accountSettingsLink" asp-action="Settings" asp-controller="Dashboard" class="btn btnDark btn-sm">
+                        <i class="bi bi-gear"></i> Go to Account Settings
                     </a>
                 </div>
             </div>

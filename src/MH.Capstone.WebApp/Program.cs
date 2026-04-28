@@ -123,6 +123,7 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
             builder.Services.AddScoped<IReportService, ReportService>();
             builder.Services.AddScoped<IPhotoQualityService, PhotoQualityService>();
+            builder.Services.AddScoped<IClubService, ClubService>();
 
             // AI Companion (CSP-120) — Gemini-backed wildlife education chat
             if (featureFlags.IsEnabled("EnableGeminiAIService") && !EF.IsDesignTime)

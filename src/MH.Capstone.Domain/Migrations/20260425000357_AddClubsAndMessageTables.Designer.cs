@@ -4,16 +4,19 @@ using MH.Capstone.Domain.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace MH.Capstone.Domain.DataAccess.Migrations
+namespace MH.Capstone.Domain.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260425000357_AddClubsAndMessageTables")]
+    partial class AddClubsAndMessageTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -40,11 +43,6 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DisplayName")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -184,9 +182,6 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("AcceptedInvite")
-                        .HasColumnType("bit");
 
                     b.Property<Guid>("ClubId")
                         .HasColumnType("uniqueidentifier");
@@ -382,9 +377,6 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<bool>("FlaggedForReview")
-                        .HasColumnType("bit");
-
                     b.Property<byte[]>("ImageBuffer")
                         .IsRequired()
                         .HasColumnType("varbinary(max)");
@@ -402,13 +394,7 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .HasColumnType("decimal(9,6)")
                         .HasColumnName("Long");
 
-                    b.Property<double?>("LuminanceAverage")
-                        .HasColumnType("float");
-
                     b.Property<int>("PointValue")
-                        .HasColumnType("int");
-
-                    b.Property<int>("QualityTier")
                         .HasColumnType("int");
 
                     b.Property<string>("Rarity")
@@ -416,15 +402,6 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<double>("RarityMultiplier")
-                        .HasColumnType("float");
-
-                    b.Property<int?>("ResolutionHeight")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ResolutionWidth")
-                        .HasColumnType("int");
-
-                    b.Property<double?>("SharpnessScore")
                         .HasColumnType("float");
 
                     b.Property<DateTimeOffset>("Timestamp")
@@ -469,31 +446,6 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("PersonalBadges");
-                });
-
-            modelBuilder.Entity("MH.Capstone.Domain.DataModels.UserNotificationPreference", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("DeliveryChannel")
-                        .HasColumnType("int");
-
-                    b.Property<int>("NotificationType")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId", "NotificationType")
-                        .IsUnique();
-
-                    b.ToTable("UserNotificationPreference");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -726,17 +678,6 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .IsRequired();
 
                     b.Navigation("Badge");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("MH.Capstone.Domain.DataModels.UserNotificationPreference", b =>
-                {
-                    b.HasOne("MH.Capstone.Domain.DataModels.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("User");
                 });
