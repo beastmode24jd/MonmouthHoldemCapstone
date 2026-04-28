@@ -51,6 +51,7 @@ public static class TestDependencySetup
         services.AddTransient<NotificationsDriver>();
         services.AddTransient<DisplayNameDriver>();
         services.AddTransient<NotificationPreferencesDriver>();
+        services.AddTransient<AccountSettingsDriver>();
 
         return services;
     }
