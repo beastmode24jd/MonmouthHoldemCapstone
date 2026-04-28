@@ -42,18 +42,37 @@ public class CSP125StepDefinitions
     {
         _authDriver.PreformLoginForUser("alex@test.com", "Capstone26!");
         _clubsDriver.NavigateToLandingPage();
+
+        // Create a fresh club for this scenario and invite Lily so her seeded sightings appear in the feed.
+        var uid = Guid.NewGuid().ToString("N")[..8];
+        _newClubName = $"Feed_{uid}";
+        _clubsDriver.OpenCreateClubModal();
+        _clubsDriver.FillCreateClubModal(_newClubName, null, isPublic: true);
+        _clubsDriver.SubmitCreateClubModal();
+        _clubsDriver.InviteMemberByDisplayName("Lily");
+
+        // Switch to Lily, accept the invite, then return to Alex on the landing page.
+        _authDriver.LogoutUser();
+        _authDriver.PreformLoginForUser("lily@test.com", "Capstone26!");
+        _clubsDriver.NavigateToLandingPage();
+        _clubsDriver.AcceptInviteForClub(_newClubName);
+
+        _authDriver.LogoutUser();
+        _authDriver.PreformLoginForUser("alex@test.com", "Capstone26!");
+        _clubsDriver.NavigateToLandingPage();
     }
 
     [When("I look under the Club name and description")]
     public void WhenILookUnderTheClubNameAndDescription()
     {
-        
+        _clubsDriver.NavigateToClubPage(_newClubName);
     }
 
     [Then("I should see the newest Sightings from the other Club members")]
     public void ThenIShouldSeeTheNewestSightingsFromTheOtherClubMembers()
     {
-        
+        _clubsDriver.HasAnySightingCards().Should().BeTrue(
+            "the Club feed should show sightings from other members");
     }
 
     [Then("the front page should update if I upload a new Sighting")]
@@ -88,12 +107,11 @@ public class CSP125StepDefinitions
         // Submit the Sighting
         _sightingsDriver.SubmitSightingsForm();
 
-        // May need to wait for Dashboard Page redirect
-
-        // Go back to Clubs Landing Page
+        // Navigate back to the club page and verify Alex's new Sighting appears in the feed.
         _clubsDriver.NavigateToLandingPage();
-
-        // Check for updated Clubs feed.
+        _clubsDriver.NavigateToClubPage(_newClubName);
+        _clubsDriver.IsSightingByUserVisible("Alex").Should().BeTrue(
+            "Alex's newly uploaded Sighting should appear in the Club feed");
     }
 
     // Scenario 2: Lily leaves the Club, and Alex is on the front Club page
@@ -101,28 +119,23 @@ public class CSP125StepDefinitions
     [Given("Lily leaves the Club")]
     public void GivenLilyLeavesTheClub()
     {
-        
+        // Switch to Lily, navigate to the club, and leave it.
+        _authDriver.LogoutUser();
+        _authDriver.PreformLoginForUser("lily@test.com", "Capstone26!");
+        _clubsDriver.NavigateToLandingPage();
+        _clubsDriver.NavigateToClubPage(_newClubName);
+        _clubsDriver.LeaveClub();
+
+        // Return to Alex on the landing page so the When step can navigate to the club.
+        _authDriver.LogoutUser();
+        _authDriver.PreformLoginForUser("alex@test.com", "Capstone26!");
+        _clubsDriver.NavigateToLandingPage();
     }
 
     [Then("I should see it update to remove Lily Sightings from the feed")]
     public void ThenIShouldSeeItUpdateToRemoveLilySightingsFromTheFeed()
     {
-        
+        _clubsDriver.IsSightingByUserVisible("Lily").Should().BeFalse(
+            "Lily's sightings should no longer appear in the feed after she left the Club");
     }
-
-    /*
-        Scenario: Alex is on his front Club page
-            Given I am on the Club front page
-            When I look under the Club name and description
-            Then I should see the newest Sightings from the other Club members
-            And the front page should update if I upload a new Sighting
-
-        Scenario: Lily leaves the Club, and Alex is on the front Club page
-            Given I am on the Club front page
-            And Lily leaves the Club
-            When I look under the Club name and description
-            Then I should see it update to remove Lily Sightings from the feed
-
-    */
-
 }
