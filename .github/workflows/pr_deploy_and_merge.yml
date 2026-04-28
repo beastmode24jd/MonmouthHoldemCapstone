@@ -216,6 +216,81 @@ jobs:
             });
             core.info(`PR #${prNumber} auto-merged after successful deployment.`);
 
+  transition_jira:
+    name: Transition Jira Issue to Merged
+    needs: [check_conditions, auto_merge]
+    if: needs.check_conditions.outputs.should_deploy == 'true' && needs.auto_merge.result == 'success'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Extract Jira issue key from branch name
+        id: jira
+        run: |
+          key=$(echo "${{ github.head_ref }}" | grep -oE '[A-Z]+-[0-9]+' | head -1)
+          if [ -z "$key" ]; then
+            echo "No Jira issue key found in branch name '${{ github.head_ref }}' — skipping transition"
+          else
+            echo "key=$key" >> "$GITHUB_OUTPUT"
+            echo "Found Jira issue key: $key"
+          fi
+
+      - name: Transition issue to Merged
+        if: steps.jira.outputs.key != ''
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Basic $(printf '%s:%s' '${{ secrets.JIRA_USER_EMAIL }}' '${{ secrets.JIRA_API_TOKEN }}' | base64 -w 0)" \
+            -H "Content-Type: application/json" \
+            -d '{"transition":{"id":"${{ vars.JIRA_TRANSITION_ID_MERGED }}"}}' \
+            "${{ vars.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.jira.outputs.key }}/transitions" \
+            || echo "000")
+          echo "Jira API response status: $status"
+          if [ "$status" != "204" ]; then
+            echo "::warning::Jira transition returned HTTP $status for ${{ steps.jira.outputs.key }} — issue may already be in Merged state or the transition is unavailable from its current state"
+          else
+            echo "Successfully transitioned ${{ steps.jira.outputs.key }} to Merged"
+          fi
+
+  transition_jira_failure:
+    name: Transition Jira Issue to PR Changes Requested
+    needs: [check_conditions, test, publish, deploy]
+    if: >
+      always() &&
+      needs.check_conditions.outputs.should_deploy == 'true' &&
+      (needs.test.result == 'failure' ||
+       needs.publish.result == 'failure' ||
+       needs.deploy.result == 'failure')
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Extract Jira issue key from branch name
+        id: jira
+        run: |
+          key=$(echo "${{ github.head_ref }}" | grep -oE '[A-Z]+-[0-9]+' | head -1)
+          if [ -z "$key" ]; then
+            echo "No Jira issue key found in branch name '${{ github.head_ref }}' — skipping transition"
+          else
+            echo "key=$key" >> "$GITHUB_OUTPUT"
+            echo "Found Jira issue key: $key"
+          fi
+
+      - name: Transition issue to PR Changes Requested
+        if: steps.jira.outputs.key != ''
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Basic $(printf '%s:%s' '${{ secrets.JIRA_USER_EMAIL }}' '${{ secrets.JIRA_API_TOKEN }}' | base64 -w 0)" \
+            -H "Content-Type: application/json" \
+            -d '{"transition":{"id":"${{ vars.JIRA_TRANSITION_ID_CHANGES_REQUESTED }}"}}' \
+            "${{ vars.JIRA_BASE_URL }}/rest/api/3/issue/${{ steps.jira.outputs.key }}/transitions" \
+            || echo "000")
+          echo "Jira API response status: $status"
+          if [ "$status" != "204" ]; then
+            echo "::warning::Jira transition returned HTTP $status for ${{ steps.jira.outputs.key }} — issue may not be in a state that allows this transition"
+          else
+            echo "Successfully transitioned ${{ steps.jira.outputs.key }} to PR Changes Requested"
+          fi
+
   release:
     name: Create GitHub Release
     needs: [check_conditions, publish, auto_merge]
