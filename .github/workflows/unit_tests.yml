@@ -66,6 +66,7 @@ jobs:
         with:
           node-version: '18.x'
           cache: 'npm'
+          cache-dependency-path: 'src/MH.Capstone.Tests.JavaScript/package-lock.json'
 
       - name: Install dependencies and run Jest
         run: |
