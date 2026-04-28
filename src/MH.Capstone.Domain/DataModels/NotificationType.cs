@@ -6,6 +6,7 @@ namespace MH.Capstone.Domain.DataModels
         BadgeAwarded = 1,
         ReportStatusUpdate = 2,
         NewSightingActivity = 3,
-        AccountActivity = 4
+        AccountActivity = 4,
+        ClubActivity = 5
     }
 }

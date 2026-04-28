@@ -151,7 +151,7 @@ namespace MH.Capstone.WebApp.Controllers
                 {
                     _logger.LogWarning("Rejecting upload: File size {Size} exceeds 2MB limit.", profilePicture.Length);
                     ModelState.AddModelError(nameof(profilePicture), "File size exceeds the 2MB limit.");
-                    return RedirectToAction("Index");
+                    return RedirectToAction("Settings");
                 }
 
                 // Reject if not an image file based on content type
@@ -163,7 +163,7 @@ namespace MH.Capstone.WebApp.Controllers
                     _logger.LogWarning("Rejecting upload: Invalid content type {ContentType}.",
                         profilePicture.ContentType);
                     ModelState.AddModelError(nameof(profilePicture), "Invalid file type. Please upload an image.");
-                    return RedirectToAction("Index");
+                    return RedirectToAction("Settings");
                 }
 
                 // Delegate to ProfileImageService
@@ -191,8 +191,7 @@ namespace MH.Capstone.WebApp.Controllers
                 _logger.LogWarning("Upload attempted with null or empty file.");
             }
 
-            // Send this information back to the main dashboard page.
-            return RedirectToAction("Index");
+            return RedirectToAction("Settings");
         }
 
         [HttpPost("UpdateBio")]
@@ -222,7 +221,13 @@ namespace MH.Capstone.WebApp.Controllers
                 }
             }
 
-            return RedirectToAction("Index");
+            return RedirectToAction("Settings");
+        }
+
+        [HttpGet("settings")]
+        public IActionResult Settings()
+        {
+            return View();
         }
 
         [HttpPost("UpdateDisplayName")]
@@ -232,19 +237,19 @@ namespace MH.Capstone.WebApp.Controllers
             var user = await _userService.GetUserByEmailAsync(userEmail ?? "");
 
             if (user == null)
-                return RedirectToAction("Index");
+                return RedirectToAction("Settings");
 
             if (string.IsNullOrWhiteSpace(newDisplayName) || newDisplayName.Length < 2 || newDisplayName.Length > 50)
             {
                 TempData["DisplayNameError"] = "Display name must be between 2 and 50 characters.";
-                return RedirectToAction("Index");
+                return RedirectToAction("Settings");
             }
 
             await _userService.UpdateDisplayNameAsync(user, newDisplayName);
             _logger.LogInformation("User {Email} updated display name to '{DisplayName}'", userEmail, newDisplayName);
 
             TempData["DisplayNameSuccess"] = "Display name updated successfully.";
-            return RedirectToAction("Index");
+            return RedirectToAction("Settings");
         }
 
         [HttpGet]

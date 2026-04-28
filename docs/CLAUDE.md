@@ -114,6 +114,7 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `IUserProfileService` | `UserService` | Extended (CSP-168) with `UpdateDisplayNameAsync(user, displayName)` — validates 2–50 chars, throws `ArgumentOutOfRangeException` if invalid. |
 | `IEmailService` | `AzureCommunicationEmailService` / `NoOpEmailService` | Send emails (toggled by `UseRealEmailerService` feature flag). Used by `AccountController.ForgotPassword` to deliver password-reset links. |
 | `IApiCaller` | `ExternalApiCaller` | HTTP calls to external APIs with SQL caching |
+| `IClubService` | `ClubService` | List public/user clubs (accepted only), list pending invites, get all memberships for a club, create a club, send/accept/decline invites, leave a club |
 
 **Background service:** `EmailDispatcherService` (hosted service) processes the `EmailQueue` outbox.
 
@@ -128,7 +129,10 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 
 **Display name endpoints (CSP-168):**
 - `GET/POST /account/SetDisplayName` — forced setup page for users with `DisplayName == "UNSET"`; `[Authorize]`, no ANTIFORGERY needed on GET
-- `POST /dashboard/UpdateDisplayName` — updates display name from dashboard settings; `[Authorize]`
+- `POST /dashboard/UpdateDisplayName` — updates display name from account settings page; `[Authorize]`; redirects to `GET /dashboard/settings`
+
+**Account Settings page (CSP-188):**
+- `GET /dashboard/settings` — dedicated account settings page; `[Authorize]`; hosts display name, profile picture, bio, notification preferences link, and deactivation link
 
 **RequireDisplayNameFilter:** Global `IAsyncActionFilter` that redirects authenticated users with `DisplayName == "UNSET"` to `Account/SetDisplayName` before any other action executes. Exempted actions: `SetDisplayName`, `Login`, `Logout`, `Register`, `RegisterConfirmation`, `VerifyEmail`, `ResendVerification`, `ForgotPassword`, `ResetPassword`, `Reactivate`, `Deactivate`, and the test-only email endpoints.
 
@@ -159,6 +163,7 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `ReportControllers` | Submit and view content reports |
 | `SightingController` | Submit and view wildlife sightings |
 | `SpeciesController` | Anidex species catalog (Ninja API backed) |
+| `ClubsController` | Club listing, creation (POST with notification + timezone); club page and chatroom (stubs) |
 
 ---
 
@@ -252,15 +257,16 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `/Account/Register` | `displayNameField` | Display name text input on the registration form |
 | `/Account/SetDisplayName` | `setDisplayNameField` | Display name text input on the forced setup page |
 | `/Account/SetDisplayName` | `setDisplayNameBtn` | Submit button on the forced setup page |
-| `/dashboard` | `displayNameInput` | Display name text input in the Account Settings section |
-| `/dashboard` | `updateDisplayNameBtn` | "Update Display Name" submit button |
-| `/dashboard` | `displayNameSuccessMessage` | Success banner shown after a display name is updated |
+| `/dashboard/settings` | `displayNameInput` | Display name text input in the Account Settings section |
+| `/dashboard/settings` | `updateDisplayNameBtn` | "Update Display Name" submit button |
+| `/dashboard/settings` | `displayNameSuccessMessage` | Success banner shown after a display name is updated |
 | `/notifications` | `markAllReadForm` | Form wrapping the "Mark All as Read" button; has `d-none` class when no unread notifications exist |
 | `/notifications` | `markAllReadBtn` | "Mark All as Read" submit button |
 | `/notifications` | `deleteAllForm` | Form wrapping the "Delete All" button; has `d-none` class when notification list is empty |
 | `/notifications` | `deleteAllBtn` | "Delete All" submit button |
 | `/notifications` | `notificationsEmptyState` | `div.alert` shown when the user has no notifications |
-| `/dashboard` | `notificationPreferencesLink` | Link button in Account Settings to navigate to notification preferences page |
+| `/dashboard` | `accountSettingsLink` | Link/button to navigate to the Account Settings page |
+| `/dashboard/settings` | `notificationPreferencesLink` | Link button in Account Settings to navigate to notification preferences page |
 | `/dashboard/notification-preferences` | `notificationPreferencesForm` | Form wrapping the per-type delivery dropdowns |
 | `/dashboard/notification-preferences` | `saveNotificationPreferencesBtn` | Save button for notification preferences |
 | `/dashboard/notification-preferences` | `notificationPreferenceSuccess` | Success alert shown after saving preferences |
@@ -344,19 +350,52 @@ The goal is that any developer — human or AI — can pick up the next feature 
 
 ## CI/CD
 
-Two GitHub Actions workflows in `.github/workflows/`:
+Workflows live in `.github/workflows/`. Key workflows:
 
-**`build_test_ci.yml`** (runs on every PR):
-1. `validate-ef` job — checks both DbContexts have no pending migrations
-2. `buildtest` job — restore, build (Release), `dotnet test` all projects, publish WebApp
-3. When called with `deploy: true`: bundles EF migration executables for both contexts and uploads as artifact
+**`pr_deploy_and_merge.yml`** — the primary PR lifecycle workflow (triggered by PR review or push events):
+- Fires when a PR targeting `dev` or `main` receives an **Approved** review (and is not a draft, not behind base, no merge conflicts)
+- Runs the full test suite → publishes → deploys to the matching Azure environment → auto-merges the PR → creates a GitHub Release
+- `dev`-targeted PRs → `azure_staging` environment (prerelease)
+- `main`-targeted PRs → `azure_prod` environment (non-prerelease)
+- Required branch protection status check: `PR Deploy and Auto-Merge / Deploy to Environment`
 
-**`deploy.yml`** (triggered on push to `main` or `dev`):
-- Calls `build_test_ci.yml` with `deploy: true`
-- `main` → production Azure App Service + non-prerelease GitHub Release
-- `dev` → staging Azure App Service + prerelease GitHub Release
-- After deploy: runs EF migration bundles against Azure SQL using OIDC passwordless auth
-- Build versioning: `YYYY.M.<run_number>.<run_attempt>`
+**`deploy.yml`** — manual-only deploy (`workflow_dispatch`):
+- Run from the Actions tab; select `dev` for staging or `main` for prod
+- Same build → publish → deploy → release pipeline as the PR workflow
+- Use when a hotfix or direct deploy is needed outside the PR flow
+
+**`test_suite_complete_run.yml`** — full test suite (`workflow_dispatch` or `workflow_call`):
+- Runs build, unit tests, EF Core validation, integration tests, and acceptance tests
+- Called automatically by `pr_deploy_and_merge.yml` before every deploy
+- Can be triggered manually via the Actions tab for one-off test runs
+
+**`manual_pr_test_run.yml`** — trigger the full test suite against a specific PR (`workflow_dispatch`):
+- Use this to run tests on an unapproved PR (before the approval-triggered pipeline fires)
+- See `docs/manual_pr_test_run.md` for usage instructions and the direct link
+
+**`build.yml`**, **`test_suite_limited_run.yml`**, **`system_tests.yml`**, **`unit_tests.yml`**, **`ef_core_tests.yml`** — reusable sub-workflows called by the workflows above.
+
+Build versioning: `YYYY.M.<run_number>.<run_attempt>`
+
+### Running tests via the CI pipeline (for AI agents)
+
+Tests do **not** run automatically when commits are pushed or PRs are opened. To validate code via the pipeline, an AI agent should use the manual dispatch workflow:
+
+```bash
+# Trigger the full test suite against a specific PR number
+gh workflow run manual_pr_test_run.yml \
+  --repo jmcshane22/MonmouthHoldemCapstone \
+  --ref dev \
+  --field pr_number=<PR_NUMBER>
+```
+
+The triggered run appears under **"Run Complete Test Suite (All Tests)"** in the Actions tab, not under the manual dispatch workflow. **The full suite takes 10+ minutes to complete.** Poll for completion with:
+
+```bash
+# List recent runs of the complete test suite and their conclusions
+gh run list --repo jmcshane22/MonmouthHoldemCapstone \
+  --workflow test_suite_complete_run.yml --limit 5
+```
 
 ---
 
@@ -439,6 +478,151 @@ These users must exist in `WAID_AppDataDb` for acceptance tests to pass. The pas
 The acceptance-specific seed users should be added to `ApplicationDbContextSeeding.SeedDataAsync` gated on an environment check, **or** in a dedicated acceptance-only seeding method called from `TestWebAppHost.StartAsync`. The latter is preferred so production/staging seeding remains unaffected.
 
 `TestWebAppHost.ResetSeedData()` is currently a `NotImplementedException` stub — implementing it to truncate non-badge rows and re-run seed will be required for true scenario isolation once test count grows.
+
+---
+
+## Recent Additions (as of branch `Story/Photo-Quality-CSP122`, April 2026)
+
+This section documents features and infrastructure added after the original CLAUDE.md was written. Items here supplement (do not replace) the sections above — when something here conflicts with an earlier section, the more recent description wins.
+
+### AI Companion (CSP-120) — Gemini integration
+
+A logged-in user can open a chat modal to ask wildlife/safety questions. Replies come from Google's Gemini API with a server-side system prompt that constrains topics to wildlife education and observer safety.
+
+| Piece | Location |
+|---|---|
+| Interface | `src/MH.Capstone.Domain/Services/Abstraction/IAIService.cs` — single method `Task<string> AskAsync(string userQuestion, CancellationToken)` |
+| Implementation | `src/MH.Capstone.Domain/Services/Api/GeminiAIService.cs` — POSTs to `{BaseUrl}/models/{Model}:generateContent?key={ApiKey}` |
+| Options binding | `src/MH.Capstone.Domain/ApiContracts/Gemini/GeminiOptions.cs` — section name `"Gemini"`, fields `ApiKey`, `Model` (default `"gemini-2.5-flash"`), `BaseUrl` (default `"https://generativelanguage.googleapis.com/v1beta/"`); `IsValid` requires all three non-empty |
+| Controller | `src/MH.Capstone.WebApp/Controllers/AICompanionController.cs` — `[Authorize]`, POST `/AICompanion/Ask` accepts `[FromForm] string question` and returns JSON `{ reply }`. Returns 503 with friendly message on API failure |
+| UI | Modal embedded in `Views/Shared/_Layout.cshtml` — no dedicated view directory |
+| DI registration | `Program.cs` — `Configure<GeminiOptions>(...)` + `AddHttpClient<IAIService, GeminiAIService>()`, gated by feature flag `EnableGeminiAIService` |
+| Acceptance | `StepDefinitions/CSP120StepDefinitions.cs` (tag `@ai-companion`) |
+
+#### AI Companion modal element IDs (in `_Layout.cshtml`)
+
+| Element ID | Purpose |
+|---|---|
+| `aiCompanionModal` | Bootstrap modal container |
+| `aiCompanionForm` | Chat form; posts to `/AICompanion/Ask` |
+| `aiCompanionQuestion` | Question text input |
+| `aiCompanionSubmitBtn` | Submit button |
+| `aiCompanionMessages` | Scrollable replies container; reply spans use class `ai-reply` |
+
+The trigger button is rendered only for authenticated users (`data-bs-target='#aiCompanionModal'`).
+
+### Photo Quality (CSP-122) — WIP on this branch
+
+Each `Sighting` row now stores image-quality metadata. Implementation is at the **TDD Red** stage: schema and interfaces are in place, but the analyzer is a placeholder and acceptance steps throw `NotImplementedException`. Do not assume photo quality affects scoring yet — `ScoringService` does **not** read these fields.
+
+| Piece | Notes |
+|---|---|
+| Enum | `PhotoQualityTier` in `MH.Capstone.Domain.DataModels` — `Unknown=0, Low=1, Medium=2, High=3` |
+| Interface | `IPhotoQualityService.AnalyzeAsync(byte[] imageBytes, CancellationToken)` returns `(PhotoQualityTier Tier, double Sharpness, double Luminance, int Width, int Height)` |
+| Implementation | `PhotoQualityService` uses `SixLabors.ImageSharp` (Rgba32). Currently returns `Unknown`/`0.0`/`0.0` plus real width/height — sharpness and luminance logic is **not implemented yet** |
+| Migration | `20260421231908_CSP122_AddPhotoQualityFields` |
+| Acceptance | `StepDefinitions/CSP122StepDefinitions.cs` (tag `@photo-quality`) — every step throws `NotImplementedException` |
+
+Validation thresholds the unit tests assert against (when logic lands): luminance valid range `0.20–0.85`, "high" resolution ≥ 2048 px on the long side.
+
+### Updated `Sighting` columns (beyond what's in the schema table above)
+
+| Column | Type | Source | Notes |
+|---|---|---|---|
+| `PointValue` | int | CSP-109 scoring metadata migration `20260412175159_AddSightingScoringMetadata` | Default 10 — points awarded for this specific sighting |
+| `LoginStreak` | bit | same migration | Captures whether streak was active at submission |
+| `Rarity` | nvarchar | same migration | Default `"Common"` — frozen tier label at submission time |
+| `RarityMultiplier` | float | same migration | Default `1.0` — frozen multiplier at submission time |
+| `QualityTier` | int | CSP-122 migration | Default `0` (Unknown) |
+| `SharpnessScore` | float? | CSP-122 migration | Nullable |
+| `LuminanceAverage` | float? | CSP-122 migration | Nullable |
+| `ResolutionWidth` | int? | CSP-122 migration | Nullable |
+| `ResolutionHeight` | int? | CSP-122 migration | Nullable |
+| `FlaggedForReview` | bit | CSP-122 migration | Default false |
+
+The `Sighting` constructor was extended to accept the CSP-109 scoring fields, and `SightingCardViewModel` now surfaces them for gallery display.
+
+`20260414223118_FixSightingUserIdType` corrected the `Sighting.UserId` FK column type — relevant if you regenerate a migration that touches that column.
+
+### Validation: `NotDefaultCoordinatesAttribute`
+
+`src/MH.Capstone.Domain/Tools/NotDefaultCoordinatesAttribute.cs` — class-level `ValidationAttribute` that fails when both Latitude and Longitude are exactly `0.0`. Default property names are `"Latitude"`/`"Longitude"`; override via `LatitudePropertyName`/`LongitudePropertyName`. Applied to `SightingUploadViewModel`. Error: `"Latitude and Longitude cannot both be 0. Please enter valid coordinates."`
+
+### `IAuthenticationService` — new methods
+
+Added for the CSP-133/CSP-134 email-confirmation flow:
+
+- `Task<string?> GenerateEmailConfirmationTokenAsync(string email)`
+- `Task<bool> ConfirmEmailAsync(string email, string token)`
+
+(`ResendVerificationViewModel` exposes `Email` + `EmailSent` for the resend page.)
+
+### `SightingUploadViewModel` — timezone handling
+
+Now carries `DeviceTimezone` (default `"America/Los_Angeles"`). `ToDataModel()` converts the user-entered local timestamp to UTC using this value before persisting. Tests/seeds that build sightings via the view model must populate this field.
+
+### Feature flags — additions
+
+Beyond `UseRealEmailerService` and `EnableEmailTestEndpoint`:
+
+- `EnableGeminiAIService` — when `true`, registers `GeminiAIService` against `IAIService`; when `false`, AI Companion calls fail at the controller (no DI registration)
+- `ExposeDetailedApiCacheOnUi` — defined in config; no usage wired up yet
+
+### CI/CD — workflows have been split
+
+CLAUDE.md's earlier description of `build_test_ci.yml` + `deploy.yml` is **out of date**. Current `.github/workflows/`:
+
+| Workflow | Role |
+|---|---|
+| `build.yml` | Reusable: restore, build (Release), publish artifacts |
+| `unit_tests.yml` | Reusable: run unit-test projects only |
+| `ef_core_tests.yml` | Reusable: validate both DbContexts have no pending migrations |
+| `system_tests.yml` | Reusable: integration + Selenium acceptance tests (uses Azure OIDC, environment `system_testing`) |
+| `test_suite_complete_run.yml` | Orchestrates unit + EF + system; the "full PR gate" |
+| `test_suite_limited_run.yml` | Lightweight: unit + EF only, no system tests |
+| `deploy.yml` | Calls `build.yml` + `test_suite_complete_run.yml`, then deploys + runs EF migrations against Azure SQL via OIDC |
+
+Build versioning convention (`YYYY.M.<run_number>.<run_attempt>`) and the `main`→prod / `dev`→staging split still hold.
+
+### Acceptance test infrastructure — additions
+
+#### `AcceptanceTestSeeder` personas (referenced by step definitions on this branch)
+
+Personas in `src/MH.Capstone.Tests.Acceptance/Seeding/AcceptanceTestSeeder.cs` use **fixed GUIDs** (so FKs survive re-seeds) and password `Capstone26!`. All have `EmailConfirmed = true`.
+
+| Persona | Notes |
+|---|---|
+| Alex | GUID `aaaaaaaa-...` — primary "logged-in user" persona for newer scenarios |
+| Patricia | GUID `bbbbbbbb-...` |
+| Lily | GUID `cccccccc-...` |
+| James | Unauthenticated visitor — no DB account |
+
+Older scenarios (CSP-53 etc.) still use the original `alpha@test.com` / `alice@test.com` / `bob@test.com` / `newuser@test.com` / `admin@test.com` personas documented earlier. Both sets coexist.
+
+#### New Driver / PageObject — Wildlife Search
+
+`WildlifeSearchDriver` + `WildlifeSearchPageObject` exercise `/Species/Search`. Element IDs in `Views/Species/Search.cshtml`:
+
+| Element ID | Purpose |
+|---|---|
+| `nameInput` | Search text input |
+| `clearBtn` | Clear search button |
+| `searchForm` | Search form |
+| `searchStatus` | aria-live status / error message region |
+| `resultCard` | Result display container |
+| `resultCounter` | "X of Y" pagination counter |
+| `prevBtn` | Previous result button |
+| `nextBtn` | Next result button |
+
+Drivers must be registered as `services.AddTransient<TDriver>()` in `TestDependencySetup.CreateServices()` — Reqnroll does not auto-discover them. `WildlifeSearchDriver` is already registered.
+
+### Tests directories on disk (sanity)
+
+```
+src/MH.Capstone.Domain.Tests.Unit/Services/Api/        # GeminiAIServiceTests, ExternalApiCallerTests
+src/MH.Capstone.Domain.Tests.Unit/Tools/               # NotDefaultCoordinatesAttributeTests
+src/MH.Capstone.Tests.Acceptance/Seeding/              # AcceptanceTestSeeder
+```
 
 ---
 

@@ -107,7 +107,7 @@ namespace MH.Capstone.Domain.DataAccess
             if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword))
             {
                 var normalizedEmail = adminEmail.ToUpper();
-                var adminUser = await context.Users.FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail);
+                var adminUser = await context.Users.FirstOrDefaultAsync(u => u.NormalizedUserName == normalizedEmail);
                 if (adminUser == null)
                 {
                     adminUser = new ApplicationUser
@@ -115,6 +115,7 @@ namespace MH.Capstone.Domain.DataAccess
                         UserName = adminEmail,
                         NormalizedUserName = normalizedEmail,
                         Email = adminEmail,
+                        NormalizedEmail = normalizedEmail,
                         EmailConfirmed = true,
                         DisplayName = "Admin"
                     };

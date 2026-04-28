@@ -1,0 +1,131 @@
+# WARNING: This workflow/action can only be run on the main repo (jmcshane22/MonmouthHoldemCapstone)
+# Fires when the complete test suite finishes on a ci/*-trigger-* branch.
+# Updates the PR commit status, replaces the pending comment with the result,
+# and — for label-triggered runs (ci/label-trigger-*) — submits an approving
+# or request-changes review on behalf of the Actions bot.
+name: PR Test Result Notifier
+
+on:
+  workflow_run:
+    workflows: ["Run Complete Test Suite (All Tests)"]
+    types: [completed]
+
+permissions:
+  statuses: write       # Post final commit status to the PR head SHA
+  issues: write         # Update the PR comment posted by the dispatch step
+  pull-requests: write  # Submit approving / request-changes review (label-triggered runs)
+
+jobs:
+  notify:
+    name: Post Test Result to PR
+    if: >
+      github.repository == 'jmcshane22/MonmouthHoldemCapstone' &&
+      (startsWith(github.event.workflow_run.head_branch, 'ci/pr-trigger-') ||
+       startsWith(github.event.workflow_run.head_branch, 'ci/label-trigger-'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update PR commit status, comment, and review
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const branch = context.payload.workflow_run.head_branch;
+
+            const manualMatch = branch.match(/^ci\/pr-trigger-(\d+)$/);
+            const labelMatch  = branch.match(/^ci\/label-trigger-(\d+)$/);
+
+            const match = manualMatch || labelMatch;
+            if (!match) {
+              core.info('Branch does not match a known ci trigger pattern — skipping');
+              return;
+            }
+
+            const prNumber    = parseInt(match[1]);
+            const shouldReview = !!labelMatch;   // only post a review for label-triggered runs
+            const statusContext = labelMatch ? 'CI Label Review' : 'Manual Test Suite';
+
+            const run        = context.payload.workflow_run;
+            const conclusion = run.conclusion;   // 'success', 'failure', 'cancelled', etc.
+            const runUrl     = run.html_url;
+            const sha        = run.head_sha;
+
+            const isSuccess  = conclusion === 'success';
+            const icon       = isSuccess ? '✅' : '❌';
+            const statusState = isSuccess ? 'success' : 'failure';
+            const statusDesc  = isSuccess ? 'All tests passed' : `Tests ${conclusion}`;
+
+            // Resolve the commit status
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha,
+              state: statusState,
+              context: statusContext,
+              description: statusDesc,
+              target_url: runUrl
+            });
+            core.info(`Posted commit status '${statusState}' on context '${statusContext}' for ${sha}`);
+
+            // Find and update the pending comment (identified by the hidden marker)
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              per_page: 100
+            });
+
+            const triggerComment = comments
+              .reverse()
+              .find(c =>
+                c.user.login === 'github-actions[bot]' &&
+                c.body.includes('<!-- ci-run-comment -->')
+              );
+
+            const label = labelMatch ? 'CI Test Suite' : 'Manual Test Suite';
+            const resultBody = [
+              '<!-- ci-run-comment -->',
+              `## ${icon} ${label} ${isSuccess ? 'Passed' : 'Failed'}`,
+              '',
+              `**[View Run →](${runUrl})**`,
+              '',
+              `Conclusion: \`${conclusion}\``
+            ].join('\n');
+
+            if (triggerComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: triggerComment.id,
+                body: resultBody
+              });
+              core.info(`Updated comment ${triggerComment.id} on PR #${prNumber}`);
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: resultBody
+              });
+              core.info(`Posted new result comment on PR #${prNumber}`);
+            }
+
+            // Submit an approving or request-changes review for label-triggered runs
+            if (shouldReview) {
+              const reviewEvent = isSuccess ? 'APPROVE' : 'REQUEST_CHANGES';
+              const reviewBody  = isSuccess
+                ? '✅ All tests passed. Approving on behalf of CI.'
+                : `❌ Tests ${conclusion}. Please review the [run](${runUrl}) and fix all failures before merging.`;
+              try {
+                await github.rest.pulls.createReview({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: prNumber,
+                  commit_id: sha,
+                  event: reviewEvent,
+                  body: reviewBody
+                });
+                core.info(`Submitted '${reviewEvent}' review on PR #${prNumber}`);
+              } catch (err) {
+                core.warning(`Could not submit review: ${err.message}`);
+              }
+            }

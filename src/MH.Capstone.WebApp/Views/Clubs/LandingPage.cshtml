@@ -1,0 +1,199 @@
+@model ClubListViewModel
+@{
+    ViewData["Title"] = "Clubs";
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-body">
+            <h1 class="card-title">
+                <i class="bi bi-people-fill"></i> Clubs
+            </h1>
+            <hr />
+
+            @* Pending Invites section *@
+            @if (Model.HasPendingInvites)
+            {
+                <div class="mb-4">
+                    <h5 class="mb-3"><i class="bi bi-envelope-fill text-primary"></i> Pending Invites</h5>
+                    <div class="d-flex flex-column gap-2">
+                        @foreach (var club in Model.PendingInvites)
+                        {
+                            <div class="card border-primary" id="pendingInvite_@club.Id">
+                                <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-2 py-2">
+                                    <div>
+                                        <strong>@club.Name</strong>
+                                        @if (!string.IsNullOrWhiteSpace(club.Description))
+                                        {
+                                            <span class="text-muted small ms-2">— @club.Description</span>
+                                        }
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <form asp-action="AcceptInvite" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="clubId" value="@club.Id" />
+                                            <button type="submit" class="btn btn-sm btn-success">
+                                                <i class="bi bi-check-lg"></i> Accept
+                                            </button>
+                                        </form>
+                                        <form asp-action="DeclineInvite" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="clubId" value="@club.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-x-lg"></i> Decline
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <hr />
+                </div>
+            }
+
+            @* Filter Controls — CSP-124 *@
+            <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+                <div class="btn-group" role="group" aria-label="Clubs filter">
+                    <button id="filterAll" type="button" class="btn btn-primary active">
+                        <i class="bi bi-globe"></i> All Public Clubs
+                    </button>
+                    <button id="filterMine" type="button" class="btn btn-outline-primary">
+                        <i class="bi bi-person-fill"></i> My Clubs
+                    </button>
+                </div>
+                <span id="clubCountLabel" class="text-muted small"></span>
+            </div>
+
+            @* Public Clubs empty state — shown when DB has no public Clubs at all *@
+            @if (!Model.HasPublicClubs)
+            {
+                <div id="emptyStateAll" class="text-center py-5">
+                    <i class="bi bi-people display-1 text-muted mb-3"></i>
+                    <h3 class="text-muted">No Clubs Yet...</h3>
+                    <p class="lead text-muted mb-4">
+                        Find and join clubs to connect with other wildlife enthusiasts.
+                    </p>
+                </div>
+            }
+
+            @* My Clubs empty state — shown by JS when filter is "mine" and user has no clubs *@
+            <div id="emptyStateMine" class="text-center py-5" style="display:none">
+                <i class="bi bi-people display-1 text-muted mb-3"></i>
+                <h3 class="text-muted">You haven't joined any Clubs</h3>
+                <p class="lead text-muted mb-4">
+                    Create a club or join an existing one to get started!
+                </p>
+            </div>
+
+            @* Club cards grid *@
+            @{
+                var userClubIds = Model.UserClubs.Select(uc => uc.Id).ToHashSet();
+                var privateUserClubs = Model.UserClubs.Where(uc => !uc.IsPublic).ToList();
+            }
+            @if (Model.HasPublicClubs || Model.HasPersonalClubs)
+            {
+                <div id="clubsGrid" class="row g-4">
+                    @foreach (var club in Model.PublicClubs)
+                    {
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 club-card-wrapper"
+                             data-user-id="@club.OwnerIdentityId"
+                             data-is-public="true"
+                             data-is-member="@(userClubIds.Contains(club.Id) ? "true" : "false")">
+                            <div class="card h-100 shadow-sm club-card">
+                                <div class="card-body d-flex flex-column">
+                                    <h5 class="card-title">@club.Name</h5>
+                                    <p class="card-text text-muted small flex-grow-1">@club.Description</p>
+                                    <a asp-action="ClubPage" asp-route-id="@club.Id"
+                                       class="btn btn-outline-primary btn-sm mt-2 align-self-start">
+                                        View Club
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    @foreach (var club in privateUserClubs)
+                    {
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 club-card-wrapper"
+                             data-user-id="@club.OwnerIdentityId"
+                             data-is-public="false"
+                             data-is-member="true">
+                            <div class="card h-100 shadow-sm club-card">
+                                <div class="card-body d-flex flex-column">
+                                    <h5 class="card-title">@club.Name</h5>
+                                    <p class="card-text text-muted small flex-grow-1">@club.Description</p>
+                                    <a asp-action="ClubPage" asp-route-id="@club.Id"
+                                       class="btn btn-outline-primary btn-sm mt-2 align-self-start">
+                                        View Club
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+            <div class="row g2">
+                <div class="mt-4 mb-4">
+                    <button type="button" class="btn btn-primary btn-lg" onclick="showClubModal()">
+                        <i class="bi bi-people-fill"></i> Create your own Club
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@* New Club input modal (hidden initially) *@
+<div class="modal fade" id="newClubModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title">Create a new Club</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-controller="Clubs" asp-action="CreateClub" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="modalClubName" class="form-label">Name</label>
+                        <input type="text" id="modalClubName" name="name" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <textarea id="descInput" name="description" class="form-control" rows="6" maxlength="250" placeholder="Tell us about your Club..."></textarea>
+                        <div class="form-text">Club description should be 250 characters or less.</div>
+                        <span id="charCount" class="form-text">0/250</span>
+                        <div id="descErrorMsg" class="text-danger fw-bold small mt-1" style="display:none;"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Visibility</label>
+                        <div class="btn-group w-100" role="group" aria-label="Club visibility">
+                            <input type="radio" class="btn-check" name="isPublic" id="radioPublic" value="true" autocomplete="off" checked />
+                            <label class="btn btn-outline-primary" for="radioPublic">
+                                <i class="bi bi-globe"></i> Public
+                            </label>
+                            <input type="radio" class="btn-check" name="isPublic" id="radioPrivate" value="false" autocomplete="off" />
+                            <label class="btn btn-outline-secondary" for="radioPrivate">
+                                <i class="bi bi-lock-fill"></i> Private
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="confirmAuthBtn">Create Club</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@* Hidden element carrying the current user's ID for client-side filtering *@
+<span id="currentUserId" data-user-id="@Model.CurrentUserId" style="display:none"></span>
+
+@* Club modal + Club filter + sessionStorage persistence *@
+@section Scripts {
+    @* Include the external JS file *@
+    <script src="~/js/clubGlobalPage.js"></script>
+}
