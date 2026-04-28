@@ -60,7 +60,11 @@ namespace MH.Capstone.WebApp.Controllers
             if (!club.IsPublic && !isMember)
                 return Forbid();
 
-            return View("ClubPage", new ClubPageViewModel(club, isOwner, isMember));
+            var members = (await _clubService.GetClubMembershipsAsync(id))
+                .Where(m => m.AcceptedInvite)
+                .ToList();
+
+            return View("ClubPage", new ClubPageViewModel(club, members, isOwner, isMember));
         }
 
         [HttpGet]

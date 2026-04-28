@@ -82,6 +82,12 @@
                     </button>
                 }
 
+                <button type="button" class="btn btn-outline-secondary"
+                        data-bs-toggle="modal" data-bs-target="#membersModal"
+                        id="viewMembersBtn">
+                    <i class="bi bi-people-fill"></i> Members (@Model.ClubMembers.Count)
+                </button>
+
                 <a asp-action="Index" class="btn btn-outline-secondary">
                     <i class="bi bi-arrow-left"></i> Back to Clubs
                 </a>
@@ -162,6 +168,49 @@
         </div>
     </div>
 }
+
+@* Members list modal — visible to all page visitors *@
+<div class="modal fade" id="membersModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-people-fill"></i> Members
+                </h5>
+                <button type="button" class="btn-close btn-close-white"
+                        data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                @if (!Model.ClubMembers.Any())
+                {
+                    <p class="text-muted text-center py-4 mb-0">No members yet.</p>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var m in Model.ClubMembers)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-person-fill me-1 text-secondary"></i>
+                                    @m.Member?.DisplayName
+                                    @if (m.MemberId == Model.Club.OwnerId)
+                                    {
+                                        <span class="badge bg-warning text-dark ms-1">Owner</span>
+                                    }
+                                </div>
+                                <span class="text-muted small">Joined @m.JoinedAt.ToString("MMM d, yyyy")</span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @if (Model.IsCurrentUserMember)
 {
