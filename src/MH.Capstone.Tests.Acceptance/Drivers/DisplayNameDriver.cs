@@ -37,12 +37,23 @@ public class DisplayNameDriver
         field.Clear();
         field.SendKeys(displayName);
         _wait.Until(d => d.FindElement(By.Id("setDisplayNameBtn"))).Click();
+
+        // Wait for navigation + for the nav display name to be populated to avoid
+        // subsequent race conditions where the page is ready but the nav hasn't updated.
         _wait.Until(d =>
         {
             try
             {
                 var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
-                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+                if (!string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase))
+                    return false;
+
+                var js = d as IJavaScriptExecutor;
+                var t = js?.ExecuteScript(
+                    "var el = document.getElementById('navDisplayNameText'); if (!el) return null; var s = el.textContent || ''; return s.trim().length > 0 ? s.trim() : null;"
+                )?.ToString();
+
+                return !string.IsNullOrWhiteSpace(t);
             }
             catch { return false; }
         });
@@ -91,12 +102,22 @@ public class DisplayNameDriver
         // Use JS click to avoid stale-element reference from RobustWebElement's TagName diagnostic.
         var btn = _wait.Until(d => d.FindElement(By.Id("updateDisplayNameBtn")));
         ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", btn);
+
+        // Wait for the page to be ready and for the nav display name to reflect the change.
         _wait.Until(d =>
         {
             try
             {
                 var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
-                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+                if (!string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase))
+                    return false;
+
+                var js = d as IJavaScriptExecutor;
+                var t = js?.ExecuteScript(
+                    "var el = document.getElementById('navDisplayNameText'); if (!el) return null; var s = el.textContent || ''; return s.trim().length > 0 ? s.trim() : null;"
+                )?.ToString();
+
+                return !string.IsNullOrWhiteSpace(t);
             }
             catch { return false; }
         });
@@ -107,20 +128,32 @@ public class DisplayNameDriver
     {
         try
         {
-            // Wait until the nav display name element is present and contains non-empty text
+            // Use JavaScript to read the span's textContent. This avoids stale-element
+            // exceptions and ensures we get the trimmed text even if the DOM is
+            // briefly re-rendered by client-side scripts.
             var text = _wait.Until(d =>
             {
-                var els = d.FindElements(By.Id("navDisplayNameText"));
-                if (els.Count == 0) return null;
-                var t = els[0].Text?.Trim() ?? string.Empty;
-                return t.Length > 0 ? t : null;
+                try
+                {
+                    var js = d as IJavaScriptExecutor;
+                    var t = js?.ExecuteScript(
+                        "var el = document.getElementById('navDisplayNameText'); if (!el) return null; var s = el.textContent || ''; return s.trim().length > 0 ? s.trim() : null;"
+                    )?.ToString();
+
+                    return !string.IsNullOrWhiteSpace(t) ? t : null;
+                }
+                catch
+                {
+                    // If any transient JS error or stale reference occurs, continue waiting
+                    return null;
+                }
             });
 
             return text ?? string.Empty;
         }
         catch
         {
-            TestContext.Out.WriteLine($"[{nameof(GetDisplayedDisplayName)}] FindElements(By.Id('navDisplayNameText')) Failed or text empty.");
+            TestContext.Out.WriteLine($"[{nameof(GetDisplayedDisplayName)}] JS read of navDisplayNameText failed or text empty.");
             return string.Empty;
         }
     }
