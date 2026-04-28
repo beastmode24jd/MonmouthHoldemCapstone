@@ -13,6 +13,7 @@ on:
 permissions:
   contents: read
   actions: write
+  pull-requests: read
 
 jobs:
   check_conditions:
@@ -80,11 +81,13 @@ jobs:
   test:
     name: Full Test Suite
     needs: check_conditions
-    permissions:
-      id-token: write
     if: needs.check_conditions.outputs.should_deploy == 'true'
     uses: ./.github/workflows/test_suite_complete_run.yml
     secrets: inherit
+    permissions:
+      contents: read
+      actions: write
+      id-token: write
 
   publish:
     name: Publish
