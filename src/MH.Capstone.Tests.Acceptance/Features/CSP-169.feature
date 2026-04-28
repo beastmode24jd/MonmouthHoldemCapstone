@@ -8,7 +8,7 @@ Scenario: User views notification preferences page
     Given Alex is logged in
     When Alex navigates to the notification preferences page
     Then the notification preferences form is displayed
-    And the System/Account Critical Notifications type is not visible
+    And the System Critical Notifications type is not visible
 
 @csp169
 Scenario: User sets a notification type to Silence and saves
