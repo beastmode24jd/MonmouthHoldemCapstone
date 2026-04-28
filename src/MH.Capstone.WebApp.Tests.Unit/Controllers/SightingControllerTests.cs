@@ -198,6 +198,7 @@ public class SightingControllerTests
             Latitude = 44.85m,
             Longitude = -123.23m,
             Description = "Owl",
+            SpeciesName = "Great Horned Owl",
             Timestamp = DateTimeOffset.UtcNow.AddHours(-1),
             UploadedImage = formFile,
             DeviceTimezone = "America/Los_Angeles"

@@ -42,6 +42,23 @@
         </div>
     </div>
     
+    @* CSP-142: Species input. Required for Anidex grouping.
+       Auto-filled by sighting-upload.js when the AI returns a confident match. *@
+    <div class="row mb-md-3 mb-2">
+        <div class="form-group col-12">
+            <label asp-for="SpeciesName"></label>
+            <input asp-for="SpeciesName"
+                   class="form-control"
+                   id="SpeciesName"
+                   placeholder="e.g. Great Horned Owl"
+                   maxlength="100" />
+            <small class="form-text text-muted">
+                Don't know? Upload your photo first, then click <em>Identify with AI</em> below.
+            </small>
+            <span asp-validation-for="SpeciesName" class="text-danger"></span>
+        </div>
+    </div>
+
     <div class="row mb-md-3 mb-2">
         <div class="form-group col-lg-8 col-12">
             <label asp-for="Description"></label>

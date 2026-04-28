@@ -153,6 +153,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const aiErrorToast = document.getElementById("aiErrorToast");
     const aiErrorMessage = document.getElementById("aiErrorMessage");
     const descriptionInput = document.getElementById("Description");
+    const speciesNameInput = document.getElementById("SpeciesName"); // CSP-142
 
     function hideAllAiStatuses() {
         aiSuggestionBadge.classList.add("d-none");
@@ -207,6 +208,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     aiSuggestionBadge.classList.remove("d-none");
                     if (descriptionInput && data.description) {
                         descriptionInput.value = data.description;
+                    }
+                    // CSP-142: only auto-fill species when the field is still blank,
+                    // so a user who already typed a name doesn't get overwritten.
+                    if (speciesNameInput && data.species && !speciesNameInput.value.trim()) {
+                        speciesNameInput.value = data.species;
                     }
                 } else {
                     aiNotIdentifiedMessage.classList.remove("d-none");
