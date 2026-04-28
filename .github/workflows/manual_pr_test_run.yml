@@ -12,8 +12,10 @@ on:
         type: number
 
 permissions:
-  contents: write  # Required to create and delete the temporary trigger branch
-  pull-requests: read  # Required to read PR head SHA
+  contents: write       # Required to create and delete the temporary trigger branch
+  pull-requests: read   # Required to read PR head SHA
+  statuses: write       # Required to post pending/result commit status
+  issues: write         # Required to post and update PR comments
 
 jobs:
   trigger-tests:
@@ -58,13 +60,51 @@ jobs:
           # GITHUB_TOKEN cannot trigger other workflow runs; a PAT is required.
           GH_TOKEN: ${{ secrets.WORKFLOW_DISPATCH_PAT }}
 
+      - name: Find dispatched run and notify PR
+        run: |
+          # Poll up to 30s for the dispatched run to register in the API
+          run_url=""
+          for i in {1..6}; do
+            run_url=$(gh api \
+              "repos/${{ github.repository }}/actions/workflows/test_suite_complete_run.yml/runs?branch=ci/pr-trigger-${{ inputs.pr_number }}&per_page=1" \
+              --jq '.workflow_runs[0].html_url // empty' 2>/dev/null)
+            [ -n "$run_url" ] && break
+            sleep 5
+          done
+
+          if [ -z "$run_url" ]; then
+            echo "::warning::Could not locate dispatched run within 30s — skipping PR notification"
+            exit 0
+          fi
+
+          # Post a pending commit status so the run appears in the PR checks area
+          gh api "repos/${{ github.repository }}/statuses/${{ steps.pr.outputs.sha }}" \
+            --method POST \
+            -f state=pending \
+            -f context="Manual Test Suite" \
+            -f description="Full test suite is running..." \
+            -f target_url="$run_url"
+
+          # Post a PR comment with a direct link to the run
+          gh api "repos/${{ github.repository }}/issues/${{ inputs.pr_number }}/comments" \
+            --method POST \
+            -f body="## 🧪 Manual Test Suite Triggered
+
+A full test suite run has been dispatched for this PR.
+
+**[View Run →]($run_url)**
+
+_This comment will be updated with the result when the run completes._"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       # The triggered workflow binds to the SHA immediately on queue, so the branch
-      # can be safely removed once the run appears. The 20-second wait covers the
-      # typical GitHub Actions queue latency before the run is registered.
+      # can be safely removed once the run appears. The 5-second wait covers any
+      # remaining queue latency after the notification step already waited up to 30s.
       - name: Clean up temporary trigger branch
         if: always()
         run: |
-          sleep 20
+          sleep 5
           gh api "repos/${{ github.repository }}/git/refs/heads/ci/pr-trigger-${{ inputs.pr_number }}" \
             --method DELETE 2>/dev/null || true
         env:
