@@ -481,224 +481,148 @@ The acceptance-specific seed users should be added to `ApplicationDbContextSeedi
 
 ---
 
-## Clubs Feature (Sprint 4 — in progress)
+## Recent Additions (as of branch `Story/Photo-Quality-CSP122`, April 2026)
 
-### Overview
+This section documents features and infrastructure added after the original CLAUDE.md was written. Items here supplement (do not replace) the sections above — when something here conflicts with an earlier section, the more recent description wins.
 
-Clubs are groups users can create and join. A club can be **public** (visible to all authenticated users) or **private** (visible only to members). The owner is automatically enrolled as the first member on creation. Each club has a chatroom (`Message` table) for member communication.
+### AI Companion (CSP-120) — Gemini integration
 
-> **IMPORTANT:** `ClubService` has a pending constraint: deleting a user will throw if they still have club memberships or messages. Any future user-deletion logic must clean up `ClubMembership` and `Message` rows first.
+A logged-in user can open a chat modal to ask wildlife/safety questions. Replies come from Google's Gemini API with a server-side system prompt that constrains topics to wildlife education and observer safety.
 
----
-
-### New Entities
-
-All in `src/MH.Capstone.Domain/DataModels/`:
-
-#### `Club` (table: `Club`)
-
-| Column | Type | Constraints |
-|---|---|---|
-| `Id` | uniqueidentifier | PK, identity |
-| `Name` | nvarchar(100) | required, 1–100 chars |
-| `IsPublic` | bit | required; `false` = private |
-| `Description` | nvarchar(250) | nullable |
-| `CreatedAt` | datetimeoffset | required |
-| `OwnerId` | nvarchar(450) | FK → AspNetUsers; mapped column for `OwnerIdentityId` |
-
-Nav properties: `Owner` (ApplicationUser), `Memberships` (List\<ClubMembership\>), `Messages` (List\<Message\>).
-
-`OwnerId` / `OwnerIdentityId` pattern: `OwnerId` is a `[NotMapped]` `Guid` convenience property; `OwnerIdentityId` is the actual `string` column (same pattern as `ApplicationUser.GuidId`).
-
-Constructors: `Club()` (default) and `Club(Guid ownerId, string name, string? description, DateTimeOffset createdAt)`.
-
-#### `ClubMembership` (table: `ClubMembership`)
-
-| Column | Type | Constraints |
-|---|---|---|
-| `Id` | uniqueidentifier | PK, identity |
-| `MemberId` | nvarchar(450) | FK → AspNetUsers |
-| `ClubId` | uniqueidentifier | FK → Club |
-| `JoinedAt` | datetimeoffset | required |
-
-`MemberId` / `MemberIdentityId` follow the same `[NotMapped]` Guid / mapped string column pattern as `Club.OwnerId`.
-
-Constructors: `ClubMembership()` (default) and `ClubMembership(Guid memberId, Guid clubId, DateTimeOffset joinedAt)`.
-
-#### `Message` (table: `Message`)
-
-| Column | Type | Constraints |
-|---|---|---|
-| `Id` | uniqueidentifier | PK, identity |
-| `ClubId` | uniqueidentifier | FK → Club |
-| `AuthorId` | nvarchar(450) | FK → AspNetUsers |
-| `Content` | nvarchar(2000) | required, 1–2000 chars |
-| `SentAt` | datetimeoffset | required |
-
-`AuthorId` / `AuthorIdentityId` follow the same pattern.
-
-Constructors: `Message()` (default) and `Message(Guid clubId, Guid authorId, string content, DateTimeOffset sentAt)`.
-
-**Migration:** `20260425000357_AddClubsAndMessageTables`
-
----
-
-### Service
-
-`IClubService` / `ClubService` — `src/MH.Capstone.Domain/Services/`
-
-| Method | Behaviour |
+| Piece | Location |
 |---|---|
-| `GetPublicClubsAsync()` | Returns all clubs where `IsPublic = true` |
-| `GetUserClubsAsync(Guid userId)` | Returns clubs where the user has an **accepted** `ClubMembership` (`AcceptedInvite = true`), sorted by `Name` |
-| `GetPendingInvitesAsync(Guid userId)` | Returns clubs where the user has a **pending** membership (`AcceptedInvite = false`) |
-| `GetClubMembershipsAsync(Guid clubId)` | Returns all membership rows (accepted + pending) for a club; used by `SearchUsers` to exclude existing members |
-| `GetClubByIdAsync(Guid id)` | Eagerly loads all clubs with `Owner` included via `GetAllAsync(c => c.Owner)`, then returns the first matching `Id`. Returns `null` if not found. |
-| `CreateClubAsync(Club club)` | Saves the club, then auto-enrolls the owner as the first accepted `ClubMembership`; throws `ArgumentNullException` on null |
-| `SendInviteAsync(Club club, Guid senderId, Guid receiverId)` | Validates sender is an accepted member and receiver has no existing row, then creates a `ClubMembership` with `AcceptedInvite = false`; throws `InvalidOperationException` on violation |
-| `AcceptInviteAsync(Guid clubId, Guid userId)` | Finds the pending membership row, flips `AcceptedInvite = true`, saves; throws `InvalidOperationException` if no pending invite exists |
-| `DeclineInviteAsync(Guid clubId, Guid userId)` | Finds and deletes the pending membership row; throws `InvalidOperationException` if no pending invite exists |
-| `LeaveClubAsync(Guid clubId, Guid userId)` | Deletes the accepted membership row; throws `InvalidOperationException` if user is the owner or is not a member |
-| `SendMessageAsync(Guid clubId, Guid senderId, string content)` | Saves a new `Message` row via the message repo; throws `ArgumentException` if content is empty/whitespace |
-| `GetClubMessagesAsync(Guid clubId)` | Returns all messages for a club ordered oldest-first (`SentAt ASC`) with `Author` nav property eagerly loaded |
+| Interface | `src/MH.Capstone.Domain/Services/Abstraction/IAIService.cs` — single method `Task<string> AskAsync(string userQuestion, CancellationToken)` |
+| Implementation | `src/MH.Capstone.Domain/Services/Api/GeminiAIService.cs` — POSTs to `{BaseUrl}/models/{Model}:generateContent?key={ApiKey}` |
+| Options binding | `src/MH.Capstone.Domain/ApiContracts/Gemini/GeminiOptions.cs` — section name `"Gemini"`, fields `ApiKey`, `Model` (default `"gemini-2.5-flash"`), `BaseUrl` (default `"https://generativelanguage.googleapis.com/v1beta/"`); `IsValid` requires all three non-empty |
+| Controller | `src/MH.Capstone.WebApp/Controllers/AICompanionController.cs` — `[Authorize]`, POST `/AICompanion/Ask` accepts `[FromForm] string question` and returns JSON `{ reply }`. Returns 503 with friendly message on API failure |
+| UI | Modal embedded in `Views/Shared/_Layout.cshtml` — no dedicated view directory |
+| DI registration | `Program.cs` — `Configure<GeminiOptions>(...)` + `AddHttpClient<IAIService, GeminiAIService>()`, gated by feature flag `EnableGeminiAIService` |
+| Acceptance | `StepDefinitions/CSP120StepDefinitions.cs` (tag `@ai-companion`) |
 
----
-
-### Controller
-
-`ClubsController` (`[Authorize]`) — `src/MH.Capstone.WebApp/Controllers/ClubsController.cs`
-
-Injects: `IClubService`, `UserManager<ApplicationUser>`, `INotificationService`, `ILogger<ClubsController>`.
-
-| Action | Route | Status |
-|---|---|---|
-| `Index()` | `GET /Clubs` | **Done** — loads `ClubListViewModel` (public clubs + user clubs + pending invites), renders `LandingPage` view |
-| `ClubPage(Guid id)` | `GET /Clubs/ClubPage/{id}` | **Done** — fetches club via `GetClubByIdAsync` (Owner eagerly loaded); checks membership via `GetUserClubsAsync`; returns 404 if club not found, 403 if private and non-member; renders `ClubPage` view with `ClubPageViewModel` |
-| `Chatroom(Guid id)` | `GET /Clubs/Chatroom/{id}` | **Done** — loads club + messages via `GetClubMessagesAsync`; enforces private-club access; passes `ClubMessageViewModel` |
-| `SendMessage(Guid clubId, string content)` | `POST /Clubs/SendMessage` | **Done** — calls `SendMessageAsync`; sets `TempData["MessageError"]` on empty content; redirects to `Chatroom` |
-| `CreateClub(string name, string? description, bool isPublic)` | `POST /Clubs/CreateClub` | **Done** — saves club via `CreateClubAsync`; sends `ClubActivity` in-app notification to the owner; redirects to `GET /Clubs/ClubPage/{id}` |
-| `SearchUsers(Guid clubId, string query)` | `GET /Clubs/SearchUsers` | **Done** — returns JSON `[{id, displayName}]` of up to 10 users matching query; excludes current club members (accepted + pending) and users with `DisplayName == "UNSET"` |
-| `SendInvite(Guid clubId, string receiverId)` | `POST /Clubs/SendInvite` | **Done** — calls `SendInviteAsync`; sends `ClubActivity` notification to the invitee; sets `TempData["InviteSuccess"/"InviteError"]`; redirects to `ClubPage` |
-| `AcceptInvite(Guid clubId)` | `POST /Clubs/AcceptInvite` | **Done** — calls `AcceptInviteAsync`; redirects to `ClubPage` on success, `Index` on failure |
-| `DeclineInvite(Guid clubId)` | `POST /Clubs/DeclineInvite` | **Done** — calls `DeclineInviteAsync`; always redirects to `Index` |
-| `LeaveClub(Guid clubId)` | `POST /Clubs/LeaveClub` | **Done** — calls `LeaveClubAsync`; redirects to `Index` on success; sets `TempData["LeaveError"]` and redirects to `ClubPage` on failure (e.g. owner trying to leave) |
-
----
-
-### ViewModels
-
-`ClubListViewModel` — `src/MH.Capstone.WebApp/Models/ClubListViewModel.cs`
-
-| Property | Type | Notes |
-|---|---|---|
-| `PublicClubs` | `List<Club>` | All public clubs |
-| `UserClubs` | `List<Club>` | Clubs the current user has an accepted membership for |
-| `PendingInvites` | `List<Club>` | Clubs where the user has a pending (unaccepted) invite |
-| `CurrentUserId` | `string` | Identity string ID of the logged-in user |
-| `HasPublicClubs` / `HasPersonalClubs` / `HasPendingInvites` | bool | Computed |
-| `PublicClubCount` / `UserClubCount` | int | Computed |
-
-`ClubPageViewModel` — `src/MH.Capstone.WebApp/Models/ClubPageViewModel.cs`
-
-| Property | Type | Notes |
-|---|---|---|
-| `Club` | `Club` | The club entity; `Owner` nav property is eagerly loaded by `GetClubByIdAsync` |
-| `IsCurrentUserOwner` | `bool` | True when the logged-in user's `GuidId` matches `Club.OwnerId` |
-| `IsCurrentUserMember` | `bool` | True when the club appears in the user's `GetUserClubsAsync` result |
-
-Constructor: `ClubPageViewModel(Club club, bool isOwner, bool isMember)`.
-
----
-
-### Views
-
-| View | Path | Status |
-|---|---|---|
-| `LandingPage.cshtml` | `Views/Clubs/LandingPage.cshtml` | Done — pending invites section (Accept/Decline per club), filter UI, club cards grid (public + private user clubs), "View Club" links on each card, create-club modal |
-| `ClubPage.cshtml` | `Views/Clubs/ClubPage.cshtml` | Done — club name, visibility badge, description, owner username, created date, "Go to Chatroom" button, "Invite Member" button + search modal (all accepted members), "Leave Club" button + confirm modal (non-owner members only), "Back to Clubs" link; TempData banners for invite/leave success/error |
-| `Chatroom.cshtml` | `Views/Clubs/Chatroom.cshtml` | Done — scrollable message list (own messages right-aligned/blue, others left-aligned/grey); member-only message input with 2000-char counter and Ctrl+Enter submit; non-member read-only notice; empty-state when no messages |
-
----
-
-### Page Element IDs — `/Clubs/ClubPage/{id}` (ClubPage)
+#### AI Companion modal element IDs (in `_Layout.cshtml`)
 
 | Element ID | Purpose |
 |---|---|
-| `inviteMemberBtn` | "Invite Member" button; rendered for all accepted members; opens `inviteMemberModal` |
-| `inviteMemberModal` | Bootstrap modal for invite flow; rendered for all accepted members |
-| `memberSearchInput` | Display-name search input inside the invite modal; triggers `GET /Clubs/SearchUsers` after 300ms debounce |
-| `memberSearchResults` | `<div class="list-group">` populated with clickable user buttons from search results |
-| `selectedUserDisplay` | `alert alert-info` shown when a user has been selected from search results |
-| `selectedReceiverId` | Hidden `<input>` inside the invite form holding the selected user's identity string ID |
-| `sendInviteBtn` | Submit button inside the invite modal; disabled until a user is selected |
-| `sendInviteForm` | The `<form>` that posts to `POST /Clubs/SendInvite` |
-| `leaveClubBtn` | "Leave Club" button; rendered only for non-owner accepted members; opens `leaveClubModal` |
-| `leaveClubModal` | Bootstrap modal confirming the leave action |
-| `confirmLeaveBtn` | "Yes, Leave Club" submit button inside `leaveClubModal`; posts to `POST /Clubs/LeaveClub` |
+| `aiCompanionModal` | Bootstrap modal container |
+| `aiCompanionForm` | Chat form; posts to `/AICompanion/Ask` |
+| `aiCompanionQuestion` | Question text input |
+| `aiCompanionSubmitBtn` | Submit button |
+| `aiCompanionMessages` | Scrollable replies container; reply spans use class `ai-reply` |
 
----
+The trigger button is rendered only for authenticated users (`data-bs-target='#aiCompanionModal'`).
 
-### Page Element IDs — `/Clubs` (LandingPage)
+### Photo Quality (CSP-122) — WIP on this branch
+
+Each `Sighting` row now stores image-quality metadata. Implementation is at the **TDD Red** stage: schema and interfaces are in place, but the analyzer is a placeholder and acceptance steps throw `NotImplementedException`. Do not assume photo quality affects scoring yet — `ScoringService` does **not** read these fields.
+
+| Piece | Notes |
+|---|---|
+| Enum | `PhotoQualityTier` in `MH.Capstone.Domain.DataModels` — `Unknown=0, Low=1, Medium=2, High=3` |
+| Interface | `IPhotoQualityService.AnalyzeAsync(byte[] imageBytes, CancellationToken)` returns `(PhotoQualityTier Tier, double Sharpness, double Luminance, int Width, int Height)` |
+| Implementation | `PhotoQualityService` uses `SixLabors.ImageSharp` (Rgba32). Currently returns `Unknown`/`0.0`/`0.0` plus real width/height — sharpness and luminance logic is **not implemented yet** |
+| Migration | `20260421231908_CSP122_AddPhotoQualityFields` |
+| Acceptance | `StepDefinitions/CSP122StepDefinitions.cs` (tag `@photo-quality`) — every step throws `NotImplementedException` |
+
+Validation thresholds the unit tests assert against (when logic lands): luminance valid range `0.20–0.85`, "high" resolution ≥ 2048 px on the long side.
+
+### Updated `Sighting` columns (beyond what's in the schema table above)
+
+| Column | Type | Source | Notes |
+|---|---|---|---|
+| `PointValue` | int | CSP-109 scoring metadata migration `20260412175159_AddSightingScoringMetadata` | Default 10 — points awarded for this specific sighting |
+| `LoginStreak` | bit | same migration | Captures whether streak was active at submission |
+| `Rarity` | nvarchar | same migration | Default `"Common"` — frozen tier label at submission time |
+| `RarityMultiplier` | float | same migration | Default `1.0` — frozen multiplier at submission time |
+| `QualityTier` | int | CSP-122 migration | Default `0` (Unknown) |
+| `SharpnessScore` | float? | CSP-122 migration | Nullable |
+| `LuminanceAverage` | float? | CSP-122 migration | Nullable |
+| `ResolutionWidth` | int? | CSP-122 migration | Nullable |
+| `ResolutionHeight` | int? | CSP-122 migration | Nullable |
+| `FlaggedForReview` | bit | CSP-122 migration | Default false |
+
+The `Sighting` constructor was extended to accept the CSP-109 scoring fields, and `SightingCardViewModel` now surfaces them for gallery display.
+
+`20260414223118_FixSightingUserIdType` corrected the `Sighting.UserId` FK column type — relevant if you regenerate a migration that touches that column.
+
+### Validation: `NotDefaultCoordinatesAttribute`
+
+`src/MH.Capstone.Domain/Tools/NotDefaultCoordinatesAttribute.cs` — class-level `ValidationAttribute` that fails when both Latitude and Longitude are exactly `0.0`. Default property names are `"Latitude"`/`"Longitude"`; override via `LatitudePropertyName`/`LongitudePropertyName`. Applied to `SightingUploadViewModel`. Error: `"Latitude and Longitude cannot both be 0. Please enter valid coordinates."`
+
+### `IAuthenticationService` — new methods
+
+Added for the CSP-133/CSP-134 email-confirmation flow:
+
+- `Task<string?> GenerateEmailConfirmationTokenAsync(string email)`
+- `Task<bool> ConfirmEmailAsync(string email, string token)`
+
+(`ResendVerificationViewModel` exposes `Email` + `EmailSent` for the resend page.)
+
+### `SightingUploadViewModel` — timezone handling
+
+Now carries `DeviceTimezone` (default `"America/Los_Angeles"`). `ToDataModel()` converts the user-entered local timestamp to UTC using this value before persisting. Tests/seeds that build sightings via the view model must populate this field.
+
+### Feature flags — additions
+
+Beyond `UseRealEmailerService` and `EnableEmailTestEndpoint`:
+
+- `EnableGeminiAIService` — when `true`, registers `GeminiAIService` against `IAIService`; when `false`, AI Companion calls fail at the controller (no DI registration)
+- `ExposeDetailedApiCacheOnUi` — defined in config; no usage wired up yet
+
+### CI/CD — workflows have been split
+
+CLAUDE.md's earlier description of `build_test_ci.yml` + `deploy.yml` is **out of date**. Current `.github/workflows/`:
+
+| Workflow | Role |
+|---|---|
+| `build.yml` | Reusable: restore, build (Release), publish artifacts |
+| `unit_tests.yml` | Reusable: run unit-test projects only |
+| `ef_core_tests.yml` | Reusable: validate both DbContexts have no pending migrations |
+| `system_tests.yml` | Reusable: integration + Selenium acceptance tests (uses Azure OIDC, environment `system_testing`) |
+| `test_suite_complete_run.yml` | Orchestrates unit + EF + system; the "full PR gate" |
+| `test_suite_limited_run.yml` | Lightweight: unit + EF only, no system tests |
+| `deploy.yml` | Calls `build.yml` + `test_suite_complete_run.yml`, then deploys + runs EF migrations against Azure SQL via OIDC |
+
+Build versioning convention (`YYYY.M.<run_number>.<run_attempt>`) and the `main`→prod / `dev`→staging split still hold.
+
+### Acceptance test infrastructure — additions
+
+#### `AcceptanceTestSeeder` personas (referenced by step definitions on this branch)
+
+Personas in `src/MH.Capstone.Tests.Acceptance/Seeding/AcceptanceTestSeeder.cs` use **fixed GUIDs** (so FKs survive re-seeds) and password `Capstone26!`. All have `EmailConfirmed = true`.
+
+| Persona | Notes |
+|---|---|
+| Alex | GUID `aaaaaaaa-...` — primary "logged-in user" persona for newer scenarios |
+| Patricia | GUID `bbbbbbbb-...` |
+| Lily | GUID `cccccccc-...` |
+| James | Unauthenticated visitor — no DB account |
+
+Older scenarios (CSP-53 etc.) still use the original `alpha@test.com` / `alice@test.com` / `bob@test.com` / `newuser@test.com` / `admin@test.com` personas documented earlier. Both sets coexist.
+
+#### New Driver / PageObject — Wildlife Search
+
+`WildlifeSearchDriver` + `WildlifeSearchPageObject` exercise `/Species/Search`. Element IDs in `Views/Species/Search.cshtml`:
 
 | Element ID | Purpose |
 |---|---|
-| `pendingInvite_{clubId}` | Per-invite card wrapper in the Pending Invites section; one per pending club |
-| `filterAll` | "All Public Clubs" toggle button |
-| `filterMine` | "My Clubs" toggle button |
-| `clubCountLabel` | Visible count label (updated by JS) |
-| `emptyStateAll` | Server-rendered empty state when no public clubs exist at all |
-| `emptyStateMine` | JS-toggled empty state when user has no club memberships |
-| `clubsGrid` | Grid container `div` holding all `.club-card-wrapper` elements |
-| `.club-card-wrapper[data-user-id]` | Per-card wrapper; `data-user-id` = `OwnerIdentityId` string |
-| `currentUserId` | Hidden `<span data-user-id="…">` carrying the current user's identity string ID |
-| `newClubModal` | Bootstrap modal for the "Create a new Club" form |
-| `modalClubName` | Club name text input inside the modal |
-| `descInput` | Club description textarea inside the modal (max 250 chars) |
-| `charCount` | Live character count display (`0/250`) |
-| `descErrorMsg` | Inline validation error div inside the modal |
-| `confirmAuthBtn` | `type="submit"` button inside the modal — submits the form to `POST /Clubs/CreateClub` |
+| `nameInput` | Search text input |
+| `clearBtn` | Clear search button |
+| `searchForm` | Search form |
+| `searchStatus` | aria-live status / error message region |
+| `resultCard` | Result display container |
+| `resultCounter` | "X of Y" pagination counter |
+| `prevBtn` | Previous result button |
+| `nextBtn` | Next result button |
 
-Filter state is persisted with `sessionStorage` key `'clubsFilter'` (`'all'` or `'mine'`).
+Drivers must be registered as `services.AddTransient<TDriver>()` in `TestDependencySetup.CreateServices()` — Reqnroll does not auto-discover them. `WildlifeSearchDriver` is already registered.
 
----
+### Tests directories on disk (sanity)
 
-### Unit Tests
-
-`ClubServiceTests` — `src/MH.Capstone.Domain.Tests.Unit/Services/ClubServiceTests.cs`
-
-| Test | Covers |
-|---|---|
-| `GetPublicClubsAsync_ReturnsOnlyPublicClubs` | Filters out private clubs |
-| `GetUserClubsAsync_ReturnsOnlyAcceptedMemberClubs_SortedByClubName` | Returns only accepted memberships, sorted |
-| `GetPendingInvitesAsync_ReturnsPendingInviteClubs` | Returns clubs with `AcceptedInvite = false` |
-| `GetPendingInvitesAsync_NoPendingInvites_ReturnsEmpty` | Short-circuits club repo call when no pending memberships |
-| `CreateClubAsync_ValidClub_SavesClubAndOwnerMembershipReturnsClub` | Happy path: persists club and owner membership |
-| `CreateClubAsync_NullClub_ThrowsArgumentNullException` | Null guard |
-| `SendInviteAsync_ValidUsers_CreatesPendingMembership` | Creates `AcceptedInvite = false` row |
-| `SendInviteAsync_SenderNotMember_ThrowsInvalidOperationException` | Sender guard |
-| `SendInviteAsync_ReceiverAlreadyMember_ThrowsInvalidOperationException` | Duplicate invite guard |
-| `AcceptInviteAsync_ValidPendingInvite_SetsAcceptedInviteTrue` | Flips bit and saves |
-| `AcceptInviteAsync_NoPendingInvite_ThrowsInvalidOperationException` | Guard |
-| `DeclineInviteAsync_ValidPendingInvite_DeletesMembershipRow` | Deletes the row |
-| `DeclineInviteAsync_NoPendingInvite_ThrowsInvalidOperationException` | Guard |
-| `LeaveClubAsync_ValidMember_DeletesMembershipRow` | Happy path leave |
-| `LeaveClubAsync_UserIsOwner_ThrowsInvalidOperationException` | Owner cannot leave |
-| `LeaveClubAsync_UserNotMember_ThrowsInvalidOperationException` | Non-member guard |
-
----
-
-### NotificationType for Clubs
-
-`NotificationType.ClubActivity = 4` was added to `src/MH.Capstone.Domain/DataModels/NotificationType.cs`. Used by `CreateClub` (owner confirmation) and `SendInvite` (invitee notification). Follows default delivery preference (`InAppOnly`) since it is not `SystemCritical`.
-
----
-
-### What Is Still Incomplete
-
-- `ClubService` now injects three repos: `IRepository<Club>`, `IRepository<ClubMembership>`, `IRepository<Message>` — unit test `Setup()` must mock all three
-- No acceptance tests (`.feature` files) exist yet for any Club scenarios
-- User-deletion flow must be updated to clean up `ClubMembership` and `Message` rows before removing a user
-- `ClubMembership.AcceptedInvite` is seeded as `true` for all existing rows; after running EF migrations + the app once, the default should be switched to `false` to enforce the invite flow for new rows
+```
+src/MH.Capstone.Domain.Tests.Unit/Services/Api/        # GeminiAIServiceTests, ExternalApiCallerTests
+src/MH.Capstone.Domain.Tests.Unit/Tools/               # NotDefaultCoordinatesAttributeTests
+src/MH.Capstone.Tests.Acceptance/Seeding/              # AcceptanceTestSeeder
+```
 
 ---
 

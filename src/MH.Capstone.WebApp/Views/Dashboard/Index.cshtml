@@ -40,6 +40,20 @@
 }
 
 <div class="container mt-4">
+    @* CSP-122: Photo-quality flash messages set by SightingController after a successful upload. *@
+    @if (TempData["PhotoQualitySuccess"] is string pqSuccess)
+    {
+        <div id="photoQualityBadge" class="alert alert-success" role="alert">
+            <i class="bi bi-check-circle-fill"></i> @pqSuccess
+        </div>
+    }
+    @if (TempData["PhotoQualityWarning"] is string pqWarning)
+    {
+        <div id="photoQualityWarning" class="alert alert-warning" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i> @pqWarning
+        </div>
+    }
+
     <div class="row">
         <div class="col-12">
             <div class="card shadow">
