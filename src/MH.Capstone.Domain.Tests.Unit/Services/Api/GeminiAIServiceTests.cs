@@ -62,4 +62,39 @@ public class GeminiAIServiceTests
             return Task.FromException(exception);
         }
     }
+
+    // ── CSP-144: AI Photo Recognition ─────────────────────────────────────────
+
+    [Test]
+    public void IdentifyImageAsync_WithNullBytes_ShouldThrowArgumentException()
+    {
+        Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _service.IdentifyImageAsync(null!));
+    }
+
+    [Test]
+    public void IdentifyImageAsync_WithEmptyBytes_ShouldThrowArgumentException()
+    {
+        Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _service.IdentifyImageAsync(Array.Empty<byte>()));
+    }
+
+    [Test]
+    public Task IdentifyImageAsync_WithValidBytes_ShouldCallGeminiApi()
+    {
+        // Same low-fidelity pattern as AskAsync_WithValidQuestion: a fake API key
+        // causes the Gemini Vision endpoint to return 400/401, which surfaces as an
+        // HttpRequestException. Proves the code reached the HTTP call path.
+        try
+        {
+            var fakeImage = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46 };
+            Assert.ThrowsAsync<HttpRequestException>(async () =>
+                await _service.IdentifyImageAsync(fakeImage));
+            return Task.CompletedTask;
+        }
+        catch (Exception exception)
+        {
+            return Task.FromException(exception);
+        }
+    }
 }
