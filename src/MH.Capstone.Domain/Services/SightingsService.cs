@@ -44,9 +44,11 @@ namespace MH.Capstone.Domain.Services
 
             try
             {
-                // Calculate points based on rarity (CSP-104)
-                // TODO: Replace hardcoded speciesId with actual species when Species table exists
-                int globalCount = await _scoringService.GetGlobalSightingsCountAsync(1); // Placeholder species ID
+                // CSP-104 / CSP-142: rarity is derived from the global count of sightings
+                // sharing this species name. New uploads carry SpeciesName from the upload
+                // form (manual entry or AI suggestion). Pre-CSP-142 rows are backfilled to
+                // "Unknown", so they bucket together until they're re-classified.
+                int globalCount = await _scoringService.GetGlobalSightingsCountAsync(entity.SpeciesName);
 
                 // Get the Rarity multiplier and name for the Sighting, map the metadata
                 var (multiplier, rarityName) = await _scoringService.GetRarityMultiplierAndName(globalCount);

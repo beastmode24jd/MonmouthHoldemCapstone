@@ -42,16 +42,12 @@ public class SightingsServiceTests
         _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
 
         // GLOBAL MOCKS for new dependencies
-        _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(It.IsAny<int>()))
+        _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(It.IsAny<string>()))
             .ReturnsAsync(10);
 
         // Mock the metadata tuple return
         _scoringServiceMock.Setup(s => s.GetRarityMultiplierAndName(It.IsAny<int>()))
             .ReturnsAsync((1.0, "Common"));
-
-        // Default global count
-        _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(It.IsAny<int>()))
-            .ReturnsAsync(10);
 
         // Provide an empty list of users by default so FirstOrDefault doesn't crash
         _userRepoMock.Setup(r => r.GetAllAsync())
@@ -99,9 +95,9 @@ public class SightingsServiceTests
             r.AddOrUpdateAsync(It.Is(sighting, SightingComparer.Instance)))
             .ReturnsAsync(sighting).Verifiable(Times.Once);
 
-        // It.Is<int>(i => i == 1) placeholder till species is fully developed.
+        // CSP-142: scoring lookup keys off SpeciesName instead of placeholder int id.
         _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(
-            It.Is<int>(i => i == 1)))
+            It.Is<string>(n => n == sighting.SpeciesName)))
             .ReturnsAsync(sightingsCount).Verifiable(Times.Once);
 
         _scoringServiceMock.Setup(s => s.CalculatePointsAsync(
@@ -141,9 +137,9 @@ public class SightingsServiceTests
                 r.AddOrUpdateAsync(It.Is(sighting, SightingComparer.Instance)))
             .ReturnsAsync(sighting).Verifiable(Times.Once);
 
-        // It.Is<int>(i => i == 1) placeholder till species is fully developed.
+        // CSP-142: scoring lookup keys off SpeciesName instead of placeholder int id.
         _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(
-                It.Is<int>(i => i == 1)))
+                It.Is<string>(n => n == sighting.SpeciesName)))
             .ReturnsAsync(sightingsCount).Verifiable(Times.Once);
 
         _scoringServiceMock.Setup(s => s.CalculatePointsAsync(
@@ -566,7 +562,7 @@ public class SightingsServiceTests
             .ReturnsAsync(sighting);
 
         // Mock Sighting scoring
-        _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(It.IsAny<int>()))
+        _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(It.IsAny<string>()))
             .ReturnsAsync(10);
         _scoringServiceMock.Setup(s => s.CalculatePointsAsync(It.IsAny<int>()))
             .ReturnsAsync(basePoints);
