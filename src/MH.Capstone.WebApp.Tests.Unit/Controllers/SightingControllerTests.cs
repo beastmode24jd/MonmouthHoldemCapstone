@@ -7,6 +7,7 @@ using MH.Capstone.WebApp.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -20,6 +21,7 @@ public class SightingControllerTests
     private Mock<ISightingsService> _mockSightingsService = null!;
     private Mock<UserManager<ApplicationUser>> _mockUserManager = null!;
     private Mock<IBadgeService> _mockBadgeService = null!;
+    private Mock<IPhotoQualityService> _mockPhotoQualityService = null!;
     private SightingController _controller = null!;
 
     private static readonly string TestUserId = Guid.NewGuid().ToString();
@@ -36,6 +38,12 @@ public class SightingControllerTests
         _mockLogger = new Mock<ILogger<SightingController>>();
         _mockSightingsService = new Mock<ISightingsService>();
         _mockBadgeService = new Mock<IBadgeService>();
+        _mockPhotoQualityService = new Mock<IPhotoQualityService>();
+
+        // Default no-op result so existing tests that don't care about photo quality still run.
+        _mockPhotoQualityService
+            .Setup(p => p.AnalyzeAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PhotoQualityTier.Unknown, 0.0, 0.0, 0, 0));
 
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
@@ -45,7 +53,8 @@ public class SightingControllerTests
             _mockLogger.Object,
             _mockSightingsService.Object,
             _mockUserManager.Object,
-            _mockBadgeService.Object);
+            _mockBadgeService.Object,
+            _mockPhotoQualityService.Object);
 
         _controller.ControllerContext = new ControllerContext
         {
@@ -57,6 +66,9 @@ public class SightingControllerTests
                 }, "mock"))
             }
         };
+
+        // TempData carries the photo-quality flash message across the redirect to Dashboard.
+        _controller.TempData = new TempDataDictionary(_controller.HttpContext, Mock.Of<ITempDataProvider>());
 
         _mockUserManager
             .Setup(m => m.GetUserAsync(It.IsAny<ClaimsPrincipal>()))
@@ -163,6 +175,193 @@ public class SightingControllerTests
 
         // Assert: the card carries the submitter's user ID for client-side filtering
         Assert.That(vm!.Sightings[0].SubmittedByUserId, Is.EqualTo(user1.Id));
+    }
+
+    #endregion
+
+    #region CSP-122: Photo quality integration
+
+    // Builds a SightingUploadViewModel with a small but non-empty IFormFile
+    // attached, so that ToDataModel produces a non-empty ImageBuffer and the
+    // controller has something to hand to the analyzer.
+    private static SightingUploadViewModel BuildViewModelWithImage()
+    {
+        var imageBytes = new byte[] { 0x01, 0x02, 0x03, 0x04 };
+        var formFile = new FormFile(
+            new MemoryStream(imageBytes), 0, imageBytes.Length, "UploadedImage", "owl.jpg")
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = "image/jpeg"
+        };
+        return new SightingUploadViewModel
+        {
+            Latitude = 44.85m,
+            Longitude = -123.23m,
+            Description = "Owl",
+            Timestamp = DateTimeOffset.UtcNow.AddHours(-1),
+            UploadedImage = formFile,
+            DeviceTimezone = "America/Los_Angeles"
+        };
+    }
+
+    [Test]
+    public async Task Upload_Post_WithValidImage_AnalyzesPhotoAndPersistsQualityMetadataOnSighting()
+    {
+        // Arrange
+        var vm = BuildViewModelWithImage();
+
+        _mockSightingsService
+            .Setup(s => s.ValidateImage(It.IsAny<IFormFile>()))
+            .Returns(true);
+
+        // Capture the Sighting handed to CreateSightingAsync so we can inspect its quality fields.
+        Sighting? captured = null;
+        _mockSightingsService
+            .Setup(s => s.CreateSightingAsync(It.IsAny<Sighting>(), It.IsAny<string>()))
+            .Callback<Sighting, string>((s, _) => captured = s)
+            .ReturnsAsync(10);
+
+        var qualityResult = (
+            Tier: PhotoQualityTier.High,
+            Sharpness: 450.0,
+            Luminance: 0.55,
+            Width: 2400,
+            Height: 1800);
+        _mockPhotoQualityService
+            .Setup(p => p.AnalyzeAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(qualityResult);
+
+        // Act
+        await _controller.Upload(vm);
+
+        // Assert — analyzer was invoked exactly once, and every metadata field flows onto the saved Sighting.
+        _mockPhotoQualityService.Verify(
+            p => p.AnalyzeAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        Assert.That(captured, Is.Not.Null, "controller should have called CreateSightingAsync");
+        Assert.That(captured!.QualityTier, Is.EqualTo(PhotoQualityTier.High));
+        Assert.That(captured.SharpnessScore, Is.EqualTo(450.0));
+        Assert.That(captured.LuminanceAverage, Is.EqualTo(0.55));
+        Assert.That(captured.ResolutionWidth, Is.EqualTo(2400));
+        Assert.That(captured.ResolutionHeight, Is.EqualTo(1800));
+    }
+
+    [Test]
+    public async Task Upload_Post_WithLongSideBelow1024_RejectsSubmissionWithModelError()
+    {
+        // Arrange — image whose long side is below the resolution gate (800 < 1024).
+        var vm = BuildViewModelWithImage();
+
+        _mockSightingsService
+            .Setup(s => s.ValidateImage(It.IsAny<IFormFile>()))
+            .Returns(true);
+
+        _mockPhotoQualityService
+            .Setup(p => p.AnalyzeAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PhotoQualityTier.Low, 50.0, 0.5, 800, 600));
+
+        // Act
+        var result = await _controller.Upload(vm);
+
+        // Assert — controller returns the Upload view with a model error and no sighting is saved.
+        Assert.That(result, Is.InstanceOf<ViewResult>(),
+            "submission should be rejected back to the Upload view, not redirected");
+        Assert.That(_controller.ModelState.IsValid, Is.False);
+
+        var imageErrors = _controller.ModelState[nameof(SightingUploadViewModel.UploadedImage)]?.Errors;
+        Assert.That(imageErrors, Is.Not.Null.And.Not.Empty);
+        Assert.That(
+            imageErrors!.Any(e => e.ErrorMessage.Contains("higher-resolution original")),
+            Is.True,
+            "rejection message must reference 'higher-resolution original' per CSP-122 spec");
+
+        _mockSightingsService.Verify(
+            s => s.CreateSightingAsync(It.IsAny<Sighting>(), It.IsAny<string>()),
+            Times.Never,
+            "no sighting should be persisted when the resolution gate rejects the image");
+    }
+
+    [TestCase(PhotoQualityTier.High,    450.0, 0.55, "PhotoQualitySuccess", "Ready for ID - High Quality")]
+    [TestCase(PhotoQualityTier.Low,      50.0, 0.50, "PhotoQualityWarning", "blurry")]
+    [TestCase(PhotoQualityTier.Low,       0.0, 0.10, "PhotoQualityWarning", "too dark")]
+    [TestCase(PhotoQualityTier.Low,       0.0, 0.95, "PhotoQualityWarning", "washed out")]
+    public async Task Upload_Post_AfterSuccessfulSave_SetsTempDataMessageMatchingTier(
+        PhotoQualityTier tier, double sharpness, double luminance,
+        string expectedTempDataKey, string expectedMessageSubstring)
+    {
+        // Arrange — analyzer returns the given tier/metric combo against a large enough image.
+        var vm = BuildViewModelWithImage();
+
+        _mockSightingsService
+            .Setup(s => s.ValidateImage(It.IsAny<IFormFile>()))
+            .Returns(true);
+        _mockSightingsService
+            .Setup(s => s.CreateSightingAsync(It.IsAny<Sighting>(), It.IsAny<string>()))
+            .ReturnsAsync(10);
+        _mockPhotoQualityService
+            .Setup(p => p.AnalyzeAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((tier, sharpness, luminance, 2400, 1800));
+
+        // Act
+        await _controller.Upload(vm);
+
+        // Assert — TempData has the correct flash message under the tier-appropriate key.
+        var actual = _controller.TempData[expectedTempDataKey] as string;
+        Assert.That(actual, Is.Not.Null,
+            $"TempData['{expectedTempDataKey}'] should be set for tier {tier}");
+        Assert.That(actual, Does.Contain(expectedMessageSubstring).IgnoreCase);
+    }
+
+    [Test]
+    public async Task Upload_Post_WithMediumTier_DoesNotSetAnyFlashMessage()
+    {
+        // Arrange — Medium tier means the photo passed but isn't notable; no message either way.
+        var vm = BuildViewModelWithImage();
+
+        _mockSightingsService
+            .Setup(s => s.ValidateImage(It.IsAny<IFormFile>()))
+            .Returns(true);
+        _mockSightingsService
+            .Setup(s => s.CreateSightingAsync(It.IsAny<Sighting>(), It.IsAny<string>()))
+            .ReturnsAsync(10);
+        _mockPhotoQualityService
+            .Setup(p => p.AnalyzeAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PhotoQualityTier.Medium, 200.0, 0.50, 1600, 1200));
+
+        // Act
+        await _controller.Upload(vm);
+
+        // Assert
+        Assert.That(_controller.TempData["PhotoQualitySuccess"], Is.Null);
+        Assert.That(_controller.TempData["PhotoQualityWarning"], Is.Null);
+    }
+
+    [Test]
+    public async Task Upload_Post_WithLongSideExactly1024_PassesGateAndCreatesSighting()
+    {
+        // Arrange — boundary case: long side equals the threshold, so the image passes.
+        var vm = BuildViewModelWithImage();
+
+        _mockSightingsService
+            .Setup(s => s.ValidateImage(It.IsAny<IFormFile>()))
+            .Returns(true);
+        _mockSightingsService
+            .Setup(s => s.CreateSightingAsync(It.IsAny<Sighting>(), It.IsAny<string>()))
+            .ReturnsAsync(10);
+
+        _mockPhotoQualityService
+            .Setup(p => p.AnalyzeAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PhotoQualityTier.Medium, 200.0, 0.5, 1024, 768));
+
+        // Act
+        await _controller.Upload(vm);
+
+        // Assert — gate allowed it through; sighting was persisted exactly once.
+        _mockSightingsService.Verify(
+            s => s.CreateSightingAsync(It.IsAny<Sighting>(), It.IsAny<string>()),
+            Times.Once);
+        Assert.That(_controller.ModelState.IsValid, Is.True);
     }
 
     #endregion

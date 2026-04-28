@@ -25,5 +25,20 @@ namespace MH.Capstone.Tests.Acceptance.Support
             // Default helpful wildlife-oriented reply that satisfies acceptance checks.
             return Task.FromResult("Here''s a wildlife tip: observe animals from a distance, note habitat and behaviour to identify species. (wildlife)");
         }
+
+        // CSP-144: deterministic stub for AI photo recognition. Real recognition is
+        // exercised in unit tests (GeminiAIServiceTests). The CSP-144 BDD scenarios
+        // mock at the browser fetch boundary, so this method is rarely hit — but
+        // returning a sensible default keeps the contract intact.
+        public Task<AiIdentificationResult> IdentifyImageAsync(byte[] imageBytes, CancellationToken cancellationToken = default)
+        {
+            if (imageBytes is null || imageBytes.Length == 0)
+                throw new ArgumentException("Image bytes must be non-null and non-empty.", nameof(imageBytes));
+
+            return Task.FromResult(new AiIdentificationResult(
+                Species:     "Bald Eagle",
+                Description: "An adult bald eagle perched on a tall tree.",
+                Identified:  true));
+        }
     }
 }

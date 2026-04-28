@@ -67,7 +67,12 @@ public class CSP42StepDefinitions
     [When("I navigate to the Profile Customization part of my Dashboard")]
     public void WhenINavigateToTheProfileCustomizationPartOfMyDashboard()
     {
-        _dashboardDriver.NavigateToDashboard();
+        _driver.Navigate().GoToUrl($"{_baseUrl}/dashboard/settings");
+        _wait.Until(d =>
+        {
+            try { return string.Equals(((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString(), "complete", StringComparison.OrdinalIgnoreCase); }
+            catch { return false; }
+        });
 
         var customProfileForm = _wait.Until(d => d.FindElement(By.Id("uploadForm")));
         customProfileForm.Displayed.Should().BeTrue();
@@ -104,7 +109,12 @@ public class CSP42StepDefinitions
     [When("I click the Upload Image button")]
     public void WhenIClickTheUploadImageButton()
     {
-        _dashboardDriver.NavigateToDashboard();
+        _driver.Navigate().GoToUrl($"{_baseUrl}/dashboard/settings");
+        _wait.Until(d =>
+        {
+            try { return string.Equals(((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString(), "complete", StringComparison.OrdinalIgnoreCase); }
+            catch { return false; }
+        });
 
         var fileInput = _wait.Until(d => d.FindElement(By.Id("fileInput")));
         fileInput.SendKeys(_validIconUploadPath!);
@@ -154,7 +164,12 @@ public class CSP42StepDefinitions
     [When("I save the invalid image")]
     public void WhenISaveTheInvalidImage()
     {
-        _dashboardDriver.NavigateToDashboard();
+        _driver.Navigate().GoToUrl($"{_baseUrl}/dashboard/settings");
+        _wait.Until(d =>
+        {
+            try { return string.Equals(((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString(), "complete", StringComparison.OrdinalIgnoreCase); }
+            catch { return false; }
+        });
 
         var fileInput = _wait.Until(d => d.FindElement(By.Id("fileInput")));
         fileInput.SendKeys(_invalidIconUploadPath!);
