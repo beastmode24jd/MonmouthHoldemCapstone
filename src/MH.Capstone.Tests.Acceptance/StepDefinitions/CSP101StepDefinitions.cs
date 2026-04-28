@@ -133,6 +133,8 @@ public class CSP101StepDefinitions
     [When("{word} attempts to submit another report for the same page")]
     public void WhenPersonaAttemptsToSubmitAnotherReportForTheSamePage(string name)
     {
+        // Re-navigate to get a fresh page load so Bootstrap modal JS state is clean.
+        NavigateToReportablePage();
         OpenReportModal();
         FillReportForm("Spam", $"Duplicate attempt by {name}");
         SubmitReportForm();

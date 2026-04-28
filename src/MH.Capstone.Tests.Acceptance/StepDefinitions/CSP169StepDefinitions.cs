@@ -40,7 +40,7 @@ public class CSP169StepDefinitions
             "Expected the preferences form to be visible");
     }
 
-    [Then("the System/Account Critical Notifications type is not visible")]
+    [Then("the System Critical Notifications type is not visible")]
     public void ThenSystemCriticalIsNotVisible()
     {
         Assert.That(_preferencesDriver.SystemCriticalTypeIsNotVisible(), Is.True,

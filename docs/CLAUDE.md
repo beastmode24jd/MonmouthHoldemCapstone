@@ -114,6 +114,7 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `IUserProfileService` | `UserService` | Extended (CSP-168) with `UpdateDisplayNameAsync(user, displayName)` — validates 2–50 chars, throws `ArgumentOutOfRangeException` if invalid. |
 | `IEmailService` | `AzureCommunicationEmailService` / `NoOpEmailService` | Send emails (toggled by `UseRealEmailerService` feature flag). Used by `AccountController.ForgotPassword` to deliver password-reset links. |
 | `IApiCaller` | `ExternalApiCaller` | HTTP calls to external APIs with SQL caching |
+| `IClubService` | `ClubService` | List public/user clubs (accepted only), list pending invites, get all memberships for a club, create a club, send/accept/decline invites, leave a club |
 
 **Background service:** `EmailDispatcherService` (hosted service) processes the `EmailQueue` outbox.
 
@@ -162,6 +163,7 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `ReportControllers` | Submit and view content reports |
 | `SightingController` | Submit and view wildlife sightings |
 | `SpeciesController` | Anidex species catalog (Ninja API backed) |
+| `ClubsController` | Club listing, creation (POST with notification + timezone); club page and chatroom (stubs) |
 
 ---
 
@@ -476,6 +478,227 @@ These users must exist in `WAID_AppDataDb` for acceptance tests to pass. The pas
 The acceptance-specific seed users should be added to `ApplicationDbContextSeeding.SeedDataAsync` gated on an environment check, **or** in a dedicated acceptance-only seeding method called from `TestWebAppHost.StartAsync`. The latter is preferred so production/staging seeding remains unaffected.
 
 `TestWebAppHost.ResetSeedData()` is currently a `NotImplementedException` stub — implementing it to truncate non-badge rows and re-run seed will be required for true scenario isolation once test count grows.
+
+---
+
+## Clubs Feature (Sprint 4 — in progress)
+
+### Overview
+
+Clubs are groups users can create and join. A club can be **public** (visible to all authenticated users) or **private** (visible only to members). The owner is automatically enrolled as the first member on creation. Each club has a chatroom (`Message` table) for member communication.
+
+> **IMPORTANT:** `ClubService` has a pending constraint: deleting a user will throw if they still have club memberships or messages. Any future user-deletion logic must clean up `ClubMembership` and `Message` rows first.
+
+---
+
+### New Entities
+
+All in `src/MH.Capstone.Domain/DataModels/`:
+
+#### `Club` (table: `Club`)
+
+| Column | Type | Constraints |
+|---|---|---|
+| `Id` | uniqueidentifier | PK, identity |
+| `Name` | nvarchar(100) | required, 1–100 chars |
+| `IsPublic` | bit | required; `false` = private |
+| `Description` | nvarchar(250) | nullable |
+| `CreatedAt` | datetimeoffset | required |
+| `OwnerId` | nvarchar(450) | FK → AspNetUsers; mapped column for `OwnerIdentityId` |
+
+Nav properties: `Owner` (ApplicationUser), `Memberships` (List\<ClubMembership\>), `Messages` (List\<Message\>).
+
+`OwnerId` / `OwnerIdentityId` pattern: `OwnerId` is a `[NotMapped]` `Guid` convenience property; `OwnerIdentityId` is the actual `string` column (same pattern as `ApplicationUser.GuidId`).
+
+Constructors: `Club()` (default) and `Club(Guid ownerId, string name, string? description, DateTimeOffset createdAt)`.
+
+#### `ClubMembership` (table: `ClubMembership`)
+
+| Column | Type | Constraints |
+|---|---|---|
+| `Id` | uniqueidentifier | PK, identity |
+| `MemberId` | nvarchar(450) | FK → AspNetUsers |
+| `ClubId` | uniqueidentifier | FK → Club |
+| `JoinedAt` | datetimeoffset | required |
+
+`MemberId` / `MemberIdentityId` follow the same `[NotMapped]` Guid / mapped string column pattern as `Club.OwnerId`.
+
+Constructors: `ClubMembership()` (default) and `ClubMembership(Guid memberId, Guid clubId, DateTimeOffset joinedAt)`.
+
+#### `Message` (table: `Message`)
+
+| Column | Type | Constraints |
+|---|---|---|
+| `Id` | uniqueidentifier | PK, identity |
+| `ClubId` | uniqueidentifier | FK → Club |
+| `AuthorId` | nvarchar(450) | FK → AspNetUsers |
+| `Content` | nvarchar(2000) | required, 1–2000 chars |
+| `SentAt` | datetimeoffset | required |
+
+`AuthorId` / `AuthorIdentityId` follow the same pattern.
+
+Constructors: `Message()` (default) and `Message(Guid clubId, Guid authorId, string content, DateTimeOffset sentAt)`.
+
+**Migration:** `20260425000357_AddClubsAndMessageTables`
+
+---
+
+### Service
+
+`IClubService` / `ClubService` — `src/MH.Capstone.Domain/Services/`
+
+| Method | Behaviour |
+|---|---|
+| `GetPublicClubsAsync()` | Returns all clubs where `IsPublic = true` |
+| `GetUserClubsAsync(Guid userId)` | Returns clubs where the user has an **accepted** `ClubMembership` (`AcceptedInvite = true`), sorted by `Name` |
+| `GetPendingInvitesAsync(Guid userId)` | Returns clubs where the user has a **pending** membership (`AcceptedInvite = false`) |
+| `GetClubMembershipsAsync(Guid clubId)` | Returns all membership rows (accepted + pending) for a club; used by `SearchUsers` to exclude existing members |
+| `GetClubByIdAsync(Guid id)` | Eagerly loads all clubs with `Owner` included via `GetAllAsync(c => c.Owner)`, then returns the first matching `Id`. Returns `null` if not found. |
+| `CreateClubAsync(Club club)` | Saves the club, then auto-enrolls the owner as the first accepted `ClubMembership`; throws `ArgumentNullException` on null |
+| `SendInviteAsync(Club club, Guid senderId, Guid receiverId)` | Validates sender is an accepted member and receiver has no existing row, then creates a `ClubMembership` with `AcceptedInvite = false`; throws `InvalidOperationException` on violation |
+| `AcceptInviteAsync(Guid clubId, Guid userId)` | Finds the pending membership row, flips `AcceptedInvite = true`, saves; throws `InvalidOperationException` if no pending invite exists |
+| `DeclineInviteAsync(Guid clubId, Guid userId)` | Finds and deletes the pending membership row; throws `InvalidOperationException` if no pending invite exists |
+| `LeaveClubAsync(Guid clubId, Guid userId)` | Deletes the accepted membership row; throws `InvalidOperationException` if user is the owner or is not a member |
+| `SendMessageAsync(Guid clubId, Guid senderId, string content)` | Saves a new `Message` row via the message repo; throws `ArgumentException` if content is empty/whitespace |
+| `GetClubMessagesAsync(Guid clubId)` | Returns all messages for a club ordered oldest-first (`SentAt ASC`) with `Author` nav property eagerly loaded |
+
+---
+
+### Controller
+
+`ClubsController` (`[Authorize]`) — `src/MH.Capstone.WebApp/Controllers/ClubsController.cs`
+
+Injects: `IClubService`, `UserManager<ApplicationUser>`, `INotificationService`, `ILogger<ClubsController>`.
+
+| Action | Route | Status |
+|---|---|---|
+| `Index()` | `GET /Clubs` | **Done** — loads `ClubListViewModel` (public clubs + user clubs + pending invites), renders `LandingPage` view |
+| `ClubPage(Guid id)` | `GET /Clubs/ClubPage/{id}` | **Done** — fetches club via `GetClubByIdAsync` (Owner eagerly loaded); checks membership via `GetUserClubsAsync`; returns 404 if club not found, 403 if private and non-member; renders `ClubPage` view with `ClubPageViewModel` |
+| `Chatroom(Guid id)` | `GET /Clubs/Chatroom/{id}` | **Done** — loads club + messages via `GetClubMessagesAsync`; enforces private-club access; passes `ClubMessageViewModel` |
+| `SendMessage(Guid clubId, string content)` | `POST /Clubs/SendMessage` | **Done** — calls `SendMessageAsync`; sets `TempData["MessageError"]` on empty content; redirects to `Chatroom` |
+| `CreateClub(string name, string? description, bool isPublic)` | `POST /Clubs/CreateClub` | **Done** — saves club via `CreateClubAsync`; sends `ClubActivity` in-app notification to the owner; redirects to `GET /Clubs/ClubPage/{id}` |
+| `SearchUsers(Guid clubId, string query)` | `GET /Clubs/SearchUsers` | **Done** — returns JSON `[{id, displayName}]` of up to 10 users matching query; excludes current club members (accepted + pending) and users with `DisplayName == "UNSET"` |
+| `SendInvite(Guid clubId, string receiverId)` | `POST /Clubs/SendInvite` | **Done** — calls `SendInviteAsync`; sends `ClubActivity` notification to the invitee; sets `TempData["InviteSuccess"/"InviteError"]`; redirects to `ClubPage` |
+| `AcceptInvite(Guid clubId)` | `POST /Clubs/AcceptInvite` | **Done** — calls `AcceptInviteAsync`; redirects to `ClubPage` on success, `Index` on failure |
+| `DeclineInvite(Guid clubId)` | `POST /Clubs/DeclineInvite` | **Done** — calls `DeclineInviteAsync`; always redirects to `Index` |
+| `LeaveClub(Guid clubId)` | `POST /Clubs/LeaveClub` | **Done** — calls `LeaveClubAsync`; redirects to `Index` on success; sets `TempData["LeaveError"]` and redirects to `ClubPage` on failure (e.g. owner trying to leave) |
+
+---
+
+### ViewModels
+
+`ClubListViewModel` — `src/MH.Capstone.WebApp/Models/ClubListViewModel.cs`
+
+| Property | Type | Notes |
+|---|---|---|
+| `PublicClubs` | `List<Club>` | All public clubs |
+| `UserClubs` | `List<Club>` | Clubs the current user has an accepted membership for |
+| `PendingInvites` | `List<Club>` | Clubs where the user has a pending (unaccepted) invite |
+| `CurrentUserId` | `string` | Identity string ID of the logged-in user |
+| `HasPublicClubs` / `HasPersonalClubs` / `HasPendingInvites` | bool | Computed |
+| `PublicClubCount` / `UserClubCount` | int | Computed |
+
+`ClubPageViewModel` — `src/MH.Capstone.WebApp/Models/ClubPageViewModel.cs`
+
+| Property | Type | Notes |
+|---|---|---|
+| `Club` | `Club` | The club entity; `Owner` nav property is eagerly loaded by `GetClubByIdAsync` |
+| `IsCurrentUserOwner` | `bool` | True when the logged-in user's `GuidId` matches `Club.OwnerId` |
+| `IsCurrentUserMember` | `bool` | True when the club appears in the user's `GetUserClubsAsync` result |
+
+Constructor: `ClubPageViewModel(Club club, bool isOwner, bool isMember)`.
+
+---
+
+### Views
+
+| View | Path | Status |
+|---|---|---|
+| `LandingPage.cshtml` | `Views/Clubs/LandingPage.cshtml` | Done — pending invites section (Accept/Decline per club), filter UI, club cards grid (public + private user clubs), "View Club" links on each card, create-club modal |
+| `ClubPage.cshtml` | `Views/Clubs/ClubPage.cshtml` | Done — club name, visibility badge, description, owner username, created date, "Go to Chatroom" button, "Invite Member" button + search modal (all accepted members), "Leave Club" button + confirm modal (non-owner members only), "Back to Clubs" link; TempData banners for invite/leave success/error |
+| `Chatroom.cshtml` | `Views/Clubs/Chatroom.cshtml` | Done — scrollable message list (own messages right-aligned/blue, others left-aligned/grey); member-only message input with 2000-char counter and Ctrl+Enter submit; non-member read-only notice; empty-state when no messages |
+
+---
+
+### Page Element IDs — `/Clubs/ClubPage/{id}` (ClubPage)
+
+| Element ID | Purpose |
+|---|---|
+| `inviteMemberBtn` | "Invite Member" button; rendered for all accepted members; opens `inviteMemberModal` |
+| `inviteMemberModal` | Bootstrap modal for invite flow; rendered for all accepted members |
+| `memberSearchInput` | Display-name search input inside the invite modal; triggers `GET /Clubs/SearchUsers` after 300ms debounce |
+| `memberSearchResults` | `<div class="list-group">` populated with clickable user buttons from search results |
+| `selectedUserDisplay` | `alert alert-info` shown when a user has been selected from search results |
+| `selectedReceiverId` | Hidden `<input>` inside the invite form holding the selected user's identity string ID |
+| `sendInviteBtn` | Submit button inside the invite modal; disabled until a user is selected |
+| `sendInviteForm` | The `<form>` that posts to `POST /Clubs/SendInvite` |
+| `leaveClubBtn` | "Leave Club" button; rendered only for non-owner accepted members; opens `leaveClubModal` |
+| `leaveClubModal` | Bootstrap modal confirming the leave action |
+| `confirmLeaveBtn` | "Yes, Leave Club" submit button inside `leaveClubModal`; posts to `POST /Clubs/LeaveClub` |
+
+---
+
+### Page Element IDs — `/Clubs` (LandingPage)
+
+| Element ID | Purpose |
+|---|---|
+| `pendingInvite_{clubId}` | Per-invite card wrapper in the Pending Invites section; one per pending club |
+| `filterAll` | "All Public Clubs" toggle button |
+| `filterMine` | "My Clubs" toggle button |
+| `clubCountLabel` | Visible count label (updated by JS) |
+| `emptyStateAll` | Server-rendered empty state when no public clubs exist at all |
+| `emptyStateMine` | JS-toggled empty state when user has no club memberships |
+| `clubsGrid` | Grid container `div` holding all `.club-card-wrapper` elements |
+| `.club-card-wrapper[data-user-id]` | Per-card wrapper; `data-user-id` = `OwnerIdentityId` string |
+| `currentUserId` | Hidden `<span data-user-id="…">` carrying the current user's identity string ID |
+| `newClubModal` | Bootstrap modal for the "Create a new Club" form |
+| `modalClubName` | Club name text input inside the modal |
+| `descInput` | Club description textarea inside the modal (max 250 chars) |
+| `charCount` | Live character count display (`0/250`) |
+| `descErrorMsg` | Inline validation error div inside the modal |
+| `confirmAuthBtn` | `type="submit"` button inside the modal — submits the form to `POST /Clubs/CreateClub` |
+
+Filter state is persisted with `sessionStorage` key `'clubsFilter'` (`'all'` or `'mine'`).
+
+---
+
+### Unit Tests
+
+`ClubServiceTests` — `src/MH.Capstone.Domain.Tests.Unit/Services/ClubServiceTests.cs`
+
+| Test | Covers |
+|---|---|
+| `GetPublicClubsAsync_ReturnsOnlyPublicClubs` | Filters out private clubs |
+| `GetUserClubsAsync_ReturnsOnlyAcceptedMemberClubs_SortedByClubName` | Returns only accepted memberships, sorted |
+| `GetPendingInvitesAsync_ReturnsPendingInviteClubs` | Returns clubs with `AcceptedInvite = false` |
+| `GetPendingInvitesAsync_NoPendingInvites_ReturnsEmpty` | Short-circuits club repo call when no pending memberships |
+| `CreateClubAsync_ValidClub_SavesClubAndOwnerMembershipReturnsClub` | Happy path: persists club and owner membership |
+| `CreateClubAsync_NullClub_ThrowsArgumentNullException` | Null guard |
+| `SendInviteAsync_ValidUsers_CreatesPendingMembership` | Creates `AcceptedInvite = false` row |
+| `SendInviteAsync_SenderNotMember_ThrowsInvalidOperationException` | Sender guard |
+| `SendInviteAsync_ReceiverAlreadyMember_ThrowsInvalidOperationException` | Duplicate invite guard |
+| `AcceptInviteAsync_ValidPendingInvite_SetsAcceptedInviteTrue` | Flips bit and saves |
+| `AcceptInviteAsync_NoPendingInvite_ThrowsInvalidOperationException` | Guard |
+| `DeclineInviteAsync_ValidPendingInvite_DeletesMembershipRow` | Deletes the row |
+| `DeclineInviteAsync_NoPendingInvite_ThrowsInvalidOperationException` | Guard |
+| `LeaveClubAsync_ValidMember_DeletesMembershipRow` | Happy path leave |
+| `LeaveClubAsync_UserIsOwner_ThrowsInvalidOperationException` | Owner cannot leave |
+| `LeaveClubAsync_UserNotMember_ThrowsInvalidOperationException` | Non-member guard |
+
+---
+
+### NotificationType for Clubs
+
+`NotificationType.ClubActivity = 4` was added to `src/MH.Capstone.Domain/DataModels/NotificationType.cs`. Used by `CreateClub` (owner confirmation) and `SendInvite` (invitee notification). Follows default delivery preference (`InAppOnly`) since it is not `SystemCritical`.
+
+---
+
+### What Is Still Incomplete
+
+- `ClubService` now injects three repos: `IRepository<Club>`, `IRepository<ClubMembership>`, `IRepository<Message>` — unit test `Setup()` must mock all three
+- No acceptance tests (`.feature` files) exist yet for any Club scenarios
+- User-deletion flow must be updated to clean up `ClubMembership` and `Message` rows before removing a user
+- `ClubMembership.AcceptedInvite` is seeded as `true` for all existing rows; after running EF migrations + the app once, the default should be switched to `false` to enforce the invite flow for new rows
 
 ---
 

@@ -18,6 +18,30 @@ function initUserTimezone() {
     }
 }
 
+// Generic character counter — works for any textarea/counter pair.
+// Safe to call on pages that don't have the given elements; exits early if either is missing.
+function initCharCounter(textareaId, counterId, maxLength) {
+    const textarea = document.getElementById(textareaId);
+    const counter = document.getElementById(counterId);
+    if (!textarea || !counter) return;
+
+    function update() {
+        const length = textarea.value.length;
+        counter.textContent = `${length}/${maxLength}`;
+
+        if (length >= maxLength - 10) {
+            counter.classList.replace('text-dark', 'text-danger');
+        } else {
+            counter.classList.add('text-dark');
+            counter.classList.remove('text-danger');
+        }
+    }
+
+    update();
+    textarea.addEventListener('input', update);
+}
+
+
 // For my sanity, we are adding a visibility toggle function for passwords
 function togglePasswordVisibility(inputId, iconId) {
     const passwordInput = document.getElementById(inputId);
@@ -55,6 +79,8 @@ document.addEventListener("DOMContentLoaded", function() {
     registerAllNumericInputs();  // Reworked from original global registration
     registerPasswordToggles();  // New global registration
     initUserTimezone();         // Gets timezone cookie from the user, for page display
+    initCharCounter('bioInput',  'charCount', 250);  // Dashboard bio field
+    initCharCounter('descInput', 'charCount', 250);  // Club creation modal
 });
 
 // Thanks, ChatGPT, for the help with this function!
