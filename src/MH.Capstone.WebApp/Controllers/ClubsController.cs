@@ -64,8 +64,9 @@ namespace MH.Capstone.WebApp.Controllers
                 .Where(m => m.AcceptedInvite)
                 .ToList();
 
-            var sightings = await _clubService.GetClubSightingsAsync(id);
-            var clubPageViewModel = new ClubPageViewModel(club, members, sightings, isOwner, isMember);
+            var allSightings = await _clubService.GetClubSightingsAsync(id);
+            var sightings = allSightings.Take(4);
+            var clubPageViewModel = new ClubPageViewModel(club, members, sightings, allSightings.Count, isOwner, isMember);
 
             string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
             TimeZoneInfo userZone;

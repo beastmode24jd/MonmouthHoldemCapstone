@@ -62,10 +62,7 @@
                Has recent Sightings cards from the members
                Should update if a member leaves the Club *@
             <p class="mb-1">
-                <strong>@Model.Club.Name Feed</strong>
-            </p>
-            <p class="text-muted small mb-0">
-                Text goes here
+                <strong>Activity Feed</strong>
             </p>
 
             @* Responsive Gallery Grid, copied from Gallery.cshtml*@
@@ -144,8 +141,58 @@
                         </div>
                     }
                 </div>
+            } else {
+                <p class="text-muted medium mb-0">
+                No activity in this Club yet. Try uploading a Sighting!
+                </p>
             }
             
+            @* Club Highlights *@
+            @if (Model.ClubMembers.Any())
+            {
+                <hr />
+                <p class="mb-2"><strong>Club Highlights</strong></p>
+                <div class="d-flex flex-wrap gap-4">
+                    @if (Model.TopMembersByPoints.Any())
+                    {
+                        <div>
+                            <p class="text-muted mb-1">
+                                <i class="bi bi-trophy-fill text-warning me-1"></i> Top Members
+                            </p>
+                            <ol class="mb-0 ps-3">
+                                @foreach (var top in Model.TopMembersByPoints)
+                                {
+                                    <li class="medium">
+                                        @top.Member?.DisplayName
+                                        <span class="badge bg-primary ms-1">@(top.Member?.Points ?? 0) pts</span>
+                                    </li>
+                                }
+                            </ol>
+                        </div>
+                    }
+
+                    @if (Model.NewestMember != null)
+                    {
+                        <div>
+                            <p class="text-muted mb-1">
+                                <i class="bi bi-person-plus-fill text-success me-1"></i> Newest Member
+                            </p>
+                            <p class="medium mb-0">
+                                @Model.NewestMember.Member?.DisplayName
+                                <span class="text-muted">— joined @Model.NewestMember.JoinedAt.ToString("MMM d, yyyy")</span>
+                            </p>
+                        </div>
+                    }
+
+                    <div>
+                        <p class="text-muted mb-1">
+                            <i class="bi bi-camera-fill me-1"></i> Total Sightings
+                        </p>
+                        <p class="medium mb-0">@Model.TotalSightingsCount sighting@(Model.TotalSightingsCount == 1 ? "" : "s")</p>
+                    </div>
+                </div>
+            }
+
             <hr />
 
             @* Action buttons *@
