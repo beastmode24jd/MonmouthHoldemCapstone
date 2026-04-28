@@ -52,6 +52,7 @@ public static class TestDependencySetup
         services.AddTransient<DisplayNameDriver>();
         services.AddTransient<NotificationPreferencesDriver>();
         services.AddTransient<AccountSettingsDriver>();
+        services.AddTransient<AnidexDriver>(); // CSP-142
 
         return services;
     }

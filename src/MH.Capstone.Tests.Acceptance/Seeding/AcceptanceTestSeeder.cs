@@ -330,7 +330,7 @@ internal static class AcceptanceTestSeeder
                 pointValue: 10,
                 loginStreak: true,
                 rarity: "Common",
-                rarityMultiplier: 1.7),
+                rarityMultiplier: 1.7) { SpeciesName = "Great Blue Heron" },
 
             new Sighting(
                 id:          new Guid("a1000000-0000-0000-0000-000000000002"),
@@ -343,9 +343,11 @@ internal static class AcceptanceTestSeeder
                 pointValue: 10,
                 loginStreak: true,
                 rarity: "Common",
-                rarityMultiplier: 1.7),
+                rarityMultiplier: 1.7) { SpeciesName = "Bald Eagle" },
 
-            // null description — exercises optional-field rendering
+            // null description — exercises optional-field rendering.
+            // CSP-142: same species as the first sighting so Alex's Anidex
+            // shows a discovery count of 2 for "Great Blue Heron".
             new Sighting(
                 id:          new Guid("a1000000-0000-0000-0000-000000000003"),
                 userId:      AlexUserId,
@@ -357,7 +359,7 @@ internal static class AcceptanceTestSeeder
                 pointValue: 10,
                 loginStreak: true,
                 rarity: "Common",
-                rarityMultiplier: 1.7),
+                rarityMultiplier: 1.7) { SpeciesName = "Great Blue Heron" },
 
             // ── Lily ──────────────────────────────────────────────────────────
 
@@ -373,7 +375,7 @@ internal static class AcceptanceTestSeeder
                 pointValue: 10,
                 loginStreak: true,
                 rarity: "Common",
-                rarityMultiplier: 1.7),
+                rarityMultiplier: 1.7) { SpeciesName = "Wolverine" },
 
             // Portland — within typical Oregon map bounds
             new Sighting(
@@ -387,7 +389,7 @@ internal static class AcceptanceTestSeeder
                 pointValue: 10,
                 loginStreak: true,
                 rarity: "Common",
-                rarityMultiplier: 1.7),
+                rarityMultiplier: 1.7) { SpeciesName = "Peregrine Falcon" },
 
             // Eugene
             new Sighting(
@@ -401,7 +403,7 @@ internal static class AcceptanceTestSeeder
                 pointValue: 10,
                 loginStreak: true,
                 rarity: "Common",
-                rarityMultiplier: 1.7),
+                rarityMultiplier: 1.7) { SpeciesName = "River Otter" },
 
             // Silver Falls
             new Sighting(
@@ -415,7 +417,7 @@ internal static class AcceptanceTestSeeder
                 pointValue: 10,
                 loginStreak: true,
                 rarity: "Common",
-                rarityMultiplier: 1.7),
+                rarityMultiplier: 1.7) { SpeciesName = "Roosevelt Elk" },
 
             // Los Angeles — deliberately outside any Oregon bounding box so
             // map-bounds filtering tests can verify that out-of-range sightings
@@ -431,7 +433,7 @@ internal static class AcceptanceTestSeeder
                 pointValue: 10,
                 loginStreak: true,
                 rarity: "Common",
-                rarityMultiplier: 1.7)
+                rarityMultiplier: 1.7) { SpeciesName = "Coyote" }
         );
 
         await db.SaveChangesAsync(token);
