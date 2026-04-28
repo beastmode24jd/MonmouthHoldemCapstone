@@ -116,7 +116,7 @@ public class CSP124StepDefinitions
     [Then("I should be able to invite another user")]
     public void ThenIShouldBeAbleToInviteAnotherUser()
     {
-        
+        _clubsDriver.InviteMemberByDisplayName("Lily");
     }
 
     [Then("they should see the Club invite on their Clubs page")]
@@ -125,7 +125,8 @@ public class CSP124StepDefinitions
         _authDriver.PreformLoginForUser("lily@test.com", "Capstone26!");
         _clubsDriver.NavigateToLandingPage();
 
-        // Check for Alex's Club invite on Lily's Landing Page.
+        _clubsDriver.IsPendingInviteVisible(_newClubName).Should().BeTrue(
+            $"Lily should see a pending invite for '{_newClubName}' on her Clubs page");
     }
 
     // Scenario 4: Alex creates a private club, Lily is not added as a member.
@@ -150,8 +151,6 @@ public class CSP124StepDefinitions
     {
         _clubsDriver.IsOnClubPage().Should().BeTrue(
             "submitting the Create Club form should redirect to /Clubs/ClubPage/{id}");
-
-        // Check club page for member list?
     }
 
     [Then("my Club should not be visible on Lily's Club page")]
@@ -160,23 +159,13 @@ public class CSP124StepDefinitions
         _authDriver.PreformLoginForUser("lily@test.com", "Capstone26!");
         _clubsDriver.NavigateToLandingPage();
 
-        // Check for Alex's Club on Lily's Landing Page.
+        // Private club should not appear in the public "All" tab.
         _clubsDriver.IsClubCardVisible(_newClubName).Should().BeFalse(
-            $"the newly created club '{_newClubName}' should NOT appear under Lily's 'My Clubs'");
+            $"the private club '{_newClubName}' should not appear in the public club listing");
+
+        // Nor in Lily's "My Clubs" tab — she was never invited.
+        _clubsDriver.SwitchToMyClubsFilter();
+        _clubsDriver.IsClubCardVisible(_newClubName).Should().BeFalse(
+            $"the private club '{_newClubName}' should not appear under Lily's 'My Clubs'");
     }
-
-    /*
-    Scenario: Alex has a new club, and wants to add Lily to it.
-        Given I am on the Clubs page -- DONE
-        When I select valid options -- DONE
-        And I click the Create New Club button -- DONE
-        Then I should be able to invite another user
-        And they should see the Club invite on their Clubs page
-
-    Scenario: Alex has created a private club, and Lily is not added to it.
-        Given I am on the Clubs page -- DONE
-        When I select private for the Club -- DONE
-        And do not add other users
-        Then my Club should not be visible on Lily's Club page -- DONE
-    */
 }
