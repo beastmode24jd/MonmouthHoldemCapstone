@@ -86,15 +86,10 @@ jobs:
             -f target_url="$run_url"
 
           # Post a PR comment with a direct link to the run
+          body=$(printf '## 🧪 Manual Test Suite Triggered\n\nA full test suite run has been dispatched for this PR.\n\n**[View Run →](%s)**\n\n_This comment will be updated with the result when the run completes._' "$run_url")
           gh api "repos/${{ github.repository }}/issues/${{ inputs.pr_number }}/comments" \
             --method POST \
-            -f body="## 🧪 Manual Test Suite Triggered
-
-A full test suite run has been dispatched for this PR.
-
-**[View Run →]($run_url)**
-
-_This comment will be updated with the result when the run completes._"
+            -f body="$body"
         env:
           GH_TOKEN: ${{ github.token }}
 
