@@ -103,7 +103,10 @@ public class DisplayNameDriver
         var btn = _wait.Until(d => d.FindElement(By.Id("updateDisplayNameBtn")));
         ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", btn);
 
-        // Wait for the page to be ready and for the nav display name to reflect the change.
+        // Wait for the success banner. It only appears after the server processes the
+        // update and redirects back to /dashboard/settings with TempData set. Waiting
+        // for the old nav text to be non-empty was unreliable because the nav already
+        // contained the previous display name before the form was ever submitted.
         _wait.Until(d =>
         {
             try
@@ -112,12 +115,7 @@ public class DisplayNameDriver
                 if (!string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase))
                     return false;
 
-                var js = d as IJavaScriptExecutor;
-                var t = js?.ExecuteScript(
-                    "var el = document.getElementById('navDisplayNameText'); if (!el) return null; var s = el.textContent || ''; return s.trim().length > 0 ? s.trim() : null;"
-                )?.ToString();
-
-                return !string.IsNullOrWhiteSpace(t);
+                return d.FindElements(By.Id("displayNameSuccessMessage")).Count > 0;
             }
             catch { return false; }
         });
