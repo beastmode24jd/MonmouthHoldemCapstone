@@ -14,6 +14,7 @@ permissions:
   statuses: write     # Post pending commit status
   issues: write       # Post and update PR comment
   pull-requests: write # Required to remove labels from PRs
+  actions: read        # Required to query workflow runs when finding the dispatched run URL
 
 jobs:
   trigger:
@@ -55,7 +56,7 @@ jobs:
           for i in {1..6}; do
             run_url=$(gh api \
               "repos/${{ github.repository }}/actions/workflows/test_suite_complete_run.yml/runs?branch=ci/label-trigger-${{ github.event.pull_request.number }}&per_page=1" \
-              --jq '.workflow_runs[0].html_url // empty' 2>/dev/null)
+              --jq '.workflow_runs[0].html_url // empty' 2>/dev/null) || true
             [ -n "$run_url" ] && break
             sleep 5
           done
