@@ -13,7 +13,7 @@ permissions:
   contents: write     # Create and delete temporary trigger branch
   statuses: write     # Post pending commit status
   issues: write       # Post and update PR comment
-  pull-requests: read # Read PR metadata (SHA is in event payload, but needed for label removal)
+  pull-requests: write # Required to remove labels from PRs
 
 jobs:
   trigger:
