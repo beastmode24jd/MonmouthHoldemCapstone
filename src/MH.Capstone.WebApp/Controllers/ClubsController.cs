@@ -64,15 +64,11 @@ namespace MH.Capstone.WebApp.Controllers
                 .Where(m => m.AcceptedInvite)
                 .ToList();
 
-            var sightings = await _clubService.GetClubSightingsAsync(id);
+            var sightingCards = (await _clubService.GetClubSightingsAsync(id))
+                .Select(s => new SightingCardViewModel(s))
+                .ToList();
 
-            bool hasSightings = false;
-            if (sightings.Count > 0)
-            {
-                hasSightings = true;
-            }
-
-            return View("ClubPage", new ClubPageViewModel(club, members, sightings, hasSightings, isOwner, isMember));
+            return View("ClubPage", new ClubPageViewModel(club, members, sightingCards, isOwner, isMember));
         }
 
         [HttpGet]
