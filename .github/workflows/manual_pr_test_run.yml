@@ -16,6 +16,7 @@ permissions:
   pull-requests: read   # Required to read PR head SHA
   statuses: write       # Required to post pending/result commit status
   issues: write         # Required to post and update PR comments
+  actions: read         # Required to query workflow runs when finding the dispatched run URL
 
 jobs:
   trigger-tests:
@@ -67,7 +68,7 @@ jobs:
           for i in {1..6}; do
             run_url=$(gh api \
               "repos/${{ github.repository }}/actions/workflows/test_suite_complete_run.yml/runs?branch=ci/pr-trigger-${{ inputs.pr_number }}&per_page=1" \
-              --jq '.workflow_runs[0].html_url // empty' 2>/dev/null)
+              --jq '.workflow_runs[0].html_url // empty' 2>/dev/null) || true
             [ -n "$run_url" ] && break
             sleep 5
           done
