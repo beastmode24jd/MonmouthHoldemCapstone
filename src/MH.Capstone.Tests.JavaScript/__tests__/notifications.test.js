@@ -185,14 +185,14 @@ describe('fadeAndRemoveRow', () => {
         document.body.innerHTML = makeTable([makeRow('n1')]);
         const row = document.querySelector('tr');
         fadeAndRemoveRow(row, jest.fn());
-        expect(row.style.height).toBe('0');
+        expect(parseFloat(row.style.height)).toBe(0);
     });
 
     test('sets margin to 0 immediately', () => {
         document.body.innerHTML = makeTable([makeRow('n1')]);
         const row = document.querySelector('tr');
         fadeAndRemoveRow(row, jest.fn());
-        expect(row.style.margin).toBe('0');
+        expect(parseFloat(row.style.margin)).toBe(0);
     });
 
     test('removes the row from the DOM after 240 ms', () => {
