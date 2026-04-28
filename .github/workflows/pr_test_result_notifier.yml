@@ -14,6 +14,7 @@ permissions:
   statuses: write       # Post final commit status to the PR head SHA
   issues: write         # Update the PR comment posted by the dispatch step
   pull-requests: write  # Submit approving / request-changes review (label-triggered runs)
+  actions: read         # List workflow jobs to surface failed job URL on failure
 
 jobs:
   notify:
@@ -81,12 +82,31 @@ jobs:
                 c.body.includes('<!-- ci-run-comment -->')
               );
 
+            // For failures, attempt to surface the specific failed job URL
+            let failedJobUrl = runUrl;
+            if (!isSuccess) {
+              try {
+                const { data } = await github.rest.actions.listJobsForWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: run.id,
+                  filter: 'all'
+                });
+                const failedJob = data.jobs.find(j => j.conclusion === 'failure');
+                if (failedJob) failedJobUrl = failedJob.html_url;
+              } catch (err) {
+                core.warning(`Could not fetch failed job: ${err.message}`);
+              }
+            }
+
             const label = labelMatch ? 'CI Test Suite' : 'Manual Test Suite';
             const resultBody = [
               '<!-- ci-run-comment -->',
               `## ${icon} ${label} ${isSuccess ? 'Passed' : 'Failed'}`,
               '',
-              `**[View Run →](${runUrl})**`,
+              isSuccess
+                ? `**[View Run →](${runUrl})**`
+                : `**[View Run →](${runUrl})** | **[View Failed Job →](${failedJobUrl})**`,
               '',
               `Conclusion: \`${conclusion}\``
             ].join('\n');
