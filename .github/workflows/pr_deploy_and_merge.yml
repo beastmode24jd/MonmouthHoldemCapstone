@@ -1,0 +1,247 @@
+# WARNING: This workflow/action can only be run on the main repo (jmcshane22/MonmouthHoldemCapstone)
+# Triggered when a PR targeting dev or main is approved and up-to-date.
+# Runs the full test suite, deploys to the matching environment, then auto-merges the PR.
+# Required status check to configure in branch protection: "PR Deploy and Auto-Merge / Deploy to Environment"
+name: PR Deploy and Auto-Merge
+
+on:
+  pull_request_review:
+    types: [submitted]
+  pull_request:
+    types: [synchronize, ready_for_review]
+
+permissions:
+  contents: read
+  actions: write
+  pull-requests: read
+
+jobs:
+  check_conditions:
+    name: Check PR Approval and Readiness
+    if: github.repository == 'jmcshane22/MonmouthHoldemCapstone'
+    runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+      deploy_env: ${{ steps.check.outputs.deploy_env }}
+      is_prerelease: ${{ steps.check.outputs.is_prerelease }}
+    steps:
+      - name: Evaluate PR approval state and merge readiness
+        id: check
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const baseBranch = context.payload.pull_request.base.ref;
+
+            if (baseBranch !== 'dev' && baseBranch !== 'main') {
+              core.setOutput('should_deploy', 'false');
+              core.info(`Skipping — base branch '${baseBranch}' is not dev or main`);
+              return;
+            }
+
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+
+            if (pr.draft) {
+              core.setOutput('should_deploy', 'false');
+              core.info('Skipping — PR is a draft');
+              return;
+            }
+
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+
+            // Track latest review state per reviewer (list is ordered oldest→newest)
+            const latestByUser = {};
+            for (const r of reviews) {
+              latestByUser[r.user.login] = r.state;
+            }
+            const isApproved = Object.values(latestByUser).some(s => s === 'APPROVED');
+
+            // 'behind' = base has commits the PR head does not; 'dirty' = merge conflict
+            const isReady = isApproved &&
+              pr.mergeable_state !== 'behind' &&
+              pr.mergeable_state !== 'dirty';
+
+            const deployEnv = baseBranch === 'main' ? 'azure_prod' : 'azure_staging';
+            const isPrerelease = baseBranch !== 'main';
+
+            core.setOutput('should_deploy', isReady.toString());
+            core.setOutput('deploy_env', deployEnv);
+            core.setOutput('is_prerelease', isPrerelease.toString());
+            core.info(`PR #${prNumber} — approved: ${isApproved}, mergeable_state: ${pr.mergeable_state}, env: ${deployEnv}, will deploy: ${isReady}`);
+
+  test:
+    name: Full Test Suite
+    needs: check_conditions
+    if: needs.check_conditions.outputs.should_deploy == 'true'
+    uses: ./.github/workflows/test_suite_complete_run.yml
+    secrets: inherit
+    permissions:
+      contents: read
+      actions: write
+      id-token: write
+
+  publish:
+    name: Publish
+    needs: [check_conditions, test]
+    if: needs.check_conditions.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    outputs:
+      version: ${{ steps.get_build_version.outputs.version }}
+      artifact_name: ${{ vars.FILEPATH_SAFE_APPNAME }}_v${{ steps.get_build_version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Get build version
+        id: get_build_version
+        run: |
+          version="$(date +%Y).$(date +%-m).${{ github.run_number }}.${{ github.run_attempt }}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Pin .NET SDK to 9.0.x
+        run: echo '{"sdk":{"version":"9.0.312","rollForward":"latestPatch"}}' > global.json
+
+      - name: Install dotnet-ef tool
+        run: dotnet tool install --global dotnet-ef --version ${{ vars.DOTNET_EF_VERSION }}
+
+      - name: Restore packages for publish
+        run: dotnet restore ./src --no-dependencies --verbosity ${{ vars.DOTNET_VERBOSE_LVL }}
+
+      - name: Publish
+        run: |
+          dotnet publish ./src/MH.Capstone.WebApp --no-restore --configuration Release --verbosity ${{ vars.DOTNET_VERBOSE_LVL }} \
+            -p:Version=${{ steps.get_build_version.outputs.version }} \
+            -o "${{ vars.PUBLISH_ROOT_DIR }}/${{ vars.WEBAPP_PUBLISH_DIR }}"
+
+      - name: Create EF Core bundle - ApplicationDbContext
+        run: |
+          mkdir -p "${{ vars.PUBLISH_ROOT_DIR }}/${{ vars.DOTNET_EF_BUNDLE_DIR }}"
+          dotnet ef migrations bundle --self-contained --configuration Release --no-build \
+            -o "${{ vars.PUBLISH_ROOT_DIR }}/${{ vars.DOTNET_EF_BUNDLE_DIR }}/${{ vars.DOTNET_EF_BUNDLE_NAME_APPDBCTX }}" \
+            -p ./src/MH.Capstone.Domain -s ./src/MH.Capstone.WebApp -c ApplicationDbContext
+
+      - name: Create EF Core bundle - CacheDbContext
+        run: |
+          dotnet ef migrations bundle --self-contained --configuration Release --no-build \
+            -o "${{ vars.PUBLISH_ROOT_DIR }}/${{ vars.DOTNET_EF_BUNDLE_DIR }}/${{ vars.DOTNET_EF_BUNDLE_NAME_CACHEDBCTX }}" \
+            -p ./src/MH.Capstone.Domain -s ./src/MH.Capstone.WebApp -c CacheDbContext
+
+      - name: Upload publish artifact for deploy job
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ vars.FILEPATH_SAFE_APPNAME }}_v${{ steps.get_build_version.outputs.version }}
+          path: ./${{ vars.PUBLISH_ROOT_DIR }}
+          retention-days: 1
+
+  deploy:
+    name: Deploy to Environment
+    needs: [check_conditions, publish]
+    if: needs.check_conditions.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ needs.check_conditions.outputs.deploy_env }}
+    env:
+      ASPNETCORE_ENVIRONMENT: Production
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Download artifact from publish job
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.publish.outputs.artifact_name }}
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID }}
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZUREAPPSERVICE_APPNAME }}
+          slot-name: 'Production'
+          package: './${{ vars.WEBAPP_PUBLISH_DIR }}'
+
+      - name: Deploy EF Core migration bundle - ApplicationDbContext
+        if: ${{ success() }}
+        run: |
+          chmod +x ${{ vars.DOTNET_EF_BUNDLE_DIR }}/${{ vars.DOTNET_EF_BUNDLE_NAME_APPDBCTX }} &&
+          ${{ vars.DOTNET_EF_BUNDLE_DIR }}/${{ vars.DOTNET_EF_BUNDLE_NAME_APPDBCTX }} --connection '${{ secrets.AZUREAPPSERVICE_DBCONNSTR }}' --verbose
+
+      - name: Deploy EF Core migration bundle - CacheDbContext
+        if: ${{ success() }}
+        run: |
+          chmod +x ${{ vars.DOTNET_EF_BUNDLE_DIR }}/${{ vars.DOTNET_EF_BUNDLE_NAME_CACHEDBCTX }} &&
+          ${{ vars.DOTNET_EF_BUNDLE_DIR }}/${{ vars.DOTNET_EF_BUNDLE_NAME_CACHEDBCTX }} --connection '${{ secrets.AZUREAPPSERVICE_DBCONNSTR }}' --verbose
+
+  auto_merge:
+    name: Auto-Merge PR
+    needs: [check_conditions, deploy]
+    if: needs.check_conditions.outputs.should_deploy == 'true' && needs.deploy.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Merge PR into base branch
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            await github.rest.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              merge_method: 'merge'
+            });
+            core.info(`PR #${prNumber} auto-merged after successful deployment.`);
+
+  release:
+    name: Create GitHub Release
+    needs: [check_conditions, publish, auto_merge]
+    if: needs.check_conditions.outputs.should_deploy == 'true' && needs.auto_merge.result == 'success'
+    runs-on: ubuntu-latest
+    env:
+      ARTIFACT_ZIP_NAME: ${{ needs.publish.outputs.artifact_name }}.zip
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifact from publish job
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.publish.outputs.artifact_name }}
+          path: app
+
+      - name: Zip artifact for release
+        run: zip -r ${{ env.ARTIFACT_ZIP_NAME }} ./app
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          prerelease: ${{ needs.check_conditions.outputs.is_prerelease }}
+          name: ${{ needs.publish.outputs.version }}
+          tag_name: ${{ needs.publish.outputs.version }}
+          generate_release_notes: true
+          files: ${{ env.ARTIFACT_ZIP_NAME }}
+          target_commitish: ${{ github.sha }}
