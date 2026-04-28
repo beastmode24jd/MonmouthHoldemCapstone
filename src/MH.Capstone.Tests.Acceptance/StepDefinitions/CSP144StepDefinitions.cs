@@ -4,6 +4,8 @@ using MH.Capstone.Tests.Acceptance.Drivers;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
 using Reqnroll;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions
 {
@@ -150,19 +152,13 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
 
         #region Helpers
 
-        // Minimal valid JPEG (magic bytes only) — ValidateImage on the AI endpoint
-        // checks content-type + size; pixel content is irrelevant because the fetch
-        // stub mocks the AI response before bytes ever reach Gemini.
+        // Generates a valid 1024×1024 JPEG so the CSP-122 photo quality gate (long side
+        // ≥ 1024 px) does not reject the image when the form is submitted for real.
         private static string GenerateValidUploadImage()
         {
             var path = Path.Combine(Path.GetTempPath(), $"csp144_{Guid.NewGuid():N}.jpg");
-            byte[] minimalJpeg =
-            {
-                0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46,
-                0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01,
-                0x00, 0x01, 0x00, 0x00, 0xFF, 0xD9
-            };
-            File.WriteAllBytes(path, minimalJpeg);
+            using var image = new Image<Rgb24>(1024, 1024);
+            image.SaveAsJpeg(path);
             return path;
         }
 
