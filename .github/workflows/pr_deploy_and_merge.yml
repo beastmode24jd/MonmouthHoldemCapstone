@@ -224,12 +224,15 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - name: Extract Jira issue key from branch name
+      - name: Extract Jira issue key from PR title or branch name
         id: jira
         run: |
-          key=$(echo "${{ github.head_ref }}" | grep -oE '[A-Z]+-[0-9]+' | head -1)
+          key=$(echo "${{ github.event.pull_request.title }}" | grep -oP '(?<=\[)[A-Z]+-[0-9]+(?=\])' | head -1)
           if [ -z "$key" ]; then
-            echo "No Jira issue key found in branch name '${{ github.head_ref }}' — skipping transition"
+            key=$(echo "${{ github.head_ref }}" | grep -oE '[A-Z]+-[0-9]+' | head -1)
+          fi
+          if [ -z "$key" ]; then
+            echo "No Jira issue key found in PR title or branch name — skipping transition"
           else
             echo "key=$key" >> "$GITHUB_OUTPUT"
             echo "Found Jira issue key: $key"
@@ -264,12 +267,15 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - name: Extract Jira issue key from branch name
+      - name: Extract Jira issue key from PR title or branch name
         id: jira
         run: |
-          key=$(echo "${{ github.head_ref }}" | grep -oE '[A-Z]+-[0-9]+' | head -1)
+          key=$(echo "${{ github.event.pull_request.title }}" | grep -oP '(?<=\[)[A-Z]+-[0-9]+(?=\])' | head -1)
           if [ -z "$key" ]; then
-            echo "No Jira issue key found in branch name '${{ github.head_ref }}' — skipping transition"
+            key=$(echo "${{ github.head_ref }}" | grep -oE '[A-Z]+-[0-9]+' | head -1)
+          fi
+          if [ -z "$key" ]; then
+            echo "No Jira issue key found in PR title or branch name — skipping transition"
           else
             echo "key=$key" >> "$GITHUB_OUTPUT"
             echo "Found Jira issue key: $key"
