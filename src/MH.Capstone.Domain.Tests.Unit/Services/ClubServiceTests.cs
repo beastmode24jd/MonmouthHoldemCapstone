@@ -531,7 +531,7 @@ public class ClubServiceTests
         {
             new ClubMembership(memberId1, clubId, DateTimeOffset.UtcNow) { AcceptedInvite = true },
             new ClubMembership(memberId2, clubId, DateTimeOffset.UtcNow) { AcceptedInvite = false },
-        };
+        }.AsQueryable();
 
         _clubMembershipRepoMock
             .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<ClubMembership, bool>>>()))
@@ -541,9 +541,9 @@ public class ClubServiceTests
         var result = (await _clubService.GetClubMembershipsAsync(clubId)).ToList();
 
         // Assert
-        result.Should().HaveCount(2);
-        result.Should().Contain(m => m.MemberId == memberId1 && m.AcceptedInvite);
-        result.Should().Contain(m => m.MemberId == memberId2 && !m.AcceptedInvite);
+        Assert.That(result.Count, Is.EqualTo(2), "GetClubMembershipsAsync should return found club memberships.");
+        Assert.That(result, Has.Some.Matches<ClubMembership>(m => m.MemberId == memberId1 && m.AcceptedInvite));
+        Assert.That(result, Has.Some.Matches<ClubMembership>(m => m.MemberId == memberId2 && !m.AcceptedInvite));
     }
 
     [Test]
@@ -554,13 +554,13 @@ public class ClubServiceTests
 
         _clubMembershipRepoMock
             .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<ClubMembership, bool>>>()))
-            .ReturnsAsync(new List<ClubMembership>());
+            .ReturnsAsync(new List<ClubMembership>().AsQueryable());
 
         // Act
         var result = (await _clubService.GetClubMembershipsAsync(clubId)).ToList();
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.That(result, Is.EqualTo(new List<ClubMembership>()), "GetClubMembershipsAsync default should be an empty Membership list.");
     }
 
     #endregion
