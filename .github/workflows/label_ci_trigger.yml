@@ -1,0 +1,89 @@
+# WARNING: This workflow/action can only be run on the main repo (jmcshane22/MonmouthHoldemCapstone)
+# Triggered by adding the 'run-ci' label to any PR targeting dev or main.
+# Runs the full test suite and posts an approving or request-changes review based on the result.
+# The label is removed immediately so it can be re-applied to trigger another run.
+name: Label-Triggered CI and Review
+
+on:
+  pull_request:
+    types: [labeled]
+    branches: [dev, main]
+
+permissions:
+  contents: write     # Create and delete temporary trigger branch
+  statuses: write     # Post pending commit status
+  issues: write       # Post and update PR comment
+  pull-requests: read # Read PR metadata (SHA is in event payload, but needed for label removal)
+
+jobs:
+  trigger:
+    name: Trigger test suite and review
+    runs-on: ubuntu-latest
+    if: >
+      github.repository == 'jmcshane22/MonmouthHoldemCapstone' &&
+      github.event.label.name == 'run-ci'
+    steps:
+      - name: Remove run-ci label
+        run: |
+          gh api "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels/run-ci" \
+            --method DELETE
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Create temporary trigger branch at PR head
+        run: |
+          gh api "repos/${{ github.repository }}/git/refs/heads/ci/label-trigger-${{ github.event.pull_request.number }}" \
+            --method DELETE 2>/dev/null || true
+          gh api "repos/${{ github.repository }}/git/refs" \
+            --method POST \
+            -f ref="refs/heads/ci/label-trigger-${{ github.event.pull_request.number }}" \
+            -f sha="${{ github.event.pull_request.head.sha }}"
+        env:
+          GH_TOKEN: ${{ secrets.WORKFLOW_DISPATCH_PAT }}
+
+      - name: Dispatch complete test suite on PR head
+        run: |
+          gh workflow run test_suite_complete_run.yml \
+            --repo "${{ github.repository }}" \
+            --ref "ci/label-trigger-${{ github.event.pull_request.number }}"
+        env:
+          GH_TOKEN: ${{ secrets.WORKFLOW_DISPATCH_PAT }}
+
+      - name: Find dispatched run and notify PR
+        run: |
+          run_url=""
+          for i in {1..6}; do
+            run_url=$(gh api \
+              "repos/${{ github.repository }}/actions/workflows/test_suite_complete_run.yml/runs?branch=ci/label-trigger-${{ github.event.pull_request.number }}&per_page=1" \
+              --jq '.workflow_runs[0].html_url // empty' 2>/dev/null)
+            [ -n "$run_url" ] && break
+            sleep 5
+          done
+
+          if [ -z "$run_url" ]; then
+            echo "::warning::Could not locate dispatched run within 30s — skipping PR notification"
+            exit 0
+          fi
+
+          gh api "repos/${{ github.repository }}/statuses/${{ github.event.pull_request.head.sha }}" \
+            --method POST \
+            -f state=pending \
+            -f context="CI Label Review" \
+            -f description="Test suite is running — review will be posted on completion..." \
+            -f target_url="$run_url"
+
+          body=$(printf '<!-- ci-run-comment -->\n## 🧪 CI Test Suite Triggered\n\nTests have been dispatched for this PR via the `run-ci` label.\n\n**[View Run →](%s)**\n\n_An approving or request-changes review will be posted automatically when the run completes._' "$run_url")
+          gh api "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
+            --method POST \
+            -f body="$body"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Clean up temporary trigger branch
+        if: always()
+        run: |
+          sleep 5
+          gh api "repos/${{ github.repository }}/git/refs/heads/ci/label-trigger-${{ github.event.pull_request.number }}" \
+            --method DELETE 2>/dev/null || true
+        env:
+          GH_TOKEN: ${{ secrets.WORKFLOW_DISPATCH_PAT }}
