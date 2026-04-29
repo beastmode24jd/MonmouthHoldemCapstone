@@ -134,6 +134,7 @@ public class SightingsDriver
             }
         }
 
+        EnsureSpeciesNameFilled();
         ((IJavaScriptExecutor)_webDriver).ExecuteScript("arguments[0].click();", page.SubmitBtn);
     }
 
@@ -201,10 +202,43 @@ public class SightingsDriver
         input.SendKeys(description);
     }
 
+    /// <summary>CSP-142: sets the species name input on the upload form.</summary>
+    public void SetSpeciesName(string speciesName)
+    {
+        var input = _wait.Until(d => d.FindElement(By.Id("SpeciesName")));
+        input.Clear();
+        input.SendKeys(speciesName);
+    }
+
+    /// <summary>
+    /// CSP-142: ensures the SpeciesName field is non-empty before submit so existing
+    /// upload-flow tests (CSP-53, CSP-122, CSP-134…) that predate the required species
+    /// field still pass server-side validation. Tests that care about the species value
+    /// should call <see cref="SetSpeciesName"/> explicitly first.
+    /// </summary>
+    private void EnsureSpeciesNameFilled()
+    {
+        try
+        {
+            var input = _webDriver.FindElement(By.Id("SpeciesName"));
+            var current = input.GetAttribute("value") ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(current))
+            {
+                input.Clear();
+                input.SendKeys("Test Species");
+            }
+        }
+        catch (NoSuchElementException)
+        {
+            // No SpeciesName field on this form (e.g. a future test against a stripped page) — nothing to do.
+        }
+    }
+
     /// <summary>Clicks the submit button on the currently displayed upload form.</summary>
     public void SubmitSightingsForm()
     {
         var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
+        EnsureSpeciesNameFilled();
         ((IJavaScriptExecutor)_webDriver).ExecuteScript("arguments[0].click();", page.SubmitBtn);
         _wait.Until(d => !IsOnSightingsUploadPage()
             || HasVisibleValidationErrors());
