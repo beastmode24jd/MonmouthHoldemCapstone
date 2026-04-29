@@ -210,7 +210,7 @@ public class SightingsDriver
     public void SubmitSightingsForm()
     {
         var uploadForm = _wait.Until(d =>
-            d.FindElement(By.CssSelector("form[action*='Upload']")));
+            d.FindElement(By.CssSelector("form[enctype='multipart/form-data']")));
 
         ((IJavaScriptExecutor)_webDriver).ExecuteScript("arguments[0].submit();", uploadForm);
 
