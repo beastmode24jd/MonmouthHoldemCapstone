@@ -42,7 +42,7 @@ jobs:
             }
 
             const prNumber    = parseInt(match[1]);
-            const shouldReview = !!labelMatch;   // only post a review for label-triggered runs
+            const shouldReview = !!match;          // post a review for all PR-targeted runs
             const statusContext = labelMatch ? 'CI Label Review' : 'Manual Test Suite';
 
             const run        = context.payload.workflow_run;
