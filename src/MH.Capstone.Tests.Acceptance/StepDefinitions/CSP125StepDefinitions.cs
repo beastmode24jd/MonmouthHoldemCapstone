@@ -4,6 +4,8 @@ using MH.Capstone.Tests.Acceptance.Drivers;
 using NUnit.Framework;
 using OpenQA.Selenium;
 using Reqnroll;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
@@ -72,19 +74,12 @@ public class CSP125StepDefinitions
         // Go to sighting upload page
         _sightingsDriver.NavigateToSightingsUpload();
 
-        // Create a Sighting, upload it
-        // Create a minimal JPEG file (magic bytes + a few padding bytes).
-        // ValidateImage checks content-type (derived from the .jpg extension by the
-        // browser) and that size is between 1 byte and 2 MB — actual pixel data is
-        // not inspected, so magic bytes alone are sufficient.
-        var path = Path.Combine(Path.GetTempPath(), $"valid_image_{Guid.NewGuid()}.jpg");
-        byte[] minimalJpeg =
-        [
-            0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, // JFIF SOI + APP0 marker
-            0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01,
-            0x00, 0x01, 0x00, 0x00, 0xFF, 0xD9              // EOI
-        ];
-        File.WriteAllBytes(path, minimalJpeg);
+        // Generate a valid 1280×960 PNG using ImageSharp. The CSP-122 photo quality
+        // gate requires ≥1024 px on the long side and will crash on corrupt/incomplete
+        // image bytes — magic bytes alone are not sufficient.
+        var path = Path.Combine(Path.GetTempPath(), $"valid_image_{Guid.NewGuid()}.png");
+        using (var img = new Image<Rgba32>(1280, 960, new Rgba32(128, 128, 128, 255)))
+            img.SaveAsPng(path);
         _preparedImageFilePath = path;
 
         _sightingsDriver.SetImageForUpload(path);
