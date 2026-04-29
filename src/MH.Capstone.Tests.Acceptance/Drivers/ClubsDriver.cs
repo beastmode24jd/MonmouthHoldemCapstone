@@ -238,6 +238,127 @@ public class ClubsDriver
         }
     }
 
+    /// <summary>
+    /// Finds the pending invite card for <paramref name="clubName"/> and submits the Accept form.
+    /// Uses JS form.submit() to guarantee a POST, bypassing any click-handler interference.
+    /// Waits for the redirect to the club's detail page.
+    /// </summary>
+    public void AcceptInviteForClub(string clubName)
+    {
+        var acceptForm = _wait.Until(d =>
+        {
+            var cards = d.FindElements(By.CssSelector("[id^='pendingInvite_']"));
+            foreach (var card in cards)
+            {
+                var hasName = card.FindElements(By.CssSelector("strong"))
+                                  .Any(e => e.Text.Contains(clubName, StringComparison.OrdinalIgnoreCase));
+                if (hasName)
+                    return card.FindElements(By.CssSelector("form[action*='AcceptInvite']"))
+                               .FirstOrDefault();
+            }
+            return null;
+        });
+
+        if (acceptForm != null)
+            ((IJavaScriptExecutor)_webDriver).ExecuteScript("arguments[0].submit();", acceptForm);
+
+        TestContext.Out.WriteLine($"[{nameof(ClubsDriver)}] Submitted accept-invite form for '{clubName}'.");
+
+        _wait.Until(d => d.Url.Contains("/Clubs/ClubPage/", StringComparison.InvariantCultureIgnoreCase));
+        TestContext.Out.WriteLine($"[{nameof(ClubsDriver)}] Redirected to club page after accepting invite.");
+    }
+
+    /// <summary>
+    /// Finds the club card with <paramref name="clubName"/> on the current landing page and
+    /// clicks its "View Club" link. Waits for the club detail page to load.
+    /// </summary>
+    public void NavigateToClubPage(string clubName)
+    {
+        var viewLink = _wait.Until(d =>
+        {
+            var wrappers = d.FindElements(By.CssSelector(".club-card-wrapper"));
+            foreach (var wrapper in wrappers)
+            {
+                var hasTitle = wrapper.FindElements(By.CssSelector(".card-title"))
+                                      .Any(t => t.Text.Contains(clubName, StringComparison.OrdinalIgnoreCase));
+                if (hasTitle)
+                    return wrapper.FindElements(By.CssSelector("a.btn")).FirstOrDefault(a => a.Displayed);
+            }
+            return null;
+        });
+
+        viewLink?.Click();
+        TestContext.Out.WriteLine($"[{nameof(ClubsDriver)}] Clicked 'View Club' for '{clubName}'.");
+
+        _wait.Until(d => d.Url.Contains("/Clubs/ClubPage/", StringComparison.InvariantCultureIgnoreCase));
+        TestContext.Out.WriteLine($"[{nameof(ClubsDriver)}] Arrived on club page for '{clubName}'.");
+    }
+
+    /// <summary>
+    /// Returns true when at least one sighting card is visible on the current page.
+    /// </summary>
+    public bool HasAnySightingCards()
+    {
+        try
+        {
+            return new WebDriverWait(_webDriver, TimeSpan.FromSeconds(10)).Until(d =>
+            {
+                var cards = d.FindElements(By.CssSelector(".sighting-card-wrapper"));
+                return cards.Any(c => c.Displayed);
+            });
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Returns true when a sighting card attributed to <paramref name="displayName"/> is visible.
+    /// </summary>
+    public bool IsSightingByUserVisible(string displayName)
+    {
+        try
+        {
+            return new WebDriverWait(_webDriver, TimeSpan.FromSeconds(5)).Until(d =>
+            {
+                var attributions = d.FindElements(By.CssSelector(".sighting-attribution"));
+                return attributions.Any(a =>
+                    a.Displayed &&
+                    a.Text.Contains(displayName, StringComparison.OrdinalIgnoreCase));
+            });
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Clicks the Leave Club button on a club page, confirms in the modal, then waits for
+    /// the redirect back to the clubs landing page.
+    /// </summary>
+    public void LeaveClub()
+    {
+        var leaveBtn = _wait.Until(d => d.FindElement(By.Id("leaveClubBtn")));
+        ((IJavaScriptExecutor)_webDriver).ExecuteScript("arguments[0].click();", leaveBtn);
+        TestContext.Out.WriteLine($"[{nameof(ClubsDriver)}] Clicked 'Leave Club' trigger.");
+
+        _wait.Until(d =>
+            d.FindElement(By.Id("leaveClubModal"))
+             .GetAttribute("class")?.Contains("show") == true);
+        TestContext.Out.WriteLine($"[{nameof(ClubsDriver)}] Leave-Club modal visible.");
+
+        var confirmBtn = _wait.Until(d => d.FindElement(By.Id("confirmLeaveBtn")));
+        confirmBtn.Click();
+        TestContext.Out.WriteLine($"[{nameof(ClubsDriver)}] Confirmed leave — waiting for redirect.");
+
+        _wait.Until(d =>
+            !d.Url.Contains("/Clubs/ClubPage/", StringComparison.OrdinalIgnoreCase) &&
+            d.Url.Contains("/Clubs", StringComparison.OrdinalIgnoreCase));
+        TestContext.Out.WriteLine($"[{nameof(ClubsDriver)}] Redirected to clubs landing after leaving.");
+    }
+
     private void WaitForPageReady()
     {
         try

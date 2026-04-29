@@ -201,11 +201,21 @@ public class SightingsDriver
         input.SendKeys(description);
     }
 
-    /// <summary>Clicks the submit button on the currently displayed upload form.</summary>
+    /// <summary>
+    /// Submits the sighting upload form via JavaScript's form.submit(), which
+    /// guarantees a POST request regardless of any click-handler interference.
+    /// Waits until the browser navigates away from the upload page (success) or
+    /// server-side validation errors become visible (rejection).
+    /// </summary>
     public void SubmitSightingsForm()
     {
-        var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
-        ((IJavaScriptExecutor)_webDriver).ExecuteScript("arguments[0].click();", page.SubmitBtn);
+        var uploadForm = _wait.Until(d =>
+            d.FindElement(By.CssSelector("form[enctype='multipart/form-data']")));
+
+        ((IJavaScriptExecutor)_webDriver).ExecuteScript("arguments[0].submit();", uploadForm);
+
+        TestContext.Out.WriteLine($"[{nameof(SightingsDriver)}] Submitted sighting upload form.");
+
         _wait.Until(d => !IsOnSightingsUploadPage()
             || HasVisibleValidationErrors());
     }
