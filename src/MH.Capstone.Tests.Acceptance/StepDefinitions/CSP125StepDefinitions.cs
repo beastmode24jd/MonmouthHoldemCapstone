@@ -43,22 +43,13 @@ public class CSP125StepDefinitions
         _authDriver.PreformLoginForUser("alex@test.com", "Capstone26!");
         _clubsDriver.NavigateToLandingPage();
 
-        // Create a fresh club for this scenario and invite Lily so her seeded sightings appear in the feed.
+        // Create a fresh club. Alex is automatically an accepted member, so his
+        // seeded sightings will appear in the feed without needing to invite anyone.
         var uid = Guid.NewGuid().ToString("N")[..8];
         _newClubName = $"Feed_{uid}";
         _clubsDriver.OpenCreateClubModal();
         _clubsDriver.FillCreateClubModal(_newClubName, null, isPublic: true);
         _clubsDriver.SubmitCreateClubModal();
-        _clubsDriver.InviteMemberByDisplayName("Lily");
-
-        // Switch to Lily, accept the invite, then return to Alex on the landing page.
-        _authDriver.LogoutUser();
-        _authDriver.PreformLoginForUser("lily@test.com", "Capstone26!");
-        _clubsDriver.NavigateToLandingPage();
-        _clubsDriver.AcceptInviteForClub(_newClubName);
-
-        _authDriver.LogoutUser();
-        _authDriver.PreformLoginForUser("alex@test.com", "Capstone26!");
         _clubsDriver.NavigateToLandingPage();
     }
 
@@ -119,11 +110,15 @@ public class CSP125StepDefinitions
     [Given("Lily leaves the Club")]
     public void GivenLilyLeavesTheClub()
     {
-        // Switch to Lily, navigate to the club, and leave it.
+        // Alex invites Lily from the club page so her sightings appear before she leaves.
+        _clubsDriver.NavigateToClubPage(_newClubName);
+        _clubsDriver.InviteMemberByDisplayName("Lily");
+
+        // Lily accepts the invite (landing on the club page), then leaves immediately.
         _authDriver.LogoutUser();
         _authDriver.PreformLoginForUser("lily@test.com", "Capstone26!");
         _clubsDriver.NavigateToLandingPage();
-        _clubsDriver.NavigateToClubPage(_newClubName);
+        _clubsDriver.AcceptInviteForClub(_newClubName);
         _clubsDriver.LeaveClub();
 
         // Return to Alex on the landing page so the When step can navigate to the club.

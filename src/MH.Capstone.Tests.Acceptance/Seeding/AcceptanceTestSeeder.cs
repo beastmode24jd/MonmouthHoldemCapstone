@@ -107,13 +107,22 @@ internal static class AcceptanceTestSeeder
         await db.UserBadges.ExecuteDeleteAsync(token);
         await db.Sightings.ExecuteDeleteAsync(token);
 
-        // 2. ASP.NET Identity junction tables (FK → AspNetUsers and/or AspNetRoles).
+        // 2. Club tables — Messages and ClubMemberships reference both Club and User;
+        //    Clubs references User via OwnerId. Clear all three before touching Users.
+        await db.Messages.ExecuteDeleteAsync(token);
+        await db.ClubMemberships.ExecuteDeleteAsync(token);
+        await db.Clubs.ExecuteDeleteAsync(token);
+
+        // 3. Notification preferences — FK → User.
+        await db.UserNotificationPreferences.ExecuteDeleteAsync(token);
+
+        // 4. ASP.NET Identity junction tables (FK → AspNetUsers and/or AspNetRoles).
         await db.UserTokens.ExecuteDeleteAsync(token);
         await db.UserLogins.ExecuteDeleteAsync(token);
         await db.UserClaims.ExecuteDeleteAsync(token);
         await db.UserRoles.ExecuteDeleteAsync(token);
 
-        // 3. Root identity tables — cleared last because the junction tables above
+        // 5. Root identity tables — cleared last because the junction tables above
         //    held FKs into them.
         await db.Users.ExecuteDeleteAsync(token);
         await db.Badges.ExecuteDeleteAsync(token);

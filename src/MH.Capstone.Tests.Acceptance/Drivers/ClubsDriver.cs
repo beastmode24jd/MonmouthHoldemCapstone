@@ -239,12 +239,13 @@ public class ClubsDriver
     }
 
     /// <summary>
-    /// Finds the pending invite card for <paramref name="clubName"/> and clicks the Accept button.
+    /// Finds the pending invite card for <paramref name="clubName"/> and submits the Accept form.
+    /// Uses JS form.submit() to guarantee a POST, bypassing any click-handler interference.
     /// Waits for the redirect to the club's detail page.
     /// </summary>
     public void AcceptInviteForClub(string clubName)
     {
-        var acceptBtn = _wait.Until(d =>
+        var acceptForm = _wait.Until(d =>
         {
             var cards = d.FindElements(By.CssSelector("[id^='pendingInvite_']"));
             foreach (var card in cards)
@@ -252,13 +253,16 @@ public class ClubsDriver
                 var hasName = card.FindElements(By.CssSelector("strong"))
                                   .Any(e => e.Text.Contains(clubName, StringComparison.OrdinalIgnoreCase));
                 if (hasName)
-                    return card.FindElements(By.CssSelector(".btn-success")).FirstOrDefault(b => b.Displayed);
+                    return card.FindElements(By.CssSelector("form[action*='AcceptInvite']"))
+                               .FirstOrDefault();
             }
             return null;
         });
 
-        acceptBtn?.Click();
-        TestContext.Out.WriteLine($"[{nameof(ClubsDriver)}] Accepted invite for club '{clubName}'.");
+        if (acceptForm != null)
+            ((IJavaScriptExecutor)_webDriver).ExecuteScript("arguments[0].submit();", acceptForm);
+
+        TestContext.Out.WriteLine($"[{nameof(ClubsDriver)}] Submitted accept-invite form for '{clubName}'.");
 
         _wait.Until(d => d.Url.Contains("/Clubs/ClubPage/", StringComparison.InvariantCultureIgnoreCase));
         TestContext.Out.WriteLine($"[{nameof(ClubsDriver)}] Redirected to club page after accepting invite.");
