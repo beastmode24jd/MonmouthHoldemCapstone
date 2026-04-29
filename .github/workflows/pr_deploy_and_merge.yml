@@ -1,6 +1,9 @@
 # WARNING: This workflow/action can only be run on the main repo (jmcshane22/MonmouthHoldemCapstone)
 # Triggered when a PR targeting dev or main is approved and up-to-date.
-# Runs the full test suite, deploys to the matching environment, then auto-merges the PR.
+# Requires both a human approval and a github-actions[bot] CI approval to deploy.
+# If the bot hasn't approved yet, tests are run inline and the bot review is posted from this workflow.
+# If the bot has already approved (e.g. via label-triggered CI), tests are skipped and deploy proceeds immediately.
+# Bot reviews do NOT re-trigger this workflow (filtered in check_conditions).
 # Required status check to configure in branch protection: "PR Deploy and Auto-Merge / Deploy to Environment"
 name: PR Deploy and Auto-Merge
 
@@ -25,6 +28,7 @@ jobs:
       should_deploy: ${{ steps.check.outputs.should_deploy }}
       deploy_env: ${{ steps.check.outputs.deploy_env }}
       is_prerelease: ${{ steps.check.outputs.is_prerelease }}
+      bot_approved: ${{ steps.check.outputs.bot_approved }}
     steps:
       - name: Evaluate PR approval state and merge readiness
         id: check
@@ -32,6 +36,17 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            // Exit early if triggered by the bot's own review — prevents a deploy loop
+            // where the bot posting APPROVE would re-kick this workflow.
+            if (context.eventName === 'pull_request_review') {
+              const reviewer = context.payload.review?.user?.login;
+              if (reviewer === 'github-actions[bot]') {
+                core.setOutput('should_deploy', 'false');
+                core.info('Skipping — triggered by github-actions[bot] review');
+                return;
+              }
+            }
+
             const prNumber = context.payload.pull_request.number;
             const baseBranch = context.payload.pull_request.base.ref;
 
@@ -64,10 +79,16 @@ jobs:
             for (const r of reviews) {
               latestByUser[r.user.login] = r.state;
             }
-            const isApproved = Object.values(latestByUser).some(s => s === 'APPROVED');
+
+            // Human approval: any non-bot reviewer with APPROVED as their latest state.
+            // Enable "Dismiss stale pull request approvals when new commits are pushed" in
+            // branch protection to automatically invalidate these on push.
+            const humanApproved = Object.entries(latestByUser)
+              .some(([user, state]) => user !== 'github-actions[bot]' && state === 'APPROVED');
+            const botApproved = latestByUser['github-actions[bot]'] === 'APPROVED';
 
             // 'behind' = base has commits the PR head does not; 'dirty' = merge conflict
-            const isReady = isApproved &&
+            const isReady = humanApproved &&
               pr.mergeable_state !== 'behind' &&
               pr.mergeable_state !== 'dirty';
 
@@ -75,14 +96,17 @@ jobs:
             const isPrerelease = baseBranch !== 'main';
 
             core.setOutput('should_deploy', isReady.toString());
+            core.setOutput('bot_approved', botApproved.toString());
             core.setOutput('deploy_env', deployEnv);
             core.setOutput('is_prerelease', isPrerelease.toString());
-            core.info(`PR #${prNumber} — approved: ${isApproved}, mergeable_state: ${pr.mergeable_state}, env: ${deployEnv}, will deploy: ${isReady}`);
+            core.info(`PR #${prNumber} — human: ${humanApproved}, bot: ${botApproved}, mergeable_state: ${pr.mergeable_state}, env: ${deployEnv}, will deploy: ${isReady}`);
 
   test:
     name: Full Test Suite
     needs: check_conditions
-    if: needs.check_conditions.outputs.should_deploy == 'true'
+    if: >
+      needs.check_conditions.outputs.should_deploy == 'true' &&
+      needs.check_conditions.outputs.bot_approved != 'true'
     uses: ./.github/workflows/test_suite_complete_run.yml
     secrets: inherit
     permissions:
@@ -90,10 +114,52 @@ jobs:
       actions: write
       id-token: write
 
+  post_bot_review:
+    name: Post Bot CI Review
+    needs: [check_conditions, test]
+    if: >
+      always() &&
+      needs.check_conditions.outputs.should_deploy == 'true' &&
+      needs.check_conditions.outputs.bot_approved != 'true' &&
+      needs.test.result != 'skipped'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Submit bot review based on test result
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const testPassed = '${{ needs.test.result }}' === 'success';
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            const event = testPassed ? 'APPROVE' : 'REQUEST_CHANGES';
+            const body  = testPassed
+              ? '✅ All tests passed. Approving on behalf of CI.'
+              : `❌ Tests failed. Please review the [run](${runUrl}) and fix all failures before merging.`;
+
+            try {
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                event,
+                body
+              });
+              core.info(`Submitted '${event}' review on PR #${prNumber}`);
+            } catch (err) {
+              core.setFailed(`Could not submit review: ${err.message}`);
+            }
+
   publish:
     name: Publish
-    needs: [check_conditions, test]
-    if: needs.check_conditions.outputs.should_deploy == 'true'
+    needs: [check_conditions, test, post_bot_review]
+    if: >
+      needs.check_conditions.outputs.should_deploy == 'true' &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
+      (needs.post_bot_review.result == 'success' || needs.post_bot_review.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -153,7 +219,9 @@ jobs:
   deploy:
     name: Deploy to Environment
     needs: [check_conditions, publish]
-    if: needs.check_conditions.outputs.should_deploy == 'true'
+    if: >
+      needs.check_conditions.outputs.should_deploy == 'true' &&
+      needs.publish.result == 'success'
     runs-on: ubuntu-latest
     environment:
       name: ${{ needs.check_conditions.outputs.deploy_env }}

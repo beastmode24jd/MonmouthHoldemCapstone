@@ -1,4 +1,6 @@
 # WARNING: This workflow/action can only be run on the main repo (jmcshane22/MonmouthHoldemCapstone)
+# Manual branch-to-environment deployment. Always runs the full test suite before deploying.
+# Access control: if the RESTRICT_MANUAL_DEPLOY repo variable is 'true', only jmcshane22 may trigger this workflow.
 name: Deploy to Azure
 
 on:
@@ -10,10 +12,24 @@ permissions:
   id-token: write  # Required for Azure OIDC login in deploy job
 
 jobs:
-  build:
+  authorize:
+    name: Authorize Actor
     if: github.repository == 'jmcshane22/MonmouthHoldemCapstone'
-    uses: ./.github/workflows/build.yml 
-        
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check actor authorization
+        run: |
+          if [ "${{ vars.RESTRICT_MANUAL_DEPLOY }}" = "true" ] && [ "${{ github.actor }}" != "jmcshane22" ]; then
+            echo "::error::Manual deployments are restricted to jmcshane22 (RESTRICT_MANUAL_DEPLOY=true). Triggered by: ${{ github.actor }}"
+            exit 1
+          fi
+          echo "Actor '${{ github.actor }}' is authorized."
+
+  build:
+    needs: authorize
+    if: github.repository == 'jmcshane22/MonmouthHoldemCapstone'
+    uses: ./.github/workflows/build.yml
+
 
   complete_test_suite_run:
     needs: build
@@ -82,6 +98,7 @@ jobs:
           retention-days: 1
 
   config:
+    needs: authorize
     if: github.repository == 'jmcshane22/MonmouthHoldemCapstone'
     runs-on: ubuntu-latest
     env:
