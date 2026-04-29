@@ -73,6 +73,7 @@ internal static class TestWebAppHost
                 });
 
             builder.Services.AddSingleton<IAIService, TestAIService>();
+            builder.Services.AddSingleton<IPhotoQualityService, TestPhotoQualityService>();
             EnsureStaticAssetsManifest();
 
             var runtimeProvider = new TestOutputLoggerProvider();

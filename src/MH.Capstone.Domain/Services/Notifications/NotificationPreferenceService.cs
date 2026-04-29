@@ -12,9 +12,6 @@ namespace MH.Capstone.Domain.Services.Notifications
     {
         private readonly IRepository<UserNotificationPreference, ApplicationDbContext> _preferenceRepo;
 
-        private static readonly IReadOnlyList<NotificationType> ConfigurableTypes =
-            new[] { NotificationType.BadgeAwarded, NotificationType.ReportStatusUpdate, NotificationType.NewSightingActivity, NotificationType.AccountActivity };
-
         public NotificationPreferenceService(IRepository<UserNotificationPreference, ApplicationDbContext> preferenceRepo)
         {
             _preferenceRepo = preferenceRepo;

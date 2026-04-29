@@ -223,5 +223,52 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
         }
 
         #endregion
+
+        #region ClubActivity configurable
+
+        [Test]
+        public async Task GetPreferencesAsync_ClubActivityIncluded_IsConfigurable()
+        {
+            var stored = new List<UserNotificationPreference>
+            {
+                new UserNotificationPreference(_user.Id, NotificationType.ClubActivity, NotificationDeliveryChannel.EmailOnly)
+            };
+
+            _mockPreferenceRepo
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<UserNotificationPreference, bool>>>()))
+                .ReturnsAsync(stored.AsQueryable());
+
+            var sut = CreateSut();
+            var result = (await sut.GetPreferencesAsync(_user)).ToList();
+
+            Assert.That(result.Any(p => p.NotificationType == NotificationType.ClubActivity), Is.True);
+        }
+
+        [Test]
+        public async Task SavePreferencesAsync_ClubActivity_IsPersisted()
+        {
+            var preferences = new List<(NotificationType, NotificationDeliveryChannel)>
+            {
+                (NotificationType.ClubActivity, NotificationDeliveryChannel.Silenced)
+            };
+
+            _mockPreferenceRepo
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<UserNotificationPreference, bool>>>()))
+                .ReturnsAsync(new List<UserNotificationPreference>().AsQueryable());
+
+            _mockPreferenceRepo
+                .Setup(r => r.AddOrUpdateAsync(It.IsAny<UserNotificationPreference>()))
+                .ReturnsAsync((UserNotificationPreference p) => p);
+
+            var sut = CreateSut();
+            await sut.SavePreferencesAsync(_user, preferences);
+
+            _mockPreferenceRepo.Verify(r => r.AddOrUpdateAsync(
+                It.Is<UserNotificationPreference>(p =>
+                    p.NotificationType == NotificationType.ClubActivity
+                    && p.DeliveryChannel == NotificationDeliveryChannel.Silenced)), Times.Once);
+        }
+
+        #endregion
     }
 }
