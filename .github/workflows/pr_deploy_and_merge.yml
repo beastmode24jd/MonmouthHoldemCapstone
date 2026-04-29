@@ -10,8 +10,6 @@ name: PR Deploy and Auto-Merge
 on:
   pull_request_review:
     types: [submitted]
-  pull_request:
-    types: [synchronize, ready_for_review]
 
 permissions:
   contents: read
