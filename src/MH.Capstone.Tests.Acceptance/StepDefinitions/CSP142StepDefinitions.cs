@@ -61,7 +61,7 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
             _anidexDriver.GetVisibleEntryCount().Should().Be(0);
         }
 
-        [Then("the {string} Anidex entry should display a discovery count of (.*)")]
+        [Then("the {string} Anidex entry should display a discovery count of {int}")]
         public void ThenSpeciesDiscoveryCountIs(string speciesName, int expectedCount)
         {
             var count = _anidexDriver.GetDiscoveryCountFor(speciesName);
