@@ -8,8 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
 using Reqnroll;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+using MH.Capstone.Tests.Acceptance.Helpers;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions
 {
@@ -78,7 +77,7 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
         [When("Alex submits a sighting with an {string} image")]
         public void WhenAlexSubmitsASightingWithAnImage(string imageQuality)
         {
-            _generatedImagePath = GenerateTestImage(imageQuality);
+            _generatedImagePath = TestImageFactory.CreateByQuality(imageQuality);
 
             // Fill in the other required fields with sensible defaults so the upload form
             // passes server-side validation and reaches the photo-quality analyzer.
@@ -139,53 +138,6 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
         {
             var sighting = GetMostRecentSightingForAlex();
             sighting.LuminanceAverage.Should().NotBeNull("CSP-122 service must populate LuminanceAverage");
-        }
-
-        #endregion
-
-        #region Helpers — image generation
-
-        // Produces a PNG on disk whose pixels deterministically map to a CSP-122 tier outcome.
-        // Returns the absolute file path so SightingsDriver can hand it to the file input.
-        private static string GenerateTestImage(string quality)
-        {
-            var path = Path.Combine(Path.GetTempPath(), $"csp122_{quality}_{Guid.NewGuid():N}.png");
-
-            using Image<Rgba32> image = quality switch
-            {
-                // Solid mid-gray, ≥1024 px long side. Sharpness ≈ 0 (< 100) → Low (blurry path).
-                "blurry"       => new Image<Rgba32>(1280, 960, new Rgba32(128, 128, 128, 255)),
-                // Solid near-black. Luminance ≈ 0.04 (< 0.20) → Low (dark warning).
-                "low-light"    => new Image<Rgba32>(1280, 960, new Rgba32(10, 10, 10, 255)),
-                // Solid near-white. Luminance ≈ 0.94 (> 0.85) → Low (washed-out warning).
-                "overexposed"  => new Image<Rgba32>(1280, 960, new Rgba32(240, 240, 240, 255)),
-                // Vertical stripes at ≥2048 long side: high Laplacian variance, luminance ≈ 0.5,
-                // long side passes High threshold → High tier. Compresses to a tiny PNG.
-                "high-quality" => CreateVerticalStripesImage(2400, 1800),
-                _ => throw new ArgumentException(
-                    $"Unsupported image quality '{quality}'. Expected blurry|low-light|overexposed|high-quality.",
-                    nameof(quality))
-            };
-
-            image.SaveAsPng(path);
-            return path;
-        }
-
-        private static Image<Rgba32> CreateVerticalStripesImage(int width, int height)
-        {
-            var black = new Rgba32(0, 0, 0, 255);
-            var white = new Rgba32(255, 255, 255, 255);
-            var image = new Image<Rgba32>(width, height);
-            image.ProcessPixelRows(accessor =>
-            {
-                for (int y = 0; y < accessor.Height; y++)
-                {
-                    var row = accessor.GetRowSpan(y);
-                    for (int x = 0; x < row.Length; x++)
-                        row[x] = (x % 2 == 0) ? black : white;
-                }
-            });
-            return image;
         }
 
         #endregion

@@ -4,8 +4,7 @@ using MH.Capstone.Tests.Acceptance.Drivers;
 using NUnit.Framework;
 using OpenQA.Selenium;
 using Reqnroll;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+using MH.Capstone.Tests.Acceptance.Helpers;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
@@ -74,12 +73,7 @@ public class CSP125StepDefinitions
         // Go to sighting upload page
         _sightingsDriver.NavigateToSightingsUpload();
 
-        // Generate a valid 1280×960 PNG using ImageSharp. The CSP-122 photo quality
-        // gate requires ≥1024 px on the long side and will crash on corrupt/incomplete
-        // image bytes — magic bytes alone are not sufficient.
-        var path = Path.Combine(Path.GetTempPath(), $"valid_image_{Guid.NewGuid()}.png");
-        using (var img = new Image<Rgba32>(1280, 960, new Rgba32(128, 128, 128, 255)))
-            img.SaveAsPng(path);
+        var path = TestImageFactory.CreateValid();
         _preparedImageFilePath = path;
 
         _sightingsDriver.SetImageForUpload(path);
