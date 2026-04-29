@@ -48,6 +48,7 @@ public static class TestDependencySetup
         services.AddTransient<WildlifeSearchDriver>();
         services.AddTransient<PasswordResetDriver>();
         services.AddTransient<EmailVerificationDriver>();
+        services.AddTransient<UserSearchDriver>(); // Sprint 5, CSP-54
         services.AddTransient<NotificationsDriver>();
         services.AddTransient<DisplayNameDriver>();
         services.AddTransient<NotificationPreferencesDriver>();

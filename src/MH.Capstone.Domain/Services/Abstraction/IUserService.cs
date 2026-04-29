@@ -13,6 +13,10 @@ namespace MH.Capstone.Domain.Services.Abstraction
         // Returns the total number of non-deactivated users.
         Task<int> GetTotalUserCountAsync();
 
+        // Sprint 5, CSP-54: Returns all active users whose UserName contains the query (case-insensitive).
+        // Results are ordered: exact full matches first (alphabetically), then substring matches (alphabetically).
+        Task<IEnumerable<ApplicationUser>> SearchUsersAsync(string query);
+
         Task<bool> UserExistsAsync(string identifier);
 
         Task<ApplicationUser?> GetUserByEmailAsync(string email);
