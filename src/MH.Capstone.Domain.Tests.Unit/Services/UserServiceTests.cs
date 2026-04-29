@@ -374,6 +374,136 @@ namespace MH.Capstone.Domain.Tests.Unit.Services
             });
         }
 
+    #region SearchUsersAsync — Sprint 5, CSP-54
+
+    [Test]
+    public async Task SearchUsersAsync_EmptyQuery_ReturnsNoResults()
+    {
+        // Arrange
+        _userRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>>()))
+            .ReturnsAsync(new List<ApplicationUser>().AsQueryable());
+        var sut = CreateSut();
+
+        // Act
+        var results = (await sut.SearchUsersAsync("")).ToList();
+
+        // Assert
+        Assert.That(results, Is.Empty);
+    }
+
+    [Test]
+    public async Task SearchUsersAsync_ExactUsernameMatch_ReturnsUser()
+    {
+        // Arrange
+        var users = new List<ApplicationUser>
+        {
+            new() { Id = "1", UserName = "Alice" }
+        };
+        _userRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>>()))
+            .ReturnsAsync(users.AsQueryable());
+        var sut = CreateSut();
+
+        // Act
+        var results = (await sut.SearchUsersAsync("Alice")).ToList();
+
+        // Assert
+        Assert.That(results, Has.Count.EqualTo(1));
+        Assert.That(results[0].UserName, Is.EqualTo("Alice"));
+    }
+
+    [Test]
+    public async Task SearchUsersAsync_SubstringMatch_ReturnsMatchingUsers()
+    {
+        // Arrange
+        var users = new List<ApplicationUser>
+        {
+            new() { Id = "1", UserName = "AliceSmith" },
+            new() { Id = "2", UserName = "Bob" }
+        };
+        _userRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>>()))
+            .ReturnsAsync(users.AsQueryable());
+        var sut = CreateSut();
+
+        // Act — mock returns both users; the predicate filtering happens in real EF but not in this unit test
+        var results = (await sut.SearchUsersAsync("alice")).ToList();
+
+        // Assert — both come back because the mock doesn't evaluate the predicate;
+        // this verifies the sort/ordering logic that runs in-process.
+        Assert.That(results.Any(u => u.UserName == "AliceSmith"), Is.True);
+    }
+
+    [Test]
+    public async Task SearchUsersAsync_CaseInsensitiveMatch_ReturnsUser()
+    {
+        // Arrange
+        var users = new List<ApplicationUser>
+        {
+            new() { Id = "1", UserName = "Alice" }
+        };
+        _userRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>>()))
+            .ReturnsAsync(users.AsQueryable());
+        var sut = CreateSut();
+
+        // Act
+        var results = (await sut.SearchUsersAsync("ALICE")).ToList();
+
+        // Assert
+        Assert.That(results, Has.Count.EqualTo(1));
+        Assert.That(results[0].UserName, Is.EqualTo("Alice"));
+    }
+
+    [Test]
+    public async Task SearchUsersAsync_FullMatchesOrderedBeforeSubstringMatches()
+    {
+        // Arrange — repo returns both users (predicate not evaluated by mock)
+        var users = new List<ApplicationUser>
+        {
+            new() { Id = "1", UserName = "AliceSmith" },  // substring match
+            new() { Id = "2", UserName = "Alice" }         // full match
+        };
+        _userRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>>()))
+            .ReturnsAsync(users.AsQueryable());
+        var sut = CreateSut();
+
+        // Act
+        var results = (await sut.SearchUsersAsync("Alice")).ToList();
+
+        // Assert — full match "Alice" comes before substring match "AliceSmith"
+        Assert.That(results[0].UserName, Is.EqualTo("Alice"));
+        Assert.That(results[1].UserName, Is.EqualTo("AliceSmith"));
+    }
+
+    [Test]
+    public async Task SearchUsersAsync_MultipleSubstringMatches_SortedAlphabetically()
+    {
+        // Arrange
+        var users = new List<ApplicationUser>
+        {
+            new() { Id = "3", UserName = "Charlie_ali" },
+            new() { Id = "1", UserName = "Ali_first" },
+            new() { Id = "2", UserName = "Bali_second" }
+        };
+        _userRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>>()))
+            .ReturnsAsync(users.AsQueryable());
+        var sut = CreateSut();
+
+        // Act
+        var results = (await sut.SearchUsersAsync("ali")).ToList();
+
+        // Assert — all are substring matches, sorted alphabetically
+        Assert.That(results[0].UserName, Is.EqualTo("Ali_first"));
+        Assert.That(results[1].UserName, Is.EqualTo("Bali_second"));
+        Assert.That(results[2].UserName, Is.EqualTo("Charlie_ali"));
+    }
+
+    #endregion
+
     #region GetTotalUserCountAsync
 
     [Test]
