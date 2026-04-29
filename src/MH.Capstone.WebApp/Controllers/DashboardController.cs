@@ -1,4 +1,6 @@
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Reflection;
 using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Constants;
 using MH.Capstone.Domain.DataAccess;
@@ -425,39 +427,24 @@ namespace MH.Capstone.WebApp.Controllers
             var stored = (await _notificationPreferenceService.GetPreferencesAsync(user))
                 .ToDictionary(p => p.NotificationType, p => p.DeliveryChannel);
 
-            var entries = new[]
-            {
-                new NotificationPreferenceEntryViewModel
+            // Enumerate all NotificationType values that carry a [Display] attribute.
+            // SystemCritical has no [Display] and is therefore excluded automatically —
+            // any future type added to the enum just needs [Display] to appear here.
+            var entries = Enum.GetValues<NotificationType>()
+                .Select(t => (Type: t, Display: typeof(NotificationType)
+                    .GetField(t.ToString())
+                    ?.GetCustomAttribute<DisplayAttribute>()))
+                .Where(x => x.Display != null)
+                .Select(x => new NotificationPreferenceEntryViewModel
                 {
-                    NotificationType = NotificationType.BadgeAwarded,
-                    DisplayName = "Badge Awarded",
-                    Description = "Sent when you earn a new achievement badge.",
-                    SelectedChannel = stored.GetValueOrDefault(NotificationType.BadgeAwarded, NotificationDeliveryChannel.InAppOnly)
-                },
-                new NotificationPreferenceEntryViewModel
-                {
-                    NotificationType = NotificationType.ReportStatusUpdate,
-                    DisplayName = "Report Status Update",
-                    Description = "Sent when a content report you submitted is received or updated.",
-                    SelectedChannel = stored.GetValueOrDefault(NotificationType.ReportStatusUpdate, NotificationDeliveryChannel.InAppOnly)
-                },
-                new NotificationPreferenceEntryViewModel
-                {
-                    NotificationType = NotificationType.NewSightingActivity,
-                    DisplayName = "New Sighting Activity",
-                    Description = "Sent when you successfully upload a new wildlife sighting.",
-                    SelectedChannel = stored.GetValueOrDefault(NotificationType.NewSightingActivity, NotificationDeliveryChannel.InAppOnly)
-                },
-                new NotificationPreferenceEntryViewModel
-                {
-                    NotificationType = NotificationType.AccountActivity,
-                    DisplayName = "Account Activity",
-                    Description = "Sent when your account records a login or active streak.",
-                    SelectedChannel = stored.GetValueOrDefault(NotificationType.AccountActivity, NotificationDeliveryChannel.InAppOnly)
-                }
-            };
+                    NotificationType = x.Type,
+                    DisplayName = x.Display!.Name ?? x.Type.ToString(),
+                    Description = x.Display!.Description ?? string.Empty,
+                    SelectedChannel = stored.GetValueOrDefault(x.Type, NotificationDeliveryChannel.InAppOnly)
+                })
+                .ToList();
 
-            return new NotificationPreferencesViewModel { Preferences = entries.ToList() };
+            return new NotificationPreferencesViewModel { Preferences = entries };
         }
     }
 }
