@@ -29,5 +29,16 @@ namespace MH.Capstone.Domain.Services.Abstraction
         Task<IEnumerable<Sighting>> GetAllSightingsAsync();
 
         #endregion
+
+        #region CSP-142: Personal Anidex Collection
+
+        /// <summary>
+        /// Returns the authenticated user's personal Anidex — one entry per unique SpeciesName
+        /// across their own sightings, with global-derived rarity and per-user discovery count.
+        /// Empty collection if the user has no sightings.
+        /// </summary>
+        Task<IEnumerable<AnidexEntry>> GetUserAnidexAsync(Guid userId);
+
+        #endregion
     }
 }

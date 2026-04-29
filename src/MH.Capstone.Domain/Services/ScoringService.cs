@@ -78,23 +78,21 @@ namespace MH.Capstone.Domain.Services
         }
 
         /// <summary>
-        /// CSP-108: Get global sighting count for a species
-        /// This will be used to determine rarity tier
+        /// CSP-108 / CSP-142: Get global sighting count for a species, by name.
+        /// Case-insensitive match on Sighting.SpeciesName.
         /// </summary>
-        public async Task<int> GetGlobalSightingsCountAsync(int speciesId)
+        public async Task<int> GetGlobalSightingsCountAsync(string speciesName)
         {
-            if (speciesId <= 0)
+            if (string.IsNullOrWhiteSpace(speciesName))
             {
-                throw new ArgumentException("Species ID must be positive", nameof(speciesId));
+                throw new ArgumentException("Species name must be non-empty", nameof(speciesName));
             }
 
-            // Once Species table is implemented, query by actual species ID
-            // For now, this returns the total count of all sightings as a placeholder
-            // This will need to be updated when the Species table is created
-            var allSightings = await _sightingsRepo.GetAllAsync();
-            int count = allSightings.Count();
+            var matches = await _sightingsRepo.GetAllAsync(
+                s => s.SpeciesName.ToLower() == speciesName.ToLower());
+            int count = matches.Count();
 
-            _logger.LogInformation("Global sighting count for species {SpeciesId}: {Count}", speciesId, count);
+            _logger.LogInformation("Global sighting count for species '{SpeciesName}': {Count}", speciesName, count);
 
             return count;
         }

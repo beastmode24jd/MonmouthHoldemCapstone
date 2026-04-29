@@ -425,6 +425,8 @@ FodyWeavers.xsd
 **/.claude/
 # Local Claude Code instructions (personal/machine-specific; see docs/CLAUDE.md for shared team instructions)
 /CLAUDE.md
+# Local error scratchpad used to share repro output with Claude — never committed
+/Errors.txt
 
 # Team-Added additional ignores
 # JD GitHib CLI PR Helper Files

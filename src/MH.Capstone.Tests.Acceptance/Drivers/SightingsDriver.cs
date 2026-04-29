@@ -134,6 +134,7 @@ public class SightingsDriver
             }
         }
 
+        EnsureSpeciesNameFilled();
         ((IJavaScriptExecutor)_webDriver).ExecuteScript("arguments[0].click();", page.SubmitBtn);
     }
 
@@ -200,6 +201,38 @@ public class SightingsDriver
         input.Clear();
         input.SendKeys(description);
     }
+  
+    /// <summary>CSP-142: sets the species name input on the upload form.</summary>
+    public void SetSpeciesName(string speciesName)
+    {
+        var input = _wait.Until(d => d.FindElement(By.Id("SpeciesName")));
+        input.Clear();
+        input.SendKeys(speciesName);
+    }
+
+    /// <summary>
+    /// CSP-142: ensures the SpeciesName field is non-empty before submit so existing
+    /// upload-flow tests (CSP-53, CSP-122, CSP-134…) that predate the required species
+    /// field still pass server-side validation. Tests that care about the species value
+    /// should call <see cref="SetSpeciesName"/> explicitly first.
+    /// </summary>
+    private void EnsureSpeciesNameFilled()
+    {
+        try
+        {
+            var input = _webDriver.FindElement(By.Id("SpeciesName"));
+            var current = input.GetAttribute("value") ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(current))
+            {
+                input.Clear();
+                input.SendKeys("Test Species");
+            }
+        }
+        catch (NoSuchElementException)
+        {
+            // No SpeciesName field on this form.
+        }
+    }
 
     /// <summary>
     /// Submits the sighting upload form via JavaScript's form.submit(), which
@@ -209,6 +242,8 @@ public class SightingsDriver
     /// </summary>
     public void SubmitSightingsForm()
     {
+        EnsureSpeciesNameFilled();
+
         var uploadForm = _wait.Until(d =>
             d.FindElement(By.CssSelector("form[enctype='multipart/form-data']")));
 
@@ -217,9 +252,9 @@ public class SightingsDriver
         TestContext.Out.WriteLine($"[{nameof(SightingsDriver)}] Submitted sighting upload form.");
 
         _wait.Until(d => !IsOnSightingsUploadPage()
-            || HasVisibleValidationErrors());
+                         || d.FindElements(By.CssSelector(".validation-summary-errors, .field-validation-error")).Any());
     }
-
+  
     /// <summary>
     /// Returns true if the browser is still on either of the sightings upload URLs
     /// (/Sighting/Create or /Sighting/Upload), which indicates that the form

@@ -97,6 +97,8 @@ All interfaces in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `INotificationService` | `NotificationDispatchService` | Routes notifications by channel. `SendNotificationAsync(notification, type)` — SystemCritical always InAppAndEmail; others consult preference service. Inherits `MarkAllAsReadAsync`, `DeleteAllAsync` from `NotificationServiceBase` |
 | `INotificationPreferenceService` | `NotificationPreferenceService` | Per-user, per-type delivery prefs. `GetPreferencesAsync(user)` excludes SystemCritical. `GetDeliveryChannelAsync(user, type)` defaults to `InAppOnly`. `SavePreferencesAsync` silently ignores SystemCritical |
 | `IEmailService` | `AzureCommunicationEmailService` / `NoOpEmailService` | Send emails (toggled by `UseRealEmailerService` flag) |
+| `ISightingsService` (CSP-142) | `SightingsService` | `GetUserAnidexAsync(Guid)` → `IEnumerable<AnidexEntry>`, one entry per unique `SpeciesName` from the user's sightings. Discovery count is per-user; rarity is derived from the GLOBAL count via `IScoringService`. Sorted rarest-first then alphabetical |
+| `IScoringService` (CSP-142) | `ScoringService` | Signature change: `GetGlobalSightingsCountAsync(string speciesName)` (was placeholder `int speciesId`). Case-insensitive match on `Sighting.SpeciesName`; throws on null/whitespace |
 | `IApiCaller` | `ExternalApiCaller` | HTTP calls to external APIs with SQL caching |
 | `IClubService` | `ClubService` | List public/user clubs, pending invites, memberships; create club; send/accept/decline invites; leave club |
 | `IAIService` | `GeminiAIService` | `AskAsync(question, ct)` — POSTs to Gemini API, constrained to wildlife/safety topics |
@@ -143,7 +145,8 @@ All interfaces in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `MapController` | GPS sighting map (Leaflet.js) |
 | `ReportControllers` | Submit/view content reports |
 | `SightingController` | Submit/view wildlife sightings |
-| `SpeciesController` | Anidex species catalog (Ninja API backed) |
+| `SpeciesController` | Animal lookup catalog (API-Ninjas Animals API, cached) |
+| `AnidexController` (CSP-142) | `GET /anidex` — personal Anidex page; gallery of unique species from the authenticated user's sightings. `[Authorize]` |
 | `ClubsController` | Club listing, creation, chatroom stubs |
 | `AICompanionController` | Gemini AI chat endpoint |
 
@@ -221,9 +224,13 @@ Legacy personas still coexist: `alpha@test.com`, `alice@test.com`, `bob@test.com
 | `/Account/Register` | `displayNameField` | Display name input on registration |
 | `/Account/SetDisplayName` | `setDisplayNameField`, `setDisplayNameBtn` | Forced setup page |
 | `/Sighting/Create` | `Latitude`, `Longitude`, `Timestamp`, `Description`, `UploadedImage`, `SubmitBtn` | Sighting submission form |
+| `/Sighting/Create` | `SpeciesName` | CSP-142: required species text input; auto-filled from CSP-144 AI suggestion when empty |
 | `/Sighting/Gallery` | `filterAll`, `filterMine`, `emptyStateMine`, `sightingsGrid`, `currentUserId` | Gallery filters/state |
 | `/Sighting/Gallery` | `.sighting-card-wrapper[data-user-id]` | Per-card wrapper with user attribution |
 | `/Sighting/Gallery` | `.sighting-attribution` | Submitter's `DisplayName` span |
+| Sightings dropdown | `anidexNavLink` | CSP-142: "My Anidex" entry (authenticated only) |
+| `/anidex` | `anidexEmptyState`, `anidexGrid`, `anidexSpeciesCount` | CSP-142: page state containers |
+| `/anidex` | `.anidex-entry`, `.anidex-species-name`, `.anidex-rarity-badge`, `.anidex-discovery-count` | CSP-142: per-species card selectors (entry carries `data-species-name`) |
 | `/dashboard` | `accountSettingsLink` | Link to Account Settings page |
 | `/dashboard/settings` | `displayNameInput`, `updateDisplayNameBtn`, `displayNameSuccessMessage` | Display name section |
 | `/dashboard/settings` | `notificationPreferencesLink` | Link to notification preferences |
@@ -356,6 +363,7 @@ Non-obvious constraints:
 
 - `ApplicationUser.DisplayName`: `nvarchar(50)`, required, defaults to `"UNSET"`; 2–50 chars. `IsStreakActive` is computed (not-mapped): true when `(UtcNow − LastLogin) ≤ 30 days`.
 - `Sighting.ImageBuffer`: `varbinary(max)`, required (1 byte – 2 MB). `Timestamp` must be past (`[PastDateTime]`).
+- `Sighting.SpeciesName` (CSP-142): `nvarchar(100)`, required; default `"Unknown"` for migrated rows. Captured at upload (manual entry or AI suggestion). Anidex grouping + species-keyed rarity scoring depend on this column.
 - `Report`: unique filtered index on `(ReportingUserId, ReportedPageUrl)` where `IsResolved = 0`.
 - `EmailQueue`: composite index on `(IsSent, ScheduledAt)`; `Processing` = dispatcher lock.
 
@@ -405,6 +413,8 @@ FK seeding order: `AspNetRoles` → `AspNetUsers` → `Badge` → `Sighting`/`Pe
 **`SightingUploadViewModel`:** carries `DeviceTimezone` (default `"America/Los_Angeles"`). `ToDataModel()` converts local timestamp to UTC. Tests/seeds using this view model must set `DeviceTimezone`.
 
 **`NotDefaultCoordinatesAttribute`:** class-level `ValidationAttribute` failing when both `Latitude` and `Longitude` are exactly `0.0`. Applied to `SightingUploadViewModel`.
+
+> **Seeded species names (CSP-142):** Alex's 3 sightings are `Great Blue Heron` ×2 + `Bald Eagle` ×1 (so his Anidex contains 2 entries — discovery count for "Great Blue Heron" is 2). Lily's 5 sightings are distinct species: `Wolverine`, `Peregrine Falcon`, `River Otter`, `Roosevelt Elk`, `Coyote`. CSP-142 BDD scenarios assert against these names — don't rename without updating `Features/CSP-142.feature`.
 
 ---
 
