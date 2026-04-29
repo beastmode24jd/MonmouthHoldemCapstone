@@ -3,7 +3,7 @@ Feature: Clubs Feed
     I want to be able to check my friends and Club members' recent Sightings,
     so I can comment on and congratulate them in the Club chatroom.
 
-@clubs
+@justThisOne
 Scenario: Alex is on his front Club page
 Given I am on the Club front page
 When I look under the Club name and description
