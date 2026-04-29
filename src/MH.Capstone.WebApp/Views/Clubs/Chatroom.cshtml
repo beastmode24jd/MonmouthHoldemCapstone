@@ -65,7 +65,7 @@
         @* Message input — members only *@
         @if (Model.IsCurrentUserMember)
         {
-            <div class="card-footer bg-white">
+            <div class="card-footer py-3 bg-white">
                 <form asp-action="SendMessage" method="post" id="sendMessageForm">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="clubId" value="@Model.Club.Id" />
@@ -73,7 +73,7 @@
                         <textarea id="messageInput"
                                   name="content"
                                   class="form-control"
-                                  rows="2"
+                                  rows="4"
                                   maxlength="2000"
                                   placeholder="Type a message…"
                                   style="resize: none;"></textarea>

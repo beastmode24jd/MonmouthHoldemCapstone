@@ -219,6 +219,7 @@ jobs:
     name: Deploy to Environment
     needs: [check_conditions, publish]
     if: >
+      always() &&
       needs.check_conditions.outputs.should_deploy == 'true' &&
       needs.publish.result == 'success'
     runs-on: ubuntu-latest
@@ -264,7 +265,10 @@ jobs:
   auto_merge:
     name: Auto-Merge PR
     needs: [check_conditions, deploy]
-    if: needs.check_conditions.outputs.should_deploy == 'true' && needs.deploy.result == 'success'
+    if: > 
+      always() && 
+      needs.check_conditions.outputs.should_deploy == 'true' && 
+      needs.deploy.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -287,7 +291,10 @@ jobs:
   transition_jira:
     name: Transition Jira Issue to Merged
     needs: [check_conditions, auto_merge]
-    if: needs.check_conditions.outputs.should_deploy == 'true' && needs.auto_merge.result == 'success'
+    if: > 
+      always() && 
+      needs.check_conditions.outputs.should_deploy == 'true' && 
+      needs.auto_merge.result == 'success'
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
@@ -443,7 +450,10 @@ jobs:
   release:
     name: Create GitHub Release
     needs: [check_conditions, publish, auto_merge]
-    if: needs.check_conditions.outputs.should_deploy == 'true' && needs.auto_merge.result == 'success'
+    if: > 
+      always() &&
+      needs.check_conditions.outputs.should_deploy == 'true' && 
+      needs.auto_merge.result == 'success'
     runs-on: ubuntu-latest
     env:
       ARTIFACT_ZIP_NAME: ${{ needs.publish.outputs.artifact_name }}.zip

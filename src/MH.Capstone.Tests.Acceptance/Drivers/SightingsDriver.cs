@@ -201,7 +201,7 @@ public class SightingsDriver
         input.Clear();
         input.SendKeys(description);
     }
-
+  
     /// <summary>CSP-142: sets the species name input on the upload form.</summary>
     public void SetSpeciesName(string speciesName)
     {
@@ -230,20 +230,31 @@ public class SightingsDriver
         }
         catch (NoSuchElementException)
         {
-            // No SpeciesName field on this form (e.g. a future test against a stripped page) — nothing to do.
+            // No SpeciesName field on this form.
         }
     }
 
-    /// <summary>Clicks the submit button on the currently displayed upload form.</summary>
+    /// <summary>
+    /// Submits the sighting upload form via JavaScript's form.submit(), which
+    /// guarantees a POST request regardless of any click-handler interference.
+    /// Waits until the browser navigates away from the upload page (success) or
+    /// server-side validation errors become visible (rejection).
+    /// </summary>
     public void SubmitSightingsForm()
     {
-        var page = new SightingsUploadPageObject(_webDriver, _baseUrl);
         EnsureSpeciesNameFilled();
-        ((IJavaScriptExecutor)_webDriver).ExecuteScript("arguments[0].click();", page.SubmitBtn);
-        _wait.Until(d => !IsOnSightingsUploadPage()
-            || HasVisibleValidationErrors());
-    }
 
+        var uploadForm = _wait.Until(d =>
+            d.FindElement(By.CssSelector("form[enctype='multipart/form-data']")));
+
+        ((IJavaScriptExecutor)_webDriver).ExecuteScript("arguments[0].submit();", uploadForm);
+
+        TestContext.Out.WriteLine($"[{nameof(SightingsDriver)}] Submitted sighting upload form.");
+
+        _wait.Until(d => !IsOnSightingsUploadPage()
+                         || d.FindElements(By.CssSelector(".validation-summary-errors, .field-validation-error")).Any());
+    }
+  
     /// <summary>
     /// Returns true if the browser is still on either of the sightings upload URLs
     /// (/Sighting/Create or /Sighting/Upload), which indicates that the form

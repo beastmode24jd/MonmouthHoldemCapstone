@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Security.Claims;
 using System.Text;
 using MH.Capstone.Domain.DataAccess;
@@ -151,4 +152,92 @@ public class DashboardControllerTests
 
         return fileMock;
     }
+
+    #region NotificationPreferences
+
+    [Test]
+    public async Task NotificationPreferences_IncludesClubActivity()
+    {
+        var user = new ApplicationUser { Email = TestEmail };
+        _mockUserService.Setup(s => s.GetUserByClaimsPrincipleAsync(It.IsAny<ClaimsPrincipal>()))
+            .Returns(Task.FromResult<ApplicationUser?>(user));
+        _mockNotificationPreferenceService
+            .Setup(s => s.GetPreferencesAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(Enumerable.Empty<UserNotificationPreference>());
+
+        var result = await _controller.NotificationPreferences();
+
+        var view = result as ViewResult;
+        var model = view?.Model as NotificationPreferencesViewModel;
+        Assert.That(model, Is.Not.Null);
+        Assert.That(model!.Preferences.Any(p => p.NotificationType == NotificationType.ClubActivity), Is.True);
+    }
+
+    [Test]
+    public async Task NotificationPreferences_ExcludesSystemCritical()
+    {
+        var user = new ApplicationUser { Email = TestEmail };
+        _mockUserService.Setup(s => s.GetUserByClaimsPrincipleAsync(It.IsAny<ClaimsPrincipal>()))
+            .Returns(Task.FromResult<ApplicationUser?>(user));
+        _mockNotificationPreferenceService
+            .Setup(s => s.GetPreferencesAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(Enumerable.Empty<UserNotificationPreference>());
+
+        var result = await _controller.NotificationPreferences();
+
+        var view = result as ViewResult;
+        var model = view?.Model as NotificationPreferencesViewModel;
+        Assert.That(model, Is.Not.Null);
+        Assert.That(model!.Preferences.Any(p => p.NotificationType == NotificationType.SystemCritical), Is.False);
+    }
+
+    [Test]
+    public async Task NotificationPreferences_ContainsEntryForEveryDisplayAnnotatedEnumValue()
+    {
+        var user = new ApplicationUser { Email = TestEmail };
+        _mockUserService.Setup(s => s.GetUserByClaimsPrincipleAsync(It.IsAny<ClaimsPrincipal>()))
+            .Returns(Task.FromResult<ApplicationUser?>(user));
+        _mockNotificationPreferenceService
+            .Setup(s => s.GetPreferencesAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(Enumerable.Empty<UserNotificationPreference>());
+
+        var result = await _controller.NotificationPreferences();
+
+        var view = result as ViewResult;
+        var model = view?.Model as NotificationPreferencesViewModel;
+        Assert.That(model, Is.Not.Null);
+
+        var expectedTypes = Enum.GetValues<NotificationType>()
+            .Where(t => typeof(NotificationType)
+                .GetField(t.ToString())
+                ?.GetCustomAttribute<System.ComponentModel.DataAnnotations.DisplayAttribute>() != null)
+            .ToList();
+
+        Assert.That(model!.Preferences.Select(p => p.NotificationType),
+            Is.EquivalentTo(expectedTypes));
+    }
+
+    [Test]
+    public async Task NotificationPreferences_StoredClubActivityPreference_ReflectedInViewModel()
+    {
+        var user = new ApplicationUser { Email = TestEmail };
+        _mockUserService.Setup(s => s.GetUserByClaimsPrincipleAsync(It.IsAny<ClaimsPrincipal>()))
+            .Returns(Task.FromResult<ApplicationUser?>(user));
+        _mockNotificationPreferenceService
+            .Setup(s => s.GetPreferencesAsync(user))
+            .ReturnsAsync(new[]
+            {
+                new UserNotificationPreference(user.Id, NotificationType.ClubActivity, NotificationDeliveryChannel.EmailOnly)
+            });
+
+        var result = await _controller.NotificationPreferences();
+
+        var view = result as ViewResult;
+        var model = view?.Model as NotificationPreferencesViewModel;
+        var clubPref = model?.Preferences.FirstOrDefault(p => p.NotificationType == NotificationType.ClubActivity);
+        Assert.That(clubPref, Is.Not.Null);
+        Assert.That(clubPref!.SelectedChannel, Is.EqualTo(NotificationDeliveryChannel.EmailOnly));
+    }
+
+    #endregion
 }

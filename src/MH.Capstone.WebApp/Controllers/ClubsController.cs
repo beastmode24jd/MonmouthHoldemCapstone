@@ -60,7 +60,40 @@ namespace MH.Capstone.WebApp.Controllers
             if (!club.IsPublic && !isMember)
                 return Forbid();
 
-            return View("ClubPage", new ClubPageViewModel(club, isOwner, isMember));
+            var members = (await _clubService.GetClubMembershipsAsync(id))
+                .Where(m => m.AcceptedInvite)
+                .ToList();
+
+            var allSightings = await _clubService.GetClubSightingsAsync(id);
+            var sightings = allSightings.Take(4);
+            var clubPageViewModel = new ClubPageViewModel(club, members, sightings, allSightings.Count, isOwner, isMember);
+
+            string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
+            TimeZoneInfo userZone;
+            try
+            {
+                userZone = TimeZoneInfo.FindSystemTimeZoneById(userTimeZoneId);
+            }
+            catch
+            {
+                userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+            }
+
+            foreach (var sighting in clubPageViewModel.Sightings)
+            {
+                sighting.Timestamp = TimeZoneInfo.ConvertTime(sighting.Timestamp, userZone);
+
+                if (sighting.PointValue < 10 && sighting.PointValue >= 0)
+                    sighting.PointValue = 10;
+
+                if (sighting.RarityMultiplier == 0)
+                    sighting.RarityMultiplier = 1.0;
+
+                if (sighting.Rarity != "Common" && sighting.Rarity != "Mythic" && sighting.Rarity != "Rare")
+                    sighting.Rarity = "Common";
+            }
+
+            return View("ClubPage", clubPageViewModel);
         }
 
         [HttpGet]
