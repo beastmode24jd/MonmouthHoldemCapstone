@@ -1,14 +1,12 @@
 # CLAUDE.md — Project Context for AI Assistants
 
-This file provides a structured overview of the **Competitive Wildlife Scavenger App (CWSA)** capstone project for use by AI coding assistants. It covers purpose, architecture, conventions, and how to navigate the codebase effectively.
+Structured overview of the **Competitive Wildlife Scavenger App (CWSA)** capstone project. Covers purpose, architecture, conventions, and codebase navigation.
 
 ---
 
 ## Project Purpose
 
-**CWSA** is a WOU Computer Science senior capstone project (team: "Monmouth Hold'em", class of 2026). The concept is "Pokemon GO meets iNaturalist with real competition."
-
-Users go into nature, submit wildlife sightings (GPS + photo), earn points based on species rarity, climb a leaderboard, and earn achievement badges. Admins moderate content via a reports system. An Anidex species catalog (backed by the API-Ninjas Animals API) enriches sighting data.
+**CWSA** is a WOU CS senior capstone project (team: "Monmouth Hold'em", class of 2026). "Pokemon GO meets iNaturalist with real competition." Users submit wildlife sightings (GPS + photo), earn points based on species rarity, climb a leaderboard, and earn badges. Admins moderate via a reports system. An Anidex species catalog (backed by API-Ninjas Animals API) enriches sighting data.
 
 ---
 
@@ -38,11 +36,11 @@ Users go into nature, submit wildlife sightings (GPS + photo), earn points based
 | ORM | Entity Framework Core 9 + SQL Server |
 | Authentication | ASP.NET Core Identity |
 | Frontend | Bootstrap 5.3, Vanilla JS, Leaflet.js (maps via OpenStreetMap) |
-| Email | Azure Communication Services (`AzureCommunicationEmailService`); `NoOpEmailService` in dev/staging |
-| External API | API-Ninjas Animals API — wrapped by `ExternalApiCaller` with SQL-backed cache |
+| Email | Azure Communication Services; `NoOpEmailService` in dev/staging |
+| External API | API-Ninjas Animals API — `ExternalApiCaller` with SQL-backed cache |
 | Cloud Hosting | Azure App Service + Azure SQL |
 | Unit Tests | NUnit 4, Moq, FluentAssertions, coverlet |
-| Acceptance/BDD | Reqnroll (SpecFlow successor) + NUnit + Selenium ChromeDriver |
+| Acceptance/BDD | Reqnroll + NUnit + Selenium ChromeDriver |
 | Integration Tests | `Microsoft.AspNetCore.Mvc.Testing` + EF Core In-Memory |
 | CI/CD | GitHub Actions |
 
@@ -50,31 +48,19 @@ Users go into nature, submit wildlife sightings (GPS + photo), earn points based
 
 ## Architecture
 
-The solution is a **monolithic ASP.NET Core MVC application** split into two source projects:
+Monolithic ASP.NET Core MVC app split into two source projects:
 
-- **`MH.Capstone.Domain`** — all business logic: EF Core entities, two `DbContext`s, generic repository, service layer, migrations, constants, and tools.
-- **`MH.Capstone.WebApp`** — presentation only: controllers, Razor views, view models, tag helpers. Wires up DI in `Program.cs`.
+- **`MH.Capstone.Domain`** — EF Core entities, two `DbContext`s, generic repository, service layer, migrations, constants, tools.
+- **`MH.Capstone.WebApp`** — controllers, Razor views, view models, tag helpers. DI wired in `Program.cs`.
 
-### Layering
-
-```
-Controller (WebApp)
-    ↓ injects
-Service Interface (Domain/Services/Abstraction/)
-    ↓ implemented by
-Service (Domain/Services/)
-    ↓ injects
-IRepository<T, TContext> (Domain/DataAccess/Repositories/)
-    ↓
-EF Core DbContext → SQL Server
-```
+**Layering:** `Controller → Service Interface → Service → IRepository<T,TContext> → EF Core → SQL Server`
 
 ### DbContexts
 
-Two separate EF Core DbContexts sharing the same database connection string (`DataDb`), with separate migrations history tables:
+Two EF Core DbContexts, same connection string (`DataDb`), separate migrations history tables:
 
-- **`ApplicationDbContext`** (`__EFMigrationsHistory_ApplicationDbContext`) — all app data + Identity. Uses lazy loading proxies. Seeded via `ApplicationDbContextSeeding`.
-- **`CacheDbContext`** — API response cache entities (`ApiCallerCacheEntity`, `NinjaAnimalCacheEntity`).
+- **`ApplicationDbContext`** (`__EFMigrationsHistory_ApplicationDbContext`) — all app data + Identity. Lazy loading proxies. Seeded via `ApplicationDbContextSeeding`.
+- **`CacheDbContext`** — `ApiCallerCacheEntity`, `NinjaAnimalCacheEntity`.
 
 ---
 
@@ -85,231 +71,199 @@ All in `src/MH.Capstone.Domain/DataModels/`:
 | Entity | Key Fields |
 |---|---|
 | `ApplicationUser` | Extends `IdentityUser`. Custom: `Points`, `Bio`, `ProfileImage` (byte[]), `IsDeactivated`, `LastLogin`, `LoginStreak`, `IsStreakActive` |
-| `Sighting` | `Latitude`/`Longitude` (DECIMAL 9,6), `Timestamp` (DateTimeOffset), `Description`, `ImageBuffer` (byte[], ≤2 MB), FK to `ApplicationUser` |
+| `Sighting` | `Latitude`/`Longitude` (DECIMAL 9,6), `Timestamp` (DateTimeOffset), `Description`, `ImageBuffer` (byte[], ≤2 MB), FK to user |
 | `Badge` | `Title`, `Description`, `PointValue` (default 10), `BadgeIcon` (byte[]) |
-| `UserBadge` | Join table: user ↔ badge + `AwardedAt` timestamp |
-| `Notification` | `Title`, `Message`, `SentAt`, `IsRead`, `IsPostdated` (future-dated delivery support) |
+| `UserBadge` | Join table: user ↔ badge + `AwardedAt` |
+| `Notification` | `Title`, `Message`, `SentAt`, `IsRead`, `IsPostdated` |
 | `Report` | `ReportedPageUrl`, `Reason`, `Description`, `IsResolved`. Filtered unique index: no duplicate open reports per user+URL |
-| `EmailQueue` | Outbox pattern: `Recipient`, `Subject`, `HtmlBody`, `ScheduledAt`, `IsSent`, `Attempts`, `Processing` |
-| `ApiCallerCacheEntity` / `NinjaAnimalCacheEntity` | SQL-backed cache for external API responses |
+| `EmailQueue` | Outbox: `Recipient`, `Subject`, `HtmlBody`, `ScheduledAt`, `IsSent`, `Attempts`, `Processing` |
 
 ---
 
 ## Services
 
-All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
+All interfaces in `src/MH.Capstone.Domain/Services/Abstraction/`:
 
 | Interface | Implementation | Purpose |
 |---|---|---|
-| `IAuthenticationService` | `AuthenticationService` | Login, register, logout, password reset (token-based), email confirmation |
-| `IUserService` | `UserService` | Profile management, deactivation |
+| `IAuthenticationService` | `AuthenticationService` | Login, register, logout, password reset, email confirmation. New: `GenerateEmailConfirmationTokenAsync(email)`, `ConfirmEmailAsync(email, token)` |
+| `IUserService` / `IUserProfileService` | `UserService` | Profile management, deactivation. `UpdateDisplayNameAsync(user, displayName)` validates 2–50 chars, throws `ArgumentOutOfRangeException` if invalid |
 | `IProfileImageService` | `ProfileImageService` | Upload/retrieve profile images |
-| `ISightingsService` | `SightingsService` | Submit and query wildlife sightings. `GetAllSightingsAsync()` eager-loads `User` nav property for attribution; `GetUserSightingsAsync(Guid)` filters to one user (no include). |
+| `ISightingsService` | `SightingsService` | Submit/query sightings. `GetAllSightingsAsync()` eager-loads `User`; `GetUserSightingsAsync(Guid)` filters to one user |
 | `IScoringService` | `ScoringService` | Award points using rarity multiplier |
 | `IBadgeService` | `BadgeService` | Check and award badges |
-| `ILeaderboardService` | `LeaderboardService` | Ranked user standings. `GetLeaderboardPageAsync()` returns `IEnumerable<ApplicationUser>`; controller projects to `LeaderboardEntryViewModel` (CSP-170: excludes `Email` from public view model). |
+| `ILeaderboardService` | `LeaderboardService` | `GetLeaderboardPageAsync()` → `IEnumerable<ApplicationUser>`; controller projects to `LeaderboardEntryViewModel` (excludes `Email`) |
 | `IReportService` | `ReportService` | Submit and resolve content reports |
-| `INotificationService` | `NotificationDispatchService` | Route notifications to in-app and/or email based on user preferences (CSP-169). `SendNotificationAsync(notification, notificationType)` — SystemCritical always delivers to both channels; other types consult `INotificationPreferenceService`. Inherits query/bulk methods from `NotificationServiceBase` (`MarkAllAsReadAsync`, `DeleteAllAsync`). |
-| `INotificationPreferenceService` | `NotificationPreferenceService` | Get and save per-user, per-type notification delivery preferences (CSP-169). `GetPreferencesAsync(user)` returns configurable types only (excludes SystemCritical). `GetDeliveryChannelAsync(user, type)` returns default `InAppOnly` when no preference stored. `SavePreferencesAsync(user, preferences)` silently ignores SystemCritical. |
-| `IUserProfileService` | `UserService` | Extended (CSP-168) with `UpdateDisplayNameAsync(user, displayName)` — validates 2–50 chars, throws `ArgumentOutOfRangeException` if invalid. |
-| `IEmailService` | `AzureCommunicationEmailService` / `NoOpEmailService` | Send emails (toggled by `UseRealEmailerService` feature flag). Used by `AccountController.ForgotPassword` to deliver password-reset links. |
+| `INotificationService` | `NotificationDispatchService` | Routes notifications by channel. `SendNotificationAsync(notification, type)` — SystemCritical always InAppAndEmail; others consult preference service. Inherits `MarkAllAsReadAsync`, `DeleteAllAsync` from `NotificationServiceBase` |
+| `INotificationPreferenceService` | `NotificationPreferenceService` | Per-user, per-type delivery prefs. `GetPreferencesAsync(user)` excludes SystemCritical. `GetDeliveryChannelAsync(user, type)` defaults to `InAppOnly`. `SavePreferencesAsync` silently ignores SystemCritical |
+| `IEmailService` | `AzureCommunicationEmailService` / `NoOpEmailService` | Send emails (toggled by `UseRealEmailerService` flag) |
 | `IApiCaller` | `ExternalApiCaller` | HTTP calls to external APIs with SQL caching |
+| `IClubService` | `ClubService` | List public/user clubs, pending invites, memberships; create club; send/accept/decline invites; leave club |
+| `IAIService` | `GeminiAIService` | `AskAsync(question, ct)` — POSTs to Gemini API, constrained to wildlife/safety topics |
+| `IPhotoQualityService` | `PhotoQualityService` | `AnalyzeAsync(bytes, ct)` → `(PhotoQualityTier, Sharpness, Luminance, Width, Height)`. Uses ImageSharp. Sharpness/luminance logic not yet implemented |
 
-**Background service:** `EmailDispatcherService` (hosted service) processes the `EmailQueue` outbox.
+**Background service:** `EmailDispatcherService` processes `EmailQueue` outbox.
 
-**Bulk notification endpoints (CSP-138):** `PUT /notifications/mark-all-read` and `DELETE /notifications/all` — both require `[ValidateAntiForgeryToken]` and are scoped to the authenticated user.
+### Key Endpoints
 
-**Notification preference endpoints (CSP-169):**
-- `GET /dashboard/notification-preferences` — displays the preferences page with per-type delivery dropdowns; `[Authorize]`
-- `POST /dashboard/notification-preferences` — saves preferences via `NotificationPreferencesViewModel`; `[ValidateAntiForgeryToken]`
-- SystemCritical type is enforced server-side — never shown in UI, silently ignored on save
+**Notifications (CSP-138/169):**
+- `PUT /notifications/mark-all-read`, `DELETE /notifications/all` — `[ValidateAntiForgeryToken]`, scoped to authenticated user
+- `GET/POST /dashboard/notification-preferences` — per-type delivery dropdowns; SystemCritical enforced server-side
+- Delivery channels: `Silenced`, `InAppOnly`, `EmailOnly`, `InAppAndEmail`. Default: `InAppOnly`
 
-**Notification routing (CSP-169):** `NotificationDispatchService.SendNotificationAsync(notification, notificationType)` — delivery channels: `Silenced`, `InAppOnly`, `EmailOnly`, `InAppAndEmail`. Default (no stored preference): `InAppOnly`. SystemCritical always `InAppAndEmail`. Email delivery writes to `EmailQueue` with HTML body built from `notification.Title` + `notification.Message`.
+**Display name (CSP-168):**
+- `GET/POST /account/SetDisplayName` — forced setup for `DisplayName == "UNSET"`
+- `POST /dashboard/UpdateDisplayName` — from settings page; redirects to `GET /dashboard/settings`
 
-**Display name endpoints (CSP-168):**
-- `GET/POST /account/SetDisplayName` — forced setup page for users with `DisplayName == "UNSET"`; `[Authorize]`, no ANTIFORGERY needed on GET
-- `POST /dashboard/UpdateDisplayName` — updates display name from dashboard settings; `[Authorize]`
+**Account Settings (CSP-188):** `GET /dashboard/settings` — display name, profile picture, bio, notification preferences link, deactivation link.
 
-**RequireDisplayNameFilter:** Global `IAsyncActionFilter` that redirects authenticated users with `DisplayName == "UNSET"` to `Account/SetDisplayName` before any other action executes. Exempted actions: `SetDisplayName`, `Login`, `Logout`, `Register`, `RegisterConfirmation`, `VerifyEmail`, `ResendVerification`, `ForgotPassword`, `ResetPassword`, `Reactivate`, `Deactivate`, and the test-only email endpoints.
+**AI Companion (CSP-120):** `POST /AICompanion/Ask` — `[Authorize]`, `[FromForm] string question`, returns `{ reply }`. Returns 503 on API failure.
+
+**RequireDisplayNameFilter:** Global `IAsyncActionFilter` redirecting `DisplayName == "UNSET"` users to `Account/SetDisplayName`. Exempted: `SetDisplayName`, `Login`, `Logout`, `Register`, `RegisterConfirmation`, `VerifyEmail`, `ResendVerification`, `ForgotPassword`, `ResetPassword`, `Reactivate`, `Deactivate`, test email endpoints.
 
 ---
 
 ## Scoring Logic
 
-`ScoringService` awards points per sighting submission:
-
-- **Base:** 10 points
-- **Multiplier** based on total global sightings of that species:
-  - Mythic (≤5 sightings): **5×**
-  - Rare (≤50 sightings): **2×**
-  - Common (>50 sightings): **1×**
+`ScoringService` awards points per sighting:
+- **Base:** 10 pts
+- **Multiplier** by global sightings of that species: Mythic (≤5) = 5×, Rare (≤50) = 2×, Common (>50) = 1×
 
 ---
 
-## Controllers (WebApp)
+## Controllers
 
 | Controller | Responsibility |
 |---|---|
 | `AccountController` | Register, login, logout, profile |
 | `AdminController` | Admin-only views |
 | `DashboardController` | User dashboard (points, badges, recent activity) |
-| `HomeController` | Landing / marketing pages |
+| `HomeController` | Landing pages |
 | `LeaderboardController` | Global rankings |
 | `MapController` | GPS sighting map (Leaflet.js) |
-| `ReportControllers` | Submit and view content reports |
-| `SightingController` | Submit and view wildlife sightings |
+| `ReportControllers` | Submit/view content reports |
+| `SightingController` | Submit/view wildlife sightings |
 | `SpeciesController` | Anidex species catalog (Ninja API backed) |
+| `ClubsController` | Club listing, creation, chatroom stubs |
+| `AICompanionController` | Gemini AI chat endpoint |
 
 ---
 
 ## Feature Flags
 
-`FeatureFlags` is registered as a singleton from `appsettings.json` configuration. Current flags:
+Singleton from `appsettings.json`:
 
-- `UseRealEmailerService` — when `true`, uses `AzureCommunicationEmailService`; otherwise `NoOpEmailService`
-- `EnableEmailTestEndpoint` — when `true`, exposes two test-only endpoints that return token links as plain text (gated, safe for test environments only). Always forced `true` by `TestWebAppHost` via in-memory config override:
-  - `GET /Account/GeneratePasswordResetLink?email=xxx` — fresh password-reset URL
-  - `GET /Account/GenerateEmailConfirmationLink?email=xxx` — fresh email-confirmation URL
+| Flag | Effect |
+|---|---|
+| `UseRealEmailerService` | `true` → `AzureCommunicationEmailService`; else `NoOpEmailService` |
+| `EnableEmailTestEndpoint` | Exposes `GET /Account/GeneratePasswordResetLink` and `GET /Account/GenerateEmailConfirmationLink`; always forced `true` by `TestWebAppHost` |
+| `EnableGeminiAIService` | `true` → registers `GeminiAIService`; else AI Companion fails at controller |
+| `ExposeDetailedApiCacheOnUi` | Defined; no usage wired yet |
 
 ---
 
 ## Testing Strategy
 
 ### Unit Tests
-
-- **`Domain.Tests.Unit`** — tests each service in isolation using Moq for all dependencies. Covers: `AuthenticationService`, `BadgeService`, `LeaderboardService`, `ScoringService`, `SightingsService`, `UserService`, `ReportService`, `NotificationService`, `ExternalApiCaller`.
-- **`WebApp.Tests.Unit`** — tests controllers and view models in isolation.
+- **`Domain.Tests.Unit`** — service isolation with Moq. Covers: `AuthenticationService`, `BadgeService`, `LeaderboardService`, `ScoringService`, `SightingsService`, `UserService`, `ReportService`, `NotificationService`, `ExternalApiCaller`, `GeminiAIService`.
+- **`WebApp.Tests.Unit`** — controllers and view models in isolation.
 
 ### Integration Tests
-
-- **`Tests.Integration`** — uses `Microsoft.AspNetCore.Mvc.Testing` with EF Core In-Memory to test the full HTTP pipeline. Covers leaderboard, reports, and sightings gallery endpoints.
+**`Tests.Integration`** — `Microsoft.AspNetCore.Mvc.Testing` + EF Core In-Memory. Covers leaderboard, reports, sightings gallery.
 
 ### Acceptance Tests (BDD)
+**`Tests.Acceptance`** — Reqnroll feature files in `Features/`, step definitions in `StepDefinitions/`, Selenium page objects in `PageObjects/`, drivers in `Drivers/`. `TestWebAppHost.cs` auto-starts the app.
 
-- **`Tests.Acceptance`** — Reqnroll feature files in `Features/`, step definitions in `StepDefinitions/`, Selenium page objects in `PageObjects/`, and browser drivers in `Drivers/`. A `TestWebAppHost.cs` auto-starts the web application when tests run. Uses `GlobalHooks` (must be static) for Reqnroll lifecycle management.
+#### Acceptance Test Infrastructure
 
-#### Acceptance test infrastructure details
+- **Environment:** `ASPNETCORE_ENVIRONMENT = "Acceptance"`. Kestrel on `https://localhost:5001`.
+- **Database:** Real SQL Server LocalDB (`WAID_AppDataDb`) — not InMemory. Migrations + seeding run on startup.
+- **Config load order:** `appsettings.json` → `appsettings.Acceptance.json` → `appsettings.Acceptance.Local.json` (gitignored) → env vars.
+- **Browser:** One shared `ChromeDriver` for the entire run (`BeforeTestRun`/`AfterTestRun`).
+- **Scenario isolation:** `TestWebAppHost.ResetSeedData()` is a `NotImplementedException` stub — scenarios must tolerate persistent DB state.
+- **DI in steps:** Per-scenario DI via `[ScenarioDependencies]` in `TestDependencySetup`. Every new Driver must be registered as `services.AddTransient<TDriver>()` — Reqnroll does not auto-discover.
+- **Password reset pattern:** `PasswordResetDriver.GetPasswordResetLink(email)` → navigate to URL (mimics email click).
+- **Email confirmation pattern:** `EmailVerificationDriver.GetEmailConfirmationLink(email)` → navigate to URL. Fresh unverified users use `csp134_{guid}@test.com`.
+- **Registration UX (CSP-134):** Registration sends verification email and redirects to `/Account/RegisterConfirmation`. Users must verify before login. Seeded personas have `EmailConfirmed = true`.
 
-- **Environment:** `ASPNETCORE_ENVIRONMENT = "Acceptance"`. The in-process `TestWebAppHost` starts a real Kestrel listener using `appsettings.Acceptance.json` (default port `https://localhost:5001`).
-- **Database:** Real SQL Server LocalDB (`WAID_AppDataDb`) — **not** InMemory. Migrations and seeding run normally on startup, same as production.
-- **Config load order:** `appsettings.json` → `appsettings.Acceptance.json` → `appsettings.Acceptance.Local.json` (gitignored, per-developer overrides) → environment variables.
-- **Browser:** One shared `ChromeDriver` instance for the entire test run (`BeforeTestRun` / `AfterTestRun`). No browser restart between scenarios.
-- **Scenario isolation:** `TestWebAppHost.ResetSeedData()` exists as a `TODO` stub. Until implemented, scenarios must be written to tolerate persistent database state across the run — or must clean up after themselves.
-- **DI in steps:** Reqnroll's per-scenario DI container (via `[ScenarioDependencies]` in `TestDependencySetup`) provides `IWebDriver` and `AcceptanceTestSettings` as singletons. Drivers and page objects are resolved automatically as transient. Every new Driver must be registered in `TestDependencySetup.CreateServices()` as `services.AddTransient<TDriver>()` — Reqnroll does not auto-discover drivers.
-- **Password reset test pattern:** For scenarios that require a user to receive and click a reset link, call `PasswordResetDriver.GetPasswordResetLink(email)` (hits `GET /Account/GeneratePasswordResetLink`) to get the URL, then navigate to it. This mimics clicking the emailed link without a real inbox. `TestWebAppHost` always forces `EnableEmailTestEndpoint = true` via in-memory config override so this works in any environment without appsettings changes.
-- **Email confirmation test pattern:** Same approach — call `EmailVerificationDriver.GetEmailConfirmationLink(email)` (hits `GET /Account/GenerateEmailConfirmationLink`) to get the verification URL, then navigate to it. Acceptance test scenarios that need a fresh unverified user register with a unique `csp134_{guid}@test.com` email so they remain isolated without a DB reset between scenarios.
-- **Registration UX change (CSP-134):** Registration no longer auto-signs the user in. It sends a verification email and redirects to `/Account/RegisterConfirmation`. Users must click the verification link before they can log in. All seeded personas in `AcceptanceTestSeeder` have `EmailConfirmed = true` and are not affected.
+#### Seed Personas
 
-#### Seed user already referenced in step definitions
+`CSP53StepDefinitions` hard-codes **`alpha@test.com` / `Capstone26!`** — must exist with `User` role.
 
-`CSP53StepDefinitions` hard-codes: **`alpha@test.com` / `Capstone26!`** as "user Alpha". This user must exist in the `WAID_AppDataDb` database with the `User` role for any CSP-53 scenarios to pass.
+Active seeder (`AcceptanceTestSeeder.cs`) — password `Capstone26!`, all `EmailConfirmed = true`, fixed GUIDs:
 
-#### Page element IDs used by existing PageObjects/Drivers
+| Persona | Email | GUID prefix | Notes |
+|---|---|---|---|
+| Alex | `alex@test.com` | `aaaaaaaa-...` | Primary logged-in user for newer scenarios |
+| Patricia | `patricia@test.com` | `bbbbbbbb-...` | |
+| Lily | `lily@test.com` | `cccccccc-...` | |
+| Owen | `owen@test.com` | — | `DisplayName = "UNSET"`, used for CSP-168 forced setup |
+| James | (none) | — | Unauthenticated visitor |
+
+Legacy personas still coexist: `alpha@test.com`, `alice@test.com`, `bob@test.com`, `newuser@test.com`, `admin@test.com`.
+
+#### Page Element IDs
 
 | Page | Element ID | Purpose |
 |---|---|---|
-| Any page | `userDropdownNavDisplay` | Detect logged-in user (nav bar) — contains profile image, `navDisplayNameText` span, and notification badge; use `navDisplayNameText` to read the display name in isolation |
-| Any page | `navDisplayNameText` | `<span>` inside `userDropdownNavDisplay` containing only the user's display name text (excludes notification badge count) |
-| Any page | `logoutBtn` | Logout button |
-| `/Account/Login` | `emailField` | Username input |
-| `/Account/Login` | `passwordField` | Password input |
-| `/Account/Login` | `RememberMe` | Remember me checkbox |
-| `/Account/Login` | `submitBtn` | Login submit button |
-| `/Sighting/Create` | `Latitude` | Latitude input |
-| `/Sighting/Create` | `Longitude` | Longitude input |
-| `/Sighting/Create` | `Timestamp` | Timestamp input |
-| `/Sighting/Create` | `Description` | Description textarea |
-| `/Sighting/Create` | `UploadedImage` | Image file upload |
-| `/Sighting/Create` | `SubmitBtn` | Form submit button |
-| `/Account/ForgotPassword` | `forgotPasswordEmail` | Email input |
-| `/Account/ForgotPassword` | `sendResetEmailBtn` | Submit button |
-| `/Account/ForgotPassword` | `resetEmailSentMessage` | "Check your email" success banner (shown after submit, regardless of whether email exists) |
-| `/Account/ResetPassword` | `newPasswordField` | New password input |
-| `/Account/ResetPassword` | `confirmPasswordField` | Confirm password input |
-| `/Account/ResetPassword` | `resetPasswordBtn` | Submit button |
-| `/Account/ResetPassword` | `resetPasswordError` | Inline validation-summary div (visible when token is invalid/expired) |
-| `/Account/ResetPasswordInvalid` | `invalidResetLinkMessage` | Error div on the dedicated invalid-link page |
-| `/Account/ResetPasswordInvalid` | `requestNewResetLinkBtn` | Link to request a new reset link |
-| `/Account/Login` | `passwordResetSuccessMessage` | Success banner shown after a completed password reset |
-| `/Account/Login` | `emailNotVerifiedMessage` | Warning banner + resend button shown when unverified user tries to log in |
-| `/Account/Login` | `resendVerificationBtn` | "Resend Verification Email" button in the unverified-user warning |
-| `/Account/RegisterConfirmation` | `registrationConfirmationMessage` | "Check your email" success message shown after registration |
-| `/Account/RegisterConfirmation` | `resendFromConfirmationLink` | Link to resend verification from the confirmation page |
-| `/Account/VerifyEmail` | `emailVerifiedSuccessMessage` | Success message shown after a valid confirmation link is clicked |
-| `/Account/VerifyEmail` | `loginAfterVerificationBtn` | "Log In" button on the success page |
-| `/Account/VerifyEmail` | `emailVerificationErrorMessage` | Error shown when the confirmation token is invalid or expired |
-| `/Account/VerifyEmail` | `requestNewVerificationBtn` | Link to request a new verification link from the error page |
-| `/Account/ResendVerification` | `resendVerificationEmail` | Email input on the resend form |
-| `/Account/ResendVerification` | `resendVerificationSubmitBtn` | Submit button on the resend form |
-| `/Account/ResendVerification` | `resendVerificationSentMessage` | "Check your email" success banner after resend |
-| `/Sighting/Gallery` | `filterAll` | "All Sightings" toggle button |
-| `/Sighting/Gallery` | `filterMine` | "My Sightings" toggle button |
-| `/Sighting/Gallery` | `emptyStateMine` | Empty-state div shown by JS when "My Sightings" has no results |
-| `/Sighting/Gallery` | `sightingsGrid` | Container `div` holding all card wrappers (when sightings exist) |
-| `/Sighting/Gallery` | `currentUserId` | Hidden `<span data-user-id="…">` carrying the logged-in user's identity string ID |
-| `/Sighting/Gallery` | `.sighting-card-wrapper[data-user-id]` | Per-card wrapper; `data-user-id` attribute used by JS to match against current user |
-| `/Sighting/Gallery` | `.sighting-attribution` | `<span>` inside each card showing the submitter's `DisplayName` (CSP-170: no email or UserName fallback) |
-| `/Account/Register` | `displayNameField` | Display name text input on the registration form |
-| `/Account/SetDisplayName` | `setDisplayNameField` | Display name text input on the forced setup page |
-| `/Account/SetDisplayName` | `setDisplayNameBtn` | Submit button on the forced setup page |
-| `/dashboard` | `displayNameInput` | Display name text input in the Account Settings section |
-| `/dashboard` | `updateDisplayNameBtn` | "Update Display Name" submit button |
-| `/dashboard` | `displayNameSuccessMessage` | Success banner shown after a display name is updated |
-| `/notifications` | `markAllReadForm` | Form wrapping the "Mark All as Read" button; has `d-none` class when no unread notifications exist |
-| `/notifications` | `markAllReadBtn` | "Mark All as Read" submit button |
-| `/notifications` | `deleteAllForm` | Form wrapping the "Delete All" button; has `d-none` class when notification list is empty |
-| `/notifications` | `deleteAllBtn` | "Delete All" submit button |
-| `/notifications` | `notificationsEmptyState` | `div.alert` shown when the user has no notifications |
-| `/dashboard` | `notificationPreferencesLink` | Link button in Account Settings to navigate to notification preferences page |
-| `/dashboard/notification-preferences` | `notificationPreferencesForm` | Form wrapping the per-type delivery dropdowns |
-| `/dashboard/notification-preferences` | `saveNotificationPreferencesBtn` | Save button for notification preferences |
-| `/dashboard/notification-preferences` | `notificationPreferenceSuccess` | Success alert shown after saving preferences |
-| `/dashboard/notification-preferences` | `pref_{NotificationType}` | `<select>` element for each configurable notification type (e.g. `pref_BadgeAwarded`) |
+| Any | `userDropdownNavDisplay` | Detect logged-in user (nav bar) |
+| Any | `navDisplayNameText` | `<span>` with display name only (excludes notification badge count) |
+| Any | `logoutBtn` | Logout button |
+| `/Account/Login` | `emailField`, `passwordField`, `RememberMe`, `submitBtn` | Login form |
+| `/Account/Login` | `passwordResetSuccessMessage` | Success banner after password reset |
+| `/Account/Login` | `emailNotVerifiedMessage`, `resendVerificationBtn` | Unverified user warning |
+| `/Account/ForgotPassword` | `forgotPasswordEmail`, `sendResetEmailBtn`, `resetEmailSentMessage` | Forgot password flow |
+| `/Account/ResetPassword` | `newPasswordField`, `confirmPasswordField`, `resetPasswordBtn`, `resetPasswordError` | Reset password form |
+| `/Account/ResetPasswordInvalid` | `invalidResetLinkMessage`, `requestNewResetLinkBtn` | Invalid link page |
+| `/Account/RegisterConfirmation` | `registrationConfirmationMessage`, `resendFromConfirmationLink` | Post-registration confirmation |
+| `/Account/VerifyEmail` | `emailVerifiedSuccessMessage`, `loginAfterVerificationBtn`, `emailVerificationErrorMessage`, `requestNewVerificationBtn` | Email verification |
+| `/Account/ResendVerification` | `resendVerificationEmail`, `resendVerificationSubmitBtn`, `resendVerificationSentMessage` | Resend verification |
+| `/Account/Register` | `displayNameField` | Display name input on registration |
+| `/Account/SetDisplayName` | `setDisplayNameField`, `setDisplayNameBtn` | Forced setup page |
+| `/Sighting/Create` | `Latitude`, `Longitude`, `Timestamp`, `Description`, `UploadedImage`, `SubmitBtn` | Sighting submission form |
+| `/Sighting/Gallery` | `filterAll`, `filterMine`, `emptyStateMine`, `sightingsGrid`, `currentUserId` | Gallery filters/state |
+| `/Sighting/Gallery` | `.sighting-card-wrapper[data-user-id]` | Per-card wrapper with user attribution |
+| `/Sighting/Gallery` | `.sighting-attribution` | Submitter's `DisplayName` span |
+| `/dashboard` | `accountSettingsLink` | Link to Account Settings page |
+| `/dashboard/settings` | `displayNameInput`, `updateDisplayNameBtn`, `displayNameSuccessMessage` | Display name section |
+| `/dashboard/settings` | `notificationPreferencesLink` | Link to notification preferences |
+| `/dashboard/notification-preferences` | `notificationPreferencesForm`, `saveNotificationPreferencesBtn`, `notificationPreferenceSuccess` | Preferences form |
+| `/dashboard/notification-preferences` | `pref_{NotificationType}` | `<select>` per type (e.g. `pref_BadgeAwarded`) |
+| `/notifications` | `markAllReadForm`, `markAllReadBtn`, `deleteAllForm`, `deleteAllBtn`, `notificationsEmptyState` | Notification list controls |
+| `_Layout.cshtml` | `aiCompanionModal`, `aiCompanionForm`, `aiCompanionQuestion`, `aiCompanionSubmitBtn`, `aiCompanionMessages` | AI Companion modal |
+| `/Species/Search` | `nameInput`, `clearBtn`, `searchForm`, `searchStatus`, `resultCard`, `resultCounter`, `prevBtn`, `nextBtn` | Wildlife search |
 
-Access-denied detection: checks if `driver.Url` contains `/account/login` (case-insensitive redirect).
+Access-denied detection: `driver.Url` contains `/account/login` (case-insensitive).
 
 ---
 
 ## PBI Implementation Workflow
 
-When implementing a Jira PBI (backlog item), **always** deliver both the feature code and its tests. "Done" means the story works and is tested.
+"Done" = feature code + tests. Follow **Red/Green/Refactor**:
+1. **Red** — failing test capturing the requirement
+2. **Green** — minimal implementation to pass
+3. **Refactor** — clean up without breaking (skip if nothing to clean)
+4. **Commit** — one commit per TDD cycle; one scenario per BDD commit
 
-### Test requirements per PBI
-
-- **Unit tests** — cover all new/modified service methods and controller actions in isolation (NUnit + Moq + FluentAssertions)
-- **BDD/Acceptance tests** — at least one Reqnroll `.feature` scenario per acceptance criterion in the PBI (Selenium end-to-end)
-
-### Red / Green / Refactor
-
-Follow Red/Green/Refactor whenever feasible:
-
-1. **Red** — write a failing test that captures the requirement
-2. **Green** — write the minimal implementation to make it pass
-3. **Refactor** — clean up without breaking the test (skip if nothing needs cleaning)
-4. **Commit** — one commit at the end of the full cycle
-
-For BDD scenarios, implement **one scenario per commit** (write the feature step + step definition + implementation together as a single unit of work).
-
-### Commit message convention for TDD cycles
-
+**Commit conventions:**
 ```
 [CSP-XXX] <what was implemented> (TDD)
 [CSP-XXX] BDD: <scenario name from .feature file>
 ```
 
+### Test Requirements per PBI
+- **Unit tests** — all new/modified service methods and controller actions (NUnit + Moq + FluentAssertions)
+- **BDD/Acceptance tests** — at least one Reqnroll `.feature` scenario per acceptance criterion (Selenium end-to-end)
+
 ### Pull Request Conventions
 
-Every PR on this repo must follow these conventions — apply them whenever running `gh pr create`:
+- **Base branch:** always `dev` (`--base dev`) — never `main`
+- **Reviewer:** `jmcshane22`
+- **Assignees:** `jmcshane22` and `beastmode24jd`
+- **Draft:** always `--draft`
+- **Labels:** check `gh label list --repo jmcshane22/MonmouthHoldemCapstone`
 
-- **Base branch:** always target `dev` (`--base dev`) — **never `main`**; feature PRs merge into `dev`, not `main`
-- **Reviewer:** always request `jmcshane22` (`--reviewer jmcshane22`)
-- **Assignees:** always assign both `jmcshane22` and `beastmode24jd` (`--assignee jmcshane22,beastmode24jd`)
-- **Draft:** always open as a draft (`--draft`) — PRs must not be auto-ready for merge
-- **Labels:** apply relevant labels (e.g. `feature`, `bug`, `test`, `docs`) based on PR content; check available labels with `gh label list --repo jmcshane22/MonmouthHoldemCapstone`
-
-#### `gh pr edit` is broken on this repo
-
-`gh pr edit` exits with a GraphQL error due to the GitHub classic Projects API deprecation. Use the REST API directly instead:
+#### `gh pr edit` is broken — use REST API instead
 
 ```bash
 # Add reviewer
@@ -324,49 +278,56 @@ gh api repos/jmcshane22/MonmouthHoldemCapstone/issues/{n}/assignees \
 gh api repos/jmcshane22/MonmouthHoldemCapstone/issues/{n}/labels \
   --method POST --field 'labels[]=enhancement'
 
-# Convert back to draft (if created without --draft by mistake)
+# Convert back to draft
 gh pr ready {n} --repo jmcshane22/MonmouthHoldemCapstone --undo
 ```
 
-### Post-implementation: update this file
+### Post-Implementation: Update This File
 
-After completing every PBI, update `docs/CLAUDE.md` as a final committed step:
-
-- Add any new page element IDs to the element ID table above
-- Update service/interface descriptions if methods were added or changed
-- Note new ViewModel properties or constructor signatures if they affect how tests are written
-- Document any new acceptance test infrastructure (Drivers, PageObjects)
-- Record any non-obvious patterns discovered (e.g., Moq quirks, EF eager-loading conventions)
-
-The goal is that any developer — human or AI — can pick up the next feature without scanning the codebase from scratch. This file is only as useful as it is current.
+After every PBI: add new element IDs, update service/interface descriptions, note new ViewModel properties, document new Drivers/PageObjects, record non-obvious patterns.
 
 ---
 
 ## CI/CD
 
-Two GitHub Actions workflows in `.github/workflows/`:
+**`pr_deploy_and_merge.yml`** — triggers on Approved review of non-draft PR targeting `dev` or `main`. Runs full test suite → publish → deploy → auto-merge → GitHub Release. `dev` → `azure_staging` (prerelease); `main` → `azure_prod`.
 
-**`build_test_ci.yml`** (runs on every PR):
-1. `validate-ef` job — checks both DbContexts have no pending migrations
-2. `buildtest` job — restore, build (Release), `dotnet test` all projects, publish WebApp
-3. When called with `deploy: true`: bundles EF migration executables for both contexts and uploads as artifact
+**`deploy.yml`** — manual `workflow_dispatch`. Same pipeline, no PR required.
 
-**`deploy.yml`** (triggered on push to `main` or `dev`):
-- Calls `build_test_ci.yml` with `deploy: true`
-- `main` → production Azure App Service + non-prerelease GitHub Release
-- `dev` → staging Azure App Service + prerelease GitHub Release
-- After deploy: runs EF migration bundles against Azure SQL using OIDC passwordless auth
-- Build versioning: `YYYY.M.<run_number>.<run_attempt>`
+**`test_suite_complete_run.yml`** — full suite (build + unit + EF + integration + acceptance). Called by PR workflow; triggerable manually.
+
+**`manual_pr_test_run.yml`** — triggers full suite against a specific PR number (before approval).
+
+Reusable sub-workflows: `build.yml`, `unit_tests.yml`, `ef_core_tests.yml`, `system_tests.yml`, `test_suite_limited_run.yml`.
+
+Build versioning: `YYYY.M.<run_number>.<run_attempt>`
+
+### Running Tests via CI (for AI Agents)
+
+Tests do **not** run on push/PR open. Use manual dispatch:
+
+```bash
+gh workflow run manual_pr_test_run.yml \
+  --repo jmcshane22/MonmouthHoldemCapstone \
+  --ref dev \
+  --field pr_number=<PR_NUMBER>
+```
+
+Appears under **"Run Complete Test Suite (All Tests)"**. Takes 10+ minutes. Poll:
+
+```bash
+gh run list --repo jmcshane22/MonmouthHoldemCapstone \
+  --workflow test_suite_complete_run.yml --limit 5
+```
 
 ---
 
 ## Configuration Notes
 
-- Connection string name: `DataDb` (used for both `ApplicationDbContext` and `CacheDbContext`)
-- Azure Communication Services string: `ConnectionStrings:AzureCommunicationServices`
-- Email sender address: `Email:SenderAddress`
+- Connection string: `DataDb` (both DbContexts)
+- Azure Communication Services: `ConnectionStrings:AzureCommunicationServices`
+- Email sender: `Email:SenderAddress`
 - Password policy: min 8 chars, requires digit, upper, lower, non-alphanumeric
-- Email confirmation: disabled for MVP (`RequireConfirmedEmail = false`)
 - Cookie login path: `/Account/Login`; access denied: `/Account/AccessDenied`
 
 ---
@@ -381,7 +342,9 @@ Two GitHub Actions workflows in `.github/workflows/`:
 | Badge GUIDs / constants | `src/MH.Capstone.Domain/Constants/BadgeId.cs` |
 | Feature flags | `src/MH.Capstone.Domain/Tools/FeatureFlags.cs` |
 | API Ninja contract | `src/MH.Capstone.Domain/ApiContracts/Ninja/` |
+| Gemini options | `src/MH.Capstone.Domain/ApiContracts/Gemini/GeminiOptions.cs` |
 | Acceptance test features | `src/MH.Capstone.Tests.Acceptance/Features/` |
+| Acceptance test seeder | `src/MH.Capstone.Tests.Acceptance/Seeding/AcceptanceTestSeeder.cs` |
 | Acceptance testing guide | `docs/acceptance_testing.md` |
 | Architectural guidelines | `docs/architectural_guidelines.md` |
 
@@ -389,13 +352,14 @@ Two GitHub Actions workflows in `.github/workflows/`:
 
 ## Database Schema
 
-Full column details are in the EF entity classes under `src/MH.Capstone.Domain/DataModels/`. Non-obvious constraints:
+Non-obvious constraints:
 
-- `ApplicationUser.DisplayName`: `nvarchar(50)`, required, defaults to `"UNSET"` for migrated rows; 2–50 chars; `IsStreakActive` is a computed (not-mapped) property: true when `(UtcNow − LastLogin) ≤ 30 days`.
-- `Sighting.ImageBuffer`: `varbinary(max)`, required (1 byte – 2 MB); `Timestamp` must be in the past (`[PastDateTime]`).
-- `Report`: unique filtered index on `(ReportingUserId, ReportedPageUrl)` where `IsResolved = 0` — prevents duplicate open reports, allows re-reporting after resolution.
-- `EmailQueue`: composite index on `(IsSent, ScheduledAt)`; `Processing` bit = dispatcher lock flag.
-- Seeded roles: `User`, `Admin`. Three badges always seeded (idempotent upsert):
+- `ApplicationUser.DisplayName`: `nvarchar(50)`, required, defaults to `"UNSET"`; 2–50 chars. `IsStreakActive` is computed (not-mapped): true when `(UtcNow − LastLogin) ≤ 30 days`.
+- `Sighting.ImageBuffer`: `varbinary(max)`, required (1 byte – 2 MB). `Timestamp` must be past (`[PastDateTime]`).
+- `Report`: unique filtered index on `(ReportingUserId, ReportedPageUrl)` where `IsResolved = 0`.
+- `EmailQueue`: composite index on `(IsSent, ScheduledAt)`; `Processing` = dispatcher lock.
+
+**Seeded roles:** `User`, `Admin`. **Seeded badges (idempotent upsert):**
 
 | Constant | GUID | Title | Points |
 |---|---|---|---|
@@ -403,142 +367,57 @@ Full column details are in the EF entity classes under `src/MH.Capstone.Domain/D
 | `BadgeId.CustomBioBadgeGUID` | `91E7773E-F6D7-457E-911E-8246891D65A2` | Custom Bio Badge | 10 |
 | `BadgeId.FirstSightingBadgeGUID` | `B2C3D4E5-F6A7-4890-9B0C-1D2E3F4B5A6F` | First Sighting Badge | 25 |
 
-FK seeding order: `AspNetRoles` → `AspNetUsers` → `Badge` → `Sighting` / `PersonalBadges` / `Notification` / `Report` → `EmailQueue` (no FK).
+FK seeding order: `AspNetRoles` → `AspNetUsers` → `Badge` → `Sighting`/`PersonalBadges`/`Notification`/`Report` → `EmailQueue`.
+
+### Extended Sighting Columns
+
+| Column | Type | Migration | Notes |
+|---|---|---|---|
+| `PointValue` | int | CSP-109 `20260412175159_AddSightingScoringMetadata` | Points awarded; default 10 |
+| `LoginStreak` | bit | CSP-109 | Streak active at submission |
+| `Rarity` | nvarchar | CSP-109 | Frozen tier label; default `"Common"` |
+| `RarityMultiplier` | float | CSP-109 | Frozen multiplier; default `1.0` |
+| `QualityTier` | int | CSP-122 `20260421231908_CSP122_AddPhotoQualityFields` | `PhotoQualityTier` enum; default 0 (Unknown) |
+| `SharpnessScore` | float? | CSP-122 | Nullable |
+| `LuminanceAverage` | float? | CSP-122 | Nullable |
+| `ResolutionWidth/Height` | int? | CSP-122 | Nullable |
+| `FlaggedForReview` | bit | CSP-122 | Default false |
+
+`20260414223118_FixSightingUserIdType` corrected `Sighting.UserId` FK column type.
+
+### Photo Quality (CSP-122)
+
+`PhotoQualityTier` enum: `Unknown=0, Low=1, Medium=2, High=3`. Sharpness/luminance not yet implemented — `PhotoQualityService` returns `Unknown/0.0/0.0` plus real dimensions. Acceptance steps in `CSP122StepDefinitions.cs` (`@photo-quality`) throw `NotImplementedException`. Validation thresholds (when implemented): luminance `0.20–0.85`, high resolution ≥ 2048 px on long side.
 
 ---
 
 ## Test Seed Data Guidance
 
-### Constraints to remember when constructing test data
+- `Sighting.ImageBuffer` required and non-empty — use `new byte[] { 0x01 }`
+- `Sighting.Timestamp` must be past — use `DateTimeOffset.UtcNow.AddDays(-N)`
+- `Report` unique filtered index — stagger `IsResolved` or use different URLs per user
+- `UserBadge` requires `Badge` row first
+- `ApplicationUser.Id` is GUID as string — use fixed GUIDs in seed data
+- Passwords: min 8 chars, digit, upper, lower, non-alphanumeric (e.g. `Capstone26!`)
+- Users need `NormalizedEmail`, `NormalizedUserName` (`.ToUpper()`), hashed password via `PasswordHasher<ApplicationUser>`
+- Role assignments via `AspNetUserRoles`
 
-- `Sighting.ImageBuffer` is **required and non-empty** — use a 1-byte placeholder `new byte[] { 0x01 }` (matches existing `SightingValidValuesSource.DefaultValidSighting` pattern)
-- `Sighting.Timestamp` must be **in the past** (`[PastDateTime]` attribute validates this) — use `DateTimeOffset.UtcNow.AddDays(-N)`
-- `Report` unique filtered index: a user cannot have two **unresolved** reports for the same URL — stagger `IsResolved` values or use different URLs when seeding multiple reports per user
-- `UserBadge` requires the `Badge` row to exist first — always seed badges before `PersonalBadges` (the three standard badges are always seeded by `ApplicationDbContextSeeding`)
-- `ApplicationUser.Id` is a GUID stored as a string — use fixed GUIDs (not `Guid.NewGuid()`) in seed data so foreign keys remain stable across re-seeds
-- Passwords must satisfy Identity policy: min 8 chars, requires digit, uppercase, lowercase, non-alphanumeric — e.g. `Capstone26!`
-- Users need `NormalizedEmail` and `NormalizedUserName` set (`.ToUpper()`) and a hashed password via `PasswordHasher<ApplicationUser>`
-- Assign users to the `User` or `Admin` role via `AspNetUserRoles` (role rows are seeded by `ApplicationDbContextSeeding`)
+**`SightingUploadViewModel`:** carries `DeviceTimezone` (default `"America/Los_Angeles"`). `ToDataModel()` converts local timestamp to UTC. Tests/seeds using this view model must set `DeviceTimezone`.
 
-### Acceptance test seed personas
-
-These users must exist in `WAID_AppDataDb` for acceptance tests to pass. The password for all test users is `Capstone26!`.
-
-| Email | Role | Points | Badges | Sightings | Purpose |
-|---|---|---|---|---|---|
-| `alpha@test.com` | User | 75 | FirstSighting | 3 sightings | **Required** — hard-coded in `CSP53StepDefinitions` as "user Alpha"; used for all sighting upload scenarios |
-| `alice@test.com` | User | 200 | Profile + FirstSighting | 5 sightings | Leaderboard top-ranked user; exercises badge + scoring paths |
-| `bob@test.com` | User | 20 | (none) | 1 sighting | Mid-ranked user; no badges yet |
-| `newuser@test.com` | User | 0 | (none) | 0 sightings | Baseline new account; exercises empty-state views |
-| `admin@test.com` | Admin | 0 | (none) | 0 sightings | Admin-role user for moderation/report scenarios; also satisfies `AdminAccount:Hidden` config if set to this address |
-
-> **Note:** The active acceptance test seeder (`AcceptanceTestSeeder.cs`) uses different personas: **Alex** (`alex@test.com`), **Patricia** (`patricia@test.com`), **Lily** (`lily@test.com`), and **Owen** (`owen@test.com` — `DisplayName = "UNSET"`, used for CSP-168 forced setup scenarios). These supersede the old persona names in CI. Password for all: `Capstone26!`.
-
-### Where to add acceptance seed data
-
-The acceptance-specific seed users should be added to `ApplicationDbContextSeeding.SeedDataAsync` gated on an environment check, **or** in a dedicated acceptance-only seeding method called from `TestWebAppHost.StartAsync`. The latter is preferred so production/staging seeding remains unaffected.
-
-`TestWebAppHost.ResetSeedData()` is currently a `NotImplementedException` stub — implementing it to truncate non-badge rows and re-run seed will be required for true scenario isolation once test count grows.
+**`NotDefaultCoordinatesAttribute`:** class-level `ValidationAttribute` failing when both `Latitude` and `Longitude` are exactly `0.0`. Applied to `SightingUploadViewModel`.
 
 ---
 
-## Jira PBI / User Story Guidelines
+## Jira PBI Guidelines
 
-> The human-readable version of these guidelines lives at `docs/pbi_guidelines.md`.
+Full template and checklist: `docs/pbi_guidelines.md`. Key points for AI agents:
 
-This section governs how AI assistants (and developers) should create or update Jira issues in the CSP project. All user stories must conform to the **INVEST** principles and follow the established story structure below.
-
----
-
-Every story must satisfy the six **INVEST** criteria (Independent, Negotiable, Valuable, Estimable, Small, Testable) before being submitted to Jira.
-
----
-
-### User Story Structure
-
-Every Jira issue must include the following sections. Use the template below exactly — do not omit sections.
-
-#### Story Case (Summary / Title field)
-
-Write in the standard user story format:
-
-```
-As a <role>, when <context>, I want <goal> so that <benefit>.
-```
-
-#### Description
-
-Provide 2–4 sentences of background explaining the current state and what this story changes. Follow with a bulleted list of specific behavioral requirements the implementation must satisfy.
-
-#### Assumptions / Preconditions
-
-Organize assumptions into four subsections:
-
-- **Functional Assumptions** — what the system already provides that this story depends on
-- **Security Assumptions** — authentication, authorization, and data visibility rules
-- **User Experience Assumptions** — UI behavior, empty states, transitions, labeling
-- **System Behavior Assumptions** — backend/data layer behavior, performance, pagination
-
-#### Acceptance Criteria
-
-Write all acceptance criteria as Gherkin scenarios using `Given / When / Then` format, wrapped in a fenced Gherkin code block:
-
-````
-```Gherkin
-Scenario: <scenario name>
-    Given <precondition>
-    When <action>
-    Then <expected outcome>
-    And <additional assertion>
-```
-````
-
-Each acceptance criterion from the description must map to at least one scenario. Cover: happy path, alternative paths, empty states, and any security/visibility rules.
-
----
-
-### Required Jira Fields
-
-In addition to the story content, every Jira issue must have the following fields set:
-
-#### Team
-Always assign the team **"MH Development Team"** unless explicitly told otherwise.
-
-#### Story Point Estimate (SPE)
-Use powers of 2 only: **1, 2, 4, 8, …**. Target ≤ 4 points per story — if a story feels larger, consider splitting it.
-
-| Points | When to use |
-|---|---|
-| **1** | Minor bug fix; UI-only update; no new testing or back-end code, or only minimal/routine changes to existing tests and back-end. |
-| **2** | Larger full-stack bug fix; larger UI-only or back-end-only update or new design; little to moderate testing updates or implementation. |
-| **4** | New full-stack feature; heavy back-end work; requires new or large overhauls of all test types (unit, acceptance, etc.). |
-
-> Estimates may vary depending on whether existing infrastructure or prior experience is available to support the story's implementation. Use the table as a guide, not a rule — the same work can reasonably land at a different point value given context.
-
----
-
-### AI Agent Attribution
-
-When an AI agent creates or modifies a Jira PBI description, it must append the following note at the very bottom of the description field:
+- Story format: `As a <role>, when <context>, I want <goal> so that <benefit>.`
+- Team: "MH Development Team"; SPE: 1, 2, or 4 (powers of 2)
+- Acceptance criteria in Gherkin `Given/When/Then`; every requirement needs a scenario
+- Append to every created/modified PBI description:
 
 ```
 ---
 AI Agent <Agent Name> assisted in the creation and/or modification of this PBI.
 ```
-
-Replace `<Agent Name>` with the name of the AI agent or model used (e.g., `Claude Sonnet 4.6`).
-
----
-
-### Checklist before creating or updating a Jira issue
-
-- [ ] Story case follows `As a / when / I want / so that` format
-- [ ] All six INVEST criteria are satisfied
-- [ ] Description includes background context and a bulleted requirements list
-- [ ] Assumptions are organized into the four subsections
-- [ ] Every requirement maps to at least one Gherkin scenario
-- [ ] Gherkin scenarios cover happy path, alternative paths, empty states, and security rules
-- [ ] Story is small enough to be completed within a single sprint
-- [ ] Team is set to **MH Development Team**
-- [ ] Story point estimate is set (1, 2, or 4) using the SPE guidelines above
-- [ ] AI agent attribution note appended to the bottom of the description (if created or modified by an AI agent)

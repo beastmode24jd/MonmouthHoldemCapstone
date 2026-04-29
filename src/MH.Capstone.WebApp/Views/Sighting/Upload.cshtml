@@ -1,4 +1,4 @@
-﻿@model SightingUploadViewModel
+@model SightingUploadViewModel
 @{
     ViewData["Title"] = "Upload Sighting";
 }
@@ -57,6 +57,33 @@
         </div>
     </div>
     @Html.AntiForgeryToken()
+
+    @* CSP-144: AI Photo Recognition. Button is disabled until a file is chosen.
+       The three status containers (badge / not-identified / error) start hidden
+       and are toggled by sighting-upload.js based on the /SightingAI/Identify response. *@
+    <div class="row mb-md-3 mb-2">
+        <div class="col-12">
+            <button type="button" id="identifyAIBtn" class="btn btn-outline-info" disabled>
+                <i class="bi bi-stars"></i> Identify with AI
+            </button>
+
+            <div id="aiSuggestionBadge" class="alert alert-success mt-2 d-none" role="alert">
+                <i class="bi bi-check-circle-fill"></i>
+                AI suggests: <strong><span id="aiSuggestionSpecies"></span></strong>
+            </div>
+
+            <div id="aiNotIdentifiedMessage" class="alert alert-warning mt-2 d-none" role="alert">
+                <i class="bi bi-question-circle-fill"></i>
+                Could not identify a species in this photo. Try a clearer shot or describe it manually below.
+            </div>
+
+            <div id="aiErrorToast" class="alert alert-danger mt-2 d-none" role="alert">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span id="aiErrorMessage">Could not reach the AI service. Please try again.</span>
+            </div>
+        </div>
+    </div>
+
     <button type="submit" class="btn btn-primary" id="SubmitBtn">Submit</button>
 </form>
 

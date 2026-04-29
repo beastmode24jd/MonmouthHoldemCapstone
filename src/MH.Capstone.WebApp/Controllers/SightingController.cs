@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using MH.Capstone.Domain.Constants;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
@@ -13,18 +13,24 @@ namespace MH.Capstone.WebApp.Controllers
     [Route("Sighting")]
     public class SightingController : Controller
     {
+        // CSP-122: long side below this many pixels is rejected outright at upload.
+        private const int MinAcceptableLongSidePixels = 1024;
+
         private readonly ILogger<SightingController> _logger;
         private readonly ISightingsService _sightingsService;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IBadgeService _badgeService;
+        private readonly IPhotoQualityService _photoQualityService;
 
         public SightingController(ILogger<SightingController> logger, ISightingsService sightingsService,
-            UserManager<ApplicationUser> userManager, IBadgeService badgeService)
+            UserManager<ApplicationUser> userManager, IBadgeService badgeService,
+            IPhotoQualityService photoQualityService)
         {
             _logger = logger;
             _sightingsService = sightingsService;
             _userManager = userManager;
             _badgeService = badgeService;
+            _photoQualityService = photoQualityService;
         }
 
         [HttpGet]
@@ -89,11 +95,36 @@ namespace MH.Capstone.WebApp.Controllers
             }
 
             var dataModel = sightingUpload.ToDataModel(user.GuidId);
+
+            // CSP-122: run the photo through the quality gate. Tier/scores are
+            // informational, but resolution is a hard gate — anything below the
+            // long-side threshold is rejected back to the upload form.
+            var quality = await _photoQualityService.AnalyzeAsync(dataModel.ImageBuffer);
+
+            int longSide = Math.Max(quality.Width, quality.Height);
+            if (longSide < MinAcceptableLongSidePixels)
+            {
+                ModelState.AddModelError(nameof(sightingUpload.UploadedImage),
+                    "Please upload a higher-resolution original (at least 1024 px on the long side).");
+                return View(sightingUpload);
+            }
+
+            dataModel.QualityTier = quality.Tier;
+            dataModel.SharpnessScore = quality.Sharpness;
+            dataModel.LuminanceAverage = quality.Luminance;
+            dataModel.ResolutionWidth = quality.Width;
+            dataModel.ResolutionHeight = quality.Height;
+
             // Points are awarded in the service, so we don't need to worry about that here.
             // CreateSightingAsync returns the points awarded for the sighting, but we don't
             // need to capture that here since the user will be able to see it reflected in
             // their profile and badges immediately after upload.
             _ = await _sightingsService.CreateSightingAsync(dataModel, sightingUpload.DeviceTimezone);
+
+            // CSP-122: surface a flash message based on the photo's quality tier so the
+            // user gets immediate feedback after the redirect to Dashboard. Medium tier
+            // is intentionally silent (passed, but nothing to celebrate or warn about).
+            SetPhotoQualityFlashMessage(quality.Tier, quality.Sharpness, quality.Luminance);
 
             // Since invalid Sightings were already checked and the sighting has already been uploaded,
             // give the user the First Sighting Badge
@@ -104,6 +135,36 @@ namespace MH.Capstone.WebApp.Controllers
 
             await _badgeService.AddBadge(user, BadgeId.FirstSightingBadgeGUID, userTimeZoneId);
             return RedirectToAction("Index", "Dashboard");
+        }
+
+        // CSP-122: maps a photo-quality analysis result to a TempData flash message.
+        // Keys are read by the Dashboard view after the post-upload redirect.
+        //   - High  → success badge
+        //   - Low   → warning, with text picked by which sub-criterion triggered Low
+        //   - Other → no message (Medium passes silently; Unknown shouldn't reach here)
+        private void SetPhotoQualityFlashMessage(PhotoQualityTier tier, double sharpness, double luminance)
+        {
+            const double DarkLuminanceThreshold = 0.20;
+            const double WashedOutLuminanceThreshold = 0.85;
+
+            switch (tier)
+            {
+                case PhotoQualityTier.High:
+                    TempData["PhotoQualitySuccess"] = "Ready for ID - High Quality";
+                    break;
+
+                case PhotoQualityTier.Low:
+                    // Lighting issues take priority over blur — when both are bad, the
+                    // user-visible problem is almost always the lighting, and "blurry"
+                    // is the catch-all for everything else (low sharpness).
+                    if (luminance < DarkLuminanceThreshold)
+                        TempData["PhotoQualityWarning"] = "This photo is too dark - try finding better light";
+                    else if (luminance > WashedOutLuminanceThreshold)
+                        TempData["PhotoQualityWarning"] = "This photo is washed out - try adjusting exposure";
+                    else
+                        TempData["PhotoQualityWarning"] = "This photo looks a bit blurry - steady your camera or try again";
+                    break;
+            }
         }
 
         #region CSP-145 / CSP-96: Sighting Gallery Feature

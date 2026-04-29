@@ -232,17 +232,17 @@ namespace MH.Capstone.Domain.Services
             {
                 await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId, "Successful Login",
                     $"Your account recorded a successful login at {now.ToLocalTime().ToString("g")}. Wasn't you? Reset your password now!",
-                    now), NotificationType.SystemCritical);
+                    now), NotificationType.AccountActivity);
 
                 await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId, "Active Streak Multiplier",
                     $"You've logged in enough times to start a streak! A points multiplier of x1.5 has been applied to your account.",
-                    now), NotificationType.SystemCritical);
+                    now), NotificationType.AccountActivity);
             }
             else
             {
                 await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId, "Successful Login",
                     $"Your account recorded a successful login at {now.ToLocalTime().ToString("g")}. Wasn't you? Reset your password now!",
-                    now), NotificationType.SystemCritical);
+                    now), NotificationType.AccountActivity);
             }
         }
 

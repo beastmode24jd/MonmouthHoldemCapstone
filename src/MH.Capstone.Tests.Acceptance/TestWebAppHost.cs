@@ -35,6 +35,8 @@ internal static class TestWebAppHost
 
     public static string? BoundUrl { get; private set; }
 
+    public static IServiceProvider? Services => _app?.Services;
+
     public static async Task StartAsync(AcceptanceTestSettings settings)
     {
         if (_app is not null)

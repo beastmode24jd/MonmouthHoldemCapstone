@@ -46,6 +46,24 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
         }
 
         [Test]
+        public async Task GetPreferencesAsync_AccountActivityIncluded_IsConfigurable()
+        {
+            var stored = new List<UserNotificationPreference>
+            {
+                new UserNotificationPreference(_user.Id, NotificationType.AccountActivity, NotificationDeliveryChannel.InAppOnly)
+            };
+
+            _mockPreferenceRepo
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<UserNotificationPreference, bool>>>()))
+                .ReturnsAsync(stored.AsQueryable());
+
+            var sut = CreateSut();
+            var result = (await sut.GetPreferencesAsync(_user)).ToList();
+
+            Assert.That(result.Any(p => p.NotificationType == NotificationType.AccountActivity), Is.True);
+        }
+
+        [Test]
         public async Task GetPreferencesAsync_UserHasStoredPreferences_ReturnsStoredValues()
         {
             var stored = new List<UserNotificationPreference>
@@ -108,6 +126,24 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
             var result = await sut.GetDeliveryChannelAsync(_user, NotificationType.BadgeAwarded);
 
             Assert.That(result, Is.EqualTo(NotificationDeliveryChannel.InAppOnly));
+        }
+
+        [Test]
+        public async Task GetDeliveryChannelAsync_AccountActivity_NotHardCoded_UsesStoredPreference()
+        {
+            var stored = new List<UserNotificationPreference>
+            {
+                new UserNotificationPreference(_user.Id, NotificationType.AccountActivity, NotificationDeliveryChannel.Silenced)
+            };
+
+            _mockPreferenceRepo
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<UserNotificationPreference, bool>>>()))
+                .ReturnsAsync(stored.AsQueryable());
+
+            var sut = CreateSut();
+            var result = await sut.GetDeliveryChannelAsync(_user, NotificationType.AccountActivity);
+
+            Assert.That(result, Is.EqualTo(NotificationDeliveryChannel.Silenced));
         }
 
         #endregion
