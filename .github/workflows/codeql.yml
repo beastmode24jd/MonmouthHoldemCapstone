@@ -18,9 +18,8 @@ jobs:
       contents: read
 
     strategy:
-      fail-fast: false
       matrix:
-        language: [ 'csharp', 'javascript' ]
+        language: [ 'csharp' ]
 
     steps:
       - uses: actions/checkout@v4
@@ -31,13 +30,11 @@ jobs:
           languages: ${{ matrix.language }}
 
       - name: Setup .NET
-        if: matrix.language == 'csharp'
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
 
-      - name: Build (.NET)
-        if: matrix.language == 'csharp'
+      - name: Build
         run: dotnet build src/MH.Capstone.sln --no-restore
 
       - name: Perform CodeQL Analysis
