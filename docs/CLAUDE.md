@@ -112,6 +112,8 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `INotificationService` | `NotificationDispatchService` | Route notifications to in-app and/or email based on user preferences (CSP-169). `SendNotificationAsync(notification, notificationType)` — SystemCritical always delivers to both channels; other types consult `INotificationPreferenceService`. Inherits query/bulk methods from `NotificationServiceBase` (`MarkAllAsReadAsync`, `DeleteAllAsync`). |
 | `INotificationPreferenceService` | `NotificationPreferenceService` | Get and save per-user, per-type notification delivery preferences (CSP-169). `GetPreferencesAsync(user)` returns configurable types only (excludes SystemCritical). `GetDeliveryChannelAsync(user, type)` returns default `InAppOnly` when no preference stored. `SavePreferencesAsync(user, preferences)` silently ignores SystemCritical. |
 | `IUserProfileService` | `UserService` | Extended (CSP-168) with `UpdateDisplayNameAsync(user, displayName)` — validates 2–50 chars, throws `ArgumentOutOfRangeException` if invalid. |
+| `ISightingsService` (CSP-142) | `SightingsService` | Extended with `GetUserAnidexAsync(Guid userId)` — returns `IEnumerable<AnidexEntry>`, one entry per unique `SpeciesName` in the user's sightings. Rarity is derived from the GLOBAL count for the species (via `IScoringService`), discovery count is per-user. Sorted rarest-first then alphabetical; empty enumerable when the user has no sightings. |
+| `IScoringService` (CSP-142) | `ScoringService` | Signature change: `GetGlobalSightingsCountAsync` now takes `string speciesName` (was placeholder `int speciesId`). Filters sightings by `SpeciesName` case-insensitively; throws `ArgumentException` on null/whitespace input. |
 | `IEmailService` | `AzureCommunicationEmailService` / `NoOpEmailService` | Send emails (toggled by `UseRealEmailerService` feature flag). Used by `AccountController.ForgotPassword` to deliver password-reset links. |
 | `IApiCaller` | `ExternalApiCaller` | HTTP calls to external APIs with SQL caching |
 | `IClubService` | `ClubService` | List public/user clubs (accepted only), list pending invites, get all memberships for a club, create a club, send/accept/decline invites, leave a club |
@@ -162,7 +164,8 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `MapController` | GPS sighting map (Leaflet.js) |
 | `ReportControllers` | Submit and view content reports |
 | `SightingController` | Submit and view wildlife sightings |
-| `SpeciesController` | Anidex species catalog (Ninja API backed) |
+| `SpeciesController` | Animal lookup catalog (API-Ninjas Animals API, cached) |
+| `AnidexController` (CSP-142) | `GET /anidex` — personal Anidex page; gallery of unique species from the authenticated user's sightings. `[Authorize]`. |
 | `ClubsController` | Club listing, creation (POST with notification + timezone); club page and chatroom (stubs) |
 
 ---
@@ -271,6 +274,15 @@ All service interfaces live in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `/dashboard/notification-preferences` | `saveNotificationPreferencesBtn` | Save button for notification preferences |
 | `/dashboard/notification-preferences` | `notificationPreferenceSuccess` | Success alert shown after saving preferences |
 | `/dashboard/notification-preferences` | `pref_{NotificationType}` | `<select>` element for each configurable notification type (e.g. `pref_BadgeAwarded`) |
+| `/Sighting/Upload` | `SpeciesName` | CSP-142: required species text input on the upload form. Auto-filled by `sighting-upload.js` from CSP-144's AI suggestion when the field is empty. |
+| Sightings dropdown | `anidexNavLink` | CSP-142: "My Anidex" entry under the Sightings nav menu (authenticated users only) |
+| `/anidex` | `anidexEmptyState` | CSP-142: empty-state div shown when the user has no sightings |
+| `/anidex` | `anidexGrid` | CSP-142: row container for the Anidex entry cards (only present when entries exist) |
+| `/anidex` | `anidexSpeciesCount` | CSP-142: small text showing total unique species discovered |
+| `/anidex` | `.anidex-entry` | CSP-142: per-species card wrapper, carries `data-species-name` attribute |
+| `/anidex` | `.anidex-species-name` | CSP-142: species name `<h5>` inside each card |
+| `/anidex` | `.anidex-rarity-badge` | CSP-142: rarity tier badge (e.g. "Mythic (5.0x)") inside each card |
+| `/anidex` | `.anidex-discovery-count` | CSP-142: integer span carrying how many times the user has seen this species |
 
 Access-denied detection: checks if `driver.Url` contains `/account/login` (case-insensitive redirect).
 
@@ -432,6 +444,7 @@ Full column details are in the EF entity classes under `src/MH.Capstone.Domain/D
 
 - `ApplicationUser.DisplayName`: `nvarchar(50)`, required, defaults to `"UNSET"` for migrated rows; 2–50 chars; `IsStreakActive` is a computed (not-mapped) property: true when `(UtcNow − LastLogin) ≤ 30 days`.
 - `Sighting.ImageBuffer`: `varbinary(max)`, required (1 byte – 2 MB); `Timestamp` must be in the past (`[PastDateTime]`).
+- `Sighting.SpeciesName` (CSP-142): `nvarchar(100)`, required; default value `"Unknown"` for migrated rows. Captured at upload time (manual entry or AI suggestion). Anidex grouping and species-keyed rarity scoring both depend on this column.
 - `Report`: unique filtered index on `(ReportingUserId, ReportedPageUrl)` where `IsResolved = 0` — prevents duplicate open reports, allows re-reporting after resolution.
 - `EmailQueue`: composite index on `(IsSent, ScheduledAt)`; `Processing` bit = dispatcher lock flag.
 - Seeded roles: `User`, `Admin`. Three badges always seeded (idempotent upsert):
@@ -472,6 +485,8 @@ These users must exist in `WAID_AppDataDb` for acceptance tests to pass. The pas
 | `admin@test.com` | Admin | 0 | (none) | 0 sightings | Admin-role user for moderation/report scenarios; also satisfies `AdminAccount:Hidden` config if set to this address |
 
 > **Note:** The active acceptance test seeder (`AcceptanceTestSeeder.cs`) uses different personas: **Alex** (`alex@test.com`), **Patricia** (`patricia@test.com`), **Lily** (`lily@test.com`), and **Owen** (`owen@test.com` — `DisplayName = "UNSET"`, used for CSP-168 forced setup scenarios). These supersede the old persona names in CI. Password for all: `Capstone26!`.
+
+> **Seeded species names (CSP-142):** Alex's 3 sightings are `Great Blue Heron` ×2 + `Bald Eagle` ×1 (so his Anidex contains 2 entries with one repeat — his Anidex discovery count for "Great Blue Heron" is 2). Lily's 5 sightings are each a distinct species: `Wolverine`, `Peregrine Falcon`, `River Otter`, `Roosevelt Elk`, `Coyote`. CSP-142 BDD scenarios assert against these names — don't rename them without updating `Features/CSP-142.feature`.
 
 ### Where to add acceptance seed data
 
