@@ -155,6 +155,7 @@ jobs:
     name: Publish
     needs: [check_conditions, test, post_bot_review]
     if: >
+      always() &&
       needs.check_conditions.outputs.should_deploy == 'true' &&
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       (needs.post_bot_review.result == 'success' || needs.post_bot_review.result == 'skipped')
