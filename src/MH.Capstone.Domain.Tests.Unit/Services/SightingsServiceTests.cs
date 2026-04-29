@@ -42,16 +42,12 @@ public class SightingsServiceTests
         _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
 
         // GLOBAL MOCKS for new dependencies
-        _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(It.IsAny<int>()))
+        _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(It.IsAny<string>()))
             .ReturnsAsync(10);
 
         // Mock the metadata tuple return
         _scoringServiceMock.Setup(s => s.GetRarityMultiplierAndName(It.IsAny<int>()))
             .ReturnsAsync((1.0, "Common"));
-
-        // Default global count
-        _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(It.IsAny<int>()))
-            .ReturnsAsync(10);
 
         // Provide an empty list of users by default so FirstOrDefault doesn't crash
         _userRepoMock.Setup(r => r.GetAllAsync())
@@ -99,9 +95,9 @@ public class SightingsServiceTests
             r.AddOrUpdateAsync(It.Is(sighting, SightingComparer.Instance)))
             .ReturnsAsync(sighting).Verifiable(Times.Once);
 
-        // It.Is<int>(i => i == 1) placeholder till species is fully developed.
+        // CSP-142: scoring lookup keys off SpeciesName instead of placeholder int id.
         _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(
-            It.Is<int>(i => i == 1)))
+            It.Is<string>(n => n == sighting.SpeciesName)))
             .ReturnsAsync(sightingsCount).Verifiable(Times.Once);
 
         _scoringServiceMock.Setup(s => s.CalculatePointsAsync(
@@ -118,7 +114,7 @@ public class SightingsServiceTests
             .Verifiable(Times.Once);
 
         _notificationServiceMock.Setup(s => s.SendNotificationAsync(
-            It.Is<Notification>(n => n.RecipientId == sighting.UserId)))
+            It.Is<Notification>(n => n.RecipientId == sighting.UserId), It.IsAny<NotificationType>()))
             .Verifiable(Times.Once);
 
         var sut = CreateSut();
@@ -141,9 +137,9 @@ public class SightingsServiceTests
                 r.AddOrUpdateAsync(It.Is(sighting, SightingComparer.Instance)))
             .ReturnsAsync(sighting).Verifiable(Times.Once);
 
-        // It.Is<int>(i => i == 1) placeholder till species is fully developed.
+        // CSP-142: scoring lookup keys off SpeciesName instead of placeholder int id.
         _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(
-                It.Is<int>(i => i == 1)))
+                It.Is<string>(n => n == sighting.SpeciesName)))
             .ReturnsAsync(sightingsCount).Verifiable(Times.Once);
 
         _scoringServiceMock.Setup(s => s.CalculatePointsAsync(
@@ -160,7 +156,7 @@ public class SightingsServiceTests
             .Verifiable(Times.Once);
 
         _notificationServiceMock.Setup(s => s.SendNotificationAsync(
-                It.Is<Notification>(n => n.RecipientId == sighting.UserId)))
+                It.Is<Notification>(n => n.RecipientId == sighting.UserId), It.IsAny<NotificationType>()))
             .Verifiable(Times.Once);
 
         var sut = CreateSut();
@@ -540,6 +536,194 @@ public class SightingsServiceTests
 
     #endregion
 
+    #region CSP-142: GetUserAnidexAsync Tests
+
+    [Test]
+    public async Task GetUserAnidexAsync_UserHasNoSightings_ReturnsEmpty()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(Enumerable.Empty<Sighting>().AsQueryable());
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetUserAnidexAsync(userId);
+
+        // Assert
+        Assert.That(result, Is.Empty);
+    }
+
+    [Test]
+    public async Task GetUserAnidexAsync_UserHasUniqueSpecies_ReturnsOneEntryPerSpecies()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var userSightings = new List<Sighting>
+        {
+            new() { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "Coyote",     Timestamp = DateTimeOffset.UtcNow.AddDays(-1), ImageBuffer = [0x01] },
+            new() { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "Bald Eagle", Timestamp = DateTimeOffset.UtcNow.AddDays(-2), ImageBuffer = [0x02] },
+        }.AsQueryable();
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(userSightings);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = (await sut.GetUserAnidexAsync(userId)).ToList();
+
+        // Assert
+        Assert.That(result.Count, Is.EqualTo(2));
+        Assert.That(result.Select(e => e.SpeciesName), Is.EquivalentTo(new[] { "Coyote", "Bald Eagle" }));
+    }
+
+    [Test]
+    public async Task GetUserAnidexAsync_UserSawSameSpeciesMultipleTimes_DiscoveryCountReflectsRepeats()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var userSightings = new List<Sighting>
+        {
+            new() { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "Coyote", Timestamp = DateTimeOffset.UtcNow.AddDays(-1), ImageBuffer = [0x01] },
+            new() { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "Coyote", Timestamp = DateTimeOffset.UtcNow.AddDays(-2), ImageBuffer = [0x02] },
+            new() { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "Coyote", Timestamp = DateTimeOffset.UtcNow.AddDays(-3), ImageBuffer = [0x03] },
+        }.AsQueryable();
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(userSightings);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = (await sut.GetUserAnidexAsync(userId)).ToList();
+
+        // Assert
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(result[0].SpeciesName, Is.EqualTo("Coyote"));
+        Assert.That(result[0].DiscoveryCount, Is.EqualTo(3));
+    }
+
+    [Test]
+    public async Task GetUserAnidexAsync_SpeciesNameCasingDiffers_GroupsAsSingleEntry()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var userSightings = new List<Sighting>
+        {
+            new() { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "Coyote", Timestamp = DateTimeOffset.UtcNow.AddDays(-1), ImageBuffer = [0x01] },
+            new() { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "coyote", Timestamp = DateTimeOffset.UtcNow.AddDays(-2), ImageBuffer = [0x02] },
+        }.AsQueryable();
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(userSightings);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = (await sut.GetUserAnidexAsync(userId)).ToList();
+
+        // Assert
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(result[0].DiscoveryCount, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task GetUserAnidexAsync_LatestImageBuffer_IsFromMostRecentSighting()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var olderImage = new byte[] { 0xAA };
+        var newerImage = new byte[] { 0xBB };
+
+        var userSightings = new List<Sighting>
+        {
+            new() { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "Coyote", Timestamp = DateTimeOffset.UtcNow.AddDays(-5), ImageBuffer = olderImage },
+            new() { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "Coyote", Timestamp = DateTimeOffset.UtcNow.AddDays(-1), ImageBuffer = newerImage },
+        }.AsQueryable();
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(userSightings);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = (await sut.GetUserAnidexAsync(userId)).Single();
+
+        // Assert
+        Assert.That(result.LatestImageBuffer, Is.EqualTo(newerImage));
+    }
+
+    [Test]
+    public async Task GetUserAnidexAsync_RarityDerivedFromGlobalCountNotPerUserCount()
+    {
+        // Arrange — user has 2 Coyote sightings, but globally Coyote count is 100 (Common).
+        var userId = Guid.NewGuid();
+        var userSightings = new List<Sighting>
+        {
+            new() { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "Coyote", Timestamp = DateTimeOffset.UtcNow.AddDays(-1), ImageBuffer = [0x01] },
+            new() { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "Coyote", Timestamp = DateTimeOffset.UtcNow.AddDays(-2), ImageBuffer = [0x02] },
+        }.AsQueryable();
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(userSightings);
+
+        _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync("Coyote"))
+            .ReturnsAsync(100);
+        _scoringServiceMock.Setup(s => s.GetRarityMultiplierAndName(100))
+            .ReturnsAsync((1.0, "Common"));
+
+        var sut = CreateSut();
+
+        // Act
+        var result = (await sut.GetUserAnidexAsync(userId)).Single();
+
+        // Assert — per-user count was 2 (would be Mythic if applied locally) but
+        // global count is what determines rarity, so the entry must be Common.
+        Assert.That(result.RarityName, Is.EqualTo("Common"));
+        Assert.That(result.RarityMultiplier, Is.EqualTo(1.0));
+        Assert.That(result.DiscoveryCount, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task GetUserAnidexAsync_ResultsOrderedByRarityDescendingThenAlphabetical()
+    {
+        // Arrange — user has three different species; mock distinct global counts to
+        // exercise tier ordering (Mythic > Rare > Common).
+        var userId = Guid.NewGuid();
+        var userSightings = new List<Sighting>
+        {
+            new() { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "Bobcat",     Timestamp = DateTimeOffset.UtcNow.AddDays(-1), ImageBuffer = [0x01] },
+            new() { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "Coyote",     Timestamp = DateTimeOffset.UtcNow.AddDays(-2), ImageBuffer = [0x02] },
+            new() { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "Bald Eagle", Timestamp = DateTimeOffset.UtcNow.AddDays(-3), ImageBuffer = [0x03] },
+        }.AsQueryable();
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(userSightings);
+
+        // Coyote=Common, Bobcat=Rare, Bald Eagle=Mythic
+        _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync("Coyote")).ReturnsAsync(100);
+        _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync("Bobcat")).ReturnsAsync(25);
+        _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync("Bald Eagle")).ReturnsAsync(2);
+
+        _scoringServiceMock.Setup(s => s.GetRarityMultiplierAndName(100)).ReturnsAsync((1.0, "Common"));
+        _scoringServiceMock.Setup(s => s.GetRarityMultiplierAndName(25)).ReturnsAsync((2.0, "Rare"));
+        _scoringServiceMock.Setup(s => s.GetRarityMultiplierAndName(2)).ReturnsAsync((5.0, "Mythic"));
+
+        var sut = CreateSut();
+
+        // Act
+        var result = (await sut.GetUserAnidexAsync(userId)).ToList();
+
+        // Assert
+        Assert.That(result.Select(e => e.SpeciesName).ToList(),
+            Is.EqualTo(new[] { "Bald Eagle", "Bobcat", "Coyote" }));
+    }
+
+    #endregion
+
     [Test]
     public async Task CreateSightingAsync_UserHasActiveStreak_Applies1Point5Multiplier()
     {
@@ -566,7 +750,7 @@ public class SightingsServiceTests
             .ReturnsAsync(sighting);
 
         // Mock Sighting scoring
-        _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(It.IsAny<int>()))
+        _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(It.IsAny<string>()))
             .ReturnsAsync(10);
         _scoringServiceMock.Setup(s => s.CalculatePointsAsync(It.IsAny<int>()))
             .ReturnsAsync(basePoints);

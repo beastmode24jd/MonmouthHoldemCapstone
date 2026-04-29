@@ -41,6 +41,11 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -140,6 +145,71 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.ToTable("Badge");
                 });
 
+            modelBuilder.Entity("MH.Capstone.Domain.DataModels.Club", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("OwnerIdentityId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("OwnerId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerIdentityId");
+
+                    b.ToTable("Club");
+                });
+
+            modelBuilder.Entity("MH.Capstone.Domain.DataModels.ClubMembership", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("AcceptedInvite")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("ClubId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("JoinedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("MemberIdentityId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("MemberId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClubId");
+
+                    b.HasIndex("MemberIdentityId", "ClubId")
+                        .IsUnique();
+
+                    b.ToTable("ClubMembership");
+                });
+
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.EmailQueue", b =>
                 {
                     b.Property<Guid>("Id")
@@ -192,6 +262,38 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.HasIndex("IsSent", "ScheduledAt");
 
                     b.ToTable("EmailQueue");
+                });
+
+            modelBuilder.Entity("MH.Capstone.Domain.DataModels.Message", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AuthorIdentityId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("AuthorId");
+
+                    b.Property<Guid>("ClubId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTimeOffset>("SentAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorIdentityId");
+
+                    b.HasIndex("ClubId");
+
+                    b.ToTable("Message");
                 });
 
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Notification", b =>
@@ -280,6 +382,9 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<bool>("FlaggedForReview")
+                        .HasColumnType("bit");
+
                     b.Property<byte[]>("ImageBuffer")
                         .IsRequired()
                         .HasColumnType("varbinary(max)");
@@ -297,7 +402,13 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .HasColumnType("decimal(9,6)")
                         .HasColumnName("Long");
 
+                    b.Property<double?>("LuminanceAverage")
+                        .HasColumnType("float");
+
                     b.Property<int>("PointValue")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QualityTier")
                         .HasColumnType("int");
 
                     b.Property<string>("Rarity")
@@ -306,6 +417,20 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
 
                     b.Property<double>("RarityMultiplier")
                         .HasColumnType("float");
+
+                    b.Property<int?>("ResolutionHeight")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ResolutionWidth")
+                        .HasColumnType("int");
+
+                    b.Property<double?>("SharpnessScore")
+                        .HasColumnType("float");
+
+                    b.Property<string>("SpeciesName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<DateTimeOffset>("Timestamp")
                         .HasColumnType("datetimeoffset");
@@ -349,6 +474,31 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("PersonalBadges");
+                });
+
+            modelBuilder.Entity("MH.Capstone.Domain.DataModels.UserNotificationPreference", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("DeliveryChannel")
+                        .HasColumnType("int");
+
+                    b.Property<int>("NotificationType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "NotificationType")
+                        .IsUnique();
+
+                    b.ToTable("UserNotificationPreference");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -484,6 +634,55 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("MH.Capstone.Domain.DataModels.Club", b =>
+                {
+                    b.HasOne("MH.Capstone.Domain.DataModels.ApplicationUser", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerIdentityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("MH.Capstone.Domain.DataModels.ClubMembership", b =>
+                {
+                    b.HasOne("MH.Capstone.Domain.DataModels.Club", "Club")
+                        .WithMany("Memberships")
+                        .HasForeignKey("ClubId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MH.Capstone.Domain.DataModels.ApplicationUser", "Member")
+                        .WithMany("ClubMemberships")
+                        .HasForeignKey("MemberIdentityId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Club");
+
+                    b.Navigation("Member");
+                });
+
+            modelBuilder.Entity("MH.Capstone.Domain.DataModels.Message", b =>
+                {
+                    b.HasOne("MH.Capstone.Domain.DataModels.ApplicationUser", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorIdentityId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("MH.Capstone.Domain.DataModels.Club", "Club")
+                        .WithMany("Messages")
+                        .HasForeignKey("ClubId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("Club");
+                });
+
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Notification", b =>
                 {
                     b.HasOne("MH.Capstone.Domain.DataModels.ApplicationUser", "Recipient")
@@ -532,6 +731,17 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .IsRequired();
 
                     b.Navigation("Badge");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MH.Capstone.Domain.DataModels.UserNotificationPreference", b =>
+                {
+                    b.HasOne("MH.Capstone.Domain.DataModels.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
@@ -589,11 +799,20 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
 
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.ApplicationUser", b =>
                 {
+                    b.Navigation("ClubMemberships");
+
                     b.Navigation("Notifications");
 
                     b.Navigation("Sightings");
 
                     b.Navigation("UserBadges");
+                });
+
+            modelBuilder.Entity("MH.Capstone.Domain.DataModels.Club", b =>
+                {
+                    b.Navigation("Memberships");
+
+                    b.Navigation("Messages");
                 });
 #pragma warning restore 612, 618
         }

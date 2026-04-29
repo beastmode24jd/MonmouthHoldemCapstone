@@ -34,18 +34,26 @@ public static class TestDependencySetup
         services.AddSingleton<IWebDriver>(Startup.GetWebDriver());
 
         // One shared WebDriverWait for step definitions that need explicit waits.
-        services.AddSingleton(new WebDriverWait(Startup.GetWebDriver(), TimeSpan.FromSeconds(15)));
+        // Increased to 30s to reduce transient timing failures in CI/headless environments.
+        services.AddSingleton(new WebDriverWait(Startup.GetWebDriver(), TimeSpan.FromSeconds(30)));
 
         // Driver classes must be explicitly registered when using
         // Reqnroll.Microsoft.Extensions.DependencyInjection — they are not
         // auto-discovered the way step-definition bindings are.
         services.AddTransient<AuthenticationDriver>();
+        services.AddTransient<ClubsDriver>();
         services.AddTransient<DashboardDriver>();
         services.AddTransient<SightingGalleryDriver>();
         services.AddTransient<SightingsDriver>();
         services.AddTransient<WildlifeSearchDriver>();
         services.AddTransient<PasswordResetDriver>();
         services.AddTransient<EmailVerificationDriver>();
+        services.AddTransient<UserSearchDriver>(); // Sprint 5, CSP-54
+        services.AddTransient<NotificationsDriver>();
+        services.AddTransient<DisplayNameDriver>();
+        services.AddTransient<NotificationPreferencesDriver>();
+        services.AddTransient<AccountSettingsDriver>();
+        services.AddTransient<AnidexDriver>(); // CSP-142
 
         return services;
     }

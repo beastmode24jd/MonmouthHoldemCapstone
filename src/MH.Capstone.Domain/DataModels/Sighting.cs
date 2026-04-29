@@ -7,6 +7,7 @@ using MH.Capstone.Domain.Tools;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
+
 namespace MH.Capstone.Domain.DataModels
 {
     [Table("Sighting")]
@@ -48,10 +49,18 @@ namespace MH.Capstone.Domain.DataModels
         [MaxLength(500)]
         public string? Description { get; set; } = null;
 
+        // CSP-142: species name captured at upload (manual entry or AI suggestion).
+        // "Unknown" is the backfill default for rows created before species was tracked.
+        [Required]
+        [MaxLength(100)]
+        public string SpeciesName { get; set; } = "Unknown";
+
         [Length(1, 2 * (1024 * 1024))] // must not be of size 0 but less than 2 MB (MB = 1024 * 1024 bytes)
         public byte[] ImageBuffer { get; set; } = null!;
 
         public virtual ApplicationUser User { get; set; } = null!;
+
+        #region CSP-109: Scoring Metadata
 
         // Rarity score, point value, and user's login streak value for display metadata.
         //      Defaults to placeholder values until updated by Sightings Service
@@ -64,6 +73,24 @@ namespace MH.Capstone.Domain.DataModels
 
         // Currently set to 5.0 (Mythic), 2.0 (Rare), and 1.0 (Common)
         public double RarityMultiplier { get; set; } = 1.0; // Common rarity
+
+        #endregion
+
+        #region CSP-122: Photo Quality Gate Metadata
+ 
+        public PhotoQualityTier QualityTier { get; set; } = PhotoQualityTier.Unknown;
+
+        public double? SharpnessScore { get; set; } = null;
+
+        public double? LuminanceAverage { get; set; } = null;
+
+        public int? ResolutionWidth { get; set; } = null;
+
+        public int? ResolutionHeight { get; set; } = null;
+
+        public bool FlaggedForReview { get; set; } = false;
+
+        #endregion
 
         public Sighting() {}
 

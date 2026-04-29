@@ -1,9 +1,13 @@
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Reflection;
 using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Constants;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.WebApp.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -35,11 +39,14 @@ namespace MH.Capstone.WebApp.Controllers
 
         private readonly IBadgeService _badgeService;
 
+        private readonly INotificationPreferenceService _notificationPreferenceService;
+
         // Constructor that injects the logger dependency
-        public DashboardController(ILogger<DashboardController> logger, 
-            IProfileImageService imageService, IAuthenticationService authService, 
-            IBadgeService badgeService, INotificationService notificationService, 
-            IUserService userService, IRepository<Notification, ApplicationDbContext> notificationRepo)
+        public DashboardController(ILogger<DashboardController> logger,
+            IProfileImageService imageService, IAuthenticationService authService,
+            IBadgeService badgeService, INotificationService notificationService,
+            IUserService userService, IRepository<Notification, ApplicationDbContext> notificationRepo,
+            INotificationPreferenceService notificationPreferenceService)
         {
             _logger = logger;
             _imageService = imageService;
@@ -48,6 +55,7 @@ namespace MH.Capstone.WebApp.Controllers
             _notificationService = notificationService;
             _userService = userService;
             _notificationRepo = notificationRepo;
+            _notificationPreferenceService = notificationPreferenceService;
         }
 
         // Displays the main dashboard page for authenticated users. 
@@ -145,7 +153,7 @@ namespace MH.Capstone.WebApp.Controllers
                 {
                     _logger.LogWarning("Rejecting upload: File size {Size} exceeds 2MB limit.", profilePicture.Length);
                     ModelState.AddModelError(nameof(profilePicture), "File size exceeds the 2MB limit.");
-                    return RedirectToAction("Index");
+                    return RedirectToAction("Settings");
                 }
 
                 // Reject if not an image file based on content type
@@ -157,7 +165,7 @@ namespace MH.Capstone.WebApp.Controllers
                     _logger.LogWarning("Rejecting upload: Invalid content type {ContentType}.",
                         profilePicture.ContentType);
                     ModelState.AddModelError(nameof(profilePicture), "Invalid file type. Please upload an image.");
-                    return RedirectToAction("Index");
+                    return RedirectToAction("Settings");
                 }
 
                 // Delegate to ProfileImageService
@@ -185,8 +193,7 @@ namespace MH.Capstone.WebApp.Controllers
                 _logger.LogWarning("Upload attempted with null or empty file.");
             }
 
-            // Send this information back to the main dashboard page.
-            return RedirectToAction("Index");
+            return RedirectToAction("Settings");
         }
 
         [HttpPost("UpdateBio")]
@@ -216,7 +223,35 @@ namespace MH.Capstone.WebApp.Controllers
                 }
             }
 
-            return RedirectToAction("Index");
+            return RedirectToAction("Settings");
+        }
+
+        [HttpGet("settings")]
+        public IActionResult Settings()
+        {
+            return View();
+        }
+
+        [HttpPost("UpdateDisplayName")]
+        public async Task<IActionResult> UpdateDisplayName(string newDisplayName)
+        {
+            var userEmail = User.Identity?.Name;
+            var user = await _userService.GetUserByEmailAsync(userEmail ?? "");
+
+            if (user == null)
+                return RedirectToAction("Settings");
+
+            if (string.IsNullOrWhiteSpace(newDisplayName) || newDisplayName.Length < 2 || newDisplayName.Length > 50)
+            {
+                TempData["DisplayNameError"] = "Display name must be between 2 and 50 characters.";
+                return RedirectToAction("Settings");
+            }
+
+            await _userService.UpdateDisplayNameAsync(user, newDisplayName);
+            _logger.LogInformation("User {Email} updated display name to '{DisplayName}'", userEmail, newDisplayName);
+
+            TempData["DisplayNameSuccess"] = "Display name updated successfully.";
+            return RedirectToAction("Settings");
         }
 
         [HttpGet]
@@ -294,6 +329,40 @@ namespace MH.Capstone.WebApp.Controllers
             return Ok(notification);
         }
 
+        [HttpPut]
+        [ValidateAntiForgeryToken]
+        [Route("/notifications/mark-all-read")]
+        public async Task<IActionResult> MarkAllNotificationsAsRead()
+        {
+            var user = await _userService.GetUserByClaimsPrincipleAsync(User);
+
+            if (user == null)
+            {
+                return Forbid();
+            }
+
+            await _notificationService.MarkAllAsReadAsync(user);
+
+            return Ok(new { message = "All notifications marked as read." });
+        }
+
+        [HttpDelete]
+        [ValidateAntiForgeryToken]
+        [Route("/notifications/all")]
+        public async Task<IActionResult> DeleteAllNotifications()
+        {
+            var user = await _userService.GetUserByClaimsPrincipleAsync(User);
+
+            if (user == null)
+            {
+                return Forbid();
+            }
+
+            await _notificationService.DeleteAllAsync(user);
+
+            return Ok(new { message = "All notifications deleted." });
+        }
+
         [HttpDelete]
         [ValidateAntiForgeryToken]
         [Route("/notifications/{nid:guid}")]
@@ -324,6 +393,58 @@ namespace MH.Capstone.WebApp.Controllers
 
             // Return a success response. The frontend can use this to remove the notification from the UI without a full page refresh.
             return Ok(new { message = "Notification deleted successfully." });
+        }
+
+        [HttpGet("notification-preferences")]
+        public async Task<IActionResult> NotificationPreferences()
+        {
+            var user = await _userService.GetUserByClaimsPrincipleAsync(User);
+            if (user == null) return Forbid();
+
+            var viewModel = await BuildPreferencesViewModelAsync(user);
+            return View(viewModel);
+        }
+
+        [HttpPost("notification-preferences")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveNotificationPreferences(NotificationPreferencesViewModel model)
+        {
+            var user = await _userService.GetUserByClaimsPrincipleAsync(User);
+            if (user == null) return Forbid();
+
+            var updates = model.Preferences
+                .Select(p => (p.NotificationType, p.SelectedChannel));
+
+            await _notificationPreferenceService.SavePreferencesAsync(user, updates);
+
+            _logger.LogInformation("User {Email} updated notification preferences", User.Identity?.Name);
+            TempData["NotificationPreferencesSuccess"] = "Notification preferences saved.";
+            return RedirectToAction(nameof(NotificationPreferences));
+        }
+
+        private async Task<NotificationPreferencesViewModel> BuildPreferencesViewModelAsync(ApplicationUser user)
+        {
+            var stored = (await _notificationPreferenceService.GetPreferencesAsync(user))
+                .ToDictionary(p => p.NotificationType, p => p.DeliveryChannel);
+
+            // Enumerate all NotificationType values that carry a [Display] attribute.
+            // SystemCritical has no [Display] and is therefore excluded automatically —
+            // any future type added to the enum just needs [Display] to appear here.
+            var entries = Enum.GetValues<NotificationType>()
+                .Select(t => (Type: t, Display: typeof(NotificationType)
+                    .GetField(t.ToString())
+                    ?.GetCustomAttribute<DisplayAttribute>()))
+                .Where(x => x.Display != null)
+                .Select(x => new NotificationPreferenceEntryViewModel
+                {
+                    NotificationType = x.Type,
+                    DisplayName = x.Display!.Name ?? x.Type.ToString(),
+                    Description = x.Display!.Description ?? string.Empty,
+                    SelectedChannel = stored.GetValueOrDefault(x.Type, NotificationDeliveryChannel.InAppOnly)
+                })
+                .ToList();
+
+            return new NotificationPreferencesViewModel { Preferences = entries };
         }
     }
 }

@@ -1,24 +1,29 @@
+using System.Diagnostics.CodeAnalysis;
+using FluentAssertions;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataModels;
-using MH.Capstone.Tests.Acceptance.Hooks;
+using MH.Capstone.Tests.Acceptance.Configuration;
+using MH.Capstone.Tests.Acceptance.Drivers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using NUnit.Framework;
 using OpenQA.Selenium;
-using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 using Reqnroll;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
 [Binding]
+[ExcludeFromCodeCoverage]
 public class CSP97StepDefinitions
 {
-    private IWebDriver _driver = null!;
-    private WebDriverWait _wait = null!;
-    private string BaseUrl => Startup.GetSettings().BaseUrl;
+    private readonly IWebDriver _driver;
+    private readonly WebDriverWait _wait;
+    private readonly AcceptanceTestSettings _settings;
+    private readonly AuthenticationDriver _authDriver;
+
+    private string BaseUrl => _settings.BaseUrl.TrimEnd('/');
 
     // Test data tracking for cleanup
     private readonly List<string> _createdUserIds = new();
@@ -26,52 +31,35 @@ public class CSP97StepDefinitions
 
     // Named persona tracking
     private readonly Dictionary<string, ApplicationUser> _personas = new();
-    private ApplicationUser? _loggedInUser;
 
-    #region Setup and Teardown
-
-    [BeforeScenario]
-    public void SetupBrowser()
+    public CSP97StepDefinitions(IWebDriver driver, WebDriverWait wait,
+        AcceptanceTestSettings settings, AuthenticationDriver authDriver)
     {
-        var options = new ChromeOptions();
-        options.AddArgument("--headless=new");
-        options.AddArgument("--no-sandbox");
-        options.AddArgument("--disable-dev-shm-usage");
-        options.AddArgument("--ignore-certificate-errors");
-        options.AddArgument("--disable-gpu");
-        options.AddArgument("--window-size=1920,1080");
-
-        _driver = new ChromeDriver(options);
-        _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
-        _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(15));
+        _driver   = driver;
+        _wait     = wait;
+        _settings = settings;
+        _authDriver = authDriver;
     }
 
-    [AfterScenario]
-    public void Cleanup()
+    [AfterScenario("leaderboard")]
+    public void CleanupTestUsers()
     {
-        if (_createdUserIds.Any())
+        if (!_createdUserIds.Any())
+            return;
+
+        using var scope = GetServiceScope();
+        var dbContext   = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        foreach (var userId in _createdUserIds)
         {
-            using var scope = GetServiceScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-
-            foreach (var userId in _createdUserIds)
-            {
-                var user = dbContext.Users.Find(userId);
-                if (user != null)
-                {
-                    userManager.DeleteAsync(user).GetAwaiter().GetResult();
-                }
-            }
-
-            dbContext.SaveChanges();
+            var user = dbContext.Users.Find(userId);
+            if (user != null)
+                userManager.DeleteAsync(user).GetAwaiter().GetResult();
         }
 
-        _driver?.Quit();
-        _driver?.Dispose();
+        dbContext.SaveChanges();
     }
-
-    #endregion
 
     #region Given Steps
 
@@ -87,7 +75,7 @@ public class CSP97StepDefinitions
     {
         using var scope = GetServiceScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var dbContext   = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
         var user = CreateTestUser(userManager, dbContext, $"{name}_{_testRunId}", "Test@1234", points);
         _personas[name] = user;
@@ -98,13 +86,12 @@ public class CSP97StepDefinitions
     {
         using var scope = GetServiceScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var dbContext   = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
         var user = CreateTestUser(userManager, dbContext, $"{name}_{_testRunId}", "Test@1234", points);
         _personas[name] = user;
-        _loggedInUser = user;
 
-        LoginUser($"{name}_{_testRunId}", "Test@1234");
+        LoginUser($"{name}_{_testRunId}@test.com", "Test@1234");
     }
 
     [Given(@"there are more than 30 users in the system")]
@@ -112,12 +99,10 @@ public class CSP97StepDefinitions
     {
         using var scope = GetServiceScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var dbContext   = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
         for (int i = 1; i <= 35; i++)
-        {
             CreateTestUser(userManager, dbContext, $"User{i:D3}_{_testRunId}", "Test@1234", 1000 - (i * 10));
-        }
     }
 
     #endregion
@@ -155,24 +140,21 @@ public class CSP97StepDefinitions
         var matchingLink = navLinks.FirstOrDefault(l =>
             l.Text.Trim().Contains(linkText, StringComparison.OrdinalIgnoreCase));
 
-        Assert.That(matchingLink, Is.Not.Null,
-            $"Navigation bar should contain a '{linkText}' link");
-        Assert.That(matchingLink!.Displayed, Is.True,
-            $"'{linkText}' link should be visible");
+        matchingLink.Should().NotBeNull($"the navigation bar should contain a '{linkText}' link");
+        matchingLink!.Displayed.Should().BeTrue($"the '{linkText}' link should be visible");
     }
 
     [Then(@"users should be displayed in descending order by points")]
     public void ThenUsersShouldBeDisplayedInDescendingOrderByPoints()
     {
         var rows = _driver.FindElements(By.CssSelector("table tbody tr"));
-        Assert.That(rows.Count, Is.GreaterThan(0), "Leaderboard should have user entries");
+        rows.Count.Should().BeGreaterThan(0, "the leaderboard should have user entries");
 
         var points = ExtractPointsFromRows(rows);
-
         for (int i = 0; i < points.Count - 1; i++)
         {
-            Assert.That(points[i], Is.GreaterThanOrEqualTo(points[i + 1]),
-                $"Points at position {i} ({points[i]}) should be >= points at position {i + 1} ({points[i + 1]})");
+            points[i].Should().BeGreaterThanOrEqualTo(points[i + 1],
+                $"points at position {i} ({points[i]}) should be >= position {i + 1} ({points[i + 1]})");
         }
     }
 
@@ -181,20 +163,20 @@ public class CSP97StepDefinitions
     {
         var rows = _driver.FindElements(By.CssSelector("table tbody tr"));
         int higherIndex = -1;
-        int lowerIndex = -1;
+        int lowerIndex  = -1;
 
         for (int i = 0; i < rows.Count; i++)
         {
-            var cells = rows[i].FindElements(By.TagName("td"));
+            var cells    = rows[i].FindElements(By.TagName("td"));
             var username = cells[1].Text.Trim();
 
             if (username == $"{higher}_{_testRunId}") higherIndex = i;
-            if (username == $"{lower}_{_testRunId}") lowerIndex = i;
+            if (username == $"{lower}_{_testRunId}")  lowerIndex  = i;
         }
 
-        Assert.That(higherIndex, Is.GreaterThanOrEqualTo(0), $"{higher} should be on the leaderboard");
-        Assert.That(lowerIndex, Is.GreaterThanOrEqualTo(0), $"{lower} should be on the leaderboard");
-        Assert.That(higherIndex, Is.LessThan(lowerIndex),
+        higherIndex.Should().BeGreaterThanOrEqualTo(0, $"{higher} should be on the leaderboard");
+        lowerIndex.Should().BeGreaterThanOrEqualTo(0, $"{lower} should be on the leaderboard");
+        higherIndex.Should().BeLessThan(lowerIndex,
             $"{higher} (row {higherIndex}) should appear above {lower} (row {lowerIndex})");
     }
 
@@ -202,8 +184,8 @@ public class CSP97StepDefinitions
     public void ThenIShouldSeeAMaximumOf30UserEntries()
     {
         var rows = _driver.FindElements(By.CssSelector("table tbody tr"));
-        Assert.That(rows.Count, Is.LessThanOrEqualTo(30),
-            $"Leaderboard should show maximum 30 entries, but showed {rows.Count}");
+        rows.Count.Should().BeLessThanOrEqualTo(30,
+            $"leaderboard should show at most 30 entries, but showed {rows.Count}");
     }
 
     [Then(@"the top 30 highest-scoring users should be shown")]
@@ -216,48 +198,42 @@ public class CSP97StepDefinitions
             return new { Name = cells[1].Text.Trim(), Points = int.Parse(cells[2].Text.Trim()) };
         }).ToList();
 
-        Assert.That(displayedUsers.Count, Is.EqualTo(30),
-            "Should display exactly 30 users when there are more than 30 in the system");
+        displayedUsers.Count.Should().Be(30, "should display exactly 30 users when more than 30 exist");
 
         for (int i = 0; i < displayedUsers.Count - 1; i++)
         {
-            Assert.That(displayedUsers[i].Points, Is.GreaterThanOrEqualTo(displayedUsers[i + 1].Points),
-                "Displayed users should be in descending order by points");
+            displayedUsers[i].Points.Should().BeGreaterThanOrEqualTo(displayedUsers[i + 1].Points,
+                "displayed users should be in descending order by points");
         }
     }
 
     [Then(@"(.+)'s entry should be visually highlighted")]
     public void ThenPersonaEntryHighlighted(string name)
     {
-        Assert.That(_personas.ContainsKey(name), Is.True, $"{name} should exist as a test persona");
+        _personas.Should().ContainKey(name, $"{name} should exist as a test persona");
         var user = _personas[name];
 
-        var userRow = _driver.FindElement(By.Id($"user-{user.Id}"));
-        Assert.That(userRow, Is.Not.Null, $"{name}'s row should exist in leaderboard");
-
+        var userRow  = _driver.FindElement(By.Id($"user-{user.Id}"));
         var rowClass = userRow.GetAttribute("class");
-        Assert.That(rowClass, Does.Contain("table-primary"),
-            $"{name}'s row should have 'table-primary' class for highlighting");
-        Assert.That(rowClass, Does.Contain("fw-bold"),
-            $"{name}'s row should have 'fw-bold' class for emphasis");
+
+        rowClass.Should().Contain("table-primary", $"{name}'s row should be highlighted with table-primary");
+        rowClass.Should().Contain("fw-bold", $"{name}'s row should be bold");
     }
 
     [Then(@"(.+)'s point total of (\d+) should be visible")]
     public void ThenPersonaPointTotalVisible(string name, int expectedPoints)
     {
-        Assert.That(_personas.ContainsKey(name), Is.True, $"{name} should exist as a test persona");
-        var user = _personas[name];
+        _personas.Should().ContainKey(name, $"{name} should exist as a test persona");
+        var user  = _personas[name];
 
         var userRow = _driver.FindElement(By.Id($"user-{user.Id}"));
-        var cells = userRow.FindElements(By.TagName("td"));
+        var cells   = userRow.FindElements(By.TagName("td"));
 
-        Assert.That(cells.Count, Is.GreaterThanOrEqualTo(3), "User row should have points column");
+        cells.Count.Should().BeGreaterThanOrEqualTo(3, "the user row should have a points column");
 
-        var pointsText = cells[2].Text.Trim();
-        Assert.That(int.TryParse(pointsText, out int points), Is.True,
-            "Points should be displayed as a number");
-        Assert.That(points, Is.EqualTo(expectedPoints),
-            $"{name}'s points should be {expectedPoints}");
+        int.TryParse(cells[2].Text.Trim(), out int points).Should().BeTrue(
+            "points should be displayed as a number");
+        points.Should().Be(expectedPoints, $"{name}'s points should be {expectedPoints}");
     }
 
     [Then(@"(.+) should be able to locate their entry easily")]
@@ -266,45 +242,40 @@ public class CSP97StepDefinitions
         var jumpButton = _driver.FindElements(By.CssSelector("a.btn.btn-primary"))
             .FirstOrDefault(b => b.Text.Contains("Jump to My Rank"));
 
-        Assert.That(jumpButton, Is.Not.Null,
-            "Page should have a 'Jump to My Rank' button for easy navigation");
-        Assert.That(jumpButton!.Displayed, Is.True,
-            "Jump to My Rank button should be visible");
-        Assert.That(jumpButton.Text, Does.Match(@"#\d+"),
-            "Button should display the user's rank number");
+        jumpButton.Should().NotBeNull("the page should have a 'Jump to My Rank' button");
+        jumpButton!.Displayed.Should().BeTrue("the 'Jump to My Rank' button should be visible");
+        jumpButton.Text.Should().MatchRegex(@"#\d+", "the button should display the user's rank number");
     }
 
     [Then(@"(.+) and (.+) should be included in the list with zero points")]
     public void ThenPersonasShouldBeIncludedWithZeroPoints(string name1, string name2)
     {
-        var rows = _driver.FindElements(By.CssSelector("table tbody tr"));
+        var rows       = _driver.FindElements(By.CssSelector("table tbody tr"));
         var foundUsers = new List<string>();
 
         foreach (var row in rows)
         {
-            var cells = row.FindElements(By.TagName("td"));
+            var cells    = row.FindElements(By.TagName("td"));
             var username = cells[1].Text.Trim();
-            var points = int.Parse(cells[2].Text.Trim());
+            var points   = int.Parse(cells[2].Text.Trim());
 
             if (username == $"{name1}_{_testRunId}" || username == $"{name2}_{_testRunId}")
             {
-                Assert.That(points, Is.EqualTo(0), $"{username} should have zero points");
+                points.Should().Be(0, $"{username} should have zero points");
                 foundUsers.Add(username);
             }
         }
 
-        Assert.That(foundUsers.Count, Is.EqualTo(2),
-            $"Both {name1} and {name2} should appear on the leaderboard");
+        foundUsers.Count.Should().Be(2, $"both {name1} and {name2} should appear on the leaderboard");
     }
 
     [Then(@"they should appear after all users with positive points")]
     public void ThenTheyShouldAppearAfterAllUsersWithPositivePoints()
     {
-        var rows = _driver.FindElements(By.CssSelector("table tbody tr"));
+        var rows   = _driver.FindElements(By.CssSelector("table tbody tr"));
         var points = ExtractPointsFromRows(rows);
 
         bool hasSeenZeroPoints = false;
-
         foreach (var p in points)
         {
             if (p == 0)
@@ -313,8 +284,9 @@ public class CSP97StepDefinitions
             }
             else if (hasSeenZeroPoints)
             {
-                Assert.Fail($"Found user with {p} points after a zero-point user. " +
-                            "All zero-point users should appear after positive-point users.");
+                Assert.Fail(
+                    $"Found a user with {p} points after a zero-point user. " +
+                    "All zero-point users should appear after positive-point users.");
             }
         }
     }
@@ -330,44 +302,29 @@ public class CSP97StepDefinitions
         {
             var cells = row.FindElements(By.TagName("td"));
             if (cells.Count >= 3 && int.TryParse(cells[2].Text.Trim(), out int pointValue))
-            {
                 points.Add(pointValue);
-            }
         }
-
         return points;
     }
 
     private IServiceScope GetServiceScope()
     {
-        var webAppPath = Startup.GetSettings().WebAppContentRoot;
-        var configFile = Path.Combine(webAppPath, "appsettings.Acceptance.json");
-
-        if (!File.Exists(configFile))
-        {
-            Assert.Ignore("Skipped: appsettings.Acceptance.json not found.");
-        }
+        var webAppPath  = _settings.WebAppContentRoot;
 
         var configuration = new ConfigurationBuilder()
             .SetBasePath(webAppPath)
             .AddJsonFile("appsettings.json", optional: true)
-            .AddJsonFile("appsettings.Acceptance.json", optional: false)
+            .AddJsonFile("appsettings.Acceptance.json", optional: true)
             .AddJsonFile("appsettings.Acceptance.Local.json", optional: true)
             .AddEnvironmentVariables()
             .Build();
 
         var connectionString = configuration.GetConnectionString("DataDb")
-                               ?? throw new InvalidOperationException(
-                                   "Connection string 'DataDb' not found in appsettings.Development.json.");
+            ?? throw new InvalidOperationException("Connection string 'DataDb' not found.");
 
         var services = new ServiceCollection();
-
-        services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(connectionString));
-
-        services.AddDbContext<CacheDbContext>(options =>
-            options.UseSqlServer(connectionString));
-
+        services.AddDbContext<ApplicationDbContext>(o => o.UseSqlServer(connectionString));
+        services.AddDbContext<CacheDbContext>(o => o.UseSqlServer(connectionString));
         services.AddIdentity<ApplicationUser, IdentityRole>(options =>
             {
                 options.Password.RequireDigit = false;
@@ -378,7 +335,6 @@ public class CSP97StepDefinitions
             })
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
-
         services.AddLogging();
 
         return services.BuildServiceProvider().CreateScope();
@@ -389,42 +345,27 @@ public class CSP97StepDefinitions
     {
         var user = new ApplicationUser
         {
-            UserName = username,
-            Email = $"{username}@test.com",
+            UserName       = username,
+            Email          = $"{username}@test.com",
             EmailConfirmed = true,
-            Points = points,
-            IsDeactivated = false
+            DisplayName    = username,
+            Points         = points,
+            IsDeactivated  = false
         };
 
         var result = userManager.CreateAsync(user, password).GetAwaiter().GetResult();
-
         if (!result.Succeeded)
-        {
             throw new Exception(
                 $"Failed to create test user {username}: {string.Join(", ", result.Errors.Select(e => e.Description))}");
-        }
 
         _createdUserIds.Add(user.Id);
         return user;
     }
 
-    private void LoginUser(string username, string password)
+    private void LoginUser(string email, string password)
     {
-        _driver.Navigate().GoToUrl($"{BaseUrl}/Account/Login");
-
-        _wait.Until(d => d.FindElement(By.Id("Email")));
-
-        var emailInput = _driver.FindElement(By.Id("Email"));
-        var passwordInput = _driver.FindElement(By.Id("passwordField"));
-        var submitButton = _driver.FindElement(By.Id("submitBtn"));
-
-        emailInput.SendKeys($"{username}@test.com");
-        passwordInput.SendKeys(password);
-
-        _wait.Until(d => submitButton.Enabled);
-        submitButton.Click();
-
-        _wait.Until(d => !d.Url.Contains("/Account/Login", StringComparison.OrdinalIgnoreCase));
+        // Use the shared AuthenticationDriver which includes logout, diagnostic waits, and JS fallback.
+        _authDriver.PreformLoginForUser(email, password);
     }
 
     #endregion

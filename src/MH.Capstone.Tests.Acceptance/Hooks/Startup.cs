@@ -1,5 +1,7 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using MH.Capstone.Tests.Acceptance.Configuration;
+using MH.Capstone.Tests.Acceptance.Support;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using Reqnroll;
@@ -22,8 +24,10 @@ public sealed class Startup
     public static async Task BeforeTestRun()
     {
         _settings = AcceptanceTestConfiguration.Load();
-        _webDriver = CreateWebDriver(_settings);
         await TestWebAppHost.StartAsync(_settings);
+        var baseUrl = TestWebAppHost.BoundUrl ?? _settings.BaseUrl;
+        _webDriver = CreateWebDriver(_settings);
+        _webDriver.Navigate().GoToUrl(baseUrl);
     }
 
     /// <summary>
@@ -69,15 +73,23 @@ public sealed class Startup
         var options = new ChromeOptions();
 
         if (settings.HeadlessSelenium)
+        {
             options.AddArgument("--headless=new");
+            // Ensure a consistent desktop viewport in headless mode so responsive layouts
+            // and click targets match developer expectations.
+            options.AddArgument("--window-size=1920,1080");
+            options.AddArgument("--start-maximized");
+        }
 
-        // Required in CI/Docker environments
+        // Required in CI/Docker/WSL2 environments
         options.AddArgument("--no-sandbox");
         options.AddArgument("--disable-dev-shm-usage");
+        options.AddArgument("--disable-gpu");
 
         // Suppress TLS errors for the local dev certificate used by Kestrel
         options.AddArgument("--allow-insecure-localhost");
 
-        return new ChromeDriver(options);
+        var raw = new ChromeDriver(options);
+        return new RobustWebDriver(raw, TimeSpan.FromSeconds(10));
     }
 }

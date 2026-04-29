@@ -5,6 +5,8 @@ using MH.Capstone.Domain.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace MH.Capstone.Domain.Tests.Unit.Services;
@@ -233,6 +235,94 @@ public class ScoringServiceTests
 
         // Act & Assert
         Assert.ThrowsAsync<ArgumentException>(async () => await sut.GetRarityMultiplierAndName(globalCount));
+    }
+
+    #endregion
+
+    #region GetGlobalSightingsCountAsync (CSP-142)
+
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("   ")]
+    public void GetGlobalSightingsCountAsync_NullOrWhitespaceSpeciesName_ThrowsArgumentException(string? speciesName)
+    {
+        // Arrange
+        var sut = CreateSut();
+
+        // Act & Assert
+        Assert.ThrowsAsync<ArgumentException>(async () => await sut.GetGlobalSightingsCountAsync(speciesName!));
+    }
+
+    [Test]
+    public async Task GetGlobalSightingsCountAsync_KnownSpecies_ReturnsCountOfMatchingRows()
+    {
+        // Arrange
+        var sightings = new List<Sighting>
+        {
+            new() { Id = Guid.NewGuid(), SpeciesName = "Coyote",      ImageBuffer = [0x01] },
+            new() { Id = Guid.NewGuid(), SpeciesName = "Coyote",      ImageBuffer = [0x01] },
+            new() { Id = Guid.NewGuid(), SpeciesName = "Bald Eagle",  ImageBuffer = [0x01] },
+        };
+
+        _sightingsRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync((Expression<Func<Sighting, bool>> predicate) =>
+                sightings.AsQueryable().Where(predicate));
+
+        var sut = CreateSut();
+
+        // Act
+        int count = await sut.GetGlobalSightingsCountAsync("Coyote");
+
+        // Assert
+        Assert.That(count, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task GetGlobalSightingsCountAsync_NameCasingDiffers_StillMatches()
+    {
+        // Arrange
+        var sightings = new List<Sighting>
+        {
+            new() { Id = Guid.NewGuid(), SpeciesName = "Bald Eagle", ImageBuffer = [0x01] },
+            new() { Id = Guid.NewGuid(), SpeciesName = "BALD EAGLE", ImageBuffer = [0x01] },
+        };
+
+        _sightingsRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync((Expression<Func<Sighting, bool>> predicate) =>
+                sightings.AsQueryable().Where(predicate));
+
+        var sut = CreateSut();
+
+        // Act
+        int count = await sut.GetGlobalSightingsCountAsync("bald eagle");
+
+        // Assert
+        Assert.That(count, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task GetGlobalSightingsCountAsync_NoMatchingSpecies_ReturnsZero()
+    {
+        // Arrange
+        var sightings = new List<Sighting>
+        {
+            new() { Id = Guid.NewGuid(), SpeciesName = "Coyote", ImageBuffer = [0x01] },
+        };
+
+        _sightingsRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync((Expression<Func<Sighting, bool>> predicate) =>
+                sightings.AsQueryable().Where(predicate));
+
+        var sut = CreateSut();
+
+        // Act
+        int count = await sut.GetGlobalSightingsCountAsync("Mountain Lion");
+
+        // Assert
+        Assert.That(count, Is.EqualTo(0));
     }
 
     #endregion

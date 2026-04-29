@@ -22,6 +22,10 @@ namespace MH.Capstone.Domain.DataAccess
         public DbSet<Notification> Notifications { get; set; } = null!;
         public DbSet<Report> Reports { get; set; } = null!;
         public DbSet<EmailQueue> EmailQueue { get; set; } = null!;
+        public DbSet<Club> Clubs { get; set; } = null!;
+        public DbSet<ClubMembership> ClubMemberships { get; set; } = null!;
+        public DbSet<Message> Messages { get; set; } = null!;
+        public DbSet<UserNotificationPreference> UserNotificationPreferences { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -37,6 +41,31 @@ namespace MH.Capstone.Domain.DataAccess
             // Configure EmailQueue table defaults and indexes
             modelBuilder.Entity<EmailQueue>()
                 .HasIndex(e => new { e.IsSent, e.ScheduledAt });
+
+            // Prevent a user from appearing in the same club more than once
+            modelBuilder.Entity<ClubMembership>()
+                .HasIndex(cm => new { cm.MemberIdentityId, cm.ClubId })
+                .IsUnique();
+
+            // SQL Server doesn't allow multiple cascade paths to the same table.
+            // AspNetUsers -> Club -> ClubMembership and AspNetUsers -> ClubMembership
+            // would be two paths, so the direct user FK must be NoAction.
+            modelBuilder.Entity<ClubMembership>()
+                .HasOne(cm => cm.Member)
+                .WithMany(u => u.ClubMemberships)
+                .HasForeignKey(cm => cm.MemberIdentityId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // Same issue: AspNetUsers -> Club -> Message and AspNetUsers -> Message.
+            modelBuilder.Entity<Message>()
+                .HasOne(m => m.Author)
+                .WithMany()
+                .HasForeignKey(m => m.AuthorIdentityId)
+                .OnDelete(DeleteBehavior.NoAction);
+            // Unique constraint: one preference row per user per notification type
+            modelBuilder.Entity<UserNotificationPreference>()
+                .HasIndex(p => new { p.UserId, p.NotificationType })
+                .IsUnique();
         }
     }
 }

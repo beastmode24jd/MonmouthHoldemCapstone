@@ -1,11 +1,8 @@
-using MH.Capstone.Domain.DataModels;
-
 namespace MH.Capstone.WebApp.Models
 {
     public class LeaderboardViewModel
     {
-        
-        public List<ApplicationUser> Users { get; set; } = new();   
+        public List<LeaderboardEntryViewModel> Users { get; set; } = new();
         public int CurrentPage { get; set; }
         public int TotalPages { get; set; }
         public string? CurrentUserId { get; set; }

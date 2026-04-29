@@ -44,9 +44,11 @@ namespace MH.Capstone.Domain.Services
 
             try
             {
-                // Calculate points based on rarity (CSP-104)
-                // TODO: Replace hardcoded speciesId with actual species when Species table exists
-                int globalCount = await _scoringService.GetGlobalSightingsCountAsync(1); // Placeholder species ID
+                // CSP-104 / CSP-142: rarity is derived from the global count of sightings
+                // sharing this species name. New uploads carry SpeciesName from the upload
+                // form (manual entry or AI suggestion). Pre-CSP-142 rows are backfilled to
+                // "Unknown", so they bucket together until they're re-classified.
+                int globalCount = await _scoringService.GetGlobalSightingsCountAsync(entity.SpeciesName);
 
                 // Get the Rarity multiplier and name for the Sighting, map the metadata
                 var (multiplier, rarityName) = await _scoringService.GetRarityMultiplierAndName(globalCount);
@@ -103,7 +105,7 @@ namespace MH.Capstone.Domain.Services
                         "New Sighting Uploaded & Created!",
                         $"Congratulations! You uploaded a new sighting at {timeDisplay} and " +
                         $"earned {pointsEarned} points!"
-                        ));
+                        ), NotificationType.NewSightingActivity);
 
                     _logger.LogInformation("Awarded {Points} points to user {UserId} for sighting", pointsEarned, entity.UserId);
                     
@@ -189,6 +191,57 @@ namespace MH.Capstone.Domain.Services
             _logger.LogInformation("Retrieved {Count} sightings for user {UserId}", sightings.Count, userId);
 
             return sightings;
+        }
+
+        #endregion
+
+        #region CSP-142: Personal Anidex Collection
+
+        public async Task<IEnumerable<AnidexEntry>> GetUserAnidexAsync(Guid userId)
+        {
+            _logger.LogInformation("Building Anidex for user {UserId}", userId);
+
+            var userIdString = userId.ToString();
+            var queryable = await _sightingsRepo.GetAllAsync(s => s.UserIdentityId == userIdString);
+            var userSightings = queryable.ToList();
+
+            if (userSightings.Count == 0)
+            {
+                _logger.LogInformation("User {UserId} has no sightings — returning empty Anidex.", userId);
+                return [];
+            }
+
+            // Group by species (case-insensitive so "Coyote" and "coyote" merge into one entry).
+            // Rarity is global, discovery count is per-user; the representative photo is the
+            // user's most recent sighting of that species.
+            var grouped = userSightings
+                .GroupBy(s => s.SpeciesName, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var entries = new List<AnidexEntry>(grouped.Count);
+            foreach (var group in grouped)
+            {
+                var latest = group.OrderByDescending(s => s.Timestamp).First();
+                int globalCount = await _scoringService.GetGlobalSightingsCountAsync(latest.SpeciesName);
+                var (multiplier, rarityName) = await _scoringService.GetRarityMultiplierAndName(globalCount);
+
+                entries.Add(new AnidexEntry(
+                    SpeciesName: latest.SpeciesName,
+                    DiscoveryCount: group.Count(),
+                    RarityName: rarityName,
+                    RarityMultiplier: multiplier,
+                    LatestImageBuffer: latest.ImageBuffer,
+                    LatestSightingTimestamp: latest.Timestamp));
+            }
+
+            // Sort: rarest first (highest multiplier), then alphabetical within tier.
+            var ordered = entries
+                .OrderByDescending(e => e.RarityMultiplier)
+                .ThenBy(e => e.SpeciesName, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            _logger.LogInformation("User {UserId} Anidex contains {Count} unique species.", userId, ordered.Count);
+            return ordered;
         }
 
         #endregion

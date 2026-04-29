@@ -21,6 +21,13 @@ namespace MH.Capstone.WebApp.Models
         [MaxLength(500)]
         public string? Description { get; set; } = string.Empty;
 
+        // CSP-142: required at upload time so the Anidex page can group by species.
+        // Pre-filled by CSP-144's AI suggestion when the user clicks "Identify with AI".
+        [Required(ErrorMessage = "Please name the species you photographed.")]
+        [MaxLength(100)]
+        [Display(Name = "Species")]
+        public string SpeciesName { get; set; } = string.Empty;
+
         [Required]
         //[Range(1, 2 * (1024 * 1024))]
         public IFormFile? UploadedImage { get; set; }
@@ -60,6 +67,7 @@ namespace MH.Capstone.WebApp.Models
                 Latitude = vm.Latitude,
                 Longitude = vm.Longitude,
                 Description = vm.Description,
+                SpeciesName = string.IsNullOrWhiteSpace(vm.SpeciesName) ? "Unknown" : vm.SpeciesName.Trim(),
                 ImageBuffer = vm.UploadedImage?.ToByteArray() ?? []
             };
         }

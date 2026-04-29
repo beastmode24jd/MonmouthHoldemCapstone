@@ -53,6 +53,13 @@ internal static class AcceptanceTestSeeder
     /// <summary>Lily — second standard User.  Used for multi-user interaction scenarios.</summary>
     internal static readonly Guid LilyUserId     = new("cccccccc-cccc-cccc-cccc-cccccccccccc");
 
+    /// <summary>Owen — standard User with DisplayName == "UNSET". Used for forced display-name *completion* scenario (CSP-168).</summary>
+    internal static readonly Guid OwenUserId     = new("dddddddd-dddd-dddd-dddd-dddddddddddd");
+
+    /// <summary>Faye — standard User with DisplayName == "UNSET". Used for the forced display-name *redirect* check scenario (CSP-168).
+    /// Kept separate from Owen so the two scenarios do not share mutable state.</summary>
+    internal static readonly Guid FayeUserId     = new("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
+
     // James has no database account — he represents an unauthenticated visitor.
 
     // -- Roles (stored as strings to match ASP.NET Identity) ------------------
@@ -100,13 +107,22 @@ internal static class AcceptanceTestSeeder
         await db.UserBadges.ExecuteDeleteAsync(token);
         await db.Sightings.ExecuteDeleteAsync(token);
 
-        // 2. ASP.NET Identity junction tables (FK → AspNetUsers and/or AspNetRoles).
+        // 2. Club tables — Messages and ClubMemberships reference both Club and User;
+        //    Clubs references User via OwnerId. Clear all three before touching Users.
+        await db.Messages.ExecuteDeleteAsync(token);
+        await db.ClubMemberships.ExecuteDeleteAsync(token);
+        await db.Clubs.ExecuteDeleteAsync(token);
+
+        // 3. Notification preferences — FK → User.
+        await db.UserNotificationPreferences.ExecuteDeleteAsync(token);
+
+        // 4. ASP.NET Identity junction tables (FK → AspNetUsers and/or AspNetRoles).
         await db.UserTokens.ExecuteDeleteAsync(token);
         await db.UserLogins.ExecuteDeleteAsync(token);
         await db.UserClaims.ExecuteDeleteAsync(token);
         await db.UserRoles.ExecuteDeleteAsync(token);
 
-        // 3. Root identity tables — cleared last because the junction tables above
+        // 5. Root identity tables — cleared last because the junction tables above
         //    held FKs into them.
         await db.Users.ExecuteDeleteAsync(token);
         await db.Badges.ExecuteDeleteAsync(token);
@@ -191,6 +207,7 @@ internal static class AcceptanceTestSeeder
         db.Users.AddRange(
             // Alex — leaderboard rank #2, active login streak
             MakeUser(AlexUserId, "alex@test.com", hasher,
+                displayName: "Alex",
                 points: 75,
                 bio: "Wildlife enthusiast from Monmouth, OR.",
                 loginStreak: 5,
@@ -198,6 +215,7 @@ internal static class AcceptanceTestSeeder
 
             // Patricia — admin account, minimal data for clean admin scenarios
             MakeUser(PatriciaUserId, "patricia@test.com", hasher,
+                displayName: "Patricia",
                 points: 0,
                 bio: "System administrator.",
                 loginStreak: 0,
@@ -205,10 +223,27 @@ internal static class AcceptanceTestSeeder
 
             // Lily — leaderboard rank #1, all three badges, longer history
             MakeUser(LilyUserId, "lily@test.com", hasher,
+                displayName: "Lily",
                 points: 200,
                 bio: "Passionate nature photographer and conservationist.",
                 loginStreak: 10,
-                lastLoginDaysAgo: 1)
+                lastLoginDaysAgo: 1),
+
+            // Owen — DisplayName == "UNSET"; used for the *completion* scenario (sets name during test)
+            MakeUser(OwenUserId, "owen@test.com", hasher,
+                displayName: "UNSET",
+                points: 0,
+                bio: null,
+                loginStreak: 0,
+                lastLoginDaysAgo: null),
+
+            // Faye — DisplayName == "UNSET"; used only for the *redirect check* scenario (never sets name)
+            MakeUser(FayeUserId, "faye@test.com", hasher,
+                displayName: "UNSET",
+                points: 0,
+                bio: null,
+                loginStreak: 0,
+                lastLoginDaysAgo: null)
         );
 
         await db.SaveChangesAsync(token);
@@ -218,6 +253,7 @@ internal static class AcceptanceTestSeeder
         Guid id,
         string email,
         PasswordHasher<ApplicationUser> hasher,
+        string displayName,
         int points,
         string? bio,
         int loginStreak,
@@ -234,6 +270,7 @@ internal static class AcceptanceTestSeeder
             EmailConfirmed     = true,
             SecurityStamp      = Guid.NewGuid().ToString("D"),
             ConcurrencyStamp   = Guid.NewGuid().ToString("D"),
+            DisplayName        = displayName,
             Points             = points,
             Bio                = bio,
             LoginStreak        = loginStreak,
@@ -257,7 +294,9 @@ internal static class AcceptanceTestSeeder
             new IdentityUserRole<string> { UserId = AlexUserId.ToString(),     RoleId = UserRoleId  },
             new IdentityUserRole<string> { UserId = PatriciaUserId.ToString(), RoleId = AdminRoleId },
             new IdentityUserRole<string> { UserId = PatriciaUserId.ToString(), RoleId = UserRoleId  },
-            new IdentityUserRole<string> { UserId = LilyUserId.ToString(),     RoleId = UserRoleId  }
+            new IdentityUserRole<string> { UserId = LilyUserId.ToString(),     RoleId = UserRoleId  },
+            new IdentityUserRole<string> { UserId = OwenUserId.ToString(),     RoleId = UserRoleId  },
+            new IdentityUserRole<string> { UserId = FayeUserId.ToString(),     RoleId = UserRoleId  }
         );
         await db.SaveChangesAsync(token);
     }
@@ -300,7 +339,7 @@ internal static class AcceptanceTestSeeder
                 pointValue: 10,
                 loginStreak: true,
                 rarity: "Common",
-                rarityMultiplier: 1.7),
+                rarityMultiplier: 1.7) { SpeciesName = "Great Blue Heron" },
 
             new Sighting(
                 id:          new Guid("a1000000-0000-0000-0000-000000000002"),
@@ -313,9 +352,11 @@ internal static class AcceptanceTestSeeder
                 pointValue: 10,
                 loginStreak: true,
                 rarity: "Common",
-                rarityMultiplier: 1.7),
+                rarityMultiplier: 1.7) { SpeciesName = "Bald Eagle" },
 
-            // null description — exercises optional-field rendering
+            // null description — exercises optional-field rendering.
+            // CSP-142: same species as the first sighting so Alex's Anidex
+            // shows a discovery count of 2 for "Great Blue Heron".
             new Sighting(
                 id:          new Guid("a1000000-0000-0000-0000-000000000003"),
                 userId:      AlexUserId,
@@ -327,7 +368,7 @@ internal static class AcceptanceTestSeeder
                 pointValue: 10,
                 loginStreak: true,
                 rarity: "Common",
-                rarityMultiplier: 1.7),
+                rarityMultiplier: 1.7) { SpeciesName = "Great Blue Heron" },
 
             // ── Lily ──────────────────────────────────────────────────────────
 
@@ -343,7 +384,7 @@ internal static class AcceptanceTestSeeder
                 pointValue: 10,
                 loginStreak: true,
                 rarity: "Common",
-                rarityMultiplier: 1.7),
+                rarityMultiplier: 1.7) { SpeciesName = "Wolverine" },
 
             // Portland — within typical Oregon map bounds
             new Sighting(
@@ -357,7 +398,7 @@ internal static class AcceptanceTestSeeder
                 pointValue: 10,
                 loginStreak: true,
                 rarity: "Common",
-                rarityMultiplier: 1.7),
+                rarityMultiplier: 1.7) { SpeciesName = "Peregrine Falcon" },
 
             // Eugene
             new Sighting(
@@ -371,7 +412,7 @@ internal static class AcceptanceTestSeeder
                 pointValue: 10,
                 loginStreak: true,
                 rarity: "Common",
-                rarityMultiplier: 1.7),
+                rarityMultiplier: 1.7) { SpeciesName = "River Otter" },
 
             // Silver Falls
             new Sighting(
@@ -385,7 +426,7 @@ internal static class AcceptanceTestSeeder
                 pointValue: 10,
                 loginStreak: true,
                 rarity: "Common",
-                rarityMultiplier: 1.7),
+                rarityMultiplier: 1.7) { SpeciesName = "Roosevelt Elk" },
 
             // Los Angeles — deliberately outside any Oregon bounding box so
             // map-bounds filtering tests can verify that out-of-range sightings
@@ -401,7 +442,7 @@ internal static class AcceptanceTestSeeder
                 pointValue: 10,
                 loginStreak: true,
                 rarity: "Common",
-                rarityMultiplier: 1.7)
+                rarityMultiplier: 1.7) { SpeciesName = "Coyote" }
         );
 
         await db.SaveChangesAsync(token);

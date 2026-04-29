@@ -29,8 +29,14 @@
 
                 <form asp-action="Register" asp-controller="Account" method="post" id="registerForm">
                     <div class="mb-3">
+                        <label asp-for="DisplayName" class="form-label">Display Name</label>
+                        <input asp-for="DisplayName" class="form-control" type="text" id="displayNameField" placeholder="Choose a display name (2–50 characters)" required />
+                        <div class="form-text">This is the name other users will see. Letters, numbers, spaces, hyphens, apostrophes, and periods only.</div>
+                        <span asp-validation-for="DisplayName" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
                         <label asp-for="Email" class="form-label">Email</label>
-                        <input asp-for="Email" class="form-control" type="email" placeholder="Enter your email" required />
+                        <input asp-for="Email" class="form-control" type="email" id="emailField" placeholder="Enter your email" required />
                         <span asp-validation-for="Email" class="text-danger"></span>
                     </div>
 
@@ -84,20 +90,23 @@
     <script>
         // Form validation and button state
         const form = document.getElementById('registerForm');
+        const displayNameInput = document.querySelector('input[name="DisplayName"]');
         const emailInput = document.querySelector('input[name="Email"]');
         const passwordInput = document.querySelector('input[name="Password"]');
         const confirmPasswordInput = document.querySelector('input[name="ConfirmPassword"]');
         const submitBtn = document.getElementById('submitBtn');
 
         function validateForm() {
+            const displayNameValid = displayNameInput.value.trim().length >= 2;
             const emailValid = emailInput.value.trim() !== '' && emailInput.validity.valid;
             const passwordValid = passwordInput.value.trim() !== '';
             const confirmPasswordValid = confirmPasswordInput.value.trim() !== '';
             const passwordsMatch = passwordInput.value === confirmPasswordInput.value;
-            
-            submitBtn.disabled = !(emailValid && passwordValid && confirmPasswordValid && passwordsMatch);
+
+            submitBtn.disabled = !(displayNameValid && emailValid && passwordValid && confirmPasswordValid && passwordsMatch);
         }
 
+        displayNameInput.addEventListener('input', validateForm);
         emailInput.addEventListener('input', validateForm);
         passwordInput.addEventListener('input', validateForm);
         confirmPasswordInput.addEventListener('input', validateForm);

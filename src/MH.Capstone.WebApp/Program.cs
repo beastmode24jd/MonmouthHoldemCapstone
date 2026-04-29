@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MH.Capstone.Domain.Tools;
 using MH.Capstone.Domain.Constants.Configurables;
+using MH.Capstone.WebApp.Filters;
 
 namespace MH.Capstone.WebApp
 {
@@ -114,12 +115,15 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<IProfileImageService, ProfileImageService>();
 
             // Register Additional Services - Business Logic Layer
-            builder.Services.AddScoped<INotificationService, InAppNotificationService>();
+            builder.Services.AddScoped<INotificationService, NotificationDispatchService>();
+            builder.Services.AddScoped<INotificationPreferenceService, NotificationPreferenceService>();
             builder.Services.AddScoped<IBadgeService, BadgeService>();
             builder.Services.AddScoped<IScoringService, ScoringService>();
             builder.Services.AddScoped<ISightingsService, SightingsService>();
             builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
             builder.Services.AddScoped<IReportService, ReportService>();
+            builder.Services.AddScoped<IPhotoQualityService, PhotoQualityService>();
+            builder.Services.AddScoped<IClubService, ClubService>();
 
             // AI Companion (CSP-120) — Gemini-backed wildlife education chat
             if (featureFlags.IsEnabled("EnableGeminiAIService") && !EF.IsDesignTime)
@@ -178,7 +182,10 @@ namespace MH.Capstone.WebApp
             }
 
             // Add controllers with views and configure Newtonsoft.Json for JSON serialization
-            builder.Services.AddControllersWithViews()
+            builder.Services.AddControllersWithViews(options =>
+            {
+                options.Filters.Add<RequireDisplayNameFilter>();
+            })
                 .AddNewtonsoftJson();
 
             var app = builder.Build();

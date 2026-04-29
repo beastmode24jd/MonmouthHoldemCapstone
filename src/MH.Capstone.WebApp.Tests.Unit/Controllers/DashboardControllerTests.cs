@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Security.Claims;
 using System.Text;
 using MH.Capstone.Domain.DataAccess;
@@ -8,6 +9,7 @@ using MH.Capstone.WebApp.Controllers;
 using MH.Capstone.WebApp.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -25,6 +27,7 @@ public class DashboardControllerTests
     private Mock<ILogger<DashboardController>> _mockLogger;
     private DashboardController _controller;
     private Mock<IBadgeService> _mockBadgeService;
+    private Mock<INotificationPreferenceService> _mockNotificationPreferenceService;
     private const string TestEmail = "namesNameington@mail.wou";
 
     [SetUp]
@@ -37,11 +40,13 @@ public class DashboardControllerTests
         _mockNotificationService = new Mock<INotificationService>();
         _mockNotificationRepo = new Mock<IRepository<Notification, ApplicationDbContext>>();
         _mockBadgeService = new Mock<IBadgeService>();
+        _mockNotificationPreferenceService = new Mock<INotificationPreferenceService>();
 
         _controller = new DashboardController(_mockLogger.Object,
             _mockProfileImageService.Object, _mockAuthService.Object,
             _mockBadgeService.Object, _mockNotificationService.Object,
-            _mockUserService.Object, _mockNotificationRepo.Object);
+            _mockUserService.Object, _mockNotificationRepo.Object,
+            _mockNotificationPreferenceService.Object);
         
         // Mock the user, so the display name isn't null while testing
         var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
@@ -53,6 +58,9 @@ public class DashboardControllerTests
         {
             HttpContext = new DefaultHttpContext() { User = user }
         };
+
+        var tempDataProvider = new Mock<ITempDataProvider>();
+        _controller.TempData = new TempDataDictionary(_controller.HttpContext, tempDataProvider.Object);
     }
 
     [TearDown]
@@ -60,6 +68,41 @@ public class DashboardControllerTests
     {
         // Dispose of controller to satisfy line 20 being unhappy
         _controller?.Dispose();
+    }
+
+    [Test]
+    public void Settings_ReturnsView()
+    {
+        var result = _controller.Settings();
+
+        Assert.That(result, Is.InstanceOf<ViewResult>());
+    }
+
+    [Test]
+    public async Task UpdateDisplayName_ValidName_RedirectsToSettings()
+    {
+        var user = new ApplicationUser { Email = TestEmail, DisplayName = "OldName" };
+        _mockUserService.Setup(s => s.GetUserByEmailAsync(TestEmail)).ReturnsAsync(user);
+
+        var result = await _controller.UpdateDisplayName("NewName");
+
+        var redirect = result as RedirectToActionResult;
+        Assert.That(redirect, Is.Not.Null);
+        Assert.That(redirect!.ActionName, Is.EqualTo("Settings"));
+    }
+
+    [Test]
+    public async Task UpdateDisplayName_TooShort_RedirectsToSettings()
+    {
+        var user = new ApplicationUser { Email = TestEmail, DisplayName = "OldName" };
+        _mockUserService.Setup(s => s.GetUserByEmailAsync(TestEmail)).ReturnsAsync(user);
+
+        var result = await _controller.UpdateDisplayName("X");
+
+        var redirect = result as RedirectToActionResult;
+        Assert.That(redirect, Is.Not.Null);
+        Assert.That(redirect!.ActionName, Is.EqualTo("Settings"));
+        Assert.That(_controller.TempData["DisplayNameError"], Is.Not.Null);
     }
 
     [Test]
@@ -109,4 +152,92 @@ public class DashboardControllerTests
 
         return fileMock;
     }
+
+    #region NotificationPreferences
+
+    [Test]
+    public async Task NotificationPreferences_IncludesClubActivity()
+    {
+        var user = new ApplicationUser { Email = TestEmail };
+        _mockUserService.Setup(s => s.GetUserByClaimsPrincipleAsync(It.IsAny<ClaimsPrincipal>()))
+            .Returns(Task.FromResult<ApplicationUser?>(user));
+        _mockNotificationPreferenceService
+            .Setup(s => s.GetPreferencesAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(Enumerable.Empty<UserNotificationPreference>());
+
+        var result = await _controller.NotificationPreferences();
+
+        var view = result as ViewResult;
+        var model = view?.Model as NotificationPreferencesViewModel;
+        Assert.That(model, Is.Not.Null);
+        Assert.That(model!.Preferences.Any(p => p.NotificationType == NotificationType.ClubActivity), Is.True);
+    }
+
+    [Test]
+    public async Task NotificationPreferences_ExcludesSystemCritical()
+    {
+        var user = new ApplicationUser { Email = TestEmail };
+        _mockUserService.Setup(s => s.GetUserByClaimsPrincipleAsync(It.IsAny<ClaimsPrincipal>()))
+            .Returns(Task.FromResult<ApplicationUser?>(user));
+        _mockNotificationPreferenceService
+            .Setup(s => s.GetPreferencesAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(Enumerable.Empty<UserNotificationPreference>());
+
+        var result = await _controller.NotificationPreferences();
+
+        var view = result as ViewResult;
+        var model = view?.Model as NotificationPreferencesViewModel;
+        Assert.That(model, Is.Not.Null);
+        Assert.That(model!.Preferences.Any(p => p.NotificationType == NotificationType.SystemCritical), Is.False);
+    }
+
+    [Test]
+    public async Task NotificationPreferences_ContainsEntryForEveryDisplayAnnotatedEnumValue()
+    {
+        var user = new ApplicationUser { Email = TestEmail };
+        _mockUserService.Setup(s => s.GetUserByClaimsPrincipleAsync(It.IsAny<ClaimsPrincipal>()))
+            .Returns(Task.FromResult<ApplicationUser?>(user));
+        _mockNotificationPreferenceService
+            .Setup(s => s.GetPreferencesAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(Enumerable.Empty<UserNotificationPreference>());
+
+        var result = await _controller.NotificationPreferences();
+
+        var view = result as ViewResult;
+        var model = view?.Model as NotificationPreferencesViewModel;
+        Assert.That(model, Is.Not.Null);
+
+        var expectedTypes = Enum.GetValues<NotificationType>()
+            .Where(t => typeof(NotificationType)
+                .GetField(t.ToString())
+                ?.GetCustomAttribute<System.ComponentModel.DataAnnotations.DisplayAttribute>() != null)
+            .ToList();
+
+        Assert.That(model!.Preferences.Select(p => p.NotificationType),
+            Is.EquivalentTo(expectedTypes));
+    }
+
+    [Test]
+    public async Task NotificationPreferences_StoredClubActivityPreference_ReflectedInViewModel()
+    {
+        var user = new ApplicationUser { Email = TestEmail };
+        _mockUserService.Setup(s => s.GetUserByClaimsPrincipleAsync(It.IsAny<ClaimsPrincipal>()))
+            .Returns(Task.FromResult<ApplicationUser?>(user));
+        _mockNotificationPreferenceService
+            .Setup(s => s.GetPreferencesAsync(user))
+            .ReturnsAsync(new[]
+            {
+                new UserNotificationPreference(user.Id, NotificationType.ClubActivity, NotificationDeliveryChannel.EmailOnly)
+            });
+
+        var result = await _controller.NotificationPreferences();
+
+        var view = result as ViewResult;
+        var model = view?.Model as NotificationPreferencesViewModel;
+        var clubPref = model?.Preferences.FirstOrDefault(p => p.NotificationType == NotificationType.ClubActivity);
+        Assert.That(clubPref, Is.Not.Null);
+        Assert.That(clubPref!.SelectedChannel, Is.EqualTo(NotificationDeliveryChannel.EmailOnly));
+    }
+
+    #endregion
 }

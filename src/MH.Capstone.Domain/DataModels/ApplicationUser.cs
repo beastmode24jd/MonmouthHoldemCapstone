@@ -46,8 +46,15 @@ namespace MH.Capstone.Domain.DataModels
         
         public virtual List<Notification> Notifications { get; set; } = new List<Notification>();
 
+        public virtual List<ClubMembership> ClubMemberships { get; set; } = new List<ClubMembership>();
+
         public DateTimeOffset? LastLogin { get; set; }
         public int LoginStreak { get; set; } = 0;
+
+        // CSP-168: Human-readable display name shown in place of email across the site.
+        // Seeded as "UNSET" for migrated users; enforced non-null at the database level.
+        [StringLength(50)]
+        public string DisplayName { get; set; } = "UNSET";
 
         [NotMapped]
         public bool IsStreakActive

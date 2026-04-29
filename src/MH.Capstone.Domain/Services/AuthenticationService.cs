@@ -32,14 +32,15 @@ namespace MH.Capstone.Domain.Services
             _authRepo = authRepo;
         }
 
-        public async Task<bool> RegisterUserAsync(string email, string password)
+        public async Task<bool> RegisterUserAsync(string email, string password, string displayName = "UNSET")
         {
             // Implement registration logic
             // Creating a new ApplicationUser with the provided email
             var user = new ApplicationUser
             {
                 UserName = email, //Identity requires UserName
-                Email = email
+                Email = email,
+                DisplayName = string.IsNullOrWhiteSpace(displayName) ? "UNSET" : displayName
             };
 
             // Use UserManager to create the user with the hashed password
@@ -53,7 +54,8 @@ namespace MH.Capstone.Domain.Services
 
             // Handle post-registration logic, such as sending a welcome notification
             await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId, "Welcome to WildlifeAID!",
-                "Your account has been successfully created. It's now time to get wild and explore what the great outdoors has to offer!"));
+                "Your account has been successfully created. It's now time to get wild and explore what the great outdoors has to offer!"),
+                NotificationType.SystemCritical);
 
             // Add the default User role to new accounts
             await _userManager.AddToRoleAsync(user, "User");
@@ -230,17 +232,17 @@ namespace MH.Capstone.Domain.Services
             {
                 await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId, "Successful Login",
                     $"Your account recorded a successful login at {now.ToLocalTime().ToString("g")}. Wasn't you? Reset your password now!",
-                    now));
+                    now), NotificationType.AccountActivity);
 
                 await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId, "Active Streak Multiplier",
                     $"You've logged in enough times to start a streak! A points multiplier of x1.5 has been applied to your account.",
-                    now));
+                    now), NotificationType.AccountActivity);
             }
             else
             {
                 await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId, "Successful Login",
                     $"Your account recorded a successful login at {now.ToLocalTime().ToString("g")}. Wasn't you? Reset your password now!",
-                    now));
+                    now), NotificationType.AccountActivity);
             }
         }
 

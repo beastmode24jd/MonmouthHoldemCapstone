@@ -1,0 +1,127 @@
+@model ClubMessageViewModel
+@{
+    ViewData["Title"] = $"{Model.Club.Name} — Chatroom";
+}
+
+<div class="container mt-4">
+
+    @if (TempData["MessageError"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["MessageError"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <span>
+                <i class="bi bi-chat-fill me-2"></i>
+                <strong>@Model.Club.Name</strong>
+                <span class="badge @(Model.Club.IsPublic ? "bg-primary" : "bg-secondary") ms-2">
+                    @(Model.Club.IsPublic ? "Public" : "Private")
+                </span>
+            </span>
+            <a asp-action="ClubPage" asp-route-id="@Model.Club.Id" class="btn btn-sm btn-outline-light">
+                <i class="bi bi-arrow-left"></i> Back to Club
+            </a>
+        </div>
+
+        @* Message list *@
+        <div id="messageList"
+             class="card-body overflow-y-auto d-flex flex-column gap-3"
+             style="height: 480px; padding-bottom: 1rem;">
+
+            @if (!Model.HasMessages)
+            {
+                <div class="text-center text-muted py-5" id="emptyMessagesState">
+                    <i class="bi bi-chat display-4 mb-3"></i>
+                    <p class="lead">No messages yet. Be the first to say something!</p>
+                </div>
+            }
+            else
+            {
+                @foreach (var msg in Model.Messages)
+                {
+                    bool isOwn = msg.AuthorIdentityId == Model.CurrentUserId;
+                    <div class="d-flex @(isOwn ? "justify-content-end" : "justify-content-start")"
+                         id="message_@msg.Id">
+                        <div class="@(isOwn ? "bg-primary text-white" : "bg-light border") rounded px-3 py-2"
+                             style="max-width: 70%;">
+                            @if (!isOwn)
+                            {
+                                <div class="fw-semibold small mb-1">@msg.Author.DisplayName</div>
+                            }
+                            <div>@msg.Content</div>
+                            <div class="@(isOwn ? "text-white-50" : "text-muted") small mt-1 text-end">
+                                @msg.SentAt.LocalDateTime.ToString("MMM d, h:mm tt")
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+
+        @* Message input — members only *@
+        @if (Model.IsCurrentUserMember)
+        {
+            <div class="card-footer py-3 bg-white">
+                <form asp-action="SendMessage" method="post" id="sendMessageForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="clubId" value="@Model.Club.Id" />
+                    <div class="d-flex gap-2 align-items-end">
+                        <textarea id="messageInput"
+                                  name="content"
+                                  class="form-control"
+                                  rows="4"
+                                  maxlength="2000"
+                                  placeholder="Type a message…"
+                                  style="resize: none;"></textarea>
+                        <button type="submit" class="btn btn-primary" id="sendMessageBtn">
+                            <i class="bi bi-send-fill"></i>
+                        </button>
+                    </div>
+                    <div class="d-flex justify-content-end mt-1">
+                        <span id="charCounter" class="text-muted small">0 / 2000</span>
+                    </div>
+                </form>
+            </div>
+        }
+        else
+        {
+            <div class="card-footer text-muted text-center small">
+                You must be a member to send messages.
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+    // Scroll message list to bottom on load.
+    (function () {
+        var list = document.getElementById('messageList');
+        if (list) list.scrollTop = list.scrollHeight;
+    })();
+
+    // Live character counter and Ctrl+Enter submit.
+    (function () {
+        var input = document.getElementById('messageInput');
+        var counter = document.getElementById('charCounter');
+        var form = document.getElementById('sendMessageForm');
+
+        if (!input) return;
+
+        input.addEventListener('input', function () {
+            var len = input.value.length;
+            counter.textContent = len + ' / 2000';
+            counter.classList.toggle('text-danger', len >= 1900);
+        });
+
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                form.submit();
+            }
+        });
+    })();
+</script>

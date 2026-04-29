@@ -31,10 +31,10 @@ namespace MH.Capstone.Domain.Services.Abstraction
         /// Gets the total global count of sightings for a specific species.
         /// This will be used to determine rarity tier.
         /// </summary>
-        /// <param name="speciesId">The unique identifier of the species.</param>
+        /// <param name="speciesName">The species common name to count, case-insensitive.</param>
         /// <returns>The total global count of sightings for the specified species.</returns>
 
-        Task<int> GetGlobalSightingsCountAsync(int speciesId);
+        Task<int> GetGlobalSightingsCountAsync(string speciesName);
 
         /// <summary>
         /// Takes the global count of the species, and returns the rarity multipler and name in an implicit tuple of a double, and a string.
