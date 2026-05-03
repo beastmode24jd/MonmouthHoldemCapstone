@@ -19,15 +19,17 @@ Feature: CSP-54 User Search
         And I click on the first user search result
         Then I should be redirected to a user profile page
 
+    # Sprint 6, CSP-200: query was "@test.com" (email substring) — switched to "a"
+    # because search now filters by DisplayName only. "a" matches Alex and Patricia.
     Scenario: Search with 10 or fewer results shows all results with paging disabled
-        When I enter "@test.com" into the user search bar
+        When I enter "a" into the user search bar
         Then I should see user search results below the search form
         And the user search previous arrow should be disabled
         And the user search next arrow should be disabled
         And the user search paging text should start with "Page 1 of 1 | Showing 1-"
 
     Scenario: Multiple results are sorted in ascending alphabetical order
-        When I enter "@test.com" into the user search bar
+        When I enter "a" into the user search bar
         Then the user search results should be sorted alphabetically ascending
 
     @ignore
