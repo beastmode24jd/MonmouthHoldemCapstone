@@ -45,6 +45,7 @@ public static class TestDependencySetup
         services.AddTransient<DashboardDriver>();
         services.AddTransient<SightingGalleryDriver>();
         services.AddTransient<SightingsDriver>();
+        services.AddTransient<SightingDetailsDriver>(); // CSP-172
         services.AddTransient<WildlifeSearchDriver>();
         services.AddTransient<PasswordResetDriver>();
         services.AddTransient<EmailVerificationDriver>();
