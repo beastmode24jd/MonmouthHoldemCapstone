@@ -59,9 +59,9 @@ namespace MH.Capstone.WebApp.Models
             var user = sighting.User;
             UploaderDisplayName = user?.DisplayName ?? "Unknown";
             UploaderProfileImageDataUrl =
-                user?.ProfileImage is { Length: > 0 }
-                    ? $"data:{user.ProfileImageType ?? "image/png"};base64,{Convert.ToBase64String(user.ProfileImage)}"
-                    : "/images/default-avatar.png";
+                user?.ProfileImage is { Length: > 0 } && !string.IsNullOrEmpty(user.ProfileImageType)
+                    ? $"data:{user.ProfileImageType};base64,{Convert.ToBase64String(user.ProfileImage)}"
+                    : "/imgs/profileDefault.jpg";
 
             if (string.IsNullOrWhiteSpace(funFact))
             {
