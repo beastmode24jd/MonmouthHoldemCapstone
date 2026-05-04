@@ -77,20 +77,24 @@ namespace MH.Capstone.Domain.Services
             }
         }
 
-        // Sprint 5, CSP-54: Filters active users by case-insensitive username substring match,
+        // Sprint 6, CSP-200: Filters active users by case-insensitive DisplayName substring match,
         // then sorts so exact full matches appear before substring matches, both groups alphabetically.
+        // Email is never searched. Users with the placeholder DisplayName "UNSET" are excluded.
         public async Task<IEnumerable<ApplicationUser>> SearchUsersAsync(string query)
         {
             var queryLower = query.ToLower();
             var matches = (await _userRepo.GetAllAsync(
-                u => !u.IsDeactivated && u.UserName != null && u.UserName.ToLower().Contains(queryLower)
+                u => !u.IsDeactivated
+                     && u.DisplayName != null
+                     && u.DisplayName != "UNSET"
+                     && u.DisplayName.ToLower().Contains(queryLower)
             )).ToList();
 
             // Full matches (case-insensitive) come first, then substring matches.
-            // Within each group, sort alphabetically.
+            // Within each group, sort alphabetically by display name.
             return matches
-                .OrderBy(u => u.UserName!.Equals(query, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
-                .ThenBy(u => u.UserName, StringComparer.OrdinalIgnoreCase);
+                .OrderBy(u => u.DisplayName!.Equals(query, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                .ThenBy(u => u.DisplayName, StringComparer.OrdinalIgnoreCase);
         }
 
         public async Task UpdateDisplayNameAsync(ApplicationUser user, string displayName)

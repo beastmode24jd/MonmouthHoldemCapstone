@@ -1,4 +1,4 @@
-@* Sprint 5, CSP-54 *@
+@* Sprint 5, CSP-54 — Sprint 6, CSP-200: search by display name only, never email *@
 @{
     ViewData["Title"] = "Find Users";
 }
@@ -15,7 +15,7 @@
                 <input type="text"
                        id="userSearchInput"
                        class="form-control bg-dark text-light border-secondary"
-                       placeholder="Search by username..."
+                       placeholder="Search by display name..."
                        autocomplete="off"
                        aria-label="User search bar" />
             </div>
@@ -87,11 +87,11 @@
                     <a href="/account/${escapeHtml(user.id)}"
                        class="list-group-item list-group-item-action d-flex align-items-center gap-3 bg-dark text-light border-secondary user-result-item">
                         <img src="/user/${escapeHtml(user.id)}/profile-image"
-                             alt="${escapeHtml(user.userName)}"
+                             alt="${escapeHtml(user.displayName)}"
                              class="rounded-circle user-search-avatar"
                              width="40" height="40"
                              onerror="this.src='/imgs/profileDefault.jpg'" />
-                        <span class="user-result-username">${escapeHtml(user.userName)}</span>
+                        <span class="user-result-username">${escapeHtml(user.displayName)}</span>
                     </a>
                 `).join('')}
             </div>`;
