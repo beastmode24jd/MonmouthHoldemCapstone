@@ -123,7 +123,12 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
             builder.Services.AddScoped<IReportService, ReportService>();
             builder.Services.AddScoped<IPhotoQualityService, PhotoQualityService>();
-            builder.Services.AddScoped<IAnimalFunFactService, AnimalFunFactService>(); // CSP-172
+            // CSP-172: depends on IApiCaller<NinjaApiConfigValues>, which is gated behind
+            // !EF.IsDesignTime below. Mirror that gate so design-time DI validation passes.
+            if (!EF.IsDesignTime)
+            {
+                builder.Services.AddScoped<IAnimalFunFactService, AnimalFunFactService>();
+            }
             builder.Services.AddScoped<IClubService, ClubService>();
 
             // AI Companion (CSP-120) — Gemini-backed wildlife education chat
