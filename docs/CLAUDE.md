@@ -89,7 +89,7 @@ All interfaces in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `IAuthenticationService` | `AuthenticationService` | Login, register, logout, password reset, email confirmation. New: `GenerateEmailConfirmationTokenAsync(email)`, `ConfirmEmailAsync(email, token)` |
 | `IUserService` / `IUserProfileService` | `UserService` | Profile management, deactivation. `UpdateDisplayNameAsync(user, displayName)` validates 2–50 chars, throws `ArgumentOutOfRangeException` if invalid |
 | `IProfileImageService` | `ProfileImageService` | Upload/retrieve profile images |
-| `ISightingsService` | `SightingsService` | Submit/query sightings. `GetAllSightingsAsync()` eager-loads `User`; `GetUserSightingsAsync(Guid)` filters to one user |
+| `ISightingsService` | `SightingsService` | Submit/query sightings. `GetAllSightingsAsync()` eager-loads `User`; `GetUserSightingsAsync(Guid)` filters to one user; `GetSightingByIdAsync(Guid)` (CSP-172) returns `Sighting?` via `IRepository.FindByIdAsync`, lazy-loads `User` on access |
 | `IScoringService` | `ScoringService` | Award points using rarity multiplier |
 | `IBadgeService` | `BadgeService` | Check and award badges |
 | `ILeaderboardService` | `LeaderboardService` | `GetLeaderboardPageAsync()` → `IEnumerable<ApplicationUser>`; controller projects to `LeaderboardEntryViewModel` (excludes `Email`) |
@@ -100,6 +100,7 @@ All interfaces in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `ISightingsService` (CSP-142) | `SightingsService` | `GetUserAnidexAsync(Guid)` → `IEnumerable<AnidexEntry>`, one entry per unique `SpeciesName` from the user's sightings. Discovery count is per-user; rarity is derived from the GLOBAL count via `IScoringService`. Sorted rarest-first then alphabetical |
 | `IScoringService` (CSP-142) | `ScoringService` | Signature change: `GetGlobalSightingsCountAsync(string speciesName)` (was placeholder `int speciesId`). Case-insensitive match on `Sighting.SpeciesName`; throws on null/whitespace |
 | `IApiCaller` | `ExternalApiCaller` | HTTP calls to external APIs with SQL caching |
+| `IAnimalFunFactService` (CSP-172) | `AnimalFunFactService` | `GetFunFactAsync(speciesName, ct)` returns `string?`. Wraps `IApiCaller<NinjaApiConfigValues>` against the `"animal"` endpoint. Short-circuits to `null` on null/whitespace/`"Unknown"` species or missing endpoint config; catches all upstream exceptions and returns `null`. Walks fallback chain `slogan → mostDistinctiveFeature → lifestyle → null` from the first DTO's characteristics |
 | `IClubService` | `ClubService` | List public/user clubs, pending invites, memberships; create club; send/accept/decline invites; leave club |
 | `IAIService` | `GeminiAIService` | `AskAsync(question, ct)` — POSTs to Gemini API, constrained to wildlife/safety topics |
 | `IPhotoQualityService` | `PhotoQualityService` | `AnalyzeAsync(bytes, ct)` → `(PhotoQualityTier, Sharpness, Luminance, Width, Height)`. Uses ImageSharp. Sharpness/luminance logic not yet implemented |
@@ -120,6 +121,8 @@ All interfaces in `src/MH.Capstone.Domain/Services/Abstraction/`:
 **Account Settings (CSP-188):** `GET /dashboard/settings` — display name, profile picture, bio, notification preferences link, deactivation link.
 
 **AI Companion (CSP-120):** `POST /AICompanion/Ask` — `[Authorize]`, `[FromForm] string question`, returns `{ reply }`. Returns 503 on API failure.
+
+**Sighting Details (CSP-172):** `GET /Sighting/Details/{id:guid}` — `[Authorize]`. Returns `View("NotFound")` for unknown ids; otherwise builds `SightingDetailsViewModel(sighting, funFact)` and applies the same `UserTimeZone` cookie convention as Gallery so the displayed timestamp matches the card the user clicked.
 
 **RequireDisplayNameFilter:** Global `IAsyncActionFilter` redirecting `DisplayName == "UNSET"` users to `Account/SetDisplayName`. Exempted: `SetDisplayName`, `Login`, `Logout`, `Register`, `RegisterConfirmation`, `VerifyEmail`, `ResendVerification`, `ForgotPassword`, `ResetPassword`, `Reactivate`, `Deactivate`, test email endpoints.
 
@@ -144,7 +147,7 @@ All interfaces in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `LeaderboardController` | Global rankings |
 | `MapController` | GPS sighting map (Leaflet.js) |
 | `ReportControllers` | Submit/view content reports |
-| `SightingController` | Submit/view wildlife sightings |
+| `SightingController` | Submit/view wildlife sightings. `Details(Guid id)` action (CSP-172) — depends on `ISightingsService` and `IAnimalFunFactService` |
 | `SpeciesController` | Animal lookup catalog (API-Ninjas Animals API, cached) |
 | `AnidexController` (CSP-142) | `GET /anidex` — personal Anidex page; gallery of unique species from the authenticated user's sightings. `[Authorize]` |
 | `ClubsController` | Club listing, creation, chatroom stubs |
@@ -228,6 +231,14 @@ Legacy personas still coexist: `alpha@test.com`, `alice@test.com`, `bob@test.com
 | `/Sighting/Gallery` | `filterAll`, `filterMine`, `emptyStateMine`, `sightingsGrid`, `currentUserId` | Gallery filters/state |
 | `/Sighting/Gallery` | `.sighting-card-wrapper[data-user-id]` | Per-card wrapper with user attribution |
 | `/Sighting/Gallery` | `.sighting-attribution` | Submitter's `DisplayName` span |
+| `/Sighting/Gallery` | `a.sighting-card-link[data-sighting-id]` | CSP-172: anchor wrapping each card; navigates to `/Sighting/Details/{id}` |
+| `/Sighting/Details/{id}` | `sightingDetailsContainer` | CSP-172: root container — its presence signals the page rendered |
+| `/Sighting/Details/{id}` | `sightingDetailsImage` | Full-resolution sighting image |
+| `/Sighting/Details/{id}` | `sightingDetailsUploaderIcon`, `sightingDetailsUploaderName` | Uploader avatar + display name |
+| `/Sighting/Details/{id}` | `sightingDetailsSpecies`, `sightingDetailsTimestamp`, `sightingDetailsLocation`, `sightingDetailsDescription` | Sighting metadata |
+| `/Sighting/Details/{id}` | `sightingDetailsFunFact` | Fun fact text. Carries `data-fun-fact-status="ok"` normally, `"fallback"` when `IsFunFactFallback == true` |
+| `/Sighting/Details/{id}` | `backToGalleryLink` | Link back to Gallery |
+| `/Sighting` (NotFound view) | `sightingNotFoundMessage`, `notFoundBackToGalleryLink` | CSP-172: rendered by `Details` action when the id does not resolve |
 | Sightings dropdown | `anidexNavLink` | CSP-142: "My Anidex" entry (authenticated only) |
 | `/anidex` | `anidexEmptyState`, `anidexGrid`, `anidexSpeciesCount` | CSP-142: page state containers |
 | `/anidex` | `.anidex-entry`, `.anidex-species-name`, `.anidex-rarity-badge`, `.anidex-discovery-count` | CSP-142: per-species card selectors (entry carries `data-species-name`) |
@@ -397,6 +408,20 @@ FK seeding order: `AspNetRoles` → `AspNetUsers` → `Badge` → `Sighting`/`Pe
 
 `PhotoQualityTier` enum: `Unknown=0, Low=1, Medium=2, High=3`. Sharpness/luminance not yet implemented — `PhotoQualityService` returns `Unknown/0.0/0.0` plus real dimensions. Acceptance steps in `CSP122StepDefinitions.cs` (`@photo-quality`) throw `NotImplementedException`. Validation thresholds (when implemented): luminance `0.20–0.85`, high resolution ≥ 2048 px on long side.
 
+### Sighting Details (CSP-172)
+
+Drill-down view from the Sightings Gallery. Clicking a card navigates to `/Sighting/Details/{id}`, which renders the full image, uploader attribution, sighting metadata, and a fun fact about the identified species pulled via `IAnimalFunFactService`.
+
+**`SightingDetailsViewModel`** (`WebApp/Models/`): constructor takes `(Sighting, string? funFact)`. Encapsulates the fun-fact fallback decision — when `funFact` is null/whitespace it sets `IsFunFactFallback = true` and substitutes the canonical `FunFactFallbackMessage` ("Fun facts about this animal aren't available right now."). The view reads `IsFunFactFallback` to set `data-fun-fact-status="fallback"` on the fun-fact element. Default avatar path is `/imgs/profileDefault.jpg` (matches `Extensions.GetProfileImageUrl()` convention).
+
+**Acceptance infrastructure:**
+- `Features/CSP-172.feature` — 4 scenarios: Patricia happy path, Alex fun-fact fallback (uses Mystery Critter Z), James anonymous redirect, Lily not-found
+- `PageObjects/SightingDetailsPageObject` — selectors for the details + not-found pages
+- `Drivers/SightingDetailsDriver` — `NavigateToDetails(Guid)`, `ClickFirstSightingCardLink()`, `IsOnDetailsPage()`, `IsOnNotFoundPage()`. **Registered in `TestDependencySetup` as `AddTransient<SightingDetailsDriver>()`** — Reqnroll won't auto-discover.
+- `StepDefinitions/CSP172StepDefinitions` — adds two new step bindings reusable by future features: `Given user Lily is logged in` and `Given visitor James is signed out`.
+
+**DI:** `IAnimalFunFactService` is registered scoped in `Program.cs` next to `IPhotoQualityService` (no feature flag).
+
 ---
 
 ## Test Seed Data Guidance
@@ -415,6 +440,8 @@ FK seeding order: `AspNetRoles` → `AspNetUsers` → `Badge` → `Sighting`/`Pe
 **`NotDefaultCoordinatesAttribute`:** class-level `ValidationAttribute` failing when both `Latitude` and `Longitude` are exactly `0.0`. Applied to `SightingUploadViewModel`.
 
 > **Seeded species names (CSP-142):** Alex's 3 sightings are `Great Blue Heron` ×2 + `Bald Eagle` ×1 (so his Anidex contains 2 entries — discovery count for "Great Blue Heron" is 2). Lily's 5 sightings are distinct species: `Wolverine`, `Peregrine Falcon`, `River Otter`, `Roosevelt Elk`, `Coyote`. CSP-142 BDD scenarios assert against these names — don't rename without updating `Features/CSP-142.feature`.
+
+> **CSP-172 fallback-species sighting:** Alex has a 4th seeded sighting (id `a1000000-0000-0000-0000-000000000004`) with `SpeciesName = "Mystery Critter Z"` — a deliberately unmatchable string the Animals API will never resolve. The CSP-172 Alex scenario navigates directly to this sighting's details URL to exercise the fun-fact fallback path. Don't rename this species or change the id without updating `CSP172StepDefinitions.AlexUnresolvedSpeciesSightingId`.
 
 ---
 
