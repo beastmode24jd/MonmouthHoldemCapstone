@@ -27,11 +27,14 @@ namespace MH.Capstone.Domain.DataModels
 
         public byte[]? BadgeIcon { get; set; } = null;
 
-        /*
+        [MinLength(1)]
+        [MaxLength(150)]
+        public string HintToEarn { get; set; } = "A";
+        // Placeholder value, required field for display
+
         [Column("Badge Steps")]
         public int BadgeSteps { get; set; } = 1;
         // Default value is for a Badge earned by a single action
         //      (ex. "submit a Sighting")
-        */
     }
 }

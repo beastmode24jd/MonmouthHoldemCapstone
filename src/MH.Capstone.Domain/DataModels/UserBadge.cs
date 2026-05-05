@@ -34,12 +34,10 @@ namespace MH.Capstone.Domain.DataModels
         // Timestamp for when the user earned the badge
         public DateTimeOffset? BadgeEarned { get; set; } = null;
 
-        /*
         [Column("Badge Progress")]
         public int BadgeProgress { get; set; } = 0;
         // Tracks the "progress" of a Badge from the User
         //      (ex. 2/25 Sightings)
-        */
 
     }
 

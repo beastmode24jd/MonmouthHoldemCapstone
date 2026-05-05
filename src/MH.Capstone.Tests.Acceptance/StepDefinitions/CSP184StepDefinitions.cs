@@ -22,7 +22,7 @@ public class CSP184StepDefinitions
     private readonly SightingsDriver _sightingsDriver;
 
     // Holds the path of a temp file for Sighting image uploads.
-    private string? _preparedImageFilePath;
+    //private string? _preparedImageFilePath;
     private bool _isBadgeLinkDisplayed;
 
     public CSP184StepDefinitions(
@@ -38,9 +38,6 @@ public class CSP184StepDefinitions
     }
 
     // Scenario 1: Dedicated Badges page
-
-    // [Given("I am logged in")] ALREADY GLOBALLY DEFINED IN CSP-42!
-    // Changed phrasing of step to third-person to avoid method conflicts.
 
     [Given("Alex is logged in")]
     public void GivenAlexIsLoggedIn()
@@ -63,7 +60,7 @@ public class CSP184StepDefinitions
             return element.Displayed ? element : null;
         });
 
-        // Save the context between steps
+        // Save context between steps
         _isBadgeLinkDisplayed = badgeLink.Displayed;
     }
 
@@ -73,13 +70,45 @@ public class CSP184StepDefinitions
         _isBadgeLinkDisplayed.Should().BeTrue("The Badges page should be visible in the dropdown menu.");
     }
 
-    /* NEXT GHERKIN TEST:
-        @badge
+    // Scenario 2: Placeholder hint and changed icon if Badge not earned
+
+    [Given("I have no badge progress")]
+    public void GivenIHaveNoBadgeProgress()
+    {
+        _authDriver.PreformLoginForUser("alex@test.com", "Capstone26!");
+    }
+
+    [When("I view my Badges page")]
+    public void WhenIViewMyBadgesPage()
+    {
+        
+    }
+
+    [Then("the Badge icon should be greyed out")]
+    public void ThenTheBadgeIconShouldBeGreyedOut()
+    {
+        
+    }
+    [Then("give me a hint on how to start earning it")]
+    public void ThenGiveMeAHintOnHowToStartEarningIt()
+    {
+        
+    }
+
+    /*
         Scenario: Alex has no badge progress on a badge
             Given I have no badge progress
             When I view my Badges page
             Then the Badge icon should be greyed out
             And give me a hint on how to start earning it
+    */
+
+    /* NEXT GHERKIN TEST:
+        Scenario: Alex sees badge progression and next milestone
+            Given I have partial progress on a multi-step badge
+            When I view my Badge page
+            Then a progress bar and the countdown remaining is displayed
+            And a prompt is shown to guide my progress
     */
 
     /*
