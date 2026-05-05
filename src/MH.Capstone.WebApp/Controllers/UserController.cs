@@ -41,10 +41,11 @@ public class UserController : Controller
         var totalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)PageSize);
         page = Math.Clamp(page, 1, Math.Max(1, totalPages));
 
+        // Sprint 6, CSP-200: project DisplayName, not UserName/email
         var pageResults = allResults
             .Skip((page - 1) * PageSize)
             .Take(PageSize)
-            .Select(u => new UserSearchResultDto(u.Id, u.UserName!, u.ProfileImage != null))
+            .Select(u => new UserSearchResultDto(u.Id, u.DisplayName, u.ProfileImage != null))
             .ToList();
 
         return Ok(new UserSearchResponseDto(pageResults, totalCount, page, PageSize, totalPages));
