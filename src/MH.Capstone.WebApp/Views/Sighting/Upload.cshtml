@@ -3,6 +3,10 @@
     ViewData["Title"] = "Upload Sighting";
 }
 <h1 class="mt-2">Upload Sighting</h1>
+@* CSP-193: surface validation errors (e.g. NotDefaultCoordinates from CSP-146,
+   which lands on Latitude+Longitude keys) so the user can see *why* the form
+   was rejected — without it, class-level errors are invisible. *@
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
 <form asp-action="Upload" asp-controller="Sighting" method="post" enctype="multipart/form-data">
     <div class="row">
         <div class="form-group col-md-4 col-12">
