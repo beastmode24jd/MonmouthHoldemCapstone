@@ -3,11 +3,11 @@ Feature: Badge Refinement
     I want to be able to check my Badges page
     So I can see Badges I have earned, and get hints on how to earn uncompleted Badges.
 
-@badge
+@justThisOne
 Scenario: Alex is logged in and looking at their nav bar
-    Given I am logged in
-    When I look at the nav bar
-    Then I should see an option for a Badges page
+    Given Alex is logged in
+    When Alex looks at their nav bar
+    Then Alex should see an option for a Badges page
 
 @badge
 Scenario: Alex has no badge progress on a badge
