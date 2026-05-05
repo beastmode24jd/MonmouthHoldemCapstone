@@ -446,5 +446,35 @@ namespace MH.Capstone.WebApp.Controllers
 
             return new NotificationPreferencesViewModel { Preferences = entries };
         }
+
+        // CSP-184: Dedicated Badges page *******************
+
+        [HttpGet("badges")]
+        public async Task<IActionResult> Badges()
+        {
+            // Get the user
+            var user = await _userService.GetUserByClaimsPrincipleAsync(User);
+
+            // Return 403 if user doesn't exist (Badges page is user-locked)
+            if (user == null)
+            {
+                return Forbid();
+            }
+
+            // Get the user device's local timezone cookie for front-end Badge display
+            //      Default timezone is PST
+            string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
+
+            // Need to build out the Badges page view model, and return a "sorted" Badges
+            //      list by title
+
+            // (Future work idea: add a toggle for sorting the Badges by time earned.
+            //   Focus on connecting to View and getting Badges to display properly first.)
+
+            // Pass in the ID data for now, delete and refine when adding in View Model later.
+            ViewData["CurrentUserId"] = user.GuidId;
+            
+            return View();
+        }
     }
 }

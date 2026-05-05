@@ -1,0 +1,24 @@
+@* View Model will go here eventually *@
+@{
+    ViewData["Title"] = "Badges Earned";
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-body">
+            <h1 class="card-title">
+                <i class="bi bi-shield-fill"></i> Badges
+            </h1>
+            <hr />
+            <p> It's a ghost page, you're so scared, ooooooooo </p>
+        </div>
+    </div>
+</div>
+
+@* Hidden element carrying the current user's ID for client-side filtering *@
+@* UNCOMMENT OUT WHEN ADDING IN VIEW MODEL *@
+@*<span id="currentUserId" data-user-id="@Model.CurrentUserId" style="display:none"></span>*@
+
+@* Version that uses ViewData for temp View-Model-less View testing *@
+@* Access ID from ViewData instead of @Model *@
+<span id="currentUserId" data-user-id="@ViewData["CurrentUserId"]" style="display:none"></span>

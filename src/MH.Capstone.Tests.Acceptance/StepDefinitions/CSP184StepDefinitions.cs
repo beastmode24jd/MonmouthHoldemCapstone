@@ -29,7 +29,7 @@ public class CSP184StepDefinitions
         _sightingsDriver = sightingsDriver;
     }
 
-    // Scenario 1: Alex is on his front Club page
+    // Scenario 1: Dedicated Badges page
 
     [Given("I am logged in")]
     public void GivenIAmLoggedIn()
