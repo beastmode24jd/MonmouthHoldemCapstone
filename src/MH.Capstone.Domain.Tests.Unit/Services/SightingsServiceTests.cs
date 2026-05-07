@@ -724,6 +724,63 @@ public class SightingsServiceTests
 
     #endregion
 
+    #region CSP-172: GetSightingByIdAsync Tests
+
+    [Test]
+    public async Task GetSightingByIdAsync_ExistingId_ReturnsThatSighting()
+    {
+        // Arrange
+        var sightingId = Guid.NewGuid();
+        var sighting = new Sighting
+        {
+            Id = sightingId,
+            UserId = Guid.NewGuid(),
+            Latitude = 44.0m,
+            Longitude = -123.0m,
+            Timestamp = DateTimeOffset.UtcNow.AddDays(-1),
+            Description = "Test sighting",
+            ImageBuffer = [0x01],
+            SpeciesName = "Coyote"
+        };
+
+        _sightingsRepoMock.Setup(r => r.FindByIdAsync(It.Is<Guid>(g => g == sightingId)))
+            .ReturnsAsync(sighting)
+            .Verifiable(Times.Once);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetSightingByIdAsync(sightingId);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Id, Is.EqualTo(sightingId));
+        Assert.That(result.SpeciesName, Is.EqualTo("Coyote"));
+        AssertAllMockVerifications();
+    }
+
+    [Test]
+    public async Task GetSightingByIdAsync_UnknownId_ReturnsNull()
+    {
+        // Arrange
+        var unknownId = Guid.NewGuid();
+
+        _sightingsRepoMock.Setup(r => r.FindByIdAsync(It.Is<Guid>(g => g == unknownId)))
+            .ReturnsAsync((Sighting?)null)
+            .Verifiable(Times.Once);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetSightingByIdAsync(unknownId);
+
+        // Assert
+        Assert.That(result, Is.Null);
+        AssertAllMockVerifications();
+    }
+
+    #endregion
+
     [Test]
     public async Task CreateSightingAsync_UserHasActiveStreak_Applies1Point5Multiplier()
     {

@@ -1,0 +1,122 @@
+@model SightingDetailsViewModel
+@{
+    ViewData["Title"] = "Sighting Details";
+
+    string rarityBadgeClass = Model.Rarity switch
+    {
+        "Mythic" => "bg-purple",
+        "Rare"   => "bg-primary",
+        "Common" => "bg-success",
+        _        => "bg-secondary"
+    };
+}
+
+<div id="sightingDetailsContainer" class="container mt-4">
+    <div class="card shadow">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1 class="card-title mb-0">
+                    <i class="bi bi-binoculars-fill text-primary"></i>
+                    Sighting Details
+                </h1>
+                <a id="backToGalleryLink"
+                   asp-controller="Sighting" asp-action="Gallery"
+                   class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Gallery
+                </a>
+            </div>
+            <hr />
+
+            <div class="row g-4">
+                @* Full sighting image *@
+                <div class="col-12 col-lg-7">
+                    <img id="sightingDetailsImage"
+                         src="@Model.ImageDataUrl"
+                         alt="Sighting image"
+                         class="img-fluid rounded shadow-sm"
+                         style="width: 100%; max-height: 600px; object-fit: contain; background: #f7f7f7;" />
+                </div>
+
+                @* Metadata column *@
+                <div class="col-12 col-lg-5">
+                    @* Uploader attribution *@
+                    <div class="d-flex align-items-center mb-3">
+                        <img id="sightingDetailsUploaderIcon"
+                             src="@Model.UploaderProfileImageDataUrl"
+                             alt="Uploader profile picture"
+                             class="rounded-circle me-2"
+                             style="width: 48px; height: 48px; object-fit: cover;" />
+                        <div>
+                            <div class="text-muted small">Submitted by</div>
+                            <div id="sightingDetailsUploaderName" class="fw-bold">
+                                @Model.UploaderDisplayName
+                            </div>
+                        </div>
+                    </div>
+
+                    @* Species *@
+                    <div class="mb-3">
+                        <div class="text-muted small">Species</div>
+                        <div id="sightingDetailsSpecies" class="fs-5 fw-semibold">
+                            @Model.SpeciesName
+                        </div>
+                    </div>
+
+                    @* Rarity badge + point value *@
+                    <div class="mb-3 d-flex flex-wrap gap-2">
+                        <span class="badge @rarityBadgeClass">
+                            @Model.Rarity (@Model.RarityMultiplier.ToString("0.0")x)
+                        </span>
+                    </div>
+
+                    @* Timestamp *@
+                    <div class="mb-3">
+                        <div class="text-muted small">When</div>
+                        <div id="sightingDetailsTimestamp">
+                            <i class="bi bi-clock"></i>
+                            @Model.Timestamp.ToString("MMM dd, yyyy h:mm tt")
+                        </div>
+                    </div>
+
+                    @* Location *@
+                    <div class="mb-3">
+                        <div class="text-muted small">Location</div>
+                        <div id="sightingDetailsLocation">
+                            <i class="bi bi-geo-alt-fill"></i>
+                            @Model.Latitude.ToString("0.000000"), @Model.Longitude.ToString("0.000000")
+                        </div>
+                    </div>
+
+                    @* Description (or empty-state placeholder) *@
+                    <div class="mb-3">
+                        <div class="text-muted small">Description</div>
+                        @if (!string.IsNullOrWhiteSpace(Model.Description))
+                        {
+                            <div id="sightingDetailsDescription">@Model.Description</div>
+                        }
+                        else
+                        {
+                            <div id="sightingDetailsDescription" class="text-muted fst-italic">
+                                No description provided
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @* Fun fact panel — full width below the photo + meta *@
+            <hr />
+            <div class="mt-3">
+                <h5>
+                    <i class="bi bi-lightbulb-fill text-warning"></i>
+                    Fun Fact
+                </h5>
+                <p id="sightingDetailsFunFact"
+                   data-fun-fact-status="@(Model.IsFunFactFallback ? "fallback" : "ok")"
+                   class="@(Model.IsFunFactFallback ? "text-muted fst-italic" : "")">
+                    @Model.FunFact
+                </p>
+            </div>
+        </div>
+    </div>
+</div>

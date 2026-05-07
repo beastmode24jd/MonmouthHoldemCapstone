@@ -195,6 +195,21 @@ namespace MH.Capstone.Domain.Services
 
         #endregion
 
+        #region CSP-172: Sighting Details Page
+
+        public async Task<Sighting?> GetSightingByIdAsync(Guid sightingId)
+        {
+            _logger.LogInformation("Fetching sighting {SightingId}", sightingId);
+            var sighting = await _sightingsRepo.FindByIdAsync(sightingId);
+            if (sighting is null)
+            {
+                _logger.LogInformation("Sighting {SightingId} not found.", sightingId);
+            }
+            return sighting;
+        }
+
+        #endregion
+
         #region CSP-142: Personal Anidex Collection
 
         public async Task<IEnumerable<AnidexEntry>> GetUserAnidexAsync(Guid userId)
