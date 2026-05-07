@@ -1,0 +1,22 @@
+@{
+    ViewData["Title"] = "Sighting Not Found";
+}
+
+<div class="container mt-5">
+    <div class="card shadow">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-binoculars display-1 text-muted mb-3"></i>
+            <h2 id="sightingNotFoundMessage" class="text-muted">
+                We couldn't find that sighting.
+            </h2>
+            <p class="lead text-muted mb-4">
+                The link you followed may be broken, or the sighting may have been removed.
+            </p>
+            <a id="notFoundBackToGalleryLink"
+               asp-controller="Sighting" asp-action="Gallery"
+               class="btn btn-primary btn-lg">
+                <i class="bi bi-arrow-left"></i> Back to Sightings Gallery
+            </a>
+        </div>
+    </div>
+</div>

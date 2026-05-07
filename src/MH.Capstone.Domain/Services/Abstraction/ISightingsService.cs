@@ -40,5 +40,16 @@ namespace MH.Capstone.Domain.Services.Abstraction
         Task<IEnumerable<AnidexEntry>> GetUserAnidexAsync(Guid userId);
 
         #endregion
+
+        #region CSP-172: Sighting Details Page
+
+        /// <summary>
+        /// Returns the single sighting with the given Id, or <c>null</c> if no such sighting exists.
+        /// The <see cref="Sighting.User"/> navigation property is hydrated via the application's
+        /// lazy-loading proxies on first access by the caller.
+        /// </summary>
+        Task<Sighting?> GetSightingByIdAsync(Guid sightingId);
+
+        #endregion
     }
 }
