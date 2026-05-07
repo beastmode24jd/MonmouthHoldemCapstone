@@ -23,7 +23,7 @@ namespace MH.Capstone.Domain.DataAccess
                     Title = "Custom Profile Badge",
                     Description = "Uploaded a custom profile image.",
                     PointValue = 10,
-                    HintToEarn = "Upload a profile icon."
+                    HintToEarn = "Upload a custom profile icon."
                     // Default profile image will be dealt with by frontend
                 },
 
@@ -33,7 +33,7 @@ namespace MH.Capstone.Domain.DataAccess
                     Title = "Custom Bio Badge",
                     Description = "Updated your profile with a custom description.",
                     PointValue = 10,
-                    HintToEarn = "Update your profile with a fun fact about yourself."
+                    HintToEarn = "Update your profile with a custom bio."
                 },
 
                 new Badge
@@ -47,22 +47,32 @@ namespace MH.Capstone.Domain.DataAccess
             };
 
             // Loop through the list, and check if ApplicationDbContext has them already.
-            // If it has them, process an update. If it does, it uses EF to seed them.
-            foreach (var badge in badgeSeedList)
+            // If it has them, process an update. If it doesn't, it uses EF to seed them.
+            foreach (var seedBadge in badgeSeedList)
             {
-                if (!await context.Set<Badge>().AnyAsync(b => b.BadgeID == badge.BadgeID, token))
+                // Look for the existing badge in the database
+                var existingBadge = await context.Set<Badge>()
+                    .FirstOrDefaultAsync(b => b.BadgeID == seedBadge.BadgeID);
+
+                if (existingBadge != null)
                 {
-                    // Db doesn't have the badge, so we need to add it to the DB.
-                    await context.AddAsync(badge, token);
+                    // UPDATE: The badge exists, so update the new/changed fields
+                    existingBadge.Title = seedBadge.Title;
+                    existingBadge.Description = seedBadge.Description;
+                    existingBadge.PointValue = seedBadge.PointValue;
+                    existingBadge.HintToEarn = seedBadge.HintToEarn; // New field to update on older Badges
+                    existingBadge.BadgeSteps = seedBadge.BadgeSteps;
+
+                    context.Set<Badge>().Update(existingBadge);
                 }
                 else
                 {
-                    // Db has the badge, so we need to update it in the DB.
-                    context.Update(badge);
+                    // INSERT: The badge is completely new
+                    await context.Set<Badge>().AddAsync(seedBadge);
                 }
             }
         
-            // Seed more data here
+            // Seed identity data here
             await SeedIdentityAsync(context);
 
 
