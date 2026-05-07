@@ -230,6 +230,39 @@ a.navbar-brand:hover {
     border: 2px solid #ddd;
 }
 
+.badge-img-custom {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 15%;
+    border: 2px solid #dee2e6;
+}
+
+.badge-icon-locked {
+    filter: grayscale(100%) brightness(0.6) contrast(1.2);
+    border-radius: 15%;
+    opacity: 0.7;
+}
+
+.badge-greyed {
+    filter: grayscale(100%);
+    opacity: 1.0;
+}
+.badge-card {
+    transition: transform 0.2s;
+}
+
+.badge-title-locked {
+    color: #212529;
+    font-weight: 600;
+}
+
+.badge-hint {
+    color: #071a03;
+    padding: 5px;
+    border-radius: 4px;
+}
+
 .banner-img-1 {
     background-image: url('../imgs/TreesPhoto1.jpg');
     height: 280px;

@@ -86,24 +86,6 @@ namespace MH.Capstone.WebApp.Controllers
             // Get the user device's local timezone cookie, default timezone is PST
             string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
 
-            // Need to check if user has badges on initial page load
-            if (user is { UserBadges.Count: 0 })
-            {
-                if (user.Bio != null)
-                {
-                    await _badgeService.AddBadge(user, BadgeId.CustomBioBadgeGUID, userTimeZoneId);
-                }
-
-                if (user.Sightings.Count >= 1)
-                {
-                    await _badgeService.AddBadge(user, BadgeId.FirstSightingBadgeGUID, userTimeZoneId);
-                }
-
-                if (user.ProfileImage != null)
-                {
-                    await _badgeService.AddBadge(user, BadgeId.ProfileBadgeGUID, userTimeZoneId);
-                }
-            }
 
             // Get sorted Badges for display
             var sortedBadges = new List<UserBadge>();
@@ -464,33 +446,42 @@ namespace MH.Capstone.WebApp.Controllers
                 return Forbid();
             }
 
-            // Get all possible badges
-            var allBadges = await _badgeRepo.GetAllAsync();
-
-            // Get all badges the user has earned
-            var earnedBadgeIds = user.UserBadges.Select(ub => ub.BadgeId).ToList();
-
-            var viewModel = new BadgesViewModel
-            {
-                AllBadges = allBadges.OrderBy(b => b.Title).ToList(),
-                EarnedBadgeIds = earnedBadgeIds,
-                CurrentUserId = user.GuidId
-            };
-
-            /* DEAL WITH TIMEZONE DISPLAY NONSENSE LATER ***********
             // Get the user device's local timezone cookie for front-end Badge display
             //      Default timezone is PST
             string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
 
-            // Need to build out the Badges page view model, and return a "sorted" Badges
-            //      list by title
+            TimeZoneInfo userZone;
+            try {
+                userZone = TimeZoneInfo.FindSystemTimeZoneById(userTimeZoneId);
+            } catch {
+                // Fallback for environment-specific naming (e.g., Windows vs Linux)
+                userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+            }
 
+            // Get all possible badges
+            var allBadges = await _badgeRepo.GetAllAsync();
+
+            // Get all badges the user has earned, convert the earned timestamps
+            //      to the local timezone
+            foreach (var ub in user.UserBadges)
+            {
+                if (ub.BadgeEarned.HasValue)
+                {
+                    // Convert UTC DB timestamp to display device's local time 
+                    ub.BadgeEarned = TimeZoneInfo.ConvertTime(ub.BadgeEarned.Value, userZone);
+                }
+            }
+
+            var viewModel = new BadgesViewModel
+            {
+                AllBadges = allBadges.OrderBy(b => b.Title).ToList(),
+                UserBadges = user.UserBadges,
+                CurrentUserId = user.GuidId
+            };
+
+            /*
             // (Future work idea: add a toggle for sorting the Badges by time earned.
             //   Focus on connecting to View and getting Badges to display properly first.)
-
-            // Pass in the ID data for now, delete and refine when adding in View Model later.
-            ViewData["CurrentUserId"] = user.GuidId;
-
             */
             
             return View(viewModel);

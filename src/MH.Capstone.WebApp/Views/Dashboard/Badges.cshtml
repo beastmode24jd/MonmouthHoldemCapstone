@@ -3,17 +3,6 @@
     ViewData["Title"] = "Badges Earned";
 }
 
-@* Consider moving to site.css eventually, here for visual testing *@
-<style>
-    .badge-greyed {
-        filter: grayscale(100%);
-        opacity: 0.6;
-    }
-    .badge-card {
-        transition: transform 0.2s;
-    }
-</style>
-
 <div class="container mt-4">
     <div class="card shadow">
         <div class="card-body">
@@ -26,28 +15,33 @@
             <div class="row g-4">
                 @foreach (var badge in Model.AllBadges)
                 {
-                    bool isEarned = Model.EarnedBadgeIds.Contains(badge.BadgeID);
+                    // Find if the user has earned this specific badge
+                    var earnedBadge = Model.UserBadges.FirstOrDefault(ub => ub.BadgeId == badge.BadgeID);
+                    bool isEarned = earnedBadge != null;
                     
                     <div class="col-md-4 col-sm-6">
-                        <div class="card h-100 badge-card @(isEarned ? "border-success" : "badge-greyed border-secondary")">
+                        <div class="card h-100 badge-card @(isEarned ? "border-success shadow-sm" : "badge-greyed")">
                             <div class="card-body text-center">
                                 @* Display Badge Icon *@
-                                <img src="~/imgs/badge/BadgeIcon1.jpg" class="mb-3" style="width: 80px;" alt="@badge.Title" />
+                                <img src="~/imgs/badge/BadgeIcon1.jpg"
+                                    class="mb-3 badge-img-custom @(isEarned ? "" : "badge-icon-locked")"
+                                    style="width: 80px; height: 80px; object-fit: cover;"
+                                    alt="@badge.Title" />
                                 
-                                <h5 class="card-title">@badge.Title</h5>
-                                <p class="card-text small">@badge.Description</p>
+                                <h5 class="card-title badge-title-locked"><strong>@badge.Title</strong></h5>
                                 
                                 @if (isEarned)
                                 {
                                     <span class="badge bg-success"><i class="bi bi-check-circle"></i> Earned</span>
-                                    <p class="text-muted small mt-2">Worth @badge.PointValue points</p>
+                                    <p class="card-text small mt-2 pt-1 mb-1">@badge.Description</p>
+                                    <p class="text-muted small mt-2">@badge.PointValue points</p>
                                 }
                                 else
                                 {
                                     <div class="mt-2">
-                                        <span class="badge bg-secondary">Locked</span>
-                                        <p class="text-info small mt-2">
-                                            <strong>Hint:</strong> @badge.HintToEarn
+                                        <span class="badge bg-secondary">Unearned</span>
+                                        <p class="badge-hint small mt-2 mb-1 p1-0">
+                                            <strong>How to earn:</strong> @badge.HintToEarn
                                         </p>
                                     </div>
                                 }
@@ -61,9 +55,4 @@
 </div>
 
 @* Hidden element carrying the current user's ID for client-side filtering *@
-@* UNCOMMENT OUT WHEN ADDING IN VIEW MODEL *@
 <span id="currentUserId" data-user-id="@Model.CurrentUserId" style="display:none"></span>
-
-@* Version that uses ViewData for temp View-Model-less View testing *@
-@* Access ID from ViewData instead of @Model *@
-<span id="currentUserId" data-user-id="@ViewData["CurrentUserId"]" style="display:none"></span>
