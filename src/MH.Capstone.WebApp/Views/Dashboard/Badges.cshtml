@@ -1,7 +1,18 @@
-@* View Model will go here eventually *@
+@model MH.Capstone.WebApp.Models.BadgesViewModel
 @{
     ViewData["Title"] = "Badges Earned";
 }
+
+@* Consider moving to site.css eventually, here for visual testing *@
+<style>
+    .badge-greyed {
+        filter: grayscale(100%);
+        opacity: 0.6;
+    }
+    .badge-card {
+        transition: transform 0.2s;
+    }
+</style>
 
 <div class="container mt-4">
     <div class="card shadow">
@@ -10,14 +21,48 @@
                 <i class="bi bi-shield-fill"></i> Badges
             </h1>
             <hr />
-            <p> It's a ghost page, you're so scared, ooooooooo </p>
+            <p> View earned and unearned Badges here! </p>
+
+            <div class="row g-4">
+                @foreach (var badge in Model.AllBadges)
+                {
+                    bool isEarned = Model.EarnedBadgeIds.Contains(badge.BadgeID);
+                    
+                    <div class="col-md-4 col-sm-6">
+                        <div class="card h-100 badge-card @(isEarned ? "border-success" : "badge-greyed border-secondary")">
+                            <div class="card-body text-center">
+                                @* Display Badge Icon *@
+                                <img src="~/imgs/badge/BadgeIcon1.jpg" class="mb-3" style="width: 80px;" alt="@badge.Title" />
+                                
+                                <h5 class="card-title">@badge.Title</h5>
+                                <p class="card-text small">@badge.Description</p>
+                                
+                                @if (isEarned)
+                                {
+                                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Earned</span>
+                                    <p class="text-muted small mt-2">Worth @badge.PointValue points</p>
+                                }
+                                else
+                                {
+                                    <div class="mt-2">
+                                        <span class="badge bg-secondary">Locked</span>
+                                        <p class="text-info small mt-2">
+                                            <strong>Hint:</strong> @badge.HintToEarn
+                                        </p>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
         </div>
     </div>
 </div>
 
 @* Hidden element carrying the current user's ID for client-side filtering *@
 @* UNCOMMENT OUT WHEN ADDING IN VIEW MODEL *@
-@*<span id="currentUserId" data-user-id="@Model.CurrentUserId" style="display:none"></span>*@
+<span id="currentUserId" data-user-id="@Model.CurrentUserId" style="display:none"></span>
 
 @* Version that uses ViewData for temp View-Model-less View testing *@
 @* Access ID from ViewData instead of @Model *@

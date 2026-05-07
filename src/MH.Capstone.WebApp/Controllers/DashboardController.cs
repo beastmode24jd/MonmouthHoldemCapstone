@@ -38,6 +38,7 @@ namespace MH.Capstone.WebApp.Controllers
         private readonly IRepository<Notification, ApplicationDbContext> _notificationRepo;
 
         private readonly IBadgeService _badgeService;
+        private readonly IRepository<Badge, ApplicationDbContext> _badgeRepo; // For Badges page
 
         private readonly INotificationPreferenceService _notificationPreferenceService;
 
@@ -46,12 +47,14 @@ namespace MH.Capstone.WebApp.Controllers
             IProfileImageService imageService, IAuthenticationService authService,
             IBadgeService badgeService, INotificationService notificationService,
             IUserService userService, IRepository<Notification, ApplicationDbContext> notificationRepo,
+            IRepository<Badge, ApplicationDbContext> badgeRepo,
             INotificationPreferenceService notificationPreferenceService)
         {
             _logger = logger;
             _imageService = imageService;
             _authService = authService;
             _badgeService = badgeService;
+            _badgeRepo = badgeRepo;
             _notificationService = notificationService;
             _userService = userService;
             _notificationRepo = notificationRepo;
@@ -461,6 +464,20 @@ namespace MH.Capstone.WebApp.Controllers
                 return Forbid();
             }
 
+            // Get all possible badges
+            var allBadges = await _badgeRepo.GetAllAsync();
+
+            // Get all badges the user has earned
+            var earnedBadgeIds = user.UserBadges.Select(ub => ub.BadgeId).ToList();
+
+            var viewModel = new BadgesViewModel
+            {
+                AllBadges = allBadges.OrderBy(b => b.Title).ToList(),
+                EarnedBadgeIds = earnedBadgeIds,
+                CurrentUserId = user.GuidId
+            };
+
+            /* DEAL WITH TIMEZONE DISPLAY NONSENSE LATER ***********
             // Get the user device's local timezone cookie for front-end Badge display
             //      Default timezone is PST
             string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
@@ -473,8 +490,10 @@ namespace MH.Capstone.WebApp.Controllers
 
             // Pass in the ID data for now, delete and refine when adding in View Model later.
             ViewData["CurrentUserId"] = user.GuidId;
+
+            */
             
-            return View();
+            return View(viewModel);
         }
     }
 }
