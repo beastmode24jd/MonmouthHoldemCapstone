@@ -22,7 +22,8 @@ namespace MH.Capstone.Domain.DataAccess
                     BadgeID = Constants.BadgeId.ProfileBadgeGUID,
                     Title = "Custom Profile Badge",
                     Description = "Uploaded a custom profile image.",
-                    PointValue = 10
+                    PointValue = 10,
+                    HintToEarn = "Upload a profile icon."
                     // Default profile image will be dealt with by frontend
                 },
 
@@ -31,7 +32,8 @@ namespace MH.Capstone.Domain.DataAccess
                     BadgeID = Constants.BadgeId.CustomBioBadgeGUID,
                     Title = "Custom Bio Badge",
                     Description = "Updated your profile with a custom description.",
-                    PointValue = 10
+                    PointValue = 10,
+                    HintToEarn = "Update your profile with a fun fact about yourself."
                 },
 
                 new Badge
@@ -39,7 +41,8 @@ namespace MH.Capstone.Domain.DataAccess
                     BadgeID = Constants.BadgeId.FirstSightingBadgeGUID,
                     Title = "First Sighting Badge",
                     Description = "Uploaded your first Sighting!",
-                    PointValue = 25
+                    PointValue = 25,
+                    HintToEarn = "Upload a Sighting."
                 }
             };
 
