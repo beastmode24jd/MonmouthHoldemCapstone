@@ -86,7 +86,6 @@ namespace MH.Capstone.WebApp.Controllers
             // Get the user device's local timezone cookie, default timezone is PST
             string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
 
-
             // Get sorted Badges for display
             var sortedBadges = new List<UserBadge>();
             if (user != null)

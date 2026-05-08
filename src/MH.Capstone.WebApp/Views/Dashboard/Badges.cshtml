@@ -10,7 +10,7 @@
                 <i class="bi bi-shield-fill"></i> Badges
             </h1>
             <hr />
-            <p> View earned and unearned Badges here! </p>
+            <p> View your current Badges, and learn how to earn new ones! </p>
 
             <div class="row g-4">
                 @foreach (var badge in Model.AllBadges)
@@ -24,7 +24,7 @@
                             <div class="card-body text-center">
                                 @* Display Badge Icon *@
                                 <img src="~/imgs/badge/BadgeIcon1.jpg"
-                                    class="mb-3 badge-img-custom @(isEarned ? "" : "badge-icon-locked")"
+                                    class="mb-3 mt-2 badge-img-custom @(isEarned ? "" : "badge-icon-locked")"
                                     style="width: 80px; height: 80px; object-fit: cover;"
                                     alt="@badge.Title" />
                                 
