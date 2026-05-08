@@ -107,7 +107,10 @@ public class AnidexDriver
                 continue;
 
             var rarityElement = entry.FindElements(By.CssSelector(".anidex-rarity-badge")).FirstOrDefault();
-            return rarityElement?.Text?.Trim();
+            var text = rarityElement?.Text?.Trim();
+            if (text == null) return null;
+            var parenIdx = text.IndexOf('(');
+            return parenIdx > 0 ? text[..parenIdx].Trim() : text;
         }
         return null;
     }

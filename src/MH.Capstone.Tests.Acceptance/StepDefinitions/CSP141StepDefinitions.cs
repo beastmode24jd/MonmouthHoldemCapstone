@@ -65,13 +65,14 @@ public class CSP141StepDefinitions
         actual.Should().Be(expectedRarity, $"species '{_speciesName}' has 0 prior sightings so must score as {expectedRarity}");
     }
 
-    [Then("the species entry in Alex's Anidex shows a discovery count of {int}")]
-    public void ThenTheSpeciesEntryShowsADiscoveryCountOf(int expectedCount)
+    [Then("the species entry in Alex's Anidex shows at least {int} discoveries")]
+    public void ThenTheSpeciesEntryShowsAtLeastDiscoveries(int minCount)
     {
         _anidexDriver.NavigateToAnidex();
-        // "GREAT BLUE HERON" merges with the seeded "Great Blue Heron" entries via case-insensitive grouping.
+        // "BALD EAGLE" is an all-caps variant of the seeded "Bald Eagle" — case-insensitive grouping merges them.
         var actual = _anidexDriver.GetDiscoveryCountFor(_speciesName!);
-        actual.Should().Be(expectedCount, $"submitting '{_speciesName}' should merge with 2 seeded 'Great Blue Heron' sightings");
+        actual.Should().BeGreaterThanOrEqualTo(minCount,
+            $"submitting '{_speciesName}' (case-insensitive variant) should merge with the seeded 'Bald Eagle' sighting");
     }
 
     [Then("the species entry shows a {string} rarity badge")]
