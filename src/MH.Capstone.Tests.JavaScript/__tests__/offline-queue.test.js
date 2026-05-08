@@ -1,9 +1,8 @@
 const { IDBFactory } = require('fake-indexeddb');
 
-// Set up fake IndexedDB before requiring the module under test.
-// The module reads indexedDB as a global, so we must set it before the require.
-global.indexedDB = new IDBFactory();
-
+// offline-queue.js is loaded once; it reads global.indexedDB each time a function
+// is called (not at module-load time), so replacing global.indexedDB in beforeEach
+// gives every test a clean, isolated database.
 const {
     generateGuid,
     enqueueOfflineSighting,
@@ -15,7 +14,12 @@ const {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Unique test-user ID so each test gets an isolated IndexedDB store. */
+/** Fresh isolated IndexedDB for each test — avoids version-upgrade races. */
+beforeEach(() => {
+    global.indexedDB = new IDBFactory();
+});
+
+/** Unique user ID so each test's queue store is isolated within the shared DB. */
 function testUserId() {
     return `testuser-${generateGuid()}`;
 }
@@ -136,7 +140,6 @@ describe('updateQueuedSighting', () => {
         const userId = testUserId();
         await enqueueOfflineSighting(userId, makeSightingItem());
 
-        // Should not throw
         await expect(
             updateQueuedSighting(userId, 'nonexistent-id', { status: 'synced' })
         ).resolves.toBeUndefined();

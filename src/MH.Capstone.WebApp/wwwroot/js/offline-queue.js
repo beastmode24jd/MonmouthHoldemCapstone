@@ -1,8 +1,13 @@
 // offline-queue.js — CSP-177: IndexedDB-backed offline sightings queue with auto-sync.
 
-const DB_NAME = 'wildlifeAid';
+// Each user gets their own database so we never need to bump the version to add
+// new object stores. One DB per user, always version 1, single 'queue' store.
 const DB_VERSION = 1;
-const STORE_PREFIX = 'offlineQueue_';
+const STORE_NAME = 'queue';
+
+function dbNameForUser(userId) {
+    return 'wildlifeAid_offlineQueue_' + userId;
+}
 
 function generateGuid() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
@@ -13,31 +18,14 @@ function generateGuid() {
 
 function openDb(userId) {
     return new Promise((resolve, reject) => {
-        const storeName = STORE_PREFIX + userId;
-        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        const req = indexedDB.open(dbNameForUser(userId), DB_VERSION);
 
         req.onupgradeneeded = function (e) {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains(storeName)) {
-                db.createObjectStore(storeName, { keyPath: 'id' });
-            }
+            e.target.result.createObjectStore(STORE_NAME, { keyPath: 'id' });
         };
 
         req.onsuccess = function (e) {
-            const db = e.target.result;
-            // If this user's store doesn't exist yet, bump the version to create it.
-            if (!db.objectStoreNames.contains(storeName)) {
-                db.close();
-                const newVersion = db.version + 1;
-                const req2 = indexedDB.open(DB_NAME, newVersion);
-                req2.onupgradeneeded = function (e2) {
-                    e2.target.result.createObjectStore(storeName, { keyPath: 'id' });
-                };
-                req2.onsuccess = (e2) => resolve({ db: e2.target.result, storeName });
-                req2.onerror = (e2) => reject(e2.target.error);
-            } else {
-                resolve({ db, storeName });
-            }
+            resolve({ db: e.target.result, storeName: STORE_NAME });
         };
 
         req.onerror = (e) => reject(e.target.error);
