@@ -66,6 +66,12 @@ namespace MH.Capstone.Domain.DataAccess
             modelBuilder.Entity<UserNotificationPreference>()
                 .HasIndex(p => new { p.UserId, p.NotificationType })
                 .IsUnique();
+
+            // CSP-177: sparse unique index prevents duplicate submissions from offline sync retries
+            modelBuilder.Entity<Sighting>()
+                .HasIndex(s => new { s.UserIdentityId, s.ClientSightingId })
+                .IsUnique()
+                .HasFilter("[ClientSightingId] IS NOT NULL");
         }
     }
 }

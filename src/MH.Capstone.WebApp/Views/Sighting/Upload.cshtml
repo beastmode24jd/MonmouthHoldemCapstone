@@ -3,7 +3,7 @@
     ViewData["Title"] = "Upload Sighting";
 }
 <h1 class="mt-2">Upload Sighting</h1>
-<form asp-action="Upload" asp-controller="Sighting" method="post" enctype="multipart/form-data">
+<form id="sightingUploadForm" asp-action="Upload" asp-controller="Sighting" method="post" enctype="multipart/form-data">
     <div class="row">
         <div class="form-group col-md-4 col-12">
             <label asp-for="Latitude"></label>
@@ -24,6 +24,7 @@
             <span asp-validation-for="Timestamp" class="text-danger"></span>
         </div>
         <input type="hidden" asp-for="DeviceTimezone" />
+        <input type="hidden" asp-for="ClientSightingId" id="clientSightingIdInput" />
     </div>
     
     <!-- Location status message -->
@@ -106,5 +107,6 @@
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.min.js"></script>
+    <script src="~/js/offline-queue.js" asp-append-version="true"></script>
     <script src="~/js/sighting-upload.js" asp-append-version="true"></script>
 }

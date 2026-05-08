@@ -36,6 +36,24 @@ namespace MH.Capstone.WebApp.Controllers
             _funFactService = funFactService;
         }
 
+        #region CSP-177: Offline Queue
+
+        [HttpGet]
+        [Route("OfflineQueue")]
+        public async Task<IActionResult> OfflineQueue()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                _logger.LogError("Authenticated user could not be found during OfflineQueue access.");
+                return StatusCode((int)HttpStatusCode.InternalServerError);
+            }
+            ViewBag.CurrentUserId = user.Id;
+            return View();
+        }
+
+        #endregion
+
         #region CSP-172: Sighting Details Page
 
         [HttpGet]
