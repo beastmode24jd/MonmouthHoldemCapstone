@@ -1,5 +1,58 @@
 // sighting-upload.js - Handles lat/long automation from photo EXIF or current location
 
+// CSP-177: intercept form submission when offline and save to IndexedDB queue instead.
+(function () {
+    document.addEventListener("DOMContentLoaded", function () {
+        const form = document.getElementById("sightingUploadForm");
+        const userIdEl = document.getElementById("currentUserId");
+        if (!form) return;
+
+        form.addEventListener("submit", async function (e) {
+            if (navigator.onLine) return; // normal path — let form submit to server
+
+            e.preventDefault();
+
+            const imageInput = document.getElementById("imageUploadInput");
+            const file = imageInput && imageInput.files && imageInput.files[0];
+
+            let imageDataUrl = null;
+            let imageFileName = null;
+            if (file) {
+                imageDataUrl = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => resolve(ev.target.result);
+                    reader.readAsDataURL(file);
+                });
+                imageFileName = file.name;
+            }
+
+            const clientSightingIdInput = document.getElementById("clientSightingIdInput");
+            const clientSightingId = clientSightingIdInput ? clientSightingIdInput.value : null;
+
+            const userId = userIdEl ? userIdEl.textContent.trim() : null;
+
+            if (!userId) {
+                alert("Cannot save offline sighting: user session not found. Please log in again.");
+                return;
+            }
+
+            await enqueueOfflineSighting(userId, {
+                speciesName: (document.getElementById("SpeciesName") || {}).value || "",
+                latitude: (document.getElementById("latitudeInput") || {}).value || "0",
+                longitude: (document.getElementById("longitudeInput") || {}).value || "0",
+                timestamp: form.querySelector("[name='Timestamp']")?.value || new Date().toISOString(),
+                timezone: form.querySelector("[name='DeviceTimezone']")?.value || "America/Los_Angeles",
+                description: form.querySelector("[name='Description']")?.value || "",
+                imageDataUrl,
+                imageFileName,
+                clientSightingId
+            });
+
+            window.location.href = "/Sighting/OfflineQueue";
+        });
+    });
+})();
+
 document.addEventListener("DOMContentLoaded", function () {
     const imageInput = document.getElementById("imageUploadInput");
     const latitudeInput = document.getElementById("latitudeInput");
