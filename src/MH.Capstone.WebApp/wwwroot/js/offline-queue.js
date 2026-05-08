@@ -297,7 +297,14 @@ window.addEventListener('online', function () {
     syncOfflineQueue(userId, token);
 });
 
-// Export for testing
+// Expose key functions on window so Selenium acceptance tests can call them
+// via ExecuteScript (e.g. to pre-seed the queue for non-offline scenarios).
+if (typeof window !== 'undefined') {
+    window.enqueueOfflineSighting = enqueueOfflineSighting;
+    window.getAllQueuedSightings = getAllQueuedSightings;
+}
+
+// Export for Jest tests (Node/CommonJS environment)
 if (typeof module !== 'undefined') {
     module.exports = { enqueueOfflineSighting, getAllQueuedSightings, updateQueuedSighting, deleteQueuedSighting, syncOfflineQueue, generateGuid };
 }

@@ -1,6 +1,12 @@
 // sighting-upload.js - Handles lat/long automation from photo EXIF or current location
 
 // CSP-177: intercept form submission when offline and save to IndexedDB queue instead.
+// navigator.onLine cannot be overridden in Chrome (non-configurable property), so
+// acceptance tests set window.__FORCE_OFFLINE = true to simulate offline state.
+function isOffline() {
+    return (typeof window.__FORCE_OFFLINE !== 'undefined' && window.__FORCE_OFFLINE) || !navigator.onLine;
+}
+
 (function () {
     document.addEventListener("DOMContentLoaded", function () {
         const form = document.getElementById("sightingUploadForm");
@@ -8,7 +14,7 @@
         if (!form) return;
 
         form.addEventListener("submit", async function (e) {
-            if (navigator.onLine) return; // normal path — let form submit to server
+            if (!isOffline()) return; // normal path — let form submit to server
 
             e.preventDefault();
 

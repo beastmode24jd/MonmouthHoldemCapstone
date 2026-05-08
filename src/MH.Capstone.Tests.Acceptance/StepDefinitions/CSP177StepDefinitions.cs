@@ -77,10 +77,10 @@ public class CSP177StepDefinitions
     [When("Alex submits the sighting form")]
     public void WhenAlexSubmitsTheSightingForm()
     {
-        _sightingsDriver.SubmitSightingsForm();
-
-        // Give the JS async queue write and redirect a moment to complete
-        System.Threading.Thread.Sleep(1000);
+        // Must click the button (not form.submit()) so the JS submit event fires.
+        // SightingsDriver.SubmitSightingsForm() uses form.submit() which bypasses
+        // all addEventListener("submit", ...) handlers.
+        _offlineQueueDriver.ClickSubmitButton();
     }
 
     [Then("Alex is redirected to the offline queue page")]

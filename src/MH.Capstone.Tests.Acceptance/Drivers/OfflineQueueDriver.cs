@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using MH.Capstone.Tests.Acceptance.Configuration;
-using MH.Capstone.Tests.Acceptance.PageObjects;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
 using SixLabors.ImageSharp;
@@ -11,7 +10,8 @@ namespace MH.Capstone.Tests.Acceptance.Drivers;
 
 /// <summary>
 /// CSP-177: Selenium driver for the offline queue page (/Sighting/OfflineQueue).
-/// Also provides helpers for simulating offline state via JavaScript injection.
+/// Simulates offline state via window.__FORCE_OFFLINE (navigator.onLine is
+/// non-configurable in Chrome so Object.defineProperty does not work).
 /// </summary>
 [ExcludeFromCodeCoverage]
 public class OfflineQueueDriver
@@ -38,7 +38,7 @@ public class OfflineQueueDriver
     {
         try
         {
-            return new WebDriverWait(_webDriver, TimeSpan.FromSeconds(5)).Until(d =>
+            return new WebDriverWait(_webDriver, TimeSpan.FromSeconds(10)).Until(d =>
                 d.Url.Contains("/Sighting/OfflineQueue", StringComparison.OrdinalIgnoreCase));
         }
         catch { return false; }
@@ -46,8 +46,12 @@ public class OfflineQueueDriver
 
     public bool HasQueuedItems()
     {
-        var rows = _webDriver.FindElements(By.CssSelector(".queue-item-row"));
-        return rows.Count > 0;
+        try
+        {
+            return new WebDriverWait(_webDriver, TimeSpan.FromSeconds(5)).Until(d =>
+                d.FindElements(By.CssSelector(".queue-item-row")).Count > 0);
+        }
+        catch { return false; }
     }
 
     public bool IsEmptyStateVisible()
@@ -59,7 +63,26 @@ public class OfflineQueueDriver
     public bool HasDeleteButtons() =>
         _webDriver.FindElements(By.CssSelector(".deleteQueueItemBtn")).Count > 0;
 
-    /// <summary>Injects a queued sighting directly into IndexedDB via JavaScript for the current user.</summary>
+    /// <summary>
+    /// Sets window.__FORCE_OFFLINE = true so that isOffline() in sighting-upload.js
+    /// returns true regardless of navigator.onLine (which Chrome does not allow overriding).
+    /// </summary>
+    public void SimulateOffline()
+    {
+        ((IJavaScriptExecutor)_webDriver).ExecuteScript("window.__FORCE_OFFLINE = true;");
+    }
+
+    /// <summary>Clears the offline flag and fires the online event to trigger auto-sync.</summary>
+    public void SimulateOnline()
+    {
+        ((IJavaScriptExecutor)_webDriver).ExecuteScript(
+            "window.__FORCE_OFFLINE = false; window.dispatchEvent(new Event('online'));");
+    }
+
+    /// <summary>
+    /// Injects a queued sighting directly into IndexedDB via window.enqueueOfflineSighting,
+    /// which offline-queue.js exposes on window for acceptance testing.
+    /// </summary>
     public void InjectQueuedSighting(string speciesName = "Test Species CSP-177")
     {
         var js = (IJavaScriptExecutor)_webDriver;
@@ -67,81 +90,46 @@ public class OfflineQueueDriver
         var userId = userIdEl?.Text?.Trim() ?? string.Empty;
         if (string.IsNullOrEmpty(userId)) return;
 
-        // Call the exported enqueueOfflineSighting function from offline-queue.js
-        js.ExecuteScript(@"
-            (async function(userId, speciesName) {
-                await enqueueOfflineSighting(userId, {
-                    speciesName: speciesName,
-                    latitude: '45.00000',
-                    longitude: '-123.00000',
-                    timestamp: new Date(Date.now() - 60000).toISOString().slice(0, 16),
-                    timezone: 'America/Los_Angeles',
-                    description: 'CSP-177 acceptance test sighting.',
-                    imageDataUrl: 'data:image/jpeg;base64,/9j/4AAQSkZJRg==',
-                    imageFileName: 'test.jpg',
-                    clientSightingId: crypto.randomUUID()
-                });
-            })(arguments[0], arguments[1]);
+        // window.enqueueOfflineSighting is exposed by offline-queue.js for Selenium use.
+        // Returns a Promise; ExecuteScript with async callback waits for resolution.
+        js.ExecuteAsyncScript(@"
+            var userId = arguments[0];
+            var speciesName = arguments[1];
+            var done = arguments[arguments.length - 1];
+            window.enqueueOfflineSighting(userId, {
+                speciesName: speciesName,
+                latitude: '45.00000',
+                longitude: '-123.00000',
+                timestamp: new Date(Date.now() - 60000).toISOString().slice(0, 16),
+                timezone: 'America/Los_Angeles',
+                description: 'CSP-177 acceptance test sighting.',
+                imageDataUrl: 'data:image/jpeg;base64,/9j/4AAQSkZJRg==',
+                imageFileName: 'test.jpg',
+                clientSightingId: crypto.randomUUID()
+            }).then(function() { done(); }).catch(function(e) { done(e.toString()); });
         ", userId, speciesName);
 
-        // Short wait for IndexedDB write
-        System.Threading.Thread.Sleep(500);
         _webDriver.Navigate().Refresh();
         WaitForPageReady();
     }
 
-    /// <summary>Simulates offline state by overriding navigator.onLine to false.</summary>
-    public void SimulateOffline()
-    {
-        var js = (IJavaScriptExecutor)_webDriver;
-        js.ExecuteScript(@"
-            Object.defineProperty(navigator, 'onLine', { get: function() { return false; }, configurable: true });
-            window.dispatchEvent(new Event('offline'));
-        ");
-    }
-
-    /// <summary>Restores online state and fires the online event to trigger auto-sync.</summary>
-    public void SimulateOnline()
-    {
-        var js = (IJavaScriptExecutor)_webDriver;
-        js.ExecuteScript(@"
-            Object.defineProperty(navigator, 'onLine', { get: function() { return true; }, configurable: true });
-            window.dispatchEvent(new Event('online'));
-        ");
-    }
-
     /// <summary>
-    /// Fills and submits the sighting upload form with a real temp image.
-    /// Returns the temp image path so callers can clean it up.
+    /// Clicks the submit button on the upload form (triggering the JS submit event
+    /// handler) and waits for the browser to navigate away from the upload page.
+    /// Use this instead of SightingsDriver.SubmitSightingsForm() for offline scenarios
+    /// because form.submit() bypasses JS event listeners.
     /// </summary>
-    public string SubmitSightingWhileOffline(SightingsDriver sightingsDriver)
+    public void ClickSubmitButton()
     {
-        _tempImagePath = Path.Combine(Path.GetTempPath(), $"csp177_{Guid.NewGuid():N}.jpg");
-        using (var image = new Image<Rgba32>(1280, 960, new Rgba32(128, 128, 128, 255)))
-        using (var fs = File.Create(_tempImagePath))
-        {
-            image.Save(fs, new JpegEncoder());
-        }
-
-        sightingsDriver.NavigateToSightingsUpload();
-        SimulateOffline();
-
-        sightingsDriver.SetImageForUpload(_tempImagePath);
-        sightingsDriver.SetSpeciesName("CSP177-TestSpecies");
-        sightingsDriver.SetLatitude(45.0);
-        sightingsDriver.SetLongitude(-123.0);
-        sightingsDriver.SetTimestamp(DateTimeOffset.Now.AddMinutes(-1));
-        sightingsDriver.SetDescription("CSP-177 offline queue test.");
-        sightingsDriver.SubmitSightingsForm();
-
-        WaitForPageReady();
-        return _tempImagePath;
+        var btn = _wait.Until(d => d.FindElement(By.Id("SubmitBtn")));
+        btn.Click();
     }
 
     public void CleanupTempImage()
     {
         if (_tempImagePath != null && File.Exists(_tempImagePath))
             File.Delete(_tempImagePath);
+        _tempImagePath = null;
     }
 
     private void WaitForPageReady()
