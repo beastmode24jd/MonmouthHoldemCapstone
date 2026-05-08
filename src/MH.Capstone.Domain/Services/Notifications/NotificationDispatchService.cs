@@ -1,28 +1,27 @@
-using System;
-using System.Threading.Tasks;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
 using Microsoft.Extensions.Logging;
+using System.Threading.Channels;
 
 namespace MH.Capstone.Domain.Services.Notifications
 {
     public class NotificationDispatchService : NotificationServiceBase
     {
         private readonly INotificationPreferenceService _preferenceService;
-        private readonly IRepository<EmailQueue, ApplicationDbContext> _emailQueueRepo;
+        private readonly ChannelWriter<EmailMessage> _emailChannel;
 
         public NotificationDispatchService(
             IRepository<Notification, ApplicationDbContext> notificationRepo,
             IUserService userService,
             ILogger<INotificationService> logger,
             INotificationPreferenceService preferenceService,
-            IRepository<EmailQueue, ApplicationDbContext> emailQueueRepo)
+            ChannelWriter<EmailMessage> emailChannel)
             : base(notificationRepo, userService, logger)
         {
             _preferenceService = preferenceService;
-            _emailQueueRepo = emailQueueRepo;
+            _emailChannel = emailChannel;
         }
 
         public override async Task SendNotificationAsync(Notification notification, NotificationType notificationType)
@@ -62,15 +61,12 @@ namespace MH.Capstone.Domain.Services.Notifications
             if (string.IsNullOrWhiteSpace(user.Email))
                 return;
 
-            var email = new EmailQueue
-            {
-                Recipient = user.Email,
-                Subject = notification.Title,
-                HtmlBody = notification.HtmlEmailBody ?? $"<p>{notification.Message}</p>",
-                CreatedAt = DateTimeOffset.UtcNow
-            };
+            var message = new EmailMessage(
+                user.Email,
+                notification.Title,
+                notification.HtmlEmailBody ?? $"<p>{notification.Message}</p>");
 
-            await _emailQueueRepo.AddOrUpdateAsync(email);
+            await _emailChannel.WriteAsync(message);
         }
     }
 }
