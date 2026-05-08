@@ -95,6 +95,23 @@ public class AnidexDriver
         return null;
     }
 
+    /// <summary>Returns the rarity badge text for a species, or null if no matching entry is found.</summary>
+    public string? GetRarityFor(string speciesName)
+    {
+        var entries = _webDriver.FindElements(By.CssSelector(".anidex-entry"));
+        foreach (var entry in entries.Where(e => e.Displayed))
+        {
+            var nameElement = entry.FindElements(By.CssSelector(".anidex-species-name")).FirstOrDefault();
+            if (nameElement == null) continue;
+            if (!string.Equals(nameElement.Text?.Trim(), speciesName, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var rarityElement = entry.FindElements(By.CssSelector(".anidex-rarity-badge")).FirstOrDefault();
+            return rarityElement?.Text?.Trim();
+        }
+        return null;
+    }
+
     public bool EveryEntryHasNameAndRarityBadge()
     {
         var entries = _webDriver.FindElements(By.CssSelector(".anidex-entry")).Where(e => e.Displayed).ToList();
