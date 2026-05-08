@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using MH.Capstone.Domain.Tools;
 using MH.Capstone.Domain.Constants.Configurables;
 using MH.Capstone.WebApp.Filters;
+using System.Threading.Channels;
 
 namespace MH.Capstone.WebApp
 {
@@ -143,6 +144,11 @@ namespace MH.Capstone.WebApp
                 entryLogger.LogInformation("EnableGeminiAIService flag is OFF. GeminiAIService will not be registered.");
             }
 
+            // In-memory email channel — NotificationDispatchService writes here; EmailDispatcherService reads from here
+            var emailChannel = Channel.CreateUnbounded<EmailMessage>(new UnboundedChannelOptions { SingleReader = true });
+            builder.Services.AddSingleton(emailChannel.Writer);
+            builder.Services.AddSingleton(emailChannel.Reader);
+
             // Configure Azure Communication Services Email client depending on feature flag state and when EF is not in design-time
             var emailConnectionString = builder.Configuration.GetConnectionString("AzureCommunicationServices");
             var emailSender = builder.Configuration.GetValue<string>("Email:SenderAddress");
@@ -161,11 +167,7 @@ namespace MH.Capstone.WebApp
                     return new AzureCommunicationEmailService(emailConnectionString, emailSender, logger);
                 });
 
-                // Configure Email dispatcher options and background service
-                builder.Services.Configure<EmailDispatcherOptions>(builder.Configuration.GetSection("EmailDispatcher"));
-                builder.Services.AddHostedService<EmailDispatcherService>();
-
-                entryLogger.LogInformation("AzureCommunicationEmailService and EmailDispatcherService registered (feature flag enabled).");
+                entryLogger.LogInformation("AzureCommunicationEmailService registered (feature flag enabled).");
             }
             else
             {
@@ -177,6 +179,10 @@ namespace MH.Capstone.WebApp
 
                 entryLogger.LogInformation("NoOpEmailService registered (feature flag disabled).");
             }
+
+            // Email dispatcher reads from the in-memory channel regardless of which IEmailService is active
+            builder.Services.Configure<EmailDispatcherOptions>(builder.Configuration.GetSection("EmailDispatcher"));
+            builder.Services.AddHostedService<EmailDispatcherService>();
 
             // Configure Ninja API Caller when EF is not running for design-time
             if (!EF.IsDesignTime)
