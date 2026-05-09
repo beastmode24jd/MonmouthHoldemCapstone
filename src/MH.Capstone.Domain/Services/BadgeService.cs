@@ -33,86 +33,79 @@ namespace MH.Capstone.Domain.Services
 
         public async Task AddBadge(ApplicationUser user, Guid newBadgeID, string ianaTimeZoneId = "America/Los_Angeles")
         {
-            // Get the list of user badges.
-            var existingBadges = await _userBadgeRepo.GetAllAsync();
-
-            // NEED TO MODIFY THIS PORTION FOR UPDATEBADGE() ******
-
-            // If this specific user already has this newBadgeID, exit.
-            var alreadyExists = existingBadges.Any(ub => ub.UserId == user.Id && ub.BadgeId == newBadgeID);
-
-            if (alreadyExists) { return; }
-            
-            // *************
-
             // Get the parameters of this new badge.
             var badgeTemplate = await _badgeRepo.FindByIdAsync(newBadgeID);
 
             // If-clause catches invalid/unknown badgeID
-            if (badgeTemplate != null)
+            if (badgeTemplate == null) { return; }
+
+            // Check if user already earned this Badge
+            var existingBadges = await _userBadgeRepo.GetAllAsync();
+            var userBadge = existingBadges.FirstOrDefault(ub => ub.UserId == user.Id && ub.BadgeId == newBadgeID);
+
+            // If they already have the badge (timestamp is set), do nothing
+            if (userBadge != null && userBadge.BadgeEarned != null) 
+            { 
+                // Step incrementation handled by UpdateBadge()
+                return; 
+            }
+            
+            // Clause for single-step badges (ex. First Sighting), no previous entry
+            if (userBadge == null)
             {
-                // Adds the new join-table badge
-                var earnedBadge = new UserBadge
+                userBadge = new UserBadge
                 {
                     User = user,
                     UserId = user.Id,
                     BadgeId = badgeTemplate.BadgeID,
-                    BadgeEarned = DateTimeOffset.Now
                 };
+            }
+            
+            // Finalize the badge
+            userBadge.BadgeEarned = DateTimeOffset.Now;
+            userBadge.BadgeProgress = badgeTemplate.BadgeSteps; // Ensure progress is maxed out
 
-                // Save it
-                await _userBadgeRepo.AddOrUpdateAsync(earnedBadge);
+            // Save it
+            await _userBadgeRepo.AddOrUpdateAsync(userBadge);
 
-                // Increment points after adding the badge to the UserBadges list.
+            // Increment user's points *************
 
-                // Check if the user has a valid Login Streak, and apply the 1.5 points
-                // multipler if they do.
-                var badgePointTotal = 0;
-                if (user.IsStreakActive)
-                {
-                    badgePointTotal = (int)(badgeTemplate.PointValue * 1.5);
-                    user.Points += badgePointTotal;
-                }
-                else
-                {
-                    // IsStreakActive is a bool value. This catches all other cases.
-                    badgePointTotal = badgeTemplate.PointValue;
-                    user.Points += badgePointTotal;
-                }
+            // Check if the user has a valid Login Streak, and apply the 1.5 points
+            // multiplier if they do.
+            var badgePointTotal = user.IsStreakActive ? (int)(badgeTemplate.PointValue * 1.5) : badgeTemplate.PointValue;
 
-                await _userRepo.AddOrUpdateAsync(user);
+            user.Points += badgePointTotal;
+            await _userRepo.AddOrUpdateAsync(user);
 
-                // Then send the notification for the awarded Badge. *************
-                // Convert timezone IANA ID to a TimeZoneInfo object
-                TimeZoneInfo deviceZone;
+            // Send the notification for the Badge. *************
+            // Convert timezone IANA ID to a TimeZoneInfo object
+            TimeZoneInfo deviceZone;
 
-                try
-                {
-                    // Converts the IANA ID successfully
-                    deviceZone = TimeZoneInfo.FindSystemTimeZoneById(ianaTimeZoneId);
-                }
-                catch
-                {
-                    // Fallback to Windows-style Pacific ID if IANA fails on Windows Server
-                    deviceZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
-                }
-
-                // Convert the timestamp to the device's actual zone
-                DateTimeOffset deviceTime = TimeZoneInfo.ConvertTime((DateTimeOffset)earnedBadge.BadgeEarned, deviceZone);
-
-                // Generate the notification with the correct AM/PM and 12-hour format
-                string timeDisplay = deviceTime.ToString("MM/dd/yyyy h:mm tt");
-
-                await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId,
-                    $"Earned the {badgeTemplate.Title}",
-                    $"Congratulations! You earned the {badgeTemplate.Title} at {timeDisplay} and " +
-                    $"won {badgePointTotal} points!"
-                    ), NotificationType.BadgeAwarded);
+            try
+            {
+                // Converts the IANA ID successfully
+                deviceZone = TimeZoneInfo.FindSystemTimeZoneById(ianaTimeZoneId);
+            }
+            catch
+            {
+                // Fallback to Windows-style Pacific ID if IANA fails on Windows Server
+                deviceZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
             }
 
-            // If the loop completes without badgeID found,
-            // simply finish this task.
-            await Task.CompletedTask;
+            // Convert the timestamp to the device's actual zone
+            DateTimeOffset deviceTime = TimeZoneInfo.ConvertTime((DateTimeOffset)userBadge.BadgeEarned, deviceZone);
+
+            // Generate the notification with the correct AM/PM and 12-hour format
+            string timeDisplay = deviceTime.ToString("MM/dd/yyyy h:mm tt");
+
+            await _notificationService.SendNotificationAsync(Notification.Create(user.GuidId,
+                $"Earned the {badgeTemplate.Title}",
+                $"Congratulations! You earned the {badgeTemplate.Title} at {timeDisplay} and " +
+                $"won {badgePointTotal} points!"
+                ), NotificationType.BadgeAwarded);
+
+            // Might not need this line?
+            //await Task.CompletedTask;
         }
 
         public async Task UpdateBadge(ApplicationUser user, Guid badgeID, string ianaTimeZoneId = "America/Los_Angeles")
@@ -125,30 +118,42 @@ namespace MH.Capstone.Domain.Services
             // Reject invalid/unknown badgeIDs
             if (badgeToUpdate == null) { return; }
 
-            // Get the list of user badges
+            // Exit if user already earned the Badge ******************
             var userBadges = await _userBadgeRepo.GetAllAsync();
+            var userBadge = userBadges.FirstOrDefault(ub => ub.UserId == user.Id && ub.BadgeId == badgeID);
 
-            // Check if BadgeProgress field (UserBadge.cs) ****************
-            //      is equal to BadgeSteps field (Badge.cs)
-            //          (If equal, invalid input, exit)
-            var isBadgeAlreadyEarned = userBadges.Any(ub => ub.BadgeProgress == badgeToUpdate.BadgeSteps && ub.BadgeId == badgeID);
-
-            if (isBadgeAlreadyEarned) { return; }
+            // If badge is already earned (DateTimeOffset for BadgeEarned is set), exit
+            if (userBadge != null && userBadge.BadgeEarned != null) return;
 
             // Update the BadgeProgress in the UserBadge **************
 
-
-
-            // Recheck if BadgeProgress field is equal to BadgeSteps field *********
-            // If so, run "AddBadge" method call
-            var isBadgeCompleted = userBadges.Any(ub => ub.BadgeProgress == badgeToUpdate.BadgeSteps && ub.BadgeId == badgeToUpdate.BadgeID);
-
-            if (isBadgeCompleted)
+            // Create new UserBadge if it doesn't exist yet for multi-step progress
+            if (userBadge == null)
             {
-                await AddBadge(user, badgeID, ianaTimeZoneId);
+                userBadge = new UserBadge
+                {
+                    UserId = user.Id,
+                    BadgeId = badgeID,
+                    BadgeProgress = 0
+                };
             }
 
-            await Task.CompletedTask;
+            // Add a step to BadgeProgress
+            userBadge.BadgeProgress++;
+
+            // Recheck if BadgeProgress field is equal to BadgeSteps field *********
+
+            if (userBadge.BadgeProgress >= badgeToUpdate.BadgeSteps)
+            {
+                // Badge completed, award it
+                await AddBadge(user, badgeID, ianaTimeZoneId);
+            }
+            else
+            {
+                // Badge incomplete
+                // Save current progress score
+                await _userBadgeRepo.AddOrUpdateAsync(userBadge);
+            }
         }
 
         // Helper method to retrieve badge data from LocalDB
