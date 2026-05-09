@@ -88,28 +88,33 @@ namespace MH.Capstone.WebApp.Controllers
 
             // Soft Update for Sighting Novice Badge ****************************
             var noviceBadgeId = BadgeId.SightingNoviceBadgeGUID;
-            int totalSightings = user.Sightings.Count;
-            
-            // Check if the user already has a record for this badge
-            var noviceRecord = user.UserBadges.FirstOrDefault(ub => ub.BadgeId == noviceBadgeId);
-            bool isEarned = noviceRecord?.BadgeEarned.HasValue ?? false;
 
-            if (!isEarned)
+            var badgeExists = await _badgeRepo.FindByIdAsync(noviceBadgeId);
+            if (badgeExists != null)
             {
-                // Case 1: They have enough sightings (5) to earn it immediately
-                if (totalSightings >= 5)
+                int totalSightings = user!.Sightings.Count;
+            
+                // Check if the user already has a record for this badge
+                var noviceRecord = user.UserBadges.FirstOrDefault(ub => ub.BadgeId == noviceBadgeId);
+                bool isEarned = noviceRecord?.BadgeEarned.HasValue ?? false;
+
+                if (!isEarned)
                 {
-                    await _badgeService.AddBadge(user, noviceBadgeId, userTimeZoneId);
-                }
-                // Case 2: They have partial progress that isn't reflected in their UserBadge record
-                else if (totalSightings > (noviceRecord?.BadgeProgress ?? 0))
-                {
-                    int currentProgress = noviceRecord?.BadgeProgress ?? 0;
-                    
-                    // Calls UpdateBadge for each missing "step"
-                    for (int i = currentProgress; i < totalSightings; i++)
+                    // Case 1: They have enough sightings (5) to earn it immediately
+                    if (totalSightings >= 5)
                     {
-                        await _badgeService.UpdateBadge(user, noviceBadgeId);
+                        await _badgeService.AddBadge(user, noviceBadgeId, userTimeZoneId);
+                    }
+                    // Case 2: They have partial progress that isn't reflected in their UserBadge record
+                    else if (totalSightings > (noviceRecord?.BadgeProgress ?? 0))
+                    {
+                        int currentProgress = noviceRecord?.BadgeProgress ?? 0;
+
+                        // Calls UpdateBadge for each missing "step"
+                        for (int i = currentProgress; i < totalSightings; i++)
+                        {
+                            await _badgeService.UpdateBadge(user, noviceBadgeId);
+                        }
                     }
                 }
             }

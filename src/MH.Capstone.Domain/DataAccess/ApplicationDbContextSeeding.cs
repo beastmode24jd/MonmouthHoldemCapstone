@@ -49,7 +49,7 @@ namespace MH.Capstone.Domain.DataAccess
                 {
                     BadgeID = Constants.BadgeId.SightingNoviceBadgeGUID,
                     Title = "Sighting Novice",
-                    Description = "Took snapshots of 5 animals!",
+                    Description = "Captured 5 animal Sightings!",
                     PointValue = 35,
                     HintToEarn = "Upload 5 Sightings.",
                     BadgeSteps = 5
