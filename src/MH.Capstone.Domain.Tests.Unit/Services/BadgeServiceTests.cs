@@ -177,19 +177,64 @@ public class BadgeServiceTests
 
     #region Multi-Step Badge Progression [CSP-184]
 
-    public async Task UpdateBadgeProgress_ValidBadgeInput_UpdatesBadgeProgress()
+    [Test]
+    public async Task UpdateBadge_NewProgress_CreatesUserBadgeWithOneProgress()
     {
+        // Arrange
+        var user = new ApplicationUser { Id = "test-user" };
+        var badge = new Badge { BadgeID = _testBadgeId, BadgeSteps = 3 };
         
+        _badgeRepoMock.Setup(r => r.FindByIdAsync(_testBadgeId)).ReturnsAsync(badge);
+        _userBadgeRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(new List<UserBadge>().AsQueryable());
+
+        // Act
+        await _badgeService.UpdateBadge(user, _testBadgeId);
+
+        // Assert
+        _userBadgeRepoMock.Verify(r => r.AddOrUpdateAsync(It.Is<UserBadge>(ub => 
+            ub.BadgeId == _testBadgeId && ub.BadgeProgress == 1)), Times.Once);
     }
 
-    public async Task UpdateBadgeProgress_BadgeCompletedByAction_RewardsBadge()
+    [Test]
+    public async Task UpdateBadge_ExistingProgress_IncrementsProgress()
     {
-        
+        // Arrange
+        var user = new ApplicationUser { Id = "test-user" };
+        var badge = new Badge { BadgeID = _testBadgeId, BadgeSteps = 3 };
+        var existingRecord = new UserBadge { UserId = user.Id, BadgeId = _testBadgeId, BadgeProgress = 1 };
+
+        _badgeRepoMock.Setup(r => r.FindByIdAsync(_testBadgeId)).ReturnsAsync(badge);
+        _userBadgeRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(new List<UserBadge>().AsQueryable());
+
+        // Act
+        await _badgeService.UpdateBadge(user, _testBadgeId);
+
+        // Assert
+        Assert.That(existingRecord.BadgeProgress, Is.EqualTo(2));
+        _userBadgeRepoMock.Verify(r => r.AddOrUpdateAsync(existingRecord), Times.Once);
     }
 
-    public async Task UpdateBadgeProgress_InvalidBadge_ThrowsException()
+    [Test]
+    public async Task UpdateBadge_ReachingThreshold_CallsAddBadge()
     {
-        
+        // Arrange
+        var user = new ApplicationUser { Id = "test-user", UserBadges = new List<UserBadge>() };
+        var badge = new Badge { BadgeID = _testBadgeId, BadgeSteps = 2, Title = "Multi-Step Badge" };
+        var recordAtThreshold = new UserBadge { UserId = user.Id, BadgeId = _testBadgeId, BadgeProgress = 1 };
+
+        _badgeRepoMock.Setup(r => r.FindByIdAsync(_testBadgeId)).ReturnsAsync(badge);
+        _userBadgeRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(new List<UserBadge>().AsQueryable());
+
+        // Act
+        await _badgeService.UpdateBadge(user, _testBadgeId);
+
+        // Assert
+        // Verify progress is maxed out and AddBadge logic (points/notifications) was called
+        Assert.That(recordAtThreshold.BadgeProgress, Is.EqualTo(2));
+        _userRepoMock.Verify(r => r.AddOrUpdateAsync(It.Is<ApplicationUser>(u => u.Points > 0)), Times.AtLeastOnce);
     }
 
     #endregion
