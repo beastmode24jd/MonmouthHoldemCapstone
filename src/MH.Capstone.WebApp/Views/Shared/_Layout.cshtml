@@ -120,6 +120,12 @@
                                             <i class="bi bi-collection"></i> My Anidex
                                         </a>
                                     </li>
+                                    @* CSP-177: Offline queue *@
+                                    <li>
+                                        <a id="offlineQueueNavLink" class="dropdown-item text-light" asp-action="OfflineQueue" asp-controller="Sighting">
+                                            <i class="bi bi-cloud-slash"></i> Offline Queue
+                                        </a>
+                                    </li>
                                 </ul>
                             </li>
                             <li class="nav-item">
@@ -134,6 +140,8 @@
                     <ul class="navbar-nav reload-on-notif-change">
                         @if (User.Identity?.IsAuthenticated == true)
                         {
+                            @* CSP-177: user ID used by offline-queue.js to scope the IndexedDB store *@
+                            <span id="currentUserId" class="d-none">@user?.Id</span>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <span id="userDropdownNavDisplay">
@@ -224,6 +232,10 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <script src="~/js/offline-queue.js" asp-append-version="true"></script>
+    }
     @await RenderSectionAsync("Scripts", required: false)
 
     @if (User.Identity?.IsAuthenticated == true)

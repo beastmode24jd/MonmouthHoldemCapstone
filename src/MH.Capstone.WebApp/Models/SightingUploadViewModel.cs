@@ -37,6 +37,10 @@ namespace MH.Capstone.WebApp.Models
         [DisplayFormat(DataFormatString = "{0:yyyy-MM-ddTHH:mm}", ApplyFormatInEditMode = true)]
         public DateTimeOffset Timestamp { get; set; } // Relies on Sighting Controller's input
 
+        // CSP-177: client-generated idempotency key for offline sync retries
+        [MaxLength(36)]
+        public string? ClientSightingId { get; set; } = null;
+
         public SightingUploadViewModel() { }
 
         public SightingUploadViewModel(DateTimeOffset timestamp, decimal latitude, decimal longitude, string? description, string deviceTimezone = "America/Los_Angeles")
@@ -68,7 +72,8 @@ namespace MH.Capstone.WebApp.Models
                 Longitude = vm.Longitude,
                 Description = vm.Description,
                 SpeciesName = string.IsNullOrWhiteSpace(vm.SpeciesName) ? "Unknown" : vm.SpeciesName.Trim(),
-                ImageBuffer = vm.UploadedImage?.ToByteArray() ?? []
+                ImageBuffer = vm.UploadedImage?.ToByteArray() ?? [],
+                ClientSightingId = string.IsNullOrWhiteSpace(vm.ClientSightingId) ? null : vm.ClientSightingId.Trim()
             };
         }
     }

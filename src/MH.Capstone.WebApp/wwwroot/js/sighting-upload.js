@@ -3,6 +3,65 @@
 // CSP-147: EXIF GPS extraction on photo upload.
 // CSP-193: Auto-invoke navigator.geolocation on page load and inform the user inline if denied.
 
+// CSP-177: intercept form submission when offline and save to IndexedDB queue instead.
+// navigator.onLine cannot be overridden in Chrome (non-configurable property), so
+// acceptance tests set window.__FORCE_OFFLINE = true to simulate offline state.
+function isOffline() {
+    return (typeof window.__FORCE_OFFLINE !== 'undefined' && window.__FORCE_OFFLINE) || !navigator.onLine;
+}
+
+(function () {
+    document.addEventListener("DOMContentLoaded", function () {
+        const form = document.getElementById("sightingUploadForm");
+        const userIdEl = document.getElementById("currentUserId");
+        if (!form) return;
+
+        form.addEventListener("submit", async function (e) {
+            if (!isOffline()) return; // normal path — let form submit to server
+
+            e.preventDefault();
+
+            const imageInput = document.getElementById("imageUploadInput");
+            const file = imageInput && imageInput.files && imageInput.files[0];
+
+            let imageDataUrl = null;
+            let imageFileName = null;
+            if (file) {
+                imageDataUrl = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => resolve(ev.target.result);
+                    reader.readAsDataURL(file);
+                });
+                imageFileName = file.name;
+            }
+
+            const clientSightingIdInput = document.getElementById("clientSightingIdInput");
+            const clientSightingId = clientSightingIdInput ? clientSightingIdInput.value : null;
+
+            const userId = userIdEl ? userIdEl.textContent.trim() : null;
+
+            if (!userId) {
+                alert("Cannot save offline sighting: user session not found. Please log in again.");
+                return;
+            }
+
+            await enqueueOfflineSighting(userId, {
+                speciesName: (document.getElementById("SpeciesName") || {}).value || "",
+                latitude: (document.getElementById("latitudeInput") || {}).value || "0",
+                longitude: (document.getElementById("longitudeInput") || {}).value || "0",
+                timestamp: form.querySelector("[name='Timestamp']")?.value || new Date().toISOString(),
+                timezone: form.querySelector("[name='DeviceTimezone']")?.value || "America/Los_Angeles",
+                description: form.querySelector("[name='Description']")?.value || "",
+                imageDataUrl,
+                imageFileName,
+                clientSightingId
+            });
+
+            window.location.href = "/Sighting/OfflineQueue";
+        });
+    });
+})();
+
 // ── Pure helpers (top-level for Jest) ───────────────────────────────────────
 
 function convertDMSToDecimal(dms, ref) {

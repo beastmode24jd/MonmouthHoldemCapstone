@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
@@ -19,14 +20,14 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
     public class NotificationDispatchServiceTests : NotificationServiceBaseTests<NotificationDispatchService>
     {
         private Mock<INotificationPreferenceService> _mockPreferenceService;
-        private Mock<IRepository<EmailQueue, ApplicationDbContext>> _mockEmailQueueRepo;
+        private Channel<EmailMessage> _emailChannel;
 
         [SetUp]
         public new void SetUp()
         {
             base.SetUp();
             _mockPreferenceService = new Mock<INotificationPreferenceService>();
-            _mockEmailQueueRepo = new Mock<IRepository<EmailQueue, ApplicationDbContext>>();
+            _emailChannel = Channel.CreateUnbounded<EmailMessage>();
         }
 
         protected override NotificationDispatchService CreateSut() =>
@@ -35,7 +36,14 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
                 _mockUserService.Object,
                 NullLogger<INotificationService>.Instance,
                 _mockPreferenceService.Object,
-                _mockEmailQueueRepo.Object);
+                _emailChannel.Writer);
+
+        private async Task<EmailMessage?> TryReadEmailAsync()
+        {
+            _emailChannel.Writer.TryComplete();
+            return await _emailChannel.Reader.ReadAsync().AsTask()
+                .ContinueWith(t => t.IsCompletedSuccessfully ? t.Result : (EmailMessage?)null);
+        }
 
         #region SendNotificationAsync – SystemCritical
 
@@ -53,16 +61,14 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
                 .Setup(r => r.AddOrUpdateAsync(It.Is<Notification>(n => n.LinkedUserIdentityId == notif.LinkedUserIdentityId)))
                 .ReturnsAsync(notif);
 
-            _mockEmailQueueRepo
-                .Setup(r => r.AddOrUpdateAsync(It.Is<EmailQueue>(e => e.Recipient == user.Email)))
-                .ReturnsAsync(new EmailQueue());
-
             var sut = CreateSut();
             await sut.SendNotificationAsync(notif, NotificationType.SystemCritical);
 
             _mockNotificationRepository.Verify(r => r.AddOrUpdateAsync(It.IsAny<Notification>()), Times.Once);
-            _mockEmailQueueRepo.Verify(r => r.AddOrUpdateAsync(It.IsAny<EmailQueue>()), Times.Once);
             _mockPreferenceService.VerifyNoOtherCalls();
+
+            Assert.That(_emailChannel.Reader.TryRead(out var queued), Is.True);
+            Assert.That(queued!.Recipient, Is.EqualTo(user.Email));
         }
 
         [Test]
@@ -80,15 +86,11 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
                 .Setup(r => r.AddOrUpdateAsync(It.IsAny<Notification>()))
                 .ReturnsAsync(notif);
 
-            _mockEmailQueueRepo
-                .Setup(r => r.AddOrUpdateAsync(It.Is<EmailQueue>(e => e.HtmlBody == notif.HtmlEmailBody)))
-                .ReturnsAsync(new EmailQueue());
-
             var sut = CreateSut();
             await sut.SendNotificationAsync(notif, NotificationType.SystemCritical);
 
-            _mockEmailQueueRepo.Verify(r => r.AddOrUpdateAsync(
-                It.Is<EmailQueue>(e => e.HtmlBody == notif.HtmlEmailBody)), Times.Once);
+            Assert.That(_emailChannel.Reader.TryRead(out var queued), Is.True);
+            Assert.That(queued!.HtmlBody, Is.EqualTo(notif.HtmlEmailBody));
         }
 
         #endregion
@@ -117,11 +119,11 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
             await sut.SendNotificationAsync(notif, NotificationType.BadgeAwarded);
 
             _mockNotificationRepository.Verify(r => r.AddOrUpdateAsync(It.IsAny<Notification>()), Times.Once);
-            _mockEmailQueueRepo.Verify(r => r.AddOrUpdateAsync(It.IsAny<EmailQueue>()), Times.Never);
+            Assert.That(_emailChannel.Reader.TryRead(out _), Is.False);
         }
 
         [Test]
-        public async Task SendNotificationAsync_PreferenceEmailOnly_OnlyWritesToEmailQueue()
+        public async Task SendNotificationAsync_PreferenceEmailOnly_OnlyWritesToEmailChannel()
         {
             var user = new ApplicationUser { Id = Guid.NewGuid().ToString(), Email = "test@test.com" };
             var notif = NotificationValidValuesSource.GetValidNotification(user.GuidId);
@@ -134,15 +136,12 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
                 .Setup(s => s.GetDeliveryChannelAsync(user, NotificationType.BadgeAwarded))
                 .ReturnsAsync(NotificationDeliveryChannel.EmailOnly);
 
-            _mockEmailQueueRepo
-                .Setup(r => r.AddOrUpdateAsync(It.Is<EmailQueue>(e => e.Recipient == user.Email)))
-                .ReturnsAsync(new EmailQueue());
-
             var sut = CreateSut();
             await sut.SendNotificationAsync(notif, NotificationType.BadgeAwarded);
 
             _mockNotificationRepository.Verify(r => r.AddOrUpdateAsync(It.IsAny<Notification>()), Times.Never);
-            _mockEmailQueueRepo.Verify(r => r.AddOrUpdateAsync(It.IsAny<EmailQueue>()), Times.Once);
+            Assert.That(_emailChannel.Reader.TryRead(out var queued), Is.True);
+            Assert.That(queued!.Recipient, Is.EqualTo(user.Email));
         }
 
         [Test]
@@ -163,15 +162,12 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
                 .Setup(r => r.AddOrUpdateAsync(It.IsAny<Notification>()))
                 .ReturnsAsync(notif);
 
-            _mockEmailQueueRepo
-                .Setup(r => r.AddOrUpdateAsync(It.IsAny<EmailQueue>()))
-                .ReturnsAsync(new EmailQueue());
-
             var sut = CreateSut();
             await sut.SendNotificationAsync(notif, NotificationType.NewSightingActivity);
 
             _mockNotificationRepository.Verify(r => r.AddOrUpdateAsync(It.IsAny<Notification>()), Times.Once);
-            _mockEmailQueueRepo.Verify(r => r.AddOrUpdateAsync(It.IsAny<EmailQueue>()), Times.Once);
+            Assert.That(_emailChannel.Reader.TryRead(out var queued), Is.True);
+            Assert.That(queued!.Recipient, Is.EqualTo(user.Email));
         }
 
         [Test]
@@ -192,7 +188,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
             await sut.SendNotificationAsync(notif, NotificationType.ReportStatusUpdate);
 
             _mockNotificationRepository.Verify(r => r.AddOrUpdateAsync(It.IsAny<Notification>()), Times.Never);
-            _mockEmailQueueRepo.Verify(r => r.AddOrUpdateAsync(It.IsAny<EmailQueue>()), Times.Never);
+            Assert.That(_emailChannel.Reader.TryRead(out _), Is.False);
         }
 
         #endregion
@@ -218,7 +214,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
 
             _mockPreferenceService.Verify(s => s.GetDeliveryChannelAsync(user, NotificationType.AccountActivity), Times.Once);
             _mockNotificationRepository.Verify(r => r.AddOrUpdateAsync(It.IsAny<Notification>()), Times.Never);
-            _mockEmailQueueRepo.Verify(r => r.AddOrUpdateAsync(It.IsAny<EmailQueue>()), Times.Never);
+            Assert.That(_emailChannel.Reader.TryRead(out _), Is.False);
         }
 
         [Test]
@@ -239,15 +235,12 @@ namespace MH.Capstone.Domain.Tests.Unit.Services.Notifications
                 .Setup(r => r.AddOrUpdateAsync(It.IsAny<Notification>()))
                 .ReturnsAsync(notif);
 
-            _mockEmailQueueRepo
-                .Setup(r => r.AddOrUpdateAsync(It.IsAny<EmailQueue>()))
-                .ReturnsAsync(new EmailQueue());
-
             var sut = CreateSut();
             await sut.SendNotificationAsync(notif, NotificationType.AccountActivity);
 
             _mockNotificationRepository.Verify(r => r.AddOrUpdateAsync(It.IsAny<Notification>()), Times.Once);
-            _mockEmailQueueRepo.Verify(r => r.AddOrUpdateAsync(It.IsAny<EmailQueue>()), Times.Once);
+            Assert.That(_emailChannel.Reader.TryRead(out var queued), Is.True);
+            Assert.That(queued!.Recipient, Is.EqualTo(user.Email));
         }
 
         #endregion

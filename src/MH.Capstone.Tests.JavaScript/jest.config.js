@@ -6,6 +6,14 @@ module.exports = {
     // Find tests in __tests__/ directories only
     testMatch: ['**/__tests__/**/*.test.js'],
 
+    // Force Jest to exit after all tests complete, even if there are open handles
+    // (e.g., unclosed IndexedDB connections from fake-indexeddb).
+    forceExit: true,
+
+    // Polyfill structuredClone for jest-environment-jsdom, which uses jsdom@20
+    // and does not expose structuredClone on the global. fake-indexeddb@6 requires it.
+    setupFiles: ['./jest.setup.js'],
+
     // Source files to include in coverage reports
     collectCoverageFrom: [
         '<rootDir>/../MH.Capstone.WebApp/wwwroot/js/**/*.js',

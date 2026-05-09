@@ -21,17 +21,73 @@ namespace MH.Capstone.WebApp.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IBadgeService _badgeService;
         private readonly IPhotoQualityService _photoQualityService;
+        private readonly IAnimalFunFactService _funFactService;
 
         public SightingController(ILogger<SightingController> logger, ISightingsService sightingsService,
             UserManager<ApplicationUser> userManager, IBadgeService badgeService,
-            IPhotoQualityService photoQualityService)
+            IPhotoQualityService photoQualityService,
+            IAnimalFunFactService funFactService)
         {
             _logger = logger;
             _sightingsService = sightingsService;
             _userManager = userManager;
             _badgeService = badgeService;
             _photoQualityService = photoQualityService;
+            _funFactService = funFactService;
         }
+
+        #region CSP-177: Offline Queue
+
+        [HttpGet]
+        [Route("OfflineQueue")]
+        public async Task<IActionResult> OfflineQueue()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                _logger.LogError("Authenticated user could not be found during OfflineQueue access.");
+                return StatusCode((int)HttpStatusCode.InternalServerError);
+            }
+            ViewBag.CurrentUserId = user.Id;
+            return View();
+        }
+
+        #endregion
+
+        #region CSP-172: Sighting Details Page
+
+        [HttpGet]
+        [Route("Details/{id:guid}")]
+        public async Task<IActionResult> Details(Guid id)
+        {
+            var sighting = await _sightingsService.GetSightingByIdAsync(id);
+            if (sighting is null)
+            {
+                _logger.LogInformation("Sighting details requested for unknown id {SightingId}", id);
+                return View("NotFound");
+            }
+
+            var funFact = await _funFactService.GetFunFactAsync(sighting.SpeciesName);
+            var viewModel = new SightingDetailsViewModel(sighting, funFact);
+
+            // Same timezone-cookie convention used by the Gallery action so the displayed
+            // timestamp matches what the user saw on the card they clicked.
+            string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
+            TimeZoneInfo userZone;
+            try
+            {
+                userZone = TimeZoneInfo.FindSystemTimeZoneById(userTimeZoneId);
+            }
+            catch
+            {
+                userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+            }
+            viewModel.Timestamp = TimeZoneInfo.ConvertTime(viewModel.Timestamp, userZone);
+
+            return View(viewModel);
+        }
+
+        #endregion
 
         [HttpGet]
         [Route("Upload")]

@@ -42,6 +42,18 @@ namespace MH.Capstone.Domain.Services
                     firstFail);
             }
 
+            // CSP-177: idempotency — if the client re-submits a queued sighting that was
+            // already stored (e.g. network retry), return the existing point value instead
+            // of creating a duplicate.
+            if (!string.IsNullOrEmpty(entity.ClientSightingId))
+            {
+                var existing = (await _sightingsRepo.GetAllAsync(s =>
+                    s.UserIdentityId == entity.UserIdentityId &&
+                    s.ClientSightingId == entity.ClientSightingId)).FirstOrDefault();
+                if (existing is not null)
+                    return existing.PointValue;
+            }
+
             try
             {
                 // CSP-104 / CSP-142: rarity is derived from the global count of sightings
@@ -191,6 +203,21 @@ namespace MH.Capstone.Domain.Services
             _logger.LogInformation("Retrieved {Count} sightings for user {UserId}", sightings.Count, userId);
 
             return sightings;
+        }
+
+        #endregion
+
+        #region CSP-172: Sighting Details Page
+
+        public async Task<Sighting?> GetSightingByIdAsync(Guid sightingId)
+        {
+            _logger.LogInformation("Fetching sighting {SightingId}", sightingId);
+            var sighting = await _sightingsRepo.FindByIdAsync(sightingId);
+            if (sighting is null)
+            {
+                _logger.LogInformation("Sighting {SightingId} not found.", sightingId);
+            }
+            return sighting;
         }
 
         #endregion

@@ -77,8 +77,8 @@ public class UserControllerTests
         // Arrange
         var users = new List<ApplicationUser>
         {
-            new() { Id = Guid.NewGuid().ToString(), UserName = "alice@test.com" },
-            new() { Id = Guid.NewGuid().ToString(), UserName = "alice_smith@test.com" }
+            new() { Id = Guid.NewGuid().ToString(), UserName = "alice@test.com",       DisplayName = "Alice" },
+            new() { Id = Guid.NewGuid().ToString(), UserName = "alice_smith@test.com", DisplayName = "AliceSmith" }
         };
         _mockUserService
             .Setup(s => s.SearchUsersAsync("alice"))
@@ -92,6 +92,8 @@ public class UserControllerTests
         var dto = result!.Value as UserSearchResponseDto;
         Assert.That(dto!.TotalCount, Is.EqualTo(2));
         Assert.That(dto.Results.Count(), Is.EqualTo(2));
+        // Sprint 6, CSP-200: DTO must surface DisplayName, not email.
+        Assert.That(dto.Results.All(r => r.DisplayName != null && !r.DisplayName.Contains('@')), Is.True);
     }
 
     [Test]
@@ -101,7 +103,8 @@ public class UserControllerTests
         var users = Enumerable.Range(1, 15).Select(i => new ApplicationUser
         {
             Id = Guid.NewGuid().ToString(),
-            UserName = $"user{i:D2}@test.com"
+            UserName = $"user{i:D2}@test.com",
+            DisplayName = $"User{i:D2}"
         }).ToList();
 
         _mockUserService
@@ -127,7 +130,8 @@ public class UserControllerTests
         var users = Enumerable.Range(1, 15).Select(i => new ApplicationUser
         {
             Id = Guid.NewGuid().ToString(),
-            UserName = $"user{i:D2}@test.com"
+            UserName = $"user{i:D2}@test.com",
+            DisplayName = $"User{i:D2}"
         }).ToList();
 
         _mockUserService
@@ -141,6 +145,30 @@ public class UserControllerTests
         var dto = result!.Value as UserSearchResponseDto;
         Assert.That(dto!.Results.Count(), Is.EqualTo(5));
         Assert.That(dto.Page, Is.EqualTo(2));
+    }
+
+    // Sprint 6, CSP-200: response DTO must never carry the email address.
+    [Test]
+    public async Task SearchResults_DtoDoesNotExposeEmail()
+    {
+        // Arrange
+        var users = new List<ApplicationUser>
+        {
+            new() { Id = Guid.NewGuid().ToString(), UserName = "wildlife@example.com", DisplayName = "WildlifeWatcher" }
+        };
+        _mockUserService
+            .Setup(s => s.SearchUsersAsync("wildlife"))
+            .ReturnsAsync(users);
+
+        // Act
+        var result = await _controller.SearchResults("wildlife") as OkObjectResult;
+
+        // Assert
+        var dto = result!.Value as UserSearchResponseDto;
+        var serialized = System.Text.Json.JsonSerializer.Serialize(dto);
+        Assert.That(serialized, Does.Not.Contain("wildlife@example.com"),
+            "user search response must not include email addresses");
+        Assert.That(serialized, Does.Contain("WildlifeWatcher"));
     }
 
     [Test]

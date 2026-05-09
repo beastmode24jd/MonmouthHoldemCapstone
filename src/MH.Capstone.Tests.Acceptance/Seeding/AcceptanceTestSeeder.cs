@@ -370,6 +370,21 @@ internal static class AcceptanceTestSeeder
                 rarity: "Common",
                 rarityMultiplier: 1.7) { SpeciesName = "Great Blue Heron" },
 
+            // CSP-172: SpeciesName is intentionally a string the Animals API will
+            // never resolve, so the details page must render its fun-fact fallback.
+            new Sighting(
+                id:          new Guid("a1000000-0000-0000-0000-000000000004"),
+                userId:      AlexUserId,
+                latitude:    44.851000m,
+                longitude:  -123.231000m,
+                timestamp:   DateTimeOffset.UtcNow.AddDays(-3),
+                description: "An unrecognized animal photographed near the WOU campus.",
+                imageBuffer: img,
+                pointValue: 10,
+                loginStreak: true,
+                rarity: "Common",
+                rarityMultiplier: 1.0) { SpeciesName = "Mystery Critter Z" },
+
             // ── Lily ──────────────────────────────────────────────────────────
 
             // Crater Lake — mythic-tier candidate (very few global sightings expected)
