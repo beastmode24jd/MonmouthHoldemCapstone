@@ -57,8 +57,10 @@ public class CSP176StepDefinitions
     public void ThenPageShouldNotRequireHorizontalScrolling()
     {
         // documentElement.scrollWidth > clientWidth means content overflows the viewport horizontally.
-        var overflowPx = (long)((IJavaScriptExecutor)_webDriver).ExecuteScript(
-            "return document.documentElement.scrollWidth - document.documentElement.clientWidth;");
+        // Use Convert.ToInt64 because Selenium's ExecuteScript may return either Int64 or Double
+        // depending on browser/headless mode; a hard `(long)` cast fails on Double.
+        var overflowPx = Convert.ToInt64(((IJavaScriptExecutor)_webDriver).ExecuteScript(
+            "return document.documentElement.scrollWidth - document.documentElement.clientWidth;"));
         // Allow a 1px tolerance for sub-pixel rounding on some renderers.
         overflowPx.Should().BeLessThanOrEqualTo(1,
             $"the page should fit the viewport without horizontal scrolling; overflow was {overflowPx}px");
@@ -69,11 +71,13 @@ public class CSP176StepDefinitions
     {
         // On mobile (col-12), each card wrapper's width should equal the row's width.
         // Permit a small delta because of Bootstrap's gutter padding (gx/gy classes add per-column padding).
-        var ratio = (double)((IJavaScriptExecutor)_webDriver).ExecuteScript(
+        // Convert.ToDouble handles both Int64 (when result is whole, e.g. 1.0) and Double; a hard
+        // `(double)` cast fails when V8 returns the integer form.
+        var ratio = Convert.ToDouble(((IJavaScriptExecutor)_webDriver).ExecuteScript(
             "var row = document.querySelector('#sightingsGrid'); " +
             "var card = document.querySelector('.sighting-card-wrapper'); " +
             "if (!row || !card) return 0; " +
-            "return card.getBoundingClientRect().width / row.getBoundingClientRect().width;");
+            "return card.getBoundingClientRect().width / row.getBoundingClientRect().width;"));
         ratio.Should().BeGreaterThan(0.9,
             "on mobile each sighting card should fill its row (col-12); ratio was {0:0.00}", ratio);
     }
@@ -82,11 +86,11 @@ public class CSP176StepDefinitions
     public void ThenSightingCardsShouldBeArrangedInMultipleColumns()
     {
         // On desktop (col-md-4 / col-lg-3), each card occupies less than half the row.
-        var ratio = (double)((IJavaScriptExecutor)_webDriver).ExecuteScript(
+        var ratio = Convert.ToDouble(((IJavaScriptExecutor)_webDriver).ExecuteScript(
             "var row = document.querySelector('#sightingsGrid'); " +
             "var card = document.querySelector('.sighting-card-wrapper'); " +
             "if (!row || !card) return 1; " +
-            "return card.getBoundingClientRect().width / row.getBoundingClientRect().width;");
+            "return card.getBoundingClientRect().width / row.getBoundingClientRect().width;"));
         ratio.Should().BeLessThan(0.5,
             "on desktop sightings should grid into multiple columns; ratio was {0:0.00}", ratio);
     }
@@ -102,10 +106,10 @@ public class CSP176StepDefinitions
     public void ThenLeaderboardTableColumnsShouldAllBeVisible()
     {
         // On a wide desktop viewport, the table should fit without internal horizontal scroll.
-        var overflowPx = (long)((IJavaScriptExecutor)_webDriver).ExecuteScript(
+        var overflowPx = Convert.ToInt64(((IJavaScriptExecutor)_webDriver).ExecuteScript(
             "var t = document.querySelector('table.table'); " +
             "if (!t) return -1; " +
-            "return t.scrollWidth - t.clientWidth;");
+            "return t.scrollWidth - t.clientWidth;"));
         overflowPx.Should().BeLessThanOrEqualTo(1,
             $"the leaderboard table should fit on a desktop viewport without internal scroll; overflow was {overflowPx}px");
     }
