@@ -174,4 +174,23 @@ public class BadgeServiceTests
             Assert.That(result[1].BadgeEarned, Is.EqualTo(oldTime)); // oldTime should be DateTimeOffset
         });
     }
+
+    #region Multi-Step Badge Progression [CSP-184]
+
+    public async Task UpdateBadgeProgress_ValidBadgeInput_UpdatesBadgeProgress()
+    {
+        
+    }
+
+    public async Task UpdateBadgeProgress_BadgeCompleted_ReturnsSafely()
+    {
+        
+    }
+
+    public async Task UpdateBadgeProgress_InvalidBadge_ExitsSafely()
+    {
+        
+    }
+
+    #endregion
 }

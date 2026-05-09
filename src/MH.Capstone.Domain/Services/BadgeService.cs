@@ -111,6 +111,24 @@ namespace MH.Capstone.Domain.Services
             await Task.CompletedTask;
         }
 
+        public async Task UpdateBadge(ApplicationUser user, Guid badgeID, string ianaTimeZoneId = "America/Los_Angeles")
+        {
+            // Arguments will be used if user completes the Badge after running this method
+
+            // Reject invalid Badge IDs first
+
+            // Check if BadgeProgress field (UserBadge.cs)
+            //      is equal to BadgeSteps field (Badge.cs)
+            //          (If equal, invalid input, exit)
+
+            // Update the BadgeProgress in the UserBadge
+
+            // Recheck if BadgeProgress field is equal to BadgeSteps field
+            // If so, run "AddBadge" method call
+
+            await Task.CompletedTask;
+        }
+
         // Helper method to retrieve badge data from LocalDB
         public async Task<Badge?> GetBadgeDetails(Guid newBadgeId)
         {
