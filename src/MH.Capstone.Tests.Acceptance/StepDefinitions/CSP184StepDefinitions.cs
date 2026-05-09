@@ -119,7 +119,7 @@ public class CSP184StepDefinitions
         _authDriver.PreformLoginForUser("alex@test.com", "Capstone26!");
 
         // Alex should have a "First Sighting" Badge.
-        // This means progress has started on the "Sighting Student" Badge (25 Sightings submitted)
+        // This means progress has started on the "Sighting Novice" Badge (5 Sightings submitted)
         // Gallery says Alex has 4 Sightings uploaded.
     }
 
@@ -134,7 +134,7 @@ public class CSP184StepDefinitions
     {
         // BadgeSteps int field in Badge.cs
         // BadgeProgress int field in UserBadge.cs
-        
+
     }
 
     [Then("a prompt is shown to guide my progress")]

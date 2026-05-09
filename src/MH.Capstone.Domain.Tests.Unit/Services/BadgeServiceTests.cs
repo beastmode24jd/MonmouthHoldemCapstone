@@ -182,12 +182,12 @@ public class BadgeServiceTests
         
     }
 
-    public async Task UpdateBadgeProgress_BadgeCompleted_ReturnsSafely()
+    public async Task UpdateBadgeProgress_BadgeCompletedByAction_RewardsBadge()
     {
         
     }
 
-    public async Task UpdateBadgeProgress_InvalidBadge_ExitsSafely()
+    public async Task UpdateBadgeProgress_InvalidBadge_ThrowsException()
     {
         
     }

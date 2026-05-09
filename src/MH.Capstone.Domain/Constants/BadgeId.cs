@@ -12,8 +12,12 @@ namespace MH.Capstone.Domain.Constants
             public static readonly Guid FirstSightingBadgeGUID = Guid.Parse("B2C3D4E5-F6A7-4890-9B0C-1D2E3F4B5A6F");
 
             // ******* NEW BADGES TO ADD IN [ NOT ALL AT ONCE ] *******
-            // public static readonly Guid SightingNoviceBadgeGUID = Guid.Parse(""); // 5 Sightings
-            // public static readonly Guid SightingStudentBadgeGUID = Guid.Parse(""); // 25 Sightings
+            
+            // 5 Sightings
+            public static readonly Guid SightingNoviceBadgeGUID = Guid.Parse("27857ec5-189e-46e8-be28-871123607f20");
+
+            // 25 Sightings
+            // public static readonly Guid SightingStudentBadgeGUID = Guid.Parse("");
             
             // First mythic Sighting upload
             public static readonly Guid MythicSnapshotBadgeGUID = Guid.Parse("edead9d9-cdc2-423e-b404-88cc8d15ab38");

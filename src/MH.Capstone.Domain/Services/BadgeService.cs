@@ -36,10 +36,14 @@ namespace MH.Capstone.Domain.Services
             // Get the list of user badges.
             var existingBadges = await _userBadgeRepo.GetAllAsync();
 
+            // NEED TO MODIFY THIS PORTION FOR UPDATEBADGE() ******
+
             // If this specific user already has this newBadgeID, exit.
             var alreadyExists = existingBadges.Any(ub => ub.UserId == user.Id && ub.BadgeId == newBadgeID);
 
             if (alreadyExists) { return; }
+            
+            // *************
 
             // Get the parameters of this new badge.
             var badgeTemplate = await _badgeRepo.FindByIdAsync(newBadgeID);
@@ -115,16 +119,34 @@ namespace MH.Capstone.Domain.Services
         {
             // Arguments will be used if user completes the Badge after running this method
 
-            // Reject invalid Badge IDs first
+            // Check if BadgeID is in valid Badge list ********************
+            var badgeToUpdate = await _badgeRepo.FindByIdAsync(badgeID);
 
-            // Check if BadgeProgress field (UserBadge.cs)
+            // Reject invalid/unknown badgeIDs
+            if (badgeToUpdate == null) { return; }
+
+            // Get the list of user badges
+            var userBadges = await _userBadgeRepo.GetAllAsync();
+
+            // Check if BadgeProgress field (UserBadge.cs) ****************
             //      is equal to BadgeSteps field (Badge.cs)
             //          (If equal, invalid input, exit)
+            var isBadgeAlreadyEarned = userBadges.Any(ub => ub.BadgeProgress == badgeToUpdate.BadgeSteps && ub.BadgeId == badgeID);
 
-            // Update the BadgeProgress in the UserBadge
+            if (isBadgeAlreadyEarned) { return; }
 
-            // Recheck if BadgeProgress field is equal to BadgeSteps field
+            // Update the BadgeProgress in the UserBadge **************
+
+
+
+            // Recheck if BadgeProgress field is equal to BadgeSteps field *********
             // If so, run "AddBadge" method call
+            var isBadgeCompleted = userBadges.Any(ub => ub.BadgeProgress == badgeToUpdate.BadgeSteps && ub.BadgeId == badgeToUpdate.BadgeID);
+
+            if (isBadgeCompleted)
+            {
+                await AddBadge(user, badgeID, ianaTimeZoneId);
+            }
 
             await Task.CompletedTask;
         }
