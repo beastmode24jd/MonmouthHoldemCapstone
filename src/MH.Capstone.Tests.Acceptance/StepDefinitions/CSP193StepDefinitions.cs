@@ -86,7 +86,19 @@ public class CSP193StepDefinitions
     [When("Alex submits the sightings form")]
     public void WhenAlexSubmitsSightingsForm()
     {
+        // Upload a valid image so [Required] UploadedImage passes; otherwise that
+        // error masks the class-level NotDefaultCoordinates error we are testing.
+        _generatedImagePath = GenerateValidUploadImage();
+        _sightingsDriver.SetImageForUpload(_generatedImagePath);
         _sightingsDriver.SubmitSightingsForm();
+    }
+
+    private static string GenerateValidUploadImage()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"csp193_{Guid.NewGuid():N}.jpg");
+        using var image = new Image<Rgb24>(1024, 1024);
+        image.SaveAsJpeg(path);
+        return path;
     }
 
     [Then("the latitude input should display {string}")]
