@@ -12,8 +12,8 @@ namespace MH.Capstone.Domain.Constants
             public static readonly Guid FirstSightingBadgeGUID = Guid.Parse("B2C3D4E5-F6A7-4890-9B0C-1D2E3F4B5A6F");
 
             // ******* NEW BADGES TO ADD IN [ NOT ALL AT ONCE ] *******
-            public static readonly Guid SightingNoviceBadgeGUID = Guid.Parse(""); // 5 Sightings
-            public static readonly Guid SightingStudentBadgeGUID = Guid.Parse(""); // 25 Sightings
+            // public static readonly Guid SightingNoviceBadgeGUID = Guid.Parse(""); // 5 Sightings
+            // public static readonly Guid SightingStudentBadgeGUID = Guid.Parse(""); // 25 Sightings
             
             // First mythic Sighting upload
             public static readonly Guid MythicSnapshotBadgeGUID = Guid.Parse("edead9d9-cdc2-423e-b404-88cc8d15ab38");
@@ -25,7 +25,7 @@ namespace MH.Capstone.Domain.Constants
             public static readonly Guid CommonSnapshotBadgeGUID = Guid.Parse("7e5c3e3c-358f-40ac-8eaf-fe7e1a33677a");
             
             // ANIDEX
-            public static readonly Guid AnidexBeginnerBadgeGUID = Guid.Parse(""); // 5 different animals in the Anidex
-            public static readonly Guid AnidexScribeBadgeGUID = Guid.Parse(""); // 10 different animals in the Anidex
+            // public static readonly Guid AnidexBeginnerBadgeGUID = Guid.Parse(""); // 5 different animals in the Anidex
+            // public static readonly Guid AnidexScribeBadgeGUID = Guid.Parse(""); // 10 different animals in the Anidex
     }
 }

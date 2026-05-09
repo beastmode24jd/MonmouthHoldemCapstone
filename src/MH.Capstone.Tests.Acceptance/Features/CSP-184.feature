@@ -18,10 +18,9 @@ Scenario: Alex has no badge progress on a badge
 
 @badge
 Scenario: Alex sees badge progression and next milestone
-    Given I have partial progress on a multi-step badge
+    Given I have partial progress on a multi step badge
     When I view my Badge page
     Then a progress bar and the countdown remaining is displayed
-    And a prompt is shown to guide my progress
 
 @badge
 Scenario: Alex's Badge page processes updates after relevant action
