@@ -86,6 +86,34 @@ namespace MH.Capstone.WebApp.Controllers
             // Get the user device's local timezone cookie, default timezone is PST
             string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
 
+            // Soft Update for Sighting Novice Badge ****************************
+            var noviceBadgeId = BadgeId.SightingNoviceBadgeGUID;
+            int totalSightings = user.Sightings.Count;
+            
+            // Check if the user already has a record for this badge
+            var noviceRecord = user.UserBadges.FirstOrDefault(ub => ub.BadgeId == noviceBadgeId);
+            bool isEarned = noviceRecord?.BadgeEarned.HasValue ?? false;
+
+            if (!isEarned)
+            {
+                // Case 1: They have enough sightings (5) to earn it immediately
+                if (totalSightings >= 5)
+                {
+                    await _badgeService.AddBadge(user, noviceBadgeId, userTimeZoneId);
+                }
+                // Case 2: They have partial progress that isn't reflected in their UserBadge record
+                else if (totalSightings > (noviceRecord?.BadgeProgress ?? 0))
+                {
+                    int currentProgress = noviceRecord?.BadgeProgress ?? 0;
+                    
+                    // Calls UpdateBadge for each missing "step"
+                    for (int i = currentProgress; i < totalSightings; i++)
+                    {
+                        await _badgeService.UpdateBadge(user, noviceBadgeId);
+                    }
+                }
+            }
+
             // Get sorted Badges for display
             var sortedBadges = new List<UserBadge>();
             if (user != null)

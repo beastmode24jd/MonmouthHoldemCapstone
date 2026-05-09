@@ -20,7 +20,7 @@ namespace MH.Capstone.Domain.DataAccess
                 new Badge
                 {
                     BadgeID = Constants.BadgeId.ProfileBadgeGUID,
-                    Title = "Custom Profile Badge",
+                    Title = "Custom Profile",
                     Description = "Uploaded a custom profile image.",
                     PointValue = 10,
                     HintToEarn = "Upload a custom profile icon."
@@ -30,7 +30,7 @@ namespace MH.Capstone.Domain.DataAccess
                 new Badge
                 {
                     BadgeID = Constants.BadgeId.CustomBioBadgeGUID,
-                    Title = "Custom Bio Badge",
+                    Title = "Custom Bio",
                     Description = "Updated your profile with a custom description.",
                     PointValue = 10,
                     HintToEarn = "Update your profile with a custom bio."
@@ -39,10 +39,20 @@ namespace MH.Capstone.Domain.DataAccess
                 new Badge
                 {
                     BadgeID = Constants.BadgeId.FirstSightingBadgeGUID,
-                    Title = "First Sighting Badge",
+                    Title = "First Sighting",
                     Description = "Uploaded your first Sighting!",
                     PointValue = 25,
                     HintToEarn = "Upload a Sighting."
+                },
+
+                new Badge
+                {
+                    BadgeID = Constants.BadgeId.SightingNoviceBadgeGUID,
+                    Title = "Sighting Novice",
+                    Description = "Took snapshots of 5 animals!",
+                    PointValue = 35,
+                    HintToEarn = "Upload 5 Sightings.",
+                    BadgeSteps = 5
                 }
             };
 
