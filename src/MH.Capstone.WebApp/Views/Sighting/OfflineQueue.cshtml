@@ -1,0 +1,56 @@
+@{
+    ViewData["Title"] = "Offline Queue";
+}
+
+<h1 class="mt-2">Offline Sightings Queue</h1>
+
+<span id="currentUserId" class="d-none">@ViewBag.CurrentUserId</span>
+
+<div id="connectivityStatus" class="alert alert-secondary" role="status">Checking connectivity...</div>
+
+<div class="d-flex gap-2 mb-3">
+    <button id="syncNowBtn" class="btn btn-primary">
+        <i class="bi bi-cloud-upload"></i> Sync Now
+    </button>
+    <a href="@Url.Action("Gallery", "Sighting")" class="btn btn-outline-secondary">
+        <i class="bi bi-images"></i> Back to Gallery
+    </a>
+</div>
+
+@Html.AntiForgeryToken()
+
+<div id="offlineQueueEmpty" class="text-muted d-none">
+    <p>No queued sightings. Sightings captured while offline will appear here.</p>
+</div>
+
+<div id="offlineQueueGrid"></div>
+
+<!-- Edit modal -->
+<div class="modal fade" id="editQueueItemModal" tabindex="-1" aria-labelledby="editQueueItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editQueueItemModalLabel">Edit Queued Sighting</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="editSpeciesInput" class="form-label">Species</label>
+                    <input type="text" id="editSpeciesInput" class="form-control" maxlength="100" />
+                </div>
+                <div class="mb-3">
+                    <label for="editDescriptionInput" class="form-label">Description</label>
+                    <textarea id="editDescriptionInput" class="form-control" rows="4" maxlength="500"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="saveEditBtn" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/offline-queue.js" asp-append-version="true"></script>
+}

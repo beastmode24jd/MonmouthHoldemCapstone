@@ -4,16 +4,19 @@ using MH.Capstone.Domain.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace MH.Capstone.Domain.DataAccess.Migrations
+namespace MH.Capstone.Domain.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260508065700_CSP177_AddClientSightingId")]
+    partial class CSP177_AddClientSightingId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -127,16 +130,7 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.Property<byte[]>("BadgeIcon")
                         .HasColumnType("varbinary(max)");
 
-                    b.Property<int>("BadgeSteps")
-                        .HasColumnType("int")
-                        .HasColumnName("Badge Steps");
-
                     b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("HintToEarn")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
@@ -475,10 +469,6 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.Property<Guid>("BadgeId")
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("Badge ID");
-
-                    b.Property<int>("BadgeProgress")
-                        .HasColumnType("int")
-                        .HasColumnName("Badge Progress");
 
                     b.Property<string>("UserId")
                         .IsRequired()
