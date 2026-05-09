@@ -206,7 +206,7 @@ public class BadgeServiceTests
 
         _badgeRepoMock.Setup(r => r.FindByIdAsync(_testBadgeId)).ReturnsAsync(badge);
         _userBadgeRepoMock.Setup(r => r.GetAllAsync())
-            .ReturnsAsync(new List<UserBadge>().AsQueryable());
+            .ReturnsAsync(new List<UserBadge> { existingRecord }.AsQueryable());
 
         // Act
         await _badgeService.UpdateBadge(user, _testBadgeId);
@@ -220,13 +220,14 @@ public class BadgeServiceTests
     public async Task UpdateBadge_ReachingThreshold_CallsAddBadge()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "test-user", UserBadges = new List<UserBadge>() };
+        var validGuidId = Guid.NewGuid().ToString();
+        var user = new ApplicationUser { Id = validGuidId, UserBadges = new List<UserBadge>() };
         var badge = new Badge { BadgeID = _testBadgeId, BadgeSteps = 2, Title = "Multi-Step Badge" };
         var recordAtThreshold = new UserBadge { UserId = user.Id, BadgeId = _testBadgeId, BadgeProgress = 1 };
 
         _badgeRepoMock.Setup(r => r.FindByIdAsync(_testBadgeId)).ReturnsAsync(badge);
         _userBadgeRepoMock.Setup(r => r.GetAllAsync())
-            .ReturnsAsync(new List<UserBadge>().AsQueryable());
+            .ReturnsAsync(new List<UserBadge> { recordAtThreshold }.AsQueryable());
 
         // Act
         await _badgeService.UpdateBadge(user, _testBadgeId);
