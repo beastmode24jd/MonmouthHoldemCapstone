@@ -40,6 +40,9 @@ namespace MH.Capstone.WebApp.Controllers
         private readonly IBadgeService _badgeService;
         private readonly IRepository<Badge, ApplicationDbContext> _badgeRepo; // For Badges page
 
+        // To check Anidex species count for loading in Anidex Beginner Badge for older accounts
+        private readonly ISightingsService _sightingsService;
+
         private readonly INotificationPreferenceService _notificationPreferenceService;
 
         // Constructor that injects the logger dependency
@@ -48,7 +51,8 @@ namespace MH.Capstone.WebApp.Controllers
             IBadgeService badgeService, INotificationService notificationService,
             IUserService userService, IRepository<Notification, ApplicationDbContext> notificationRepo,
             IRepository<Badge, ApplicationDbContext> badgeRepo,
-            INotificationPreferenceService notificationPreferenceService)
+            INotificationPreferenceService notificationPreferenceService,
+            ISightingsService sightingsService)
         {
             _logger = logger;
             _imageService = imageService;
@@ -59,6 +63,7 @@ namespace MH.Capstone.WebApp.Controllers
             _userService = userService;
             _notificationRepo = notificationRepo;
             _notificationPreferenceService = notificationPreferenceService;
+            _sightingsService = sightingsService;
         }
 
         // Displays the main dashboard page for authenticated users. 
@@ -86,18 +91,24 @@ namespace MH.Capstone.WebApp.Controllers
             // Get the user device's local timezone cookie, default timezone is PST
             string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
 
-            // Soft Update for Sighting Novice Badge ****************************
-            int totalSightings = user?.Sightings?.Count ?? 0;
+            // Badge soft-update: sync progress for all multi-step badges on every login.
+            // Handles backwards compatibility for accounts that predate BadgeSteps/BadgeProgress.
+            if (user != null)
+            {
+                int totalSightings = user.Sightings?.Count ?? 0;
 
-            // Sync Sighting Novice (5 steps)
-            await _badgeService.SyncBadgeProgressAsync(user!, BadgeId.SightingNoviceBadgeGUID, totalSightings, userTimeZoneId);
+                var anidexEntries = await _sightingsService.GetUserAnidexAsync(user.GuidId);
+                int uniqueAnimals = anidexEntries.Count();
 
-            // Sync Sighting Student (25 steps)
-            await _badgeService.SyncBadgeProgressAsync(user!, BadgeId.SightingStudentBadgeGUID, totalSightings, userTimeZoneId);
+                // Sync Sighting Novice (5 sightings)
+                await _badgeService.SyncBadgeProgressAsync(user, BadgeId.SightingNoviceBadgeGUID, totalSightings, userTimeZoneId);
 
-            // Sync Anidex Beginner (Once logic is ready, pass unique species count here)
-            // int uniqueAnimals = user!.Sightings.Select(s => s.AnimalId).Distinct().Count();
-            // await _badgeService.SyncBadgeProgressAsync(user, BadgeId.AnidexBeginnerBadgeGUID, uniqueAnimals, userTimeZoneId);
+                // Sync Sighting Student (25 sightings)
+                await _badgeService.SyncBadgeProgressAsync(user, BadgeId.SightingStudentBadgeGUID, totalSightings, userTimeZoneId);
+
+                // Sync Anidex Beginner (5 unique species)
+                await _badgeService.SyncBadgeProgressAsync(user, BadgeId.AnidexBeginnerBadgeGUID, uniqueAnimals, userTimeZoneId);
+            }
 
             // Get sorted Badges for display
             var sortedBadges = new List<UserBadge>();
