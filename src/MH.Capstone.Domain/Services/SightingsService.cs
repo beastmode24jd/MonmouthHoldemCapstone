@@ -97,11 +97,15 @@ namespace MH.Capstone.Domain.Services
                     entity.PointValue = pointsEarned;
                     await _sightingsRepo.AddOrUpdateAsync(entity);
 
-                    // Check Anidex Beginner badge: count unique species after the new sighting is saved
-                    var allUserSightings = await _sightingsRepo.GetAllAsync(s => s.UserIdentityId == user.Id);
-                    int uniqueAnimals = allUserSightings
+                    // Materialize all user sightings once; derive both counts from the same list.
+                    var userSightingList = (await _sightingsRepo.GetAllAsync(s => s.UserIdentityId == user.Id)).ToList();
+                    int totalSightings = userSightingList.Count;
+                    int uniqueAnimals = userSightingList
                         .GroupBy(s => s.SpeciesName, StringComparer.OrdinalIgnoreCase)
                         .Count();
+
+                    await _badgeService.SyncBadgeProgressAsync(user, BadgeId.SightingNoviceBadgeGUID, totalSightings, ianaTimeZoneId);
+                    await _badgeService.SyncBadgeProgressAsync(user, BadgeId.SightingStudentBadgeGUID, totalSightings, ianaTimeZoneId);
                     await _badgeService.SyncBadgeProgressAsync(user, BadgeId.AnidexBeginnerBadgeGUID, uniqueAnimals, ianaTimeZoneId);
 
                     // Convert timezone IANA ID to a TimeZoneInfo object
