@@ -123,7 +123,8 @@ namespace MH.Capstone.WebApp.Controllers
             var sortedBadges = new List<UserBadge>();
             if (user != null)
             {
-                sortedBadges = await _badgeService.SortBadgesByTime(user.UserBadges);
+                var earnedBadges = user.UserBadges.Where(ub => ub.BadgeEarned.HasValue).ToList();
+                sortedBadges = await _badgeService.SortBadgesByTime(earnedBadges);
 
                 TimeZoneInfo userZone;
                 try
@@ -507,7 +508,7 @@ namespace MH.Capstone.WebApp.Controllers
             var viewModel = new BadgesViewModel
             {
                 AllBadges = allBadges.OrderBy(b => b.Title).ToList(),
-                UserBadges = user.UserBadges,
+                UserBadges = user.UserBadges.Where(ub => ub.BadgeEarned.HasValue).ToList(),
                 CurrentUserId = user.GuidId
             };
 

@@ -17,7 +17,7 @@
                 {
                     // Find if the user has earned this specific badge
                     var earnedBadge = Model.UserBadges.FirstOrDefault(ub => ub.BadgeId == badge.BadgeID);
-                    bool isEarned = earnedBadge != null;
+                    bool isEarned = earnedBadge != null && earnedBadge.BadgeEarned.HasValue;
                     
                     <div class="col-md-4 col-sm-6">
                         <div class="card h-100 badge-card @(isEarned ? "border-success shadow-sm" : "badge-greyed")">
