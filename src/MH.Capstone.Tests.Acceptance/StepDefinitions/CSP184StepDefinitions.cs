@@ -41,6 +41,16 @@ public class CSP184StepDefinitions
         _baseUrl = settings.BaseUrl.TrimEnd('/');
     }
 
+    // Resets Alex's sighting count and badge state before each scenario so the
+    // full-suite run does not see Sighting Novice already earned from sightings
+    // other features submit as Alex (CSP-53, CSP-122, CSP-125, CSP-141,
+    // CSP-144, CSP-193, plus this feature's own Scenario 4).
+    [BeforeScenario("badge")]
+    public static async Task BeforeBadgeScenario()
+    {
+        await TestWebAppHost.ResetSeedDataAsync();
+    }
+
     // Scenario 1: Dedicated Badges page
 
     [Given("Alex is logged in")]

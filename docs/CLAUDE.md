@@ -188,7 +188,7 @@ Singleton from `appsettings.json`:
 - **Database:** Real SQL Server LocalDB (`WAID_AppDataDb`) — not InMemory. Migrations + seeding run on startup.
 - **Config load order:** `appsettings.json` → `appsettings.Acceptance.json` → `appsettings.Acceptance.Local.json` (gitignored) → env vars.
 - **Browser:** One shared `ChromeDriver` for the entire run (`BeforeTestRun`/`AfterTestRun`).
-- **Scenario isolation:** `TestWebAppHost.ResetSeedData()` is a `NotImplementedException` stub — scenarios must tolerate persistent DB state.
+- **Scenario isolation:** `TestWebAppHost.ResetSeedDataAsync()` is fully implemented — it delegates to `AcceptanceTestSeeder.SeedAsync`, which `ExecuteDeleteAsync`'s every application table in FK-safe order and re-inserts the canonical fixtures. Features that can't tolerate persistent DB state (e.g. accumulated sightings/badges from other features touching the same persona) opt in with a `[BeforeScenario(<tag>)] public static async Task` hook that calls `await TestWebAppHost.ResetSeedDataAsync()`. Existing adopters: CSP-133, CSP-138, CSP-184.
 - **DI in steps:** Per-scenario DI via `[ScenarioDependencies]` in `TestDependencySetup`. Every new Driver must be registered as `services.AddTransient<TDriver>()` — Reqnroll does not auto-discover.
 - **Password reset pattern:** `PasswordResetDriver.GetPasswordResetLink(email)` → navigate to URL (mimics email click).
 - **Email confirmation pattern:** `EmailVerificationDriver.GetEmailConfirmationLink(email)` → navigate to URL. Fresh unverified users use `csp134_{guid}@test.com`.
@@ -428,7 +428,7 @@ Drill-down view from the Sightings Gallery. Clicking a card navigates to `/Sight
 
 **CSP-184 Badges page:**
 - `Features/CSP-184.feature` — 4 scenarios: nav bar link visible, no-progress badge greyed with hint, partial-progress shows progress bar + step count, action advances badge and page updates
-- `StepDefinitions/CSP184StepDefinitions.cs` — Scenario 3 navigates to `/dashboard` first (triggers `SyncBadgeProgressAsync`), then checks `.badge-step-count`. Scenario 4 asserts Sighting Novice card specifically via XPath `ancestor::div[contains(@class,'badge-card')]` from the title text, checks `border-success` class and `span.badge.bg-success` visibility.
+- `StepDefinitions/CSP184StepDefinitions.cs` — Scenario 3 navigates to `/dashboard` first (triggers `SyncBadgeProgressAsync`), then checks `.badge-step-count`. Scenario 4 asserts Sighting Novice card specifically via XPath `ancestor::div[contains(@class,'badge-card')]` from the title text, checks `border-success` class and `span.badge.bg-success` visibility. `[BeforeScenario("badge")]` calls `TestWebAppHost.ResetSeedDataAsync()` so Alex starts each scenario at exactly his 4 seeded sightings — without this, sightings other features submit as Alex (CSP-53/122/125/141/144/193) push him past the 5-sighting Sighting Novice threshold and Scenario 3's progress bar disappears.
 - No new Driver or PageObject — scenarios use `_driver`/`_wait` directly.
 
 **Acceptance infrastructure:**
