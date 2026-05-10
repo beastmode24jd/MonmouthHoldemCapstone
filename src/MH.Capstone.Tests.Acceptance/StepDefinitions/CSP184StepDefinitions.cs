@@ -203,31 +203,23 @@ public class CSP184StepDefinitions
     [Then("the Badge page updates")]
     public void ThenTheBadgePageUpdates()
     {
-        //The Sighting Novice badge is CURRENTLY the only multi-step badge.
-        // Now that it is earned, its progress bar should be gone entirely.
-        var progressBars = _driver.FindElements(By.ClassName("progress"));
-        progressBars.Count.Should().Be(0, "the Sighting Novice badge should now be earned, removing the progress bar");
+        // Locate the Sighting Novice card specifically by walking up from its title text.
+        // Using ancestor:: means this stays correct even when other multi-step badges exist.
+        var sightingNoviceCard = _wait.Until(d =>
+            d.FindElement(By.XPath(
+                "//strong[normalize-space(text())='Sighting Novice']" +
+                "/ancestor::div[contains(@class,'badge-card')]"
+            ))
+        );
 
-        // The Sighting Novice card should now show the green 'Earned' indicator.
-        // span.badge.bg-success is the element rendered in Badges.cshtml for earned badges.
-        var earnedIndicator = _wait.Until(d =>
-        {
-            var spans = d.FindElements(By.CssSelector("span.badge.bg-success"));
-            return spans.FirstOrDefault(s => s.Text.Contains("Earned"));
-        });
+        // The card container should carry 'border-success' now that the badge is earned
+        sightingNoviceCard.GetAttribute("class")
+            .Should().Contain("border-success",
+                "the Sighting Novice card should switch to its earned styling");
 
-        earnedIndicator.Should().NotBeNull("the Sighting Novice badge card should display the Earned indicator");
-        earnedIndicator!.Displayed.Should().BeTrue("the Earned indicator should be visible on the page)");
+        // The 'Earned' span inside that card should be visible
+        var earnedSpan = sightingNoviceCard.FindElement(By.CssSelector("span.badge.bg-success"));
+        earnedSpan.Displayed.Should().BeTrue(
+            "the Earned indicator should be visible on the Sighting Novice card");
     }
-
-    /*
-        Testing order:
-            - Custom Badges page -- DONE
-            
-            - Add placeholder hints and prompts per-badge -- DONE
-
-            - Add new badge with multi-step progression -- DONE
-
-            - Automate the check for multi-step progression saving 
-    */
 }
