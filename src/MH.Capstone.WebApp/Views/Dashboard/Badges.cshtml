@@ -30,21 +30,23 @@
                                 
                                 <h5 class="card-title badge-title-locked"><strong>@badge.Title</strong></h5>
                                 
-                                @if (isEarned)
-                                {
-                                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Earned</span>
-                                    <p class="card-text small mt-2 pt-1 mb-1">@badge.Description</p>
-                                    <p class="text-muted small mt-2">@badge.PointValue points</p>
-                                }
-                                else
-                                {
-                                    <div class="mt-2">
-                                        <span class="badge bg-secondary">Unearned</span>
-                                        <p class="badge-hint small mt-2 mb-1 p1-0">
-                                            <strong>How to earn:</strong> @badge.HintToEarn
-                                        </p>
-                                    </div>
-                                }
+                                <div class="badge-content-area flex-grow-1">
+                                    @if (isEarned)
+                                    {
+                                        <span class="badge bg-success"><i class="bi bi-check-circle"></i> Earned</span>
+                                        <p class="card-text small mt-2 pt-1 mb-1">@badge.Description</p>
+                                        <p class="text-muted small mt-2">@badge.PointValue points</p>
+                                    }
+                                    else
+                                    {
+                                        <div class="mt-2">
+                                            <span class="badge bg-secondary">Unearned</span>
+                                            <p class="badge-hint small mt-2 mb-1 p1-0">
+                                                <strong>How to earn:</strong> @badge.HintToEarn
+                                            </p>
+                                        </div>
+                                    }
+                                </div>
                             </div>
                         </div>
                     </div>

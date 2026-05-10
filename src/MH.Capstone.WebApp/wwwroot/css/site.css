@@ -263,6 +263,13 @@ a.navbar-brand:hover {
     border-radius: 4px;
 }
 
+.badge-content-area {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
 .banner-img-1 {
     background-image: url('../imgs/TreesPhoto1.jpg');
     height: 280px;
