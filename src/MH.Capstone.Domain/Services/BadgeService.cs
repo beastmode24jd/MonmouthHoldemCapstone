@@ -40,13 +40,12 @@ namespace MH.Capstone.Domain.Services
             if (badgeTemplate == null) { return; }
 
             // Check if user already earned this Badge
-            var existingBadges = await _userBadgeRepo.GetAllAsync();
-            var userBadge = existingBadges.FirstOrDefault(ub => ub.UserId == user.Id && ub.BadgeId == newBadgeID);
+            var userBadge = await _userBadgeRepo.FindAsync(ub => 
+                ub.UserId == user.Id && ub.BadgeId == newBadgeID);
 
             // If they already have the badge (timestamp is set), do nothing
-            if (userBadge != null && userBadge.BadgeEarned != null) 
+            if (userBadge?.BadgeEarned != null) 
             { 
-                // Step incrementation handled by UpdateBadge()
                 return; 
             }
             
@@ -153,14 +152,48 @@ namespace MH.Capstone.Domain.Services
             }
         }
 
-        public async Task UpdateLegacyAccounts(ApplicationUser user, Guid badgeID, string ianaTimeZoneId = "America/Los_Angeles")
+        public async Task SyncBadgeProgressAsync(ApplicationUser user, Guid badgeId, int actualCount, string ianaTimeZoneId = "America/Los_Angeles")
         {
             // Need to update older accounts with:
             //      - Anidex Beginner (5 unique animal entries saved)
             //      - Sighting Novice (5 Sightings)
             //      - Sighting Student (25 Sightings)
 
-            await Task.CompletedTask;
+            var badgeTemplate = await _badgeRepo.FindByIdAsync(badgeId);
+            if (badgeTemplate == null) return;
+
+            // Fetch the user's current progress record
+            var userBadges = await _userBadgeRepo.GetAllAsync();
+            var userBadge = userBadges.FirstOrDefault(ub => ub.UserId == user.Id && ub.BadgeId == badgeId);
+
+            // If already earned, exit
+            if (userBadge?.BadgeEarned != null) return;
+
+            // Case 1: Badge requirement hit
+            if (actualCount >= badgeTemplate.BadgeSteps)
+            {
+                // AddBadge handles timestamp, progress, points, and notifications
+                await AddBadge(user, badgeId, ianaTimeZoneId);
+            }
+            // Case 2: Badge progress made, not earned though
+            else if (actualCount > (userBadge?.BadgeProgress ?? 0))
+            {
+                if (userBadge == null)
+                {
+                    userBadge = new UserBadge
+                    {
+                        UserId = user.Id,
+                        BadgeId = badgeId,
+                        BadgeProgress = actualCount
+                    };
+                }
+                else
+                {
+                    userBadge.BadgeProgress = actualCount;
+                }
+
+                await _userBadgeRepo.AddOrUpdateAsync(userBadge);
+            }
         }
 
         // Helper method to retrieve badge data from LocalDB

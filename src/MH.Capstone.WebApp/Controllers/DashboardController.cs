@@ -87,37 +87,17 @@ namespace MH.Capstone.WebApp.Controllers
             string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
 
             // Soft Update for Sighting Novice Badge ****************************
-            var noviceBadgeId = BadgeId.SightingNoviceBadgeGUID;
+            int totalSightings = user?.Sightings?.Count ?? 0;
 
-            var badgeExists = await _badgeRepo.FindByIdAsync(noviceBadgeId);
-            if (badgeExists != null)
-            {
-                int totalSightings = user!.Sightings.Count;
-            
-                // Check if the user already has a record for this badge
-                var noviceRecord = user.UserBadges.FirstOrDefault(ub => ub.BadgeId == noviceBadgeId);
-                bool isEarned = noviceRecord?.BadgeEarned.HasValue ?? false;
+            // Sync Sighting Novice (5 steps)
+            await _badgeService.SyncBadgeProgressAsync(user!, BadgeId.SightingNoviceBadgeGUID, totalSightings, userTimeZoneId);
 
-                if (!isEarned)
-                {
-                    // Case 1: They have enough sightings (5) to earn it immediately
-                    if (totalSightings >= 5)
-                    {
-                        await _badgeService.AddBadge(user, noviceBadgeId, userTimeZoneId);
-                    }
-                    // Case 2: They have partial progress that isn't reflected in their UserBadge record
-                    else if (totalSightings > (noviceRecord?.BadgeProgress ?? 0))
-                    {
-                        int currentProgress = noviceRecord?.BadgeProgress ?? 0;
+            // Sync Sighting Student (25 steps)
+            await _badgeService.SyncBadgeProgressAsync(user!, BadgeId.SightingStudentBadgeGUID, totalSightings, userTimeZoneId);
 
-                        // Calls UpdateBadge for each missing "step"
-                        for (int i = currentProgress; i < totalSightings; i++)
-                        {
-                            await _badgeService.UpdateBadge(user, noviceBadgeId);
-                        }
-                    }
-                }
-            }
+            // Sync Anidex Beginner (Once logic is ready, pass unique species count here)
+            // int uniqueAnimals = user!.Sightings.Select(s => s.AnimalId).Distinct().Count();
+            // await _badgeService.SyncBadgeProgressAsync(user, BadgeId.AnidexBeginnerBadgeGUID, uniqueAnimals, userTimeZoneId);
 
             // Get sorted Badges for display
             var sortedBadges = new List<UserBadge>();

@@ -15,7 +15,7 @@ namespace MH.Capstone.Domain.Services.Abstraction
         Task UpdateBadge(ApplicationUser user, Guid badgeID, string ianaTimeZoneId = "America/Los_Angeles");
 
         // Updates older accounts with new Badges, makes sure BadgeProgress matches their accounts
-        Task UpdateLegacyAccounts(ApplicationUser user, Guid badgeID, string ianaTimeZoneId = "America/Los_Angeles");
+        Task SyncBadgeProgressAsync(ApplicationUser user, Guid badgeID, int actualCount, string ianaTimeZoneId = "America/Los_Angeles");
 
         Task<Badge?> GetBadgeDetails(Guid badgeID);
         Task<List<UserBadge>> SortBadgesByTime(List<UserBadge> badgeList);
