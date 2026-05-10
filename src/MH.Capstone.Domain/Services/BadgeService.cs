@@ -103,9 +103,6 @@ namespace MH.Capstone.Domain.Services
                 $"Congratulations! You earned {badgeTemplate.Title} at {timeDisplay} and " +
                 $"won {badgePointTotal} points!"
                 ), NotificationType.BadgeAwarded);
-
-            // Might not need this line?
-            //await Task.CompletedTask;
         }
 
         public async Task UpdateBadge(ApplicationUser user, Guid badgeID, string ianaTimeZoneId = "America/Los_Angeles")
@@ -154,6 +151,16 @@ namespace MH.Capstone.Domain.Services
                 // Save current progress score
                 await _userBadgeRepo.AddOrUpdateAsync(userBadge);
             }
+        }
+
+        public async Task UpdateLegacyAccounts(ApplicationUser user, Guid badgeID, string ianaTimeZoneId = "America/Los_Angeles")
+        {
+            // Need to update older accounts with:
+            //      - Anidex Beginner (5 unique animal entries saved)
+            //      - Sighting Novice (5 Sightings)
+            //      - Sighting Student (25 Sightings)
+
+            await Task.CompletedTask;
         }
 
         // Helper method to retrieve badge data from LocalDB

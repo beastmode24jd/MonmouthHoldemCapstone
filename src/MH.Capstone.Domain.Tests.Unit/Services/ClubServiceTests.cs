@@ -225,7 +225,7 @@ public class ClubServiceTests
     }
 
     [Test]
-    public async Task SendInviteAsync_SenderNotMember_ThrowsInvalidOperationException()
+    public void SendInviteAsync_SenderNotMember_ThrowsInvalidOperationException()
     {
         // Arrange
         var senderId = Guid.NewGuid();
@@ -244,7 +244,7 @@ public class ClubServiceTests
     }
 
     [Test]
-    public async Task SendInviteAsync_ReceiverAlreadyMember_ThrowsInvalidOperationException()
+    public void SendInviteAsync_ReceiverAlreadyMember_ThrowsInvalidOperationException()
     {
         // Arrange
         var senderId = Guid.NewGuid();
@@ -387,7 +387,7 @@ public class ClubServiceTests
     }
 
     [Test]
-    public async Task LeaveClubAsync_UserIsOwner_ThrowsInvalidOperationException()
+    public void LeaveClubAsync_UserIsOwner_ThrowsInvalidOperationException()
     {
         // Arrange
         var ownerId = Guid.NewGuid();
@@ -405,7 +405,7 @@ public class ClubServiceTests
     }
 
     [Test]
-    public async Task LeaveClubAsync_UserNotMember_ThrowsInvalidOperationException()
+    public void LeaveClubAsync_UserNotMember_ThrowsInvalidOperationException()
     {
         // Arrange
         var ownerId = Guid.NewGuid();

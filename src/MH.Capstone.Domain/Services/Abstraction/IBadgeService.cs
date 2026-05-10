@@ -8,10 +8,16 @@ namespace MH.Capstone.Domain.Services.Abstraction
 {
     public interface IBadgeService
     {
+        // Awards a Badge, run after doing checks
         Task AddBadge(ApplicationUser user, Guid badgeID, string ianaTimeZoneId = "America/Los_Angeles");
-        Task UpdateBadge(ApplicationUser user, Guid badgeID, string ianaTimeZoneId = "America/Los_Angeles");
-        Task<Badge?> GetBadgeDetails(Guid badgeID);
 
+        // Updates BadgeProgress, runs AddBadge if it hits BadgeStep amount
+        Task UpdateBadge(ApplicationUser user, Guid badgeID, string ianaTimeZoneId = "America/Los_Angeles");
+
+        // Updates older accounts with new Badges, makes sure BadgeProgress matches their accounts
+        Task UpdateLegacyAccounts(ApplicationUser user, Guid badgeID, string ianaTimeZoneId = "America/Los_Angeles");
+
+        Task<Badge?> GetBadgeDetails(Guid badgeID);
         Task<List<UserBadge>> SortBadgesByTime(List<UserBadge> badgeList);
 
         // Badge initialization is handled in ApplicationDbContextSeeding.cs
