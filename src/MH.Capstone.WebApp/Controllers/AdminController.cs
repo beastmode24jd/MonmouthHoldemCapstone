@@ -25,6 +25,12 @@ namespace MH.Capstone.WebApp.Controllers
             return View();
         }
 
+        [HttpGet]
+        public IActionResult Reports()
+        {
+            return View();
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> PromoteToAdmin(string email, string adminPassword)

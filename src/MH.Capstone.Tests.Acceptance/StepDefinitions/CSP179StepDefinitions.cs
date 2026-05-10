@@ -66,8 +66,17 @@ public class CSP179StepDefinitions
     [Then("access is denied and no moderation controls are visible")]
     public void ThenAccessIsDeniedAndNoModerationControlsAreVisible()
     {
-        bool _isAdminPageDisplayed = true;
-        bool _isAdminPageDisplayed.Should().BeFalse("The Admin queue should not be visible to regular users.");
+        // Check if we were redirected to an AccessDenied page 
+        // OR simply check that the admin-specific header is missing.
+        var pageSource = _driver.PageSource;
+
+        bool isAdminPageDisplayed = pageSource.Contains("Admin Report Queue");
+
+        isAdminPageDisplayed.Should().BeFalse("The Admin queue should not be visible to regular users.");
+
+        // Verify we are not on the Reports URL (standard Identity behavior redirects to /Account/AccessDenied)
+        _driver.Url.Should().NotContain
+            ("/Admin/Reports", "Users should be redirected away from restricted admin queue.");
     }
 
     /*
