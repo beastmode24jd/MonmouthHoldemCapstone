@@ -56,6 +56,7 @@ public static class TestDependencySetup
         services.AddTransient<AccountSettingsDriver>();
         services.AddTransient<AnidexDriver>(); // CSP-142
         services.AddTransient<OfflineQueueDriver>(); // CSP-177
+        services.AddTransient<LeaderboardDriver>(); // CSP-176
 
         return services;
     }
