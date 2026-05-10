@@ -28,6 +28,7 @@ public class SightingsServiceTests
     private Mock<INotificationService> _notificationServiceMock;
     private Mock<IRepository<Sighting, ApplicationDbContext>> _sightingsRepoMock;
     private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock;
+    private Mock<IBadgeService> _badgeServiceMock;
     private FakeImageGenerator _imageGenerator;
 
     // Remember: Arrange, Act, Assert
@@ -40,6 +41,7 @@ public class SightingsServiceTests
         _scoringServiceMock = new Mock<IScoringService>();
         _notificationServiceMock = new Mock<INotificationService>();
         _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
+        _badgeServiceMock = new Mock<IBadgeService>();
 
         // GLOBAL MOCKS for new dependencies
         _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(It.IsAny<string>()))
@@ -52,6 +54,10 @@ public class SightingsServiceTests
         // Provide an empty list of users by default so FirstOrDefault doesn't crash
         _userRepoMock.Setup(r => r.GetAllAsync())
             .ReturnsAsync(new List<ApplicationUser>().AsQueryable());
+
+        // Default: return empty sightings for any predicate query (covers unique species count after upload)
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(Enumerable.Empty<Sighting>().AsQueryable());
     }
 
     [TearDown]
@@ -65,7 +71,8 @@ public class SightingsServiceTests
             _scoringServiceMock.Object,
             _notificationServiceMock.Object,
             _sightingsRepoMock.Object,
-            _userRepoMock.Object);
+            _userRepoMock.Object,
+            _badgeServiceMock.Object);
 
     private void AssertAllMockVerifications()
     {
@@ -75,6 +82,7 @@ public class SightingsServiceTests
         _scoringServiceMock.Verify();
         _notificationServiceMock.Verify();
         _userRepoMock.Verify();
+        _badgeServiceMock.Verify();
     }
 
     // Will run 2^4 = 16 times, testing all combinations of the valid values for lat, long, timestamp, and description

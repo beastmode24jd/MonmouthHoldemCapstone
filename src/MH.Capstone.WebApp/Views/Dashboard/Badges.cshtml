@@ -1,0 +1,83 @@
+@model MH.Capstone.WebApp.Models.BadgesViewModel
+@{
+    ViewData["Title"] = "Badges Earned";
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-body">
+            <h1 class="card-title">
+                <i class="bi bi-shield-fill"></i> Badges
+            </h1>
+            <hr />
+            <p> View your current Badges, and learn how to earn new ones! </p>
+
+            <div class="row g-4">
+                @foreach (var badge in Model.AllBadges)
+                {
+                    // Find if the user has earned this specific badge
+                    var earnedBadge = Model.UserBadges.FirstOrDefault(ub => ub.BadgeId == badge.BadgeID);
+                    bool isEarned = earnedBadge != null && earnedBadge.BadgeEarned.HasValue;
+                    
+                    <div class="col-md-4 col-sm-6">
+                        <div class="card h-100 badge-card @(isEarned ? "border-success shadow-sm" : "bg-light")">
+                            <div class="card-body text-center">
+                                @* Display Badge Icon *@
+                                <img src="~/imgs/badge/BadgeIcon1.jpg"
+                                    class="mb-3 mt-2 badge-img-custom @(isEarned ? "" : "badge-icon-locked")"
+                                    style="width: 80px; height: 80px; object-fit: cover;"
+                                    alt="@badge.Title" />
+                                
+                                <h5 class="card-title badge-title-locked"><strong>@badge.Title</strong></h5>
+                                
+                                <div class="badge-content-area flex-grow-1">
+                                    @if (isEarned)
+                                    {
+                                        <span class="badge bg-success"><i class="bi bi-check-circle"></i> Earned</span>
+                                        <p class="card-text small mt-2 pt-1 mb-1">@badge.Description</p>
+                                        <p class="text-muted small mt-2">@badge.PointValue points</p>
+                                    }
+                                    else
+                                    {
+                                        <div class="mt-2">
+                                            @* Progress Bar Logic for Multi-Step Badges *@
+                                            @if (badge.BadgeSteps > 1)
+                                            {
+                                                var currentProgress = earnedBadge?.BadgeProgress ?? 0;
+                                                // Calculate percentage (clamped at 100 just in case)
+                                                var percentage = (int)Math.Min(100, Math.Round((double)currentProgress / badge.BadgeSteps * 100));
+
+                                                <div class="mt-0 mb-3">
+                                                    <div class="d-flex justify-content-between mt-0 mb-1">
+                                                        <small class="text">Progress</small>
+                                                        <small class="text badge-step-count">@currentProgress / @badge.BadgeSteps</small>
+                                                    </div>
+                                                    <div class="progress" style="height: 12px;">
+                                                        <div class="progress-bar bg-success" 
+                                                            role="progressbar" 
+                                                            style="width: @percentage%" 
+                                                            aria-valuenow="@currentProgress" 
+                                                            aria-valuemin="0" 
+                                                            aria-valuemax="@badge.BadgeSteps">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+                                            <span class="badge bg-secondary mt-1">Unearned</span>
+                                            <p class="badge-hint small mt-2 mb-1 p1-0">
+                                                <strong>How to earn:</strong> @badge.HintToEarn
+                                            </p>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Hidden element carrying the current user's ID for client-side filtering *@
+<span id="currentUserId" data-user-id="@Model.CurrentUserId" style="display:none"></span>

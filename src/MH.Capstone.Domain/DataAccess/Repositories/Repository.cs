@@ -47,6 +47,13 @@ namespace MH.Capstone.Domain.DataAccess.Repositories
             return entity;  // null if not found
         }
 
+        public virtual async Task<TEntity?> FindAsync(Expression<Func<TEntity, bool>> predicate)
+        {
+            // FirstOrDefaultAsync is an EF Core extension that runs the filter 
+            // directly on the database and returns only the first matching record.
+            return await _dbSet.FirstOrDefaultAsync(predicate);
+        }
+
         public virtual async Task<bool> ExistsAsync<TId>(TId id)
         {
             return await FindByIdAsync(id) != null;
@@ -154,6 +161,13 @@ namespace MH.Capstone.Domain.DataAccess.Repositories
         /// <param name="id">The PK of the entity to find</param>
         /// <returns>The entity or null if not found</returns>
         Task<TEntity?> FindByIdAsync<TId>(TId id);
+
+        /// <summary>
+        /// Find a single entity that matches the given predicate/condition.
+        /// </summary>
+        /// <param name="predicate">The expression to filter by (e.g., ub => ub.UserId == id)</param>
+        /// <returns>The entity or null if not found</returns>
+        Task<TEntity?> FindAsync(Expression<Func<TEntity, bool>> predicate);
 
         /// <summary>
         /// Check if the entity with this generic PK exists in the table
