@@ -197,26 +197,28 @@ public class CSP184StepDefinitions
         // Navigate to Badges page, wait for it to load
         _driver.Navigate().GoToUrl($"{_baseUrl}/Dashboard/Badges");
 
-        var subheaderIcon = _wait.Until(d => d.FindElement(By.CssSelector("bi bi-shield-fill")));
-        subheaderIcon.Displayed.Should().BeTrue();
+        _wait.Until(d => d.FindElement(By.Id("currentUserId")));
     }
 
     [Then("the Badge page updates")]
     public void ThenTheBadgePageUpdates()
     {
-        // Verify "How to earn" field is displayed 
-        var notSureWhat = _wait.Until(d => d.FindElement(By.ClassName("card-title badge-title-locked")));
-        
-        notSureWhat.Displayed.Should().BeTrue("earned badges should display the 'Earned' tag");
-        notSureWhat.Text.Should().Contain("Earned", "the badge card should update when a user earns it");
-    }
+        //The Sighting Novice badge is CURRENTLY the only multi-step badge.
+        // Now that it is earned, its progress bar should be gone entirely.
+        var progressBars = _driver.FindElements(By.ClassName("progress"));
+        progressBars.Count.Should().Be(0, "the Sighting Novice badge should now be earned, removing the progress bar");
 
-    /* LAST GHERKIN TEST:
-        Scenario: Alex's Badge page processes updates after relevant action
-            Given I perform an action that advances Badge progress
-            When the website processes my action
-            Then the Badge page updates
-    */
+        // The Sighting Novice card should now show the green 'Earned' indicator.
+        // span.badge.bg-success is the element rendered in Badges.cshtml for earned badges.
+        var earnedIndicator = _wait.Until(d =>
+        {
+            var spans = d.FindElements(By.CssSelector("span.badge.bg-success"));
+            return spans.FirstOrDefault(s => s.Text.Contains("Earned"));
+        });
+
+        earnedIndicator.Should().NotBeNull("the Sighting Novice badge card should display the Earned indicator");
+        earnedIndicator!.Displayed.Should().BeTrue("the Earned indicator should be visible on the page)");
+    }
 
     /*
         Testing order:
