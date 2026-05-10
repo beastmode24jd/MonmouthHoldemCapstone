@@ -82,3 +82,9 @@
         </div>
     </div>
 </div>
+
+@* CSP-180: SignalR client + live leaderboard wiring *@
+@section Scripts {
+    <script src="https://unpkg.com/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
+    <script src="~/js/leaderboard-live.js" asp-append-version="true"></script>
+}
