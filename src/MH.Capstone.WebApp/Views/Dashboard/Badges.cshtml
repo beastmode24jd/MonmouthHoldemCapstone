@@ -20,7 +20,7 @@
                     bool isEarned = earnedBadge != null && earnedBadge.BadgeEarned.HasValue;
                     
                     <div class="col-md-4 col-sm-6">
-                        <div class="card h-100 badge-card @(isEarned ? "border-success shadow-sm" : "badge-greyed")">
+                        <div class="card h-100 badge-card @(isEarned ? "border-success shadow-sm" : "bg-light")">
                             <div class="card-body text-center">
                                 @* Display Badge Icon *@
                                 <img src="~/imgs/badge/BadgeIcon1.jpg"
@@ -40,7 +40,30 @@
                                     else
                                     {
                                         <div class="mt-2">
-                                            <span class="badge bg-secondary">Unearned</span>
+                                            @* Progress Bar Logic for Multi-Step Badges *@
+                                            @if (badge.BadgeSteps > 1)
+                                            {
+                                                var currentProgress = earnedBadge?.BadgeProgress ?? 0;
+                                                // Calculate percentage (clamped at 100 just in case)
+                                                var percentage = (int)Math.Min(100, Math.Round((double)currentProgress / badge.BadgeSteps * 100));
+
+                                                <div class="mt-0 mb-3">
+                                                    <div class="d-flex justify-content-between mt-0 mb-1">
+                                                        <small class="text">Progress</small>
+                                                        <small class="text align-center">@currentProgress / @badge.BadgeSteps</small>
+                                                    </div>
+                                                    <div class="progress" style="height: 12px;">
+                                                        <div class="progress-bar bg-success" 
+                                                            role="progressbar" 
+                                                            style="width: @percentage%" 
+                                                            aria-valuenow="@currentProgress" 
+                                                            aria-valuemin="0" 
+                                                            aria-valuemax="@badge.BadgeSteps">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+                                            <span class="badge bg-secondary mt-1">Unearned</span>
                                             <p class="badge-hint small mt-2 mb-1 p1-0">
                                                 <strong>How to earn:</strong> @badge.HintToEarn
                                             </p>

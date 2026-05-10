@@ -508,7 +508,7 @@ namespace MH.Capstone.WebApp.Controllers
             var viewModel = new BadgesViewModel
             {
                 AllBadges = allBadges.OrderBy(b => b.Title).ToList(),
-                UserBadges = user.UserBadges.Where(ub => ub.BadgeEarned.HasValue).ToList(),
+                UserBadges = user.UserBadges,
                 CurrentUserId = user.GuidId
             };
 
