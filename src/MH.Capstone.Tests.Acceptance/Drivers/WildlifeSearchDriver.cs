@@ -132,13 +132,27 @@ public class WildlifeSearchDriver
 
     /// <summary>
     /// Returns true when the counter shows at least one result (total &gt; 0).
+    /// Retries via <c>_wait</c> so transient DOM-update lag does not cause a
+    /// false negative immediately after <c>SearchFor</c> returns.
     /// </summary>
     public bool CounterShowsAtLeastOneResult()
     {
-        var text = GetCounterText(); // e.g., "1 / 3" or "0 / 0"
-        var parts = text.Split('/');
-        if (parts.Length != 2) return false;
-        return int.TryParse(parts[1].Trim(), out var total) && total > 0;
+        try
+        {
+            _wait.Until(d =>
+            {
+                var els = d.FindElements(By.Id("resultCounter"));
+                if (els.Count == 0) return false;
+                var parts = els[0].Text.Trim().Split('/');
+                if (parts.Length != 2) return false;
+                return int.TryParse(parts[1].Trim(), out var total) && total > 0;
+            });
+            return true;
+        }
+        catch (WebDriverTimeoutException)
+        {
+            return false;
+        }
     }
 
     // ─── Clear interaction ─────────────────────────────────────────────────────
