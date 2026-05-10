@@ -91,16 +91,17 @@ public class CSP184StepDefinitions
     [Then("the Badge icon should be greyed out")]
     public void ThenTheBadgeIconShouldBeGreyedOut()
     {
-        // Find all cards that are specifically marked as 'badge-greyed'
-        //      This class is applied to unearned badges
-        var greyedBadges = _wait.Until(d => d.FindElements(By.ClassName("badge-greyed")));
-        
-        // Assert that we found at least one greyed out badge
-        greyedBadges.Count.Should().BeGreaterThan(0, "at least one badge should be locked/greyed out");
+        // Wait until at least one locked badge icon appears (page-load guard + assertion).
+        // badge-icon-locked is the CSS class applied to the <img> of every unearned badge.
+        // FindElements never throws, so return null to keep _wait retrying until found.
+        var lockedIcons = _wait.Until(d =>
+        {
+            var elements = d.FindElements(By.ClassName("badge-icon-locked"));
+            return elements.Count > 0 ? elements : null;
+        });
 
-        // Check for the 'badge-icon-locked' class applied to the image
-        var lockedIcon = _driver.FindElement(By.ClassName("badge-icon-locked"));
-        lockedIcon.Displayed.Should().BeTrue();
+        lockedIcons.Should().NotBeEmpty("at least one badge icon should be greyed out for unearned badges");
+        lockedIcons!.First().Displayed.Should().BeTrue("the greyed-out badge icon should be visible on the page");
     }
     [Then("give me a hint on how to start earning it")]
     public void ThenGiveMeAHintOnHowToStartEarningIt()
