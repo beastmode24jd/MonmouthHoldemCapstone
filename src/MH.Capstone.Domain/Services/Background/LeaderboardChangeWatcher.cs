@@ -13,11 +13,20 @@ namespace MH.Capstone.Domain.Services.Background
     {
         private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
 
+        // Rank-change toasts only fire for users involved in the top N positions.
+        // A user moving from rank 9 → 11 still notifies (oldRank ≤ N), so users
+        // who get bumped out of the top group still hear about it.
+        private const int RankChangeTopN = 10;
+
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<LeaderboardChangeWatcher> _logger;
 
         // Tracks the most recently observed points-per-user across the leaderboard page.
         private Dictionary<string, int> _lastPointsByUserId = new();
+
+        // Tracks the most recently observed rank-per-user so we can notify users
+        // whose rank changed even if their own points didn't (i.e. they got passed).
+        private Dictionary<string, int> _lastRankByUserId = new();
 
         public LeaderboardChangeWatcher(
             IServiceScopeFactory scopeFactory,
@@ -74,7 +83,56 @@ namespace MH.Capstone.Domain.Services.Background
                 await broadcast.BroadcastLeaderboardUpdateAsync(change);
             }
 
+            // Per-user rank-change toasts. Only fires for users involved in the
+            // top-N positions (so a leaderboard with thousands of users doesn't
+            // spam notifications for every micro-rank shuffle further down).
+            var rankChanges = DetectRankChanges(current, _lastRankByUserId, RankChangeTopN).ToList();
+            foreach (var (userId, oldRank, newRank) in rankChanges)
+            {
+                if (ct.IsCancellationRequested) break;
+                await broadcast.BroadcastNotificationToUserAsync(userId, BuildRankChangeNotification(oldRank, newRank));
+            }
+
             _lastPointsByUserId = current.ToDictionary(u => u.Id, u => u.Points);
+            _lastRankByUserId = current
+                .Select((u, i) => (u.Id, Rank: i + 1))
+                .ToDictionary(t => t.Id, t => t.Rank);
+        }
+
+        private static LiveNotification BuildRankChangeNotification(int oldRank, int newRank)
+        {
+            bool movedUp = newRank < oldRank;
+            return new LiveNotification
+            {
+                Title = movedUp ? "Rank up!" : "Rank changed",
+                Message = movedUp
+                    ? $"You moved up to rank {newRank}."
+                    : $"You dropped to rank {newRank}."
+            };
+        }
+
+        // Detects users whose rank shifted between the previous and current snapshots.
+        // Only includes users present in BOTH snapshots — newcomers and users who
+        // dropped out of the top page are intentionally excluded.
+        // topN filters to changes where either oldRank ≤ N or newRank ≤ N, so users
+        // who fall out of the top group are still notified.
+        public static IEnumerable<(string UserId, int OldRank, int NewRank)> DetectRankChanges(
+            IReadOnlyList<ApplicationUser> currentRanked,
+            IReadOnlyDictionary<string, int> previousRankByUserId,
+            int topN = int.MaxValue)
+        {
+            for (int i = 0; i < currentRanked.Count; i++)
+            {
+                var user = currentRanked[i];
+                int newRank = i + 1;
+                if (previousRankByUserId.TryGetValue(user.Id, out var oldRank) && oldRank != newRank)
+                {
+                    if (oldRank <= topN || newRank <= topN)
+                    {
+                        yield return (user.Id, oldRank, newRank);
+                    }
+                }
+            }
         }
 
         // Pure diff logic: compare current ranked snapshot against previous points map.

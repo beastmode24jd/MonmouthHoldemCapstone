@@ -83,8 +83,8 @@
     </div>
 </div>
 
-@* CSP-180: SignalR client + live leaderboard wiring *@
+@* CSP-180: SignalR client is loaded in _Layout.cshtml; this just hooks
+   the leaderboard-page-specific listeners onto the site-wide connection. *@
 @section Scripts {
-    <script src="https://unpkg.com/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
     <script src="~/js/leaderboard-live.js" asp-append-version="true"></script>
 }

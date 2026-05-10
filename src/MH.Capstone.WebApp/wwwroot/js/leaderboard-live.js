@@ -1,23 +1,22 @@
-// CSP-180: Real-time leaderboard client.
-// Connects to /hubs/leaderboard, applies snapshot + per-entry updates to the
-// existing rendered table, and surfaces toast notifications. Exposes
-// window.leaderboardLive.reconnect() so acceptance tests can exercise the
-// reconnect-snapshot scenario.
+// CSP-180: Leaderboard-page wiring for the site-wide live hub.
+// Connection management and toast rendering live in live-hub.js (site-wide).
+// This file only handles leaderboard-specific events: receiving the initial
+// snapshot, applying per-entry updates, and exposing a reconnect helper for
+// the acceptance test.
 (function () {
     'use strict';
 
-    if (typeof signalR === 'undefined') {
-        showLiveStatusBanner('Live updates unavailable (SignalR client failed to load).');
+    if (!window.liveHub || !window.liveHub.connection) {
+        // Live hub didn't initialize (e.g. SignalR client failed to load).
+        // Render a banner so the user knows live updates are unavailable.
+        showLiveStatusBanner('Live updates unavailable.');
         return;
     }
 
     var tbody = document.querySelector('table.table tbody');
     if (!tbody) return;
 
-    var connection = new signalR.HubConnectionBuilder()
-        .withUrl('/hubs/leaderboard')
-        .withAutomaticReconnect()
-        .build();
+    var connection = window.liveHub.connection;
 
     function escapeHtml(s) {
         var div = document.createElement('div');
@@ -45,30 +44,26 @@
         if (!row) return;
         var cells = row.querySelectorAll('td');
         if (cells.length >= 3) {
-            cells[0].textContent = update.rank;
             cells[2].textContent = update.points;
         }
+        reorderAndRerank();
     }
 
-    function showToast(notification) {
-        var existing = document.getElementById('liveNotificationToast');
-        if (existing) existing.remove();
-
-        var toast = document.createElement('div');
-        toast.id = 'liveNotificationToast';
-        toast.className = 'toast position-fixed top-0 end-0 m-3 show bg-info text-white';
-        toast.setAttribute('role', 'alert');
-        var title = (notification && notification.title) || 'Update';
-        var msg = (notification && notification.message) || '';
-        toast.innerHTML =
-            '<div class="toast-body">' +
-                '<strong>' + escapeHtml(title) + '</strong>' +
-                (msg ? ': ' + escapeHtml(msg) : '') +
-            '</div>';
-        document.body.appendChild(toast);
-        setTimeout(function () {
-            if (toast.parentNode) toast.parentNode.removeChild(toast);
-        }, 4000);
+    // Sort rows by points DESC and renumber the rank cell for every row.
+    // Required because a single point change can shift the rank of any user
+    // whose points did NOT change — and the server only emits updates for
+    // users whose points DID change.
+    function reorderAndRerank() {
+        var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+        rows.sort(function (a, b) {
+            var ap = parseInt(a.querySelectorAll('td')[2].textContent.trim(), 10) || 0;
+            var bp = parseInt(b.querySelectorAll('td')[2].textContent.trim(), 10) || 0;
+            return bp - ap;
+        });
+        rows.forEach(function (row, i) {
+            row.querySelectorAll('td')[0].textContent = (i + 1);
+            tbody.appendChild(row);
+        });
     }
 
     function showLiveStatusBanner(text) {
@@ -85,28 +80,17 @@
 
     connection.on('LeaderboardSnapshot', renderSnapshot);
     connection.on('LeaderboardUpdated', applyEntryUpdate);
-    connection.on('LiveNotification', showToast);
 
     connection.onreconnected(function () {
         var banner = document.getElementById('liveStatusBanner');
         if (banner) banner.remove();
     });
 
-    connection.start().catch(function (err) {
-        console.error('SignalR connect failed', err);
-        showLiveStatusBanner('Live updates unavailable.');
-    });
-
-    // Expose a reconnect helper so acceptance tests (CSP-180 scenario 3) can
-    // exercise the reconnect-snapshot path.
+    // Acceptance test (CSP-180 scenario 3) calls this to exercise the
+    // reconnect-snapshot path. Delegates to the site-wide reconnect helper.
     window.leaderboardLive = {
         reconnect: function () {
-            return connection.stop().then(function () {
-                return connection.start();
-            }).catch(function (err) {
-                console.error('reconnect failed', err);
-                showLiveStatusBanner('Live updates unavailable.');
-            });
+            return window.liveHub.reconnect();
         }
     };
 })();
