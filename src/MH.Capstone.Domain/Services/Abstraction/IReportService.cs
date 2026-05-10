@@ -6,5 +6,10 @@ namespace MH.Capstone.Domain.Services.Abstraction
     {
         // Submit a report. Will return false if the user has already reported this page URL.
         Task<bool> SubmitReportAsync(Report report);
+
+        // Sort reports. Checks if adminId is valid, then returns sorted report list
+        //      List will depend on passed in value
+        //          List will return empty if there are no reports.
+        Task<List<Report>> SortReports(string adminId, int type, string? pageURL, string? reportingUserId, DateTime? date);
     }
 }

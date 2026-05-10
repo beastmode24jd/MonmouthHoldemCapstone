@@ -5,6 +5,7 @@ using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.Domain.Tools;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualBasic;
 
 namespace MH.Capstone.Domain.Services
 {
@@ -56,6 +57,36 @@ namespace MH.Capstone.Domain.Services
 
                 throw;
             }
+        }
+
+        // Need methods to filter data based on page URL,
+        //      reporter (associated ApplicationUser),
+        //      and date.
+
+        // Pass in different argument for different sorting systems.
+        //      Reuse the general code.
+        
+        // NOTE: Make a data model enum for sorting different types later.
+        //      Will combine with Report field update to DateTime,
+        //      for bundled EF migration.
+
+        // Sort by Descending.
+
+        public async Task<List<Report>> SortReports(string adminId, int type,
+            string? pageURL,
+            string? reportingUserId,
+            DateTime? date)
+        {
+            // Int types:
+            //      0 == page sort
+            //      1 == reporter sort
+            //      2 == date sort
+            //      Parameter fields are nullable to be omitted as needed.
+
+
+            
+            // Placeholder return value
+            return new List<Report>();
         }
     }
 }
