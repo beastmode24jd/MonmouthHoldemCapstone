@@ -13,18 +13,14 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 [Binding]
 [ExcludeFromCodeCoverage]
 // This isolates the step definition methods used to this feature file only
-// THEY WILL FAIL DUE TO DEFINITION AMBIGUITY IF YOU REMOVE THIS!!!
 [Scope(Feature = "Admin Report System")]
 public class CSP179StepDefinitions
 {
     private readonly IWebDriver _driver;
     private readonly WebDriverWait _wait;
     private readonly AuthenticationDriver _authDriver;
-    private readonly SightingsDriver _sightingsDriver;
 
-    // Holds the path of a temp file for Sighting image uploads.
-    private string? _preparedImageFilePath;
-    private bool _isBadgeLinkDisplayed;
+    // private readonly SightingsDriver _sightingsDriver;
     private readonly string _baseUrl;
 
     public CSP179StepDefinitions(
@@ -79,30 +75,58 @@ public class CSP179StepDefinitions
             ("/Admin/Reports", "Users should be redirected away from restricted admin queue.");
     }
 
-    /*
-        Current test:
-        Scenario: Non-moderator cannot access moderation tools
-            Given a regular authenticated user logs in
-            When they attempt to access the moderation queue URL
-            Then access is denied and no moderation controls are visible
-    */
+    // Scenario 2: Admin can view and filter on Report Queue page
 
-    /* Next test:
+    [Given("a moderator is authenticated")]
+    public void GivenAModeratorIsAuthenticated()
+    {
+        _authDriver.PreformLoginForUser("patricia@test.com", "Capstone26!");
+    }
+
+    [When("they open the moderation queue and apply filters")]
+    public void WhenTheyOpenTheModerationQueueAndApplyFilters()
+    {
+        _driver.Navigate().GoToUrl($"{_baseUrl}/Admin/Reports");
+
+        // Click on filter attributes after page is created
+    }
+
+    [Then("the queue list is filtered and results are paged")]
+    public void ThenTheQueueListIsFilteredAndResultsArePaged()
+    {
+        // Check for attributes on the Report Queue
+        var reportQueue = _driver.PageSource;
+
+        bool isAdminPageFiltered = reportQueue.Contains("FailNow");
+
+        isAdminPageFiltered.Should().BeTrue("The Admin queue should be filtered after being sorted.");
+    }
+
+    /* Current test:
         Scenario: Moderator filters and views queue
             Given a moderator is authenticated
             When they open the moderation queue and apply filters (page, date, reporter)
-            Then the queue list is filtered accordingly and results are paginated
+            Then the queue list is filtered accordingly and results are paged
+    */
+
+    /* Next test:
+        Scenario: Moderator performs a bulk dismiss
+            Given multiple reports are selected
+            When the moderator clicks Dismiss and confirms
+            Then selected reports are marked dismissed and an audit log is created for each
     */
 
     /* Test list:
         - Admin report page is locked to admin account logins, return HTTP 403 if
-                invalid user tries to access
+                invalid user tries to access -- DONE (returned 404.)
 
         - Admin report page displays reports, shows IsResolved value
             Can be filtered by IsResolved bool, Reporter (include unresolved reports)
                 and by SubmittedAt DateTime (default to UTC for simplicity?)
 
-        - 
+        - Admin can select and dismiss multiple reports.
+
+        - Admin can soft-ban user, creating an appeal entry.
 
     */
 }

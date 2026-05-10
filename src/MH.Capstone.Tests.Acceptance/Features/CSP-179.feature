@@ -9,11 +9,11 @@ Scenario: Non-moderator cannot access moderation tools
     When they attempt to access the moderation queue URL
     Then access is denied and no moderation controls are visible
 
-@report
+@justThisOne
 Scenario: Moderator filters and views queue
     Given a moderator is authenticated
-    When they open the moderation queue and apply filters (page, date, reporter)
-    Then the queue list is filtered accordingly and results are paginated
+    When they open the moderation queue and apply filters
+    Then the queue list is filtered and results are paged
 
 @report
 Scenario: Moderator performs a bulk dismiss
