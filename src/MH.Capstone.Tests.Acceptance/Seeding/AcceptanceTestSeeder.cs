@@ -158,6 +158,7 @@ internal static class AcceptanceTestSeeder
                 Title       = "Custom Profile Badge",
                 Description = "Uploaded a custom profile image.",
                 PointValue  = 10,
+                HintToEarn  = "Upload a custom profile icon.",
             },
             new Badge
             {
@@ -165,6 +166,7 @@ internal static class AcceptanceTestSeeder
                 Title       = "Custom Bio Badge",
                 Description = "Updated your profile with a custom description.",
                 PointValue  = 10,
+                HintToEarn  = "Update your profile with a custom bio.",
             },
             new Badge
             {
@@ -172,6 +174,16 @@ internal static class AcceptanceTestSeeder
                 Title       = "First Sighting Badge",
                 Description = "Uploaded your first Sighting!",
                 PointValue  = 25,
+                HintToEarn  = "Upload a Sighting.",
+            },
+            new Badge
+            {
+                BadgeID     = BadgeConstants.SightingNoviceBadgeGUID,
+                Title       = "Sighting Novice",
+                Description = "Captured 5 animal Sightings!",
+                PointValue  = 35,
+                HintToEarn  = "Upload 5 Sightings.",
+                BadgeSteps  = 5,
             }
         );
         await db.SaveChangesAsync(token);
