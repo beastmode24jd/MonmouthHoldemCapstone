@@ -49,9 +49,29 @@ namespace MH.Capstone.Domain.DataAccess
                 {
                     BadgeID = Constants.BadgeId.SightingNoviceBadgeGUID,
                     Title = "Sighting Novice",
-                    Description = "Captured 5 animal Sightings!",
+                    Description = "Captured 5 animal Sightings.",
                     PointValue = 35,
                     HintToEarn = "Upload 5 Sightings.",
+                    BadgeSteps = 5
+                },
+
+                new Badge
+                {
+                    BadgeID = Constants.BadgeId.SightingStudentBadgeGUID,
+                    Title = "Sighting Student",
+                    Description = "Captured 25 animal Sightings.",
+                    PointValue = 50,
+                    HintToEarn = "Upload 25 Sightings.",
+                    BadgeSteps = 25
+                },
+
+                new Badge
+                {
+                    BadgeID = Constants.BadgeId.AnidexBeginnerBadgeGUID,
+                    Title = "Anidex Beginner",
+                    Description = "Recorded 5 different animals",
+                    PointValue = 25,
+                    HintToEarn = "Record different animals in your Sightings.",
                     BadgeSteps = 5
                 }
             };
