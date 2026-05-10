@@ -72,8 +72,8 @@ All in `src/MH.Capstone.Domain/DataModels/`:
 |---|---|
 | `ApplicationUser` | Extends `IdentityUser`. Custom: `Points`, `Bio`, `ProfileImage` (byte[]), `IsDeactivated`, `LastLogin`, `LoginStreak`, `IsStreakActive` |
 | `Sighting` | `Latitude`/`Longitude` (DECIMAL 9,6), `Timestamp` (DateTimeOffset), `Description`, `ImageBuffer` (byte[], ≤2 MB), FK to user |
-| `Badge` | `Title`, `Description`, `PointValue` (default 10), `BadgeIcon` (byte[]) |
-| `UserBadge` | Join table: user ↔ badge + `AwardedAt` |
+| `Badge` | `Title`, `Description`, `PointValue` (default 10), `BadgeIcon` (byte[]), `HintToEarn` (nvarchar 150, required), `BadgeSteps` (int, default 1 — 1 = single-action badge, >1 = multi-step) |
+| `UserBadge` | Join table: user ↔ badge. `BadgeEarned` (DateTimeOffset?, null = not yet earned), `BadgeProgress` (int, default 0, tracks steps completed toward `BadgeSteps`) |
 | `Notification` | `Title`, `Message`, `SentAt`, `IsRead`, `IsPostdated` |
 | `Report` | `ReportedPageUrl`, `Reason`, `Description`, `IsResolved`. Filtered unique index: no duplicate open reports per user+URL |
 | `EmailQueue` | Outbox: `Recipient`, `Subject`, `HtmlBody`, `ScheduledAt`, `IsSent`, `Attempts`, `Processing` |
@@ -91,7 +91,7 @@ All interfaces in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `IProfileImageService` | `ProfileImageService` | Upload/retrieve profile images |
 | `ISightingsService` | `SightingsService` | Submit/query sightings. `GetAllSightingsAsync()` eager-loads `User`; `GetUserSightingsAsync(Guid)` filters to one user; `GetSightingByIdAsync(Guid)` (CSP-172) returns `Sighting?` via `IRepository.FindByIdAsync`, lazy-loads `User` on access |
 | `IScoringService` | `ScoringService` | Award points using rarity multiplier |
-| `IBadgeService` | `BadgeService` | Check and award badges |
+| `IBadgeService` | `BadgeService` | `AddBadge(user, badgeId, tz)` — awards badge, adds points, sends notification. `UpdateBadge(user, badgeId, tz)` — increments `BadgeProgress` by 1, calls `AddBadge` when `BadgeProgress >= BadgeSteps`. `SyncBadgeProgressAsync(user, badgeId, actualCount, tz)` — idempotent backwards-compat sync: sets `BadgeProgress = actualCount` directly (or calls `AddBadge` if `actualCount >= BadgeSteps`); safe to call on every login. `SortBadgesByTime(list)` — descending chronological sort. |
 | `ILeaderboardService` | `LeaderboardService` | `GetLeaderboardPageAsync()` → `IEnumerable<ApplicationUser>`; controller projects to `LeaderboardEntryViewModel` (excludes `Email`) |
 | `IReportService` | `ReportService` | Submit and resolve content reports |
 | `INotificationService` | `NotificationDispatchService` | Routes notifications by channel. `SendNotificationAsync(notification, type)` — SystemCritical always InAppAndEmail; others consult preference service. Inherits `MarkAllAsReadAsync`, `DeleteAllAsync` from `NotificationServiceBase` |
@@ -113,6 +113,8 @@ All interfaces in `src/MH.Capstone.Domain/Services/Abstraction/`:
 - `PUT /notifications/mark-all-read`, `DELETE /notifications/all` — `[ValidateAntiForgeryToken]`, scoped to authenticated user
 - `GET/POST /dashboard/notification-preferences` — per-type delivery dropdowns; SystemCritical enforced server-side
 - Delivery channels: `Silenced`, `InAppOnly`, `EmailOnly`, `InAppAndEmail`. Default: `InAppOnly`
+
+**Badges (CSP-184):** `GET /dashboard/badges` — `[Authorize]`, renders `BadgesViewModel` with all badges + user's `UserBadges` (full list, not filtered, so in-progress records are available for progress bar display). `DashboardController.Index()` calls `SyncBadgeProgressAsync` for `SightingNovice`, `SightingStudent`, and `AnidexBeginner` on every dashboard load (backwards-compat sync). Dashboard index only passes `earned` badges (`.BadgeEarned.HasValue`) to `SortBadgesByTime` for the recent-badges widget.
 
 **Display name (CSP-168):**
 - `GET/POST /account/SetDisplayName` — forced setup for `DisplayName == "UNSET"`
@@ -243,6 +245,11 @@ Legacy personas still coexist: `alpha@test.com`, `alice@test.com`, `bob@test.com
 | `/anidex` | `anidexEmptyState`, `anidexGrid`, `anidexSpeciesCount` | CSP-142: page state containers |
 | `/anidex` | `.anidex-entry`, `.anidex-species-name`, `.anidex-rarity-badge`, `.anidex-discovery-count` | CSP-142: per-species card selectors (entry carries `data-species-name`) |
 | `/dashboard` | `accountSettingsLink` | Link to Account Settings page |
+| `/dashboard/badges` | `currentUserId` | Hidden field with logged-in user's GUID (page-load guard) |
+| `/dashboard/badges` | `.badge-card` | Per-badge card container |
+| `/dashboard/badges` | `.badge-step-count` | `<small>` showing `currentProgress / BadgeSteps` for multi-step badges |
+| `/dashboard/badges` | `.badge-card.border-success` | Card border applied when badge is earned |
+| `/dashboard/badges` | `span.badge.bg-success` | "Earned" label shown on earned badge cards |
 | `/dashboard/settings` | `displayNameInput`, `updateDisplayNameBtn`, `displayNameSuccessMessage` | Display name section |
 | `/dashboard/settings` | `notificationPreferencesLink` | Link to notification preferences |
 | `/dashboard/notification-preferences` | `notificationPreferencesForm`, `saveNotificationPreferencesBtn`, `notificationPreferenceSuccess` | Preferences form |
@@ -378,13 +385,16 @@ Non-obvious constraints:
 - `Report`: unique filtered index on `(ReportingUserId, ReportedPageUrl)` where `IsResolved = 0`.
 - `EmailQueue`: composite index on `(IsSent, ScheduledAt)`; `Processing` = dispatcher lock.
 
-**Seeded roles:** `User`, `Admin`. **Seeded badges (idempotent upsert):**
+**Seeded roles:** `User`, `Admin`. **Seeded badges (idempotent upsert via `ApplicationDbContextSeeding.cs`):**
 
-| Constant | GUID | Title | Points |
-|---|---|---|---|
-| `BadgeId.ProfileBadgeGUID` | `A1B2C3D4-E5F6-4789-8A9B-0C1D2E3F4A5B` | Custom Profile Badge | 10 |
-| `BadgeId.CustomBioBadgeGUID` | `91E7773E-F6D7-457E-911E-8246891D65A2` | Custom Bio Badge | 10 |
-| `BadgeId.FirstSightingBadgeGUID` | `B2C3D4E5-F6A7-4890-9B0C-1D2E3F4B5A6F` | First Sighting Badge | 25 |
+| Constant | GUID | Title | Points | BadgeSteps |
+|---|---|---|---|---|
+| `BadgeId.ProfileBadgeGUID` | `A1B2C3D4-E5F6-4789-8A9B-0C1D2E3F4A5B` | Custom Profile Badge | 10 | 1 |
+| `BadgeId.CustomBioBadgeGUID` | `91E7773E-F6D7-457E-911E-8246891D65A2` | Custom Bio Badge | 10 | 1 |
+| `BadgeId.FirstSightingBadgeGUID` | `B2C3D4E5-F6A7-4890-9B0C-1D2E3F4B5A6F` | First Sighting Badge | 25 | 1 |
+| `BadgeId.SightingNoviceBadgeGUID` | `27857EC5-189E-46E8-BE28-871123607F20` | Sighting Novice | 35 | 5 |
+| `BadgeId.SightingStudentBadgeGUID` | `8436745D-C25B-44BF-A0E1-0C87E6122724` | Sighting Student | 50 | 25 |
+| `BadgeId.AnidexBeginnerBadgeGUID` | `C3D4E5F6-A7B8-4901-AC1D-2E3F4B5A6F7E` | Anidex Beginner | 35 | 5 |
 
 FK seeding order: `AspNetRoles` → `AspNetUsers` → `Badge` → `Sighting`/`PersonalBadges`/`Notification`/`Report` → `EmailQueue`.
 
@@ -402,7 +412,9 @@ FK seeding order: `AspNetRoles` → `AspNetUsers` → `Badge` → `Sighting`/`Pe
 | `ResolutionWidth/Height` | int? | CSP-122 | Nullable |
 | `FlaggedForReview` | bit | CSP-122 | Default false |
 
-`20260414223118_FixSightingUserIdType` corrected `Sighting.UserId` FK column type.
+`20260414223118_FixSightingUserIdType` corrected `Sighting.UserId` FK column type. **Note:** the generated `AlterColumn` was replaced with idempotent raw SQL (`IF EXISTS` guard on index drop) because the index did not exist on fresh databases — if this migration is re-generated, the raw SQL must be restored.
+
+`20260505201153_AddHintAndProgressionFieldsToBadges` added `HintToEarn` (nvarchar 150) and `Badge Steps` (int, default 1) to `Badge`; added `Badge Progress` (int, default 0) to `PersonalBadges`.
 
 ### Photo Quality (CSP-122)
 
@@ -413,6 +425,11 @@ FK seeding order: `AspNetRoles` → `AspNetUsers` → `Badge` → `Sighting`/`Pe
 Drill-down view from the Sightings Gallery. Clicking a card navigates to `/Sighting/Details/{id}`, which renders the full image, uploader attribution, sighting metadata, and a fun fact about the identified species pulled via `IAnimalFunFactService`.
 
 **`SightingDetailsViewModel`** (`WebApp/Models/`): constructor takes `(Sighting, string? funFact)`. Encapsulates the fun-fact fallback decision — when `funFact` is null/whitespace it sets `IsFunFactFallback = true` and substitutes the canonical `FunFactFallbackMessage` ("Fun facts about this animal aren't available right now."). The view reads `IsFunFactFallback` to set `data-fun-fact-status="fallback"` on the fun-fact element. Default avatar path is `/imgs/profileDefault.jpg` (matches `Extensions.GetProfileImageUrl()` convention).
+
+**CSP-184 Badges page:**
+- `Features/CSP-184.feature` — 4 scenarios: nav bar link visible, no-progress badge greyed with hint, partial-progress shows progress bar + step count, action advances badge and page updates
+- `StepDefinitions/CSP184StepDefinitions.cs` — Scenario 3 navigates to `/dashboard` first (triggers `SyncBadgeProgressAsync`), then checks `.badge-step-count`. Scenario 4 asserts Sighting Novice card specifically via XPath `ancestor::div[contains(@class,'badge-card')]` from the title text, checks `border-success` class and `span.badge.bg-success` visibility.
+- No new Driver or PageObject — scenarios use `_driver`/`_wait` directly.
 
 **Acceptance infrastructure:**
 - `Features/CSP-172.feature` — 4 scenarios: Patricia happy path, Alex fun-fact fallback (uses Mystery Critter Z), James anonymous redirect, Lily not-found
@@ -436,6 +453,10 @@ Drill-down view from the Sightings Gallery. Clicking a card navigates to `/Sight
 - Role assignments via `AspNetUserRoles`
 
 **`SightingUploadViewModel`:** carries `DeviceTimezone` (default `"America/Los_Angeles"`). `ToDataModel()` converts local timestamp to UTC. Tests/seeds using this view model must set `DeviceTimezone`.
+
+**`BadgesViewModel`** (`WebApp/Models/`): `AllBadges` (all `Badge` rows, alpha-sorted), `UserBadges` (full `user.UserBadges` list — includes in-progress records so the progress bar has data), `CurrentUserId` (Guid, used as page-load guard in tests).
+
+**CSP-184 acceptance seeder:** `AcceptanceTestSeeder.cs` seeds `SightingNoviceBadge` (`BadgeSteps = 5`). `SightingStudentBadge` and `AnidexBeginnerBadge` are **not yet** in the acceptance seeder — add them before writing acceptance tests for those badges.
 
 **`NotDefaultCoordinatesAttribute`:** class-level `ValidationAttribute` failing when both `Latitude` and `Longitude` are exactly `0.0`. Applied to `SightingUploadViewModel`.
 

@@ -1,4 +1,5 @@
-﻿using MH.Capstone.Domain.DataAccess;
+﻿using MH.Capstone.Domain.Constants;
+using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
@@ -17,18 +18,21 @@ namespace MH.Capstone.Domain.Services
         private readonly IRepository<ApplicationUser, ApplicationDbContext> _userRepo;
         private readonly IScoringService _scoringService;
         private readonly INotificationService _notificationService;
+        private readonly IBadgeService _badgeService;
 
         public SightingsService(
             ILogger<SightingsService> logger, IScoringService scoringService,
             INotificationService notificationService,
             IRepository<Sighting, ApplicationDbContext> sightingsRepo,
-            IRepository<ApplicationUser, ApplicationDbContext> userRepo)
+            IRepository<ApplicationUser, ApplicationDbContext> userRepo,
+            IBadgeService badgeService)
         {
             _logger = logger;
             _sightingsRepo = sightingsRepo;
             _scoringService = scoringService;
             _userRepo = userRepo;
             _notificationService = notificationService;
+            _badgeService = badgeService;
         }
 
         public async Task<int> CreateSightingAsync(Sighting entity, string ianaTimeZoneId = "America/Los_Angeles")
@@ -92,6 +96,13 @@ namespace MH.Capstone.Domain.Services
                     // Save the point value of the Sighting, then save in DB.
                     entity.PointValue = pointsEarned;
                     await _sightingsRepo.AddOrUpdateAsync(entity);
+
+                    // Check Anidex Beginner badge: count unique species after the new sighting is saved
+                    var allUserSightings = await _sightingsRepo.GetAllAsync(s => s.UserIdentityId == user.Id);
+                    int uniqueAnimals = allUserSightings
+                        .GroupBy(s => s.SpeciesName, StringComparer.OrdinalIgnoreCase)
+                        .Count();
+                    await _badgeService.SyncBadgeProgressAsync(user, BadgeId.AnidexBeginnerBadgeGUID, uniqueAnimals, ianaTimeZoneId);
 
                     // Convert timezone IANA ID to a TimeZoneInfo object
                     TimeZoneInfo deviceZone;
