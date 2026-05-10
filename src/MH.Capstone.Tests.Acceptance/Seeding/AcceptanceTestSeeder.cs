@@ -105,6 +105,14 @@ internal static class AcceptanceTestSeeder
         await db.Reports.ExecuteDeleteAsync(token);
         await db.Notifications.ExecuteDeleteAsync(token);
         await db.UserBadges.ExecuteDeleteAsync(token);
+
+        // CSP-187: moderation log -> Comment -> Sighting; clear logs first, then comments,
+        // then sightings (existing line). Follow + block tables are independent leaves.
+        await db.CommentModerationLogs.ExecuteDeleteAsync(token);
+        await db.Comments.ExecuteDeleteAsync(token);
+        await db.UserFollows.ExecuteDeleteAsync(token);
+        await db.UserBlocks.ExecuteDeleteAsync(token);
+
         await db.Sightings.ExecuteDeleteAsync(token);
 
         // 2. Club tables — Messages and ClubMemberships reference both Club and User;
