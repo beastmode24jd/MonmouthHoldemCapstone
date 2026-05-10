@@ -8,7 +8,7 @@ namespace MH.Capstone.Tests.Acceptance.Drivers;
 
 /// <summary>
 /// CSP-180: Drives the per-user opt-in page for live notifications.
-/// Lives at /Dashboard/LiveNotifications (Phase 2 will create this route).
+/// Lives at /dashboard/live-notifications (added in CSP-180).
 /// </summary>
 [ExcludeFromCodeCoverage]
 public class LiveNotificationSettingsDriver
@@ -26,7 +26,7 @@ public class LiveNotificationSettingsDriver
 
     public void NavigateToLiveSettings()
     {
-        _webDriver.Navigate().GoToUrl($"{_baseUrl}/Dashboard/LiveNotifications");
+        _webDriver.Navigate().GoToUrl($"{_baseUrl}/dashboard/live-notifications");
         WaitForPageReady();
     }
 
