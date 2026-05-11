@@ -93,6 +93,12 @@
                                     <i class="bi bi-person-search"></i> Find Users
                                 </a>
                             </li>
+                            @* CSP-187: activity feed of followed users' sightings *@
+                            <li class="nav-item">
+                                <a id="feedNavLink" class="nav-link text-light" asp-controller="Feed" asp-action="Index">
+                                    <i class="bi bi-rss-fill"></i> Feed
+                                </a>
+                            </li>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-light" href="#" id="sightingsDropdown" role="button"
                                        data-bs-toggle="dropdown" aria-expanded="false">

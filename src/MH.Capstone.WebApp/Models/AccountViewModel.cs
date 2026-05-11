@@ -24,6 +24,12 @@ namespace MH.Capstone.WebApp.Models
            this is called on older account entries without a bio parameter. */
         public string? Bio { get; set; } = "Enter a unique profile bio.";
 
+        // CSP-187: follow/block state relative to the currently authenticated viewer.
+        // Both default to false; controller only populates them when viewing another user.
+        public bool IsFollowedByCurrentUser { get; set; } = false;
+
+        public bool IsBlockedByCurrentUser { get; set; } = false;
+
         // For ASP.NET Core model binding
         public AccountViewModel() { }
 

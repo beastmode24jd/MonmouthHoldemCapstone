@@ -39,6 +39,12 @@ namespace MH.Capstone.WebApp.Models
 
         public bool IsFunFactFallback { get; set; }
 
+        // CSP-187: comments section. Author names are resolved by the controller.
+        public List<CommentRowViewModel> Comments { get; set; } = new();
+
+        // CSP-187 AC4: true when the viewer can hide / reinstate comments (Admin role).
+        public bool ViewerCanModerate { get; set; } = false;
+
         public SightingDetailsViewModel() { }
 
         public SightingDetailsViewModel(Sighting sighting, string? funFact)
