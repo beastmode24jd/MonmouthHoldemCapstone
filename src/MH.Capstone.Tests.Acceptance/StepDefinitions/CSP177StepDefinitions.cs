@@ -1,11 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
 using FluentAssertions;
 using MH.Capstone.Tests.Acceptance.Drivers;
+using MH.Capstone.Tests.Acceptance.Helpers;
 using OpenQA.Selenium;
 using Reqnroll;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
@@ -59,12 +57,10 @@ public class CSP177StepDefinitions
     [When("Alex fills in the sighting form")]
     public void WhenAlexFillsInTheSightingForm()
     {
-        var tempImagePath = Path.Combine(Path.GetTempPath(), $"csp177_{Guid.NewGuid():N}.jpg");
-        using (var image = new Image<Rgba32>(1280, 960, new Rgba32(128, 128, 128, 255)))
-        using (var fs = File.Create(tempImagePath))
-        {
-            image.Save(fs, new JpegEncoder());
-        }
+        // CSP-189: the upload form rejects Low-tier photos before saving, so the prior
+        // solid-gray JPEG would never make it past validation. Use the high-quality
+        // stripes preset so the form accepts the upload and the offline-queue flow runs.
+        var tempImagePath = TestImageFactory.CreateValid();
 
         _sightingsDriver.SetImageForUpload(tempImagePath);
         _sightingsDriver.SetSpeciesName("CSP177-OfflineTestSpecies");

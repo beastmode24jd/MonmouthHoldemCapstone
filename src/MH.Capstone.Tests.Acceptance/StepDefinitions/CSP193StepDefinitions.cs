@@ -4,12 +4,11 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using FluentAssertions;
 using MH.Capstone.Tests.Acceptance.Drivers;
+using MH.Capstone.Tests.Acceptance.Helpers;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 using Reqnroll;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
@@ -93,13 +92,10 @@ public class CSP193StepDefinitions
         _sightingsDriver.SubmitSightingsForm();
     }
 
-    private static string GenerateValidUploadImage()
-    {
-        var path = Path.Combine(Path.GetTempPath(), $"csp193_{Guid.NewGuid():N}.jpg");
-        using var image = new Image<Rgb24>(1024, 1024);
-        image.SaveAsJpeg(path);
-        return path;
-    }
+    // CSP-189: must be a non-Low-tier image. The old uninitialized 1024×1024 JPEG had
+    // sharpness ≈ 0 and is now rejected at the form before any [Required]/coordinate
+    // validation runs, masking the class-level NotDefaultCoordinates error under test.
+    private static string GenerateValidUploadImage() => TestImageFactory.CreateValid();
 
     [Then("the latitude input should display {string}")]
     public void ThenLatitudeInputShouldDisplay(string expected)
