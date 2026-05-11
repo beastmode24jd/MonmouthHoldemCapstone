@@ -886,6 +886,8 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.Navigation("Comment");
 
                     b.Navigation("Moderator");
+                });
+
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.LiveNotificationPreference", b =>
                 {
                     b.HasOne("MH.Capstone.Domain.DataModels.ApplicationUser", "User")
