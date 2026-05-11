@@ -24,18 +24,48 @@
         return div.innerHTML;
     }
 
+    // Incremental snapshot apply — never replaces tbody.innerHTML wholesale.
+    // Wholesale replacement detaches every existing row from the DOM, which
+    // invalidates element references that other tests (e.g. CSP-97 leaderboard
+    // assertions) have already grabbed via FindElements. By updating cells
+    // in-place and only adding/removing rows that actually changed, we keep
+    // existing references valid through the snapshot.
     function renderSnapshot(entries) {
         if (!Array.isArray(entries)) return;
-        tbody.innerHTML = '';
-        entries.forEach(function (entry) {
-            var tr = document.createElement('tr');
-            tr.id = 'user-' + entry.userId;
-            tr.innerHTML =
-                '<td>' + entry.rank + '</td>' +
-                '<td>' + escapeHtml(entry.displayName) + '</td>' +
-                '<td>' + entry.points + '</td>';
-            tbody.appendChild(tr);
+
+        var existingRows = {};
+        Array.prototype.forEach.call(tbody.querySelectorAll('tr'), function (row) {
+            if (row.id && row.id.indexOf('user-') === 0) {
+                existingRows[row.id.substring('user-'.length)] = row;
+            }
         });
+
+        var seen = {};
+        entries.forEach(function (entry) {
+            seen[entry.userId] = true;
+            var existing = existingRows[entry.userId];
+            if (existing) {
+                var cells = existing.querySelectorAll('td');
+                if (cells.length >= 3) {
+                    cells[0].textContent = entry.rank;
+                    cells[2].textContent = entry.points;
+                }
+            } else {
+                var tr = document.createElement('tr');
+                tr.id = 'user-' + entry.userId;
+                tr.innerHTML =
+                    '<td>' + entry.rank + '</td>' +
+                    '<td>' + escapeHtml(entry.displayName) + '</td>' +
+                    '<td>' + entry.points + '</td>';
+                tbody.appendChild(tr);
+            }
+        });
+
+        Object.keys(existingRows).forEach(function (userId) {
+            if (!seen[userId]) existingRows[userId].remove();
+        });
+
+        reorderAndRerank();
     }
 
     function applyEntryUpdate(update) {
