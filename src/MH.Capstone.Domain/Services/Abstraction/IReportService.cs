@@ -10,6 +10,6 @@ namespace MH.Capstone.Domain.Services.Abstraction
         // Sort reports. Checks if adminId is valid, then returns sorted report list
         //      List will depend on passed in value
         //          List will return empty if there are no reports.
-        Task<List<Report>> SortReports(string adminId, int type, string? pageURL, string? reportingUserId, DateTime? date);
+        Task<List<Report>> SortReports(string adminId, ReportFilterType reportType, string? pageURL, string? reportingUserId, DateTime? date);
     }
 }

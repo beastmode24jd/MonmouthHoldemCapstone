@@ -72,7 +72,8 @@ namespace MH.Capstone.Domain.Services
 
         // Sort by Descending.
 
-        public async Task<List<Report>> SortReports(string adminId, int type,
+        public async Task<List<Report>> SortReports(string adminId,
+            ReportFilterType reportType,
             string? pageURL,
             string? reportingUserId,
             DateTime? date)
@@ -83,10 +84,38 @@ namespace MH.Capstone.Domain.Services
             //      2 == date sort
             //      Parameter fields are nullable to be omitted as needed.
 
+            // Sort and check adminId with _userManager
 
+            // Get all the reports available
+            IQueryable<Report> query = await _reportRepo.GetAllAsync();
+
+            // Apply ReportFilterType (Only if arguments are provided)
+            if (!string.IsNullOrWhiteSpace(pageURL))
+            {
+                query = query.Where(r => r.ReportedPageUrl.Contains(pageURL));
+            }
+
+            if (!string.IsNullOrWhiteSpace(reportingUserId))
+            {
+                query = query.Where(r => r.ReportingUserIdentityId == reportingUserId);
+            }
+
+            if (date.HasValue)
+            {
+                // Filters for reports submitted on or after the provided date
+                query = query.Where(r => r.SubmittedAt >= date.Value);
+            }
+
+            // Apply Sorting
+            query = reportType switch
+            {
+                ReportFilterType.PageURL => query.OrderBy(r => r.ReportedPageUrl),
+                ReportFilterType.Reporter => query.OrderBy(r => r.ReportingUserIdentityId),
+                ReportFilterType.Date => query.OrderByDescending(r => r.SubmittedAt),
+                _ => query.OrderByDescending(r => r.SubmittedAt) // Default to newest at the top of the display
+            };
             
-            // Placeholder return value
-            return new List<Report>();
+            return await query.ToListAsync();
         }
     }
 }
