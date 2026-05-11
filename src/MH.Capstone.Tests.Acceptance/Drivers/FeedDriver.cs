@@ -23,12 +23,24 @@ public class FeedDriver
     public void NavigateToFeed()
     {
         _webDriver.Navigate().GoToUrl($"{_baseUrl}/Feed");
+        // Wait until the browser actually lands on /Feed AND the page contains the
+        // Feed view's container OR the no-followees empty state. Without the URL
+        // check, GoToUrl can race with an in-flight redirect from a prior form submit
+        // and the readyState check passes on the wrong page.
         _wait.Until(d =>
         {
             try
             {
+                var url = d.Url ?? string.Empty;
+                if (!url.Contains("/Feed", StringComparison.OrdinalIgnoreCase))
+                    return false;
                 var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
-                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+                if (!string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase))
+                    return false;
+                var marker = d.FindElements(By.Id("feedSightingsGrid")).Count
+                    + d.FindElements(By.Id("feedNoFollowees")).Count
+                    + d.FindElements(By.Id("feedEmptyFollowees")).Count;
+                return marker > 0;
             }
             catch { return false; }
         });

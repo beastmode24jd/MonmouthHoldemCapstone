@@ -55,6 +55,16 @@ public class ProfileDriver
     {
         var btn = _wait.Until(d => d.FindElement(By.Id(buttonId)));
         btn.Click();
+        // Wait for the clicked element to go stale — that signals the page has actually
+        // reloaded after the form's redirect, so subsequent navigations don't race the
+        // in-flight redirect. readyState alone is not enough: it stays "complete" on the
+        // current page until the new doc starts loading.
+        _wait.Until(d =>
+        {
+            try { _ = btn.TagName; return false; }
+            catch (StaleElementReferenceException) { return true; }
+            catch { return true; }
+        });
         _wait.Until(d =>
         {
             try

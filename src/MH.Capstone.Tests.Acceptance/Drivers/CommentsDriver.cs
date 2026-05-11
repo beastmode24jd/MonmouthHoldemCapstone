@@ -22,13 +22,20 @@ public class CommentsDriver
 
     public void NavigateToSightingDetails(Guid sightingId)
     {
-        _webDriver.Navigate().GoToUrl($"{_baseUrl}/Sighting/Details/{sightingId}");
+        var target = $"{_baseUrl}/Sighting/Details/{sightingId}";
+        _webDriver.Navigate().GoToUrl(target);
+        var idStr = sightingId.ToString();
         _wait.Until(d =>
         {
             try
             {
+                var url = d.Url ?? string.Empty;
+                if (!url.Contains(idStr, StringComparison.OrdinalIgnoreCase))
+                    return false;
                 var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
-                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+                if (!string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase))
+                    return false;
+                return d.FindElements(By.Id("sightingComments")).Count > 0;
             }
             catch { return false; }
         });
