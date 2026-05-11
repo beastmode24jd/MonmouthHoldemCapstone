@@ -10,6 +10,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
+using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.Tests.Acceptance.Support;
 
@@ -96,6 +98,24 @@ internal static class TestWebAppHost
 
                 // Probe the actual bound address so failures are obvious
                 await ProbePortAsync("127.0.0.1", portToTry);
+
+                // Ensure both DbContext schemas are up to date before seeding.
+                try
+                {
+                    using var migScope = _app.Services.CreateScope();
+                    await migScope.ServiceProvider
+                        .GetRequiredService<ApplicationDbContext>()
+                        .Database.MigrateAsync();
+                    await migScope.ServiceProvider
+                        .GetRequiredService<CacheDbContext>()
+                        .Database.MigrateAsync();
+                    TestContext.Progress.WriteLine("[TestWebAppHost] Migrations applied.");
+                }
+                catch (Exception ex)
+                {
+                    TestContext.Progress.WriteLine($"[TestWebAppHost] MIGRATION FAILED: {ex.GetType().Name}: {ex.Message}");
+                    throw;
+                }
 
                 // Wipe and re-seed the acceptance test database.
                 try

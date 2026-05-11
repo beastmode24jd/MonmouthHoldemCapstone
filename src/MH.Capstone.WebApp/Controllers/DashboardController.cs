@@ -38,6 +38,10 @@ namespace MH.Capstone.WebApp.Controllers
         private readonly IRepository<Notification, ApplicationDbContext> _notificationRepo;
 
         private readonly IBadgeService _badgeService;
+        private readonly IRepository<Badge, ApplicationDbContext> _badgeRepo; // For Badges page
+
+        // To check Anidex species count for loading in Anidex Beginner Badge for older accounts
+        private readonly ISightingsService _sightingsService;
 
         private readonly INotificationPreferenceService _notificationPreferenceService;
 
@@ -46,16 +50,20 @@ namespace MH.Capstone.WebApp.Controllers
             IProfileImageService imageService, IAuthenticationService authService,
             IBadgeService badgeService, INotificationService notificationService,
             IUserService userService, IRepository<Notification, ApplicationDbContext> notificationRepo,
-            INotificationPreferenceService notificationPreferenceService)
+            IRepository<Badge, ApplicationDbContext> badgeRepo,
+            INotificationPreferenceService notificationPreferenceService,
+            ISightingsService sightingsService)
         {
             _logger = logger;
             _imageService = imageService;
             _authService = authService;
             _badgeService = badgeService;
+            _badgeRepo = badgeRepo;
             _notificationService = notificationService;
             _userService = userService;
             _notificationRepo = notificationRepo;
             _notificationPreferenceService = notificationPreferenceService;
+            _sightingsService = sightingsService;
         }
 
         // Displays the main dashboard page for authenticated users. 
@@ -83,30 +91,31 @@ namespace MH.Capstone.WebApp.Controllers
             // Get the user device's local timezone cookie, default timezone is PST
             string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
 
-            // Need to check if user has badges on initial page load
-            if (user is { UserBadges.Count: 0 })
+            // Badge soft-update: sync progress for all multi-step badges on every login.
+            // Handles backwards compatibility for accounts that predate BadgeSteps/BadgeProgress.
+            if (user != null)
             {
-                if (user.Bio != null)
-                {
-                    await _badgeService.AddBadge(user, BadgeId.CustomBioBadgeGUID, userTimeZoneId);
-                }
+                int totalSightings = user.Sightings?.Count ?? 0;
 
-                if (user.Sightings.Count >= 1)
-                {
-                    await _badgeService.AddBadge(user, BadgeId.FirstSightingBadgeGUID, userTimeZoneId);
-                }
+                var anidexEntries = await _sightingsService.GetUserAnidexAsync(user.GuidId);
+                int uniqueAnimals = anidexEntries.Count();
 
-                if (user.ProfileImage != null)
-                {
-                    await _badgeService.AddBadge(user, BadgeId.ProfileBadgeGUID, userTimeZoneId);
-                }
+                // Sync Sighting Novice (5 sightings)
+                await _badgeService.SyncBadgeProgressAsync(user, BadgeId.SightingNoviceBadgeGUID, totalSightings, userTimeZoneId);
+
+                // Sync Sighting Student (25 sightings)
+                await _badgeService.SyncBadgeProgressAsync(user, BadgeId.SightingStudentBadgeGUID, totalSightings, userTimeZoneId);
+
+                // Sync Anidex Beginner (5 unique species)
+                await _badgeService.SyncBadgeProgressAsync(user, BadgeId.AnidexBeginnerBadgeGUID, uniqueAnimals, userTimeZoneId);
             }
 
             // Get sorted Badges for display
             var sortedBadges = new List<UserBadge>();
             if (user != null)
             {
-                sortedBadges = await _badgeService.SortBadgesByTime(user.UserBadges);
+                var earnedBadges = user.UserBadges.Where(ub => ub.BadgeEarned.HasValue).ToList();
+                sortedBadges = await _badgeService.SortBadgesByTime(earnedBadges);
 
                 TimeZoneInfo userZone;
                 try
@@ -445,6 +454,61 @@ namespace MH.Capstone.WebApp.Controllers
                 .ToList();
 
             return new NotificationPreferencesViewModel { Preferences = entries };
+        }
+
+        // CSP-184: Dedicated Badges page *******************
+
+        [HttpGet("badges")]
+        public async Task<IActionResult> Badges()
+        {
+            // Get the user
+            var user = await _userService.GetUserByClaimsPrincipleAsync(User);
+
+            // Return 403 if user doesn't exist (Badges page is user-locked)
+            if (user == null)
+            {
+                return Forbid();
+            }
+
+            // Get the user device's local timezone cookie for front-end Badge display
+            //      Default timezone is PST
+            string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
+
+            TimeZoneInfo userZone;
+            try {
+                userZone = TimeZoneInfo.FindSystemTimeZoneById(userTimeZoneId);
+            } catch {
+                // Fallback for environment-specific naming (e.g., Windows vs Linux)
+                userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+            }
+
+            // Get all possible badges
+            var allBadges = await _badgeRepo.GetAllAsync();
+
+            // Get all badges the user has earned, convert the earned timestamps
+            //      to the local timezone
+            foreach (var ub in user.UserBadges)
+            {
+                if (ub.BadgeEarned.HasValue)
+                {
+                    // Convert UTC DB timestamp to display device's local time 
+                    ub.BadgeEarned = TimeZoneInfo.ConvertTime(ub.BadgeEarned.Value, userZone);
+                }
+            }
+
+            var viewModel = new BadgesViewModel
+            {
+                AllBadges = allBadges.OrderBy(b => b.Title).ToList(),
+                UserBadges = user.UserBadges,
+                CurrentUserId = user.GuidId
+            };
+
+            /*
+            // (Future work idea: add a toggle for sorting the Badges by time earned.
+            //   Focus on connecting to View and getting Badges to display properly first.)
+            */
+            
+            return View(viewModel);
         }
     }
 }

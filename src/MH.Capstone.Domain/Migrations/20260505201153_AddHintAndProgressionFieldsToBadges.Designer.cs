@@ -4,16 +4,19 @@ using MH.Capstone.Domain.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace MH.Capstone.Domain.DataAccess.Migrations
+namespace MH.Capstone.Domain.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260505201153_AddHintAndProgressionFieldsToBadges")]
+    partial class AddHintAndProgressionFieldsToBadges
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -273,31 +276,6 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.ToTable("EmailQueue");
                 });
 
-            modelBuilder.Entity("MH.Capstone.Domain.DataModels.LiveNotificationPreference", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("LiveUpdatesEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("LiveNotificationPreferences");
-                });
-
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Message", b =>
                 {
                     b.Property<Guid>("Id")
@@ -412,10 +390,6 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("ClientSightingId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
-
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -481,9 +455,7 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserIdentityId", "ClientSightingId")
-                        .IsUnique()
-                        .HasFilter("[ClientSightingId] IS NOT NULL");
+                    b.HasIndex("UserIdentityId");
 
                     b.ToTable("Sighting");
                 });
@@ -706,17 +678,6 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.Navigation("Club");
 
                     b.Navigation("Member");
-                });
-
-            modelBuilder.Entity("MH.Capstone.Domain.DataModels.LiveNotificationPreference", b =>
-                {
-                    b.HasOne("MH.Capstone.Domain.DataModels.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Message", b =>
