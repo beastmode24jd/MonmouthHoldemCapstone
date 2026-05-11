@@ -117,7 +117,7 @@ namespace MH.Capstone.Domain.Services
             if (date.HasValue)
             {
                 // Filters for reports submitted on or after the provided date
-                query = query.Where(r => r.SubmittedAt >= date.Value);
+                query = query.Where(r => r.SubmittedAt <= date.Value);
             }
 
             // Apply Sorting

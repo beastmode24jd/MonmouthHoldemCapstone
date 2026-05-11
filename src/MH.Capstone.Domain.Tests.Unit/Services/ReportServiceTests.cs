@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore.Query;
 
 namespace MH.Capstone.Domain.Tests.Unit.Services;
 
@@ -23,7 +25,8 @@ public class ReportServiceTests
     private Mock<UserManager<ApplicationUser>> _userManagerMock;
     private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock;
     private string _adminId;  // Used for Report filtering checks
-    private Guid adminIdGUID; // Creates GUID for _adminId conversion
+    private Guid _adminIdGUID; // Creates GUID for _adminId conversion
+    private ApplicationUser _adminUser;
 
     [SetUp]
     public void Setup()
@@ -42,8 +45,17 @@ public class ReportServiceTests
         _userManagerMock = new Mock<UserManager<ApplicationUser>>(userStoreMock.Object,
             null!, null!, null!, null!, null!, null!, null!, null!);
 
-        adminIdGUID = new Guid();
-        _adminId = adminIdGUID.ToString();
+        _adminIdGUID = Guid.NewGuid();
+        _adminId = _adminIdGUID.ToString();
+
+        // Create the admin account for Id checks
+        _adminUser = new ApplicationUser();
+        _adminUser.Id = _adminId;
+        _adminUser.UserName = "admin@test.com";
+
+        // Setup AdminId Check Mocks
+        _userManagerMock.Setup(u => u.FindByIdAsync(_adminId)).ReturnsAsync(_adminUser);
+        _userManagerMock.Setup(u => u.IsInRoleAsync(_adminUser, "Admin")).ReturnsAsync(true);
 
         _reportService = new ReportService(
             _reportRepoMock.Object,
@@ -55,7 +67,7 @@ public class ReportServiceTests
 
     public ReportService CreateSut() => new(
         _reportRepoMock.Object,
-        _notificationServiceMock.Object
+        _notificationServiceMock.Object,
         _userManagerMock.Object,
         _userRepoMock.Object);
 
@@ -170,10 +182,10 @@ public class ReportServiceTests
     // Pass in different argument for different sorting systems.
     //      Reuse the general code.
 
-    // Int types:
-            //      0 == page sort
-            //      1 == reporter sort
-            //      2 == date sort
+    // ReportFilterType values:
+            //      - page sort
+            //      - reporter sort
+            //      - date sort
             //      Parameter fields are nullable to be omitted as needed.
 
     [Test]
@@ -184,29 +196,18 @@ public class ReportServiceTests
         string pageURL = "/Sighting/456";
         string wrongURL = "/animal/search";
 
-        var reportOne = new Report
-        {
-            ReportingUserId = userId,
-            ReportedPageUrl = pageURL,
-            Reason = "Inaccurate information",
-            SubmittedAt = DateTime.UtcNow
-        };
-        var reportTwo = new Report
-        {
-            ReportingUserId = userId,
-            ReportedPageUrl = wrongURL,
-            Reason = "Page error",
-            SubmittedAt = DateTime.UtcNow
-        };
+        var reports = new List<Report>
+            {
+                new Report { ReportedPageUrl = pageURL, ReportingUserId = userId, SubmittedAt = DateTime.UtcNow },
+                new Report { ReportedPageUrl = wrongURL, ReportingUserId = userId, SubmittedAt = DateTime.UtcNow}
+            };
 
-        var reportList = new List<Report>{reportOne, reportTwo};
-
-        // Save _adminId value to context
+        // Convert list into a Mockable Async IQueryable for _reportRepoMock
+        var mockAsyncQueryable = reports.AsQueryable().AsAsyncQueryable();
 
         // Save reportList to _reportRepoMock
-        _reportRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<Report>()))
-            .ReturnsAsync(reportList)
-            .Verifiable(Times.Once);
+        _reportRepoMock.Setup(repo => repo.GetAllAsync())
+                           .ReturnsAsync(mockAsyncQueryable);
 
         // Act
         var result = await _reportService.SortReports(
@@ -232,33 +233,24 @@ public class ReportServiceTests
         var wrongUserId = Guid.NewGuid();
         string pageURL = "/Sighting/456";
 
-        var reportOne = new Report
+        var reports = new List<Report>
         {
-            ReportingUserId = userId,
-            ReportedPageUrl = pageURL,
-            Reason = "Inaccurate information",
-            SubmittedAt = DateTime.UtcNow
-        };
-        var reportTwo = new Report
-        {
-            ReportingUserId = userId,
-            ReportedPageUrl = pageURL,
-            Reason = "Page error",
-            SubmittedAt = DateTime.UtcNow
-        };
-        var reportThree = new Report
-        {
-            ReportingUserId = wrongUserId,
-            ReportedPageUrl = pageURL,
-            Reason = "I don't like the buttons",
-            SubmittedAt = DateTime.UtcNow
+            new Report { ReportedPageUrl = pageURL, ReportingUserId = userId, SubmittedAt = DateTime.UtcNow },
+            new Report { ReportedPageUrl = pageURL, ReportingUserId = userId, SubmittedAt = DateTime.UtcNow.AddHours(-1)},
+            new Report { ReportedPageUrl = pageURL, ReportingUserId = wrongUserId, SubmittedAt = DateTime.UtcNow}
         };
 
-        var reportList = new List<Report>{reportOne, reportTwo, reportThree};
+        // Convert list into a Mockable Async IQueryable for _reportRepoMock
+        var mockAsyncQueryable = reports.AsQueryable().AsAsyncQueryable();
 
-        /*
+        // Save reportList to _reportRepoMock
+        _reportRepoMock.Setup(repo => repo.GetAllAsync())
+                           .ReturnsAsync(mockAsyncQueryable);
+
         // Act
-        var result = await _reportService.SortReports(_adminId, 1, null, userId, null);
+        var result = await _reportService.SortReports(
+            _adminId, ReportFilterType.Reporter, 
+            null, userId.ToString(), null);
 
         // Assert
         Assert.Multiple(() =>
@@ -270,7 +262,7 @@ public class ReportServiceTests
             Assert.That(result[1].ReportingUserId, Is.EqualTo(userId));
             Assert.That(result[0].ReportingUserId, Is.Not.EqualTo(wrongUserId));
             Assert.That(result[1].ReportingUserId, Is.Not.EqualTo(wrongUserId));
-        }); */
+        });
     }
 
     [Test]
@@ -282,29 +274,23 @@ public class ReportServiceTests
         DateTime newerTime = new DateTime(2018, 9, 6);
         string pageURL = "/Sighting/456";
 
-        var reportOne = new Report
+        var reports = new List<Report>
         {
-            ReportingUserId = userId,
-            ReportedPageUrl = pageURL,
-            Reason = "Inaccurate information",
-            SubmittedAt = olderTime
-        };
-        var reportTwo = new Report
-        {
-            ReportingUserId = userId,
-            ReportedPageUrl = pageURL,
-            Reason = "Page error",
-            SubmittedAt = newerTime
+            new Report { ReportedPageUrl = pageURL, ReportingUserId = userId, SubmittedAt = olderTime },
+            new Report { ReportedPageUrl = pageURL, ReportingUserId = userId, SubmittedAt = newerTime}
         };
 
-        var reportList = new List<Report>{reportOne, reportTwo};
+        // Convert list into a Mockable Async IQueryable for _reportRepoMock
+        var mockAsyncQueryable = reports.AsQueryable().AsAsyncQueryable();
 
-        // Save adminId to mockUserRepo for Id check,
-        //  Save reportList to mockReportRepo
+        // Save reportList to _reportRepoMock
+        _reportRepoMock.Setup(repo => repo.GetAllAsync())
+                           .ReturnsAsync(mockAsyncQueryable);
 
-        /*
         // Act
-        var result = await _reportService.SortReports(_adminId, 2, null, null, DateTime.UtcNow);
+        var result = await _reportService.SortReports(
+            _adminId, ReportFilterType.Date, 
+            null, null, DateTime.UtcNow);
 
         // Assert
         Assert.Multiple(() =>
@@ -314,14 +300,34 @@ public class ReportServiceTests
             // Check DateTime values on both report returns.
             Assert.That(result[0].SubmittedAt, Is.EqualTo(newerTime));
             Assert.That(result[1].SubmittedAt, Is.EqualTo(olderTime));
-        }); */
+        });
     }
 
     // Use [TestCase(values)] for multiple tests here?
     [Test]
     public async Task SortReports_InvalidReportListParams_ReturnsException()
     {
-        
+        // Arrange
+        var userId = Guid.NewGuid();
+        string pageURL = "/Sighting/456";
+
+        var reports = new List<Report>
+            {
+                new Report { ReportedPageUrl = pageURL, ReportingUserId = userId, SubmittedAt = DateTime.UtcNow },
+                new Report { ReportedPageUrl = pageURL, ReportingUserId = userId, SubmittedAt = DateTime.UtcNow}
+            };
+
+        // Convert list into a Mockable Async IQueryable for _reportRepoMock
+        var mockAsyncQueryable = reports.AsQueryable().AsAsyncQueryable();
+
+        // Save reportList to _reportRepoMock
+        _reportRepoMock.Setup(repo => repo.GetAllAsync())
+                           .ReturnsAsync(mockAsyncQueryable);
+
+        // Act and Assert
+        Assert.ThrowsAsync<UnauthorizedAccessException>(async() => await _reportService.SortReports(
+            userId.ToString(), ReportFilterType.PageURL, 
+            pageURL, null, null));
     }
 
     [Test]
@@ -330,13 +336,20 @@ public class ReportServiceTests
         // Arrange
         string pageURL = "/Sighting/456";
 
-        // Set up _reportRepoMock to return no entries (empty list? null?)
+        // Set up _reportRepoMock to return no entries (empty list)
+        var reports = new List<Report>();
 
-        // Set up adminId for admin lookup.
+        // Convert list into a Mockable Async IQueryable for _reportRepoMock
+        var mockAsyncQueryable = reports.AsQueryable().AsAsyncQueryable();
 
+        // Save reportList to _reportRepoMock
+        _reportRepoMock.Setup(repo => repo.GetAllAsync())
+                           .ReturnsAsync(mockAsyncQueryable);
         
         // Act
-        var result = await _reportService.SortReports(_adminId, ReportFilterType.PageURL, pageURL, null, null);
+        var result = await _reportService.SortReports(
+            _adminId, ReportFilterType.PageURL, 
+            pageURL, null, null);
 
         // Assert
         Assert.That(result, Is.Empty, "SortReports should return an empty list if no reports are found.");
@@ -344,3 +357,61 @@ public class ReportServiceTests
 
     #endregion
 }
+
+#region Helper classes
+// --- ASYNC QUERYABLE MOCKING HELPERS (used for await _reportRepo.GetAllAsync()) ---
+
+public static class AsyncQueryableExtensions
+{
+    public static IQueryable<T> AsAsyncQueryable<T>(this IEnumerable<T> source)
+        => new TestAsyncEnumerable<T>(source);
+}
+
+internal class TestAsyncEnumerable<T> : EnumerableQuery<T>, IAsyncEnumerable<T>, IQueryable<T>
+{
+    public TestAsyncEnumerable(IEnumerable<T> enumerable) : base(enumerable) { }
+    public TestAsyncEnumerable(Expression expression) : base(expression) { }
+
+    public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken token = default) 
+        => new TestAsyncEnumerator<T>(this.AsEnumerable().GetEnumerator());
+
+    // Fix: Explicitly implement the IQueryable.Provider property
+    IQueryProvider IQueryable.Provider => new TestAsyncQueryProvider<T>(this);
+}
+
+internal class TestAsyncEnumerator<T> : IAsyncEnumerator<T>
+{
+    private readonly IEnumerator<T> _inner;
+    public TestAsyncEnumerator(IEnumerator<T> inner) => _inner = inner;
+    public T Current => _inner.Current;
+    public ValueTask<bool> MoveNextAsync() => new ValueTask<bool>(_inner.MoveNext());
+    public ValueTask DisposeAsync() { _inner.Dispose(); return ValueTask.CompletedTask; }
+}
+
+internal class TestAsyncQueryProvider<TEntity> : IAsyncQueryProvider
+{
+    private readonly IQueryProvider _inner;
+    internal TestAsyncQueryProvider(IQueryProvider inner) => _inner = inner;
+
+    public IQueryable CreateQuery(Expression expression) => new TestAsyncEnumerable<TEntity>(expression);
+    public IQueryable<TElement> CreateQuery<TElement>(Expression expression) => new TestAsyncEnumerable<TElement>(expression);
+    public object? Execute(Expression expression) => _inner.Execute(expression);
+    public TResult Execute<TResult>(Expression expression) => _inner.Execute<TResult>(expression);
+
+    // This is the logic that ToListAsync() calls
+    public TResult ExecuteAsync<TResult>(Expression expression, CancellationToken token = default)
+    {
+        var expectedResultType = typeof(TResult).GetGenericArguments()[0];
+        var executionResult = typeof(IQueryProvider)
+            .GetMethods()
+            .First(m => m.Name == nameof(IQueryProvider.Execute) && m.IsGenericMethod)
+            .MakeGenericMethod(expectedResultType)
+            .Invoke(_inner, new[] { expression });
+
+        return (TResult)typeof(Task).GetMethod(nameof(Task.FromResult))!
+            .MakeGenericMethod(expectedResultType)
+            .Invoke(null, new[] { executionResult })!;
+    }
+}
+
+#endregion
