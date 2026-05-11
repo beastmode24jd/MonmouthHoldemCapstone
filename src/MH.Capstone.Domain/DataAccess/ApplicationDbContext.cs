@@ -26,6 +26,7 @@ namespace MH.Capstone.Domain.DataAccess
         public DbSet<ClubMembership> ClubMemberships { get; set; } = null!;
         public DbSet<Message> Messages { get; set; } = null!;
         public DbSet<UserNotificationPreference> UserNotificationPreferences { get; set; } = null!;
+        public DbSet<LiveNotificationPreference> LiveNotificationPreferences { get; set; } = null!; // CSP-180
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
