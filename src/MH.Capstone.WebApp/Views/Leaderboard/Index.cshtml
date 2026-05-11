@@ -96,3 +96,9 @@
         </div>
     </div>
 </div>
+
+@* CSP-180: SignalR client is loaded in _Layout.cshtml; this just hooks
+   the leaderboard-page-specific listeners onto the site-wide connection. *@
+@section Scripts {
+    <script src="~/js/leaderboard-live.js" asp-append-version="true"></script>
+}
