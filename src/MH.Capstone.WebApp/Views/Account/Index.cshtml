@@ -40,6 +40,59 @@
                                 }
                             </li>
                         </ul>
+
+                        @* CSP-187: Follow + Block toggles, only shown when viewing another user *@
+                        @if (!Model.IsAuthenticatedUser)
+                        {
+                            <div id="profileSocialActions" class="mt-3 d-flex flex-wrap gap-2">
+                                @if (Model.IsFollowedByCurrentUser)
+                                {
+                                    <form asp-controller="User" asp-action="Unfollow" asp-route-id="@Model.Id" method="post" class="m-0">
+                                        @Html.AntiForgeryToken()
+                                        <button id="unfollowButton" type="submit" class="btn btn-outline-primary">
+                                            <i class="bi bi-person-dash"></i> Unfollow
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form asp-controller="User" asp-action="Follow" asp-route-id="@Model.Id" method="post" class="m-0">
+                                        @Html.AntiForgeryToken()
+                                        <button id="followButton" type="submit" class="btn btn-primary">
+                                            <i class="bi bi-person-plus"></i> Follow
+                                        </button>
+                                    </form>
+                                }
+
+                                @if (Model.IsBlockedByCurrentUser)
+                                {
+                                    <form asp-controller="User" asp-action="Unblock" asp-route-id="@Model.Id" method="post" class="m-0">
+                                        @Html.AntiForgeryToken()
+                                        <button id="unblockButton" type="submit" class="btn btn-outline-danger">
+                                            <i class="bi bi-shield-check"></i> Unblock
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form asp-controller="User" asp-action="Block" asp-route-id="@Model.Id" method="post" class="m-0">
+                                        @Html.AntiForgeryToken()
+                                        <button id="blockButton" type="submit" class="btn btn-outline-danger">
+                                            <i class="bi bi-shield-x"></i> Block
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+
+                            @if (TempData["FollowError"] is string followErr)
+                            {
+                                <div id="profileFollowError" class="alert alert-warning mt-2">@followErr</div>
+                            }
+                            @if (TempData["BlockError"] is string blockErr)
+                            {
+                                <div id="profileBlockError" class="alert alert-warning mt-2">@blockErr</div>
+                            }
+                        }
                     </div>
                 </div>
             </div>

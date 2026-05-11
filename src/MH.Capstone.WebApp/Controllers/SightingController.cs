@@ -22,11 +22,15 @@ namespace MH.Capstone.WebApp.Controllers
         private readonly IBadgeService _badgeService;
         private readonly IPhotoQualityService _photoQualityService;
         private readonly IAnimalFunFactService _funFactService;
+        private readonly ICommentService _commentService;
+        private readonly IUserService _userService;
 
         public SightingController(ILogger<SightingController> logger, ISightingsService sightingsService,
             UserManager<ApplicationUser> userManager, IBadgeService badgeService,
             IPhotoQualityService photoQualityService,
-            IAnimalFunFactService funFactService)
+            IAnimalFunFactService funFactService,
+            ICommentService commentService,
+            IUserService userService)
         {
             _logger = logger;
             _sightingsService = sightingsService;
@@ -34,6 +38,8 @@ namespace MH.Capstone.WebApp.Controllers
             _badgeService = badgeService;
             _photoQualityService = photoQualityService;
             _funFactService = funFactService;
+            _commentService = commentService;
+            _userService = userService;
         }
 
         #region CSP-177: Offline Queue
@@ -83,6 +89,28 @@ namespace MH.Capstone.WebApp.Controllers
                 userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
             }
             viewModel.Timestamp = TimeZoneInfo.ConvertTime(viewModel.Timestamp, userZone);
+
+            // CSP-187: load comments (filtered for hidden + blocked authors) and resolve author names.
+            var currentUser = await _userManager.GetUserAsync(User);
+            Guid? viewerId = currentUser?.GuidId;
+            viewModel.ViewerCanModerate = currentUser != null && await _userManager.IsInRoleAsync(currentUser, "Admin");
+
+            var comments = (await _commentService.GetCommentsForSightingAsync(id, viewerId)).ToList();
+            var rows = new List<CommentRowViewModel>(comments.Count);
+            foreach (var c in comments)
+            {
+                var authorId = Guid.Parse(c.AuthorIdentityId);
+                var author = await _userService.GetUserByIdAsync(authorId);
+                rows.Add(new CommentRowViewModel
+                {
+                    Id = c.Id,
+                    AuthorId = authorId,
+                    AuthorDisplayName = author?.DisplayName ?? "Unknown",
+                    Body = c.Body,
+                    CreatedAt = TimeZoneInfo.ConvertTime(c.CreatedAt, userZone),
+                });
+            }
+            viewModel.Comments = rows;
 
             return View(viewModel);
         }

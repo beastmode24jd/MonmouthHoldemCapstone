@@ -29,5 +29,13 @@ namespace MH.Capstone.Domain.DataModels
         [Display(Name = "Club Activity",
                  Description = "Sent when there is new activity in your clubs, such as invitations or member sightings.")]
         ClubActivity = 5,
+
+        [Display(Name = "New Follower",
+                 Description = "Sent when another user starts following you.")]
+        NewFollower = 6,
+
+        [Display(Name = "New Comment",
+                 Description = "Sent when someone comments on one of your sightings.")]
+        NewComment = 7,
     }
 }
