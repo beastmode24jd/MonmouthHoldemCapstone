@@ -5,6 +5,7 @@ using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.Domain.Tools;
 using MH.Capstone.Tests.SharedInternals;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using System.Diagnostics.CodeAnalysis;
@@ -18,21 +19,45 @@ public class ReportServiceTests
 {
     private Mock<IRepository<Report, ApplicationDbContext>> _reportRepoMock;
     private Mock<INotificationService> _notificationServiceMock;
+    private IReportService _reportService;
+    private Mock<UserManager<ApplicationUser>> _userManagerMock;
+    private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock;
     private string _adminId;  // Used for Report filtering checks
-    private Guid value; // Creates GUID for _adminId conversion
+    private Guid adminIdGUID; // Creates GUID for _adminId conversion
 
     [SetUp]
     public void Setup()
     {
         _reportRepoMock = new Mock<IRepository<Report, ApplicationDbContext>>();
         _notificationServiceMock = new Mock<INotificationService>();
-        value = new Guid();
-        _adminId = value.ToString();
+        _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
+
+        // This is only used for the UserManager Mock.
+        // Only called internally by the UserService, don't need to worry about verifying or
+        // setting up any of it's methods.
+        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
+
+        // Pass in nulls for all the other dependencies of UserManager
+        // Mock the method outputs of UserManager
+        _userManagerMock = new Mock<UserManager<ApplicationUser>>(userStoreMock.Object,
+            null!, null!, null!, null!, null!, null!, null!, null!);
+
+        adminIdGUID = new Guid();
+        _adminId = adminIdGUID.ToString();
+
+        _reportService = new ReportService(
+            _reportRepoMock.Object,
+            _notificationServiceMock.Object,
+            _userManagerMock.Object,
+            _userRepoMock.Object
+        );
     }
 
     public ReportService CreateSut() => new(
         _reportRepoMock.Object,
-        _notificationServiceMock.Object);
+        _notificationServiceMock.Object
+        _userManagerMock.Object,
+        _userRepoMock.Object);
 
     private void AssertAllMockVerifications()
     {
@@ -142,12 +167,6 @@ public class ReportServiceTests
     #region Report Filter
     // [CSP-179] ***************************
 
-    // Need methods to filter based on page,
-    //      reporter (associated ApplicationUser),
-    //      and date.
-
-    //      Maybe require Admin Id as a guard check?
-
     // Pass in different argument for different sorting systems.
     //      Reuse the general code.
 
@@ -185,15 +204,15 @@ public class ReportServiceTests
         // Save _adminId value to context
 
         // Save reportList to _reportRepoMock
-
-        //_reportRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<Report>()))
-            //.ReturnsAsync(reportList)
-            //.Verifiable(Times.Once);
+        _reportRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<Report>()))
+            .ReturnsAsync(reportList)
+            .Verifiable(Times.Once);
 
         // Act
-        // var result = await _reportService.SortReports(_adminId, 0, pageURL, null, null);
+        var result = await _reportService.SortReports(
+            _adminId, ReportFilterType.PageURL, 
+            pageURL, null, null);
 
-        /*
         // Assert
         Assert.Multiple(() =>
         {
@@ -203,7 +222,6 @@ public class ReportServiceTests
             Assert.That(result[0].ReportedPageUrl, Is.EqualTo(pageURL)); // Should include searched for entry
             Assert.That(result[0].ReportedPageUrl, Is.Not.EqualTo(wrongURL)); // Should NOT include other URLs.
         });
-        */
     }
 
     [Test]
@@ -312,17 +330,16 @@ public class ReportServiceTests
         // Arrange
         string pageURL = "/Sighting/456";
 
-        // Set up _reportRepoMock to return no entries.
+        // Set up _reportRepoMock to return no entries (empty list? null?)
 
         // Set up adminId for admin lookup.
 
-        /*
+        
         // Act
-        var result = await _reportService.SortReports(_adminId, 0, pageURL, null, null);
+        var result = await _reportService.SortReports(_adminId, ReportFilterType.PageURL, pageURL, null, null);
 
         // Assert
         Assert.That(result, Is.Empty, "SortReports should return an empty list if no reports are found.");
-        */
     }
 
     #endregion

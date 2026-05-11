@@ -6,6 +6,7 @@ using MH.Capstone.Domain.Tools;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualBasic;
+using Microsoft.AspNetCore.Identity;
 
 namespace MH.Capstone.Domain.Services
 {
@@ -13,13 +14,19 @@ namespace MH.Capstone.Domain.Services
     {
         private readonly IRepository<Report, ApplicationDbContext> _reportRepo;
         private readonly INotificationService _notificationService;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IRepository<ApplicationUser, ApplicationDbContext> _userRepo;
 
         public ReportService(
             IRepository<Report, ApplicationDbContext> reportRepo,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            UserManager<ApplicationUser> userManager,
+            IRepository<ApplicationUser, ApplicationDbContext> userRepo)
         {
             _reportRepo = reportRepo;
             _notificationService = notificationService;
+            _userManager = userManager;
+            _userRepo = userRepo;
         }
 
         public async Task<bool> SubmitReportAsync(Report report)
@@ -78,14 +85,21 @@ namespace MH.Capstone.Domain.Services
             string? reportingUserId,
             DateTime? date)
         {
-            // Int types:
-            //      0 == page sort
-            //      1 == reporter sort
-            //      2 == date sort
-            //      Parameter fields are nullable to be omitted as needed.
+            // ReportFilterType values:
+            //      pageURL == 0
+            //      reportingUserId == reporter
+            //      date == 2
 
-            // Sort and check adminId with _userManager
+            //      Respective argument fields are nullable to be omitted as needed.
 
+            // Sort and check adminId with _userManager ***********
+            var user = await _userManager.FindByIdAsync(adminId);
+
+            if (user == null || !await _userManager.IsInRoleAsync(user, "Admin"))
+            {
+                throw new UnauthorizedAccessException("Access Denied: You do not have permission to view or sort reports.");
+            }
+            
             // Get all the reports available
             IQueryable<Report> query = await _reportRepo.GetAllAsync();
 
