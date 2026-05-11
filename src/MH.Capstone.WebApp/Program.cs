@@ -224,7 +224,14 @@ namespace MH.Capstone.WebApp
             }
 
             app.UseHttpsRedirection();
-            app.UseStaticFiles();
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                OnPrepareResponse = ctx =>
+                {
+                    if (ctx.File.Name == "sw.js")
+                        ctx.Context.Response.Headers["Service-Worker-Allowed"] = "/";
+                }
+            });
 
             app.UseRouting();
             
