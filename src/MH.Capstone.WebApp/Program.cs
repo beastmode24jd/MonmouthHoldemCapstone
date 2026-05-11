@@ -133,6 +133,9 @@ namespace MH.Capstone.WebApp
                 builder.Services.AddScoped<IAnimalFunFactService, AnimalFunFactService>();
             }
             builder.Services.AddScoped<IClubService, ClubService>();
+            builder.Services.AddScoped<IFollowService, FollowService>();
+            builder.Services.AddScoped<IBlockService, BlockService>();
+            builder.Services.AddScoped<ICommentService, CommentService>();
 
             // CSP-180: Real-time leaderboard / live notifications
             builder.Services.AddScoped<ILiveNotificationPreferenceService, LiveNotificationPreferenceService>();

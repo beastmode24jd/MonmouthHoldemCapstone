@@ -23,6 +23,8 @@ public class SightingControllerTests
     private Mock<IBadgeService> _mockBadgeService = null!;
     private Mock<IPhotoQualityService> _mockPhotoQualityService = null!;
     private Mock<IAnimalFunFactService> _mockFunFactService = null!;
+    private Mock<ICommentService> _mockCommentService = null!;
+    private Mock<IUserService> _mockUserService = null!;
     private SightingController _controller = null!;
 
     private static readonly string TestUserId = Guid.NewGuid().ToString();
@@ -41,6 +43,12 @@ public class SightingControllerTests
         _mockBadgeService = new Mock<IBadgeService>();
         _mockPhotoQualityService = new Mock<IPhotoQualityService>();
         _mockFunFactService = new Mock<IAnimalFunFactService>();
+        _mockCommentService = new Mock<ICommentService>();
+        _mockUserService = new Mock<IUserService>();
+
+        _mockCommentService
+            .Setup(c => c.GetCommentsForSightingAsync(It.IsAny<Guid>(), It.IsAny<Guid?>()))
+            .ReturnsAsync(new List<Comment>());
 
         // Default no-op result so existing tests that don't care about photo quality still run.
         _mockPhotoQualityService
@@ -57,7 +65,9 @@ public class SightingControllerTests
             _mockUserManager.Object,
             _mockBadgeService.Object,
             _mockPhotoQualityService.Object,
-            _mockFunFactService.Object);
+            _mockFunFactService.Object,
+            _mockCommentService.Object,
+            _mockUserService.Object);
 
         _controller.ControllerContext = new ControllerContext
         {

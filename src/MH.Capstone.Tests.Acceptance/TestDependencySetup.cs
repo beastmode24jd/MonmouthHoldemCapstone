@@ -59,6 +59,9 @@ public static class TestDependencySetup
         services.AddTransient<LeaderboardDriver>(); // CSP-176
         services.AddTransient<LeaderboardLiveDriver>(); // CSP-180
         services.AddTransient<LiveNotificationSettingsDriver>(); // CSP-180
+        services.AddTransient<FeedDriver>();     // CSP-187
+        services.AddTransient<ProfileDriver>();  // CSP-187
+        services.AddTransient<CommentsDriver>(); // CSP-187
 
         return services;
     }
