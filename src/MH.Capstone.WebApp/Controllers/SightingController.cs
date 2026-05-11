@@ -165,6 +165,15 @@ namespace MH.Capstone.WebApp.Controllers
                 return View(sightingUpload);
             }
 
+            // CSP-189: Reject Low-tier photos at the form level so the user gets a clear
+            // "try again" experience instead of a confusing "saved but try again" flash.
+            if (quality.Tier == PhotoQualityTier.Low)
+            {
+                ModelState.AddModelError(nameof(sightingUpload.UploadedImage),
+                    _photoQualityService.GetLowQualityReasonMessage(quality.Sharpness, quality.Luminance));
+                return View(sightingUpload);
+            }
+
             dataModel.QualityTier = quality.Tier;
             dataModel.SharpnessScore = quality.Sharpness;
             dataModel.LuminanceAverage = quality.Luminance;
@@ -177,10 +186,9 @@ namespace MH.Capstone.WebApp.Controllers
             // their profile and badges immediately after upload.
             _ = await _sightingsService.CreateSightingAsync(dataModel, sightingUpload.DeviceTimezone);
 
-            // CSP-122: surface a flash message based on the photo's quality tier so the
-            // user gets immediate feedback after the redirect to Dashboard. Medium tier
-            // is intentionally silent (passed, but nothing to celebrate or warn about).
-            SetPhotoQualityFlashMessage(quality.Tier, quality.Sharpness, quality.Luminance);
+            // CSP-189: Only one positive outcome now — Low is rejected above, so by here
+            // the photo is High or Medium and we acknowledge it with a single confirmation.
+            TempData["PhotoQualitySuccess"] = "Great photo! Upload accepted.";
 
             // Since invalid Sightings were already checked and the sighting has already been uploaded,
             // give the user the First Sighting Badge
@@ -192,36 +200,6 @@ namespace MH.Capstone.WebApp.Controllers
             await _badgeService.AddBadge(user, BadgeId.FirstSightingBadgeGUID, userTimeZoneId);
             await _badgeService.UpdateBadge(user, BadgeId.SightingNoviceBadgeGUID, userTimeZoneId);
             return RedirectToAction("Index", "Dashboard");
-        }
-
-        // CSP-122: maps a photo-quality analysis result to a TempData flash message.
-        // Keys are read by the Dashboard view after the post-upload redirect.
-        //   - High  → success badge
-        //   - Low   → warning, with text picked by which sub-criterion triggered Low
-        //   - Other → no message (Medium passes silently; Unknown shouldn't reach here)
-        private void SetPhotoQualityFlashMessage(PhotoQualityTier tier, double sharpness, double luminance)
-        {
-            const double DarkLuminanceThreshold = 0.20;
-            const double WashedOutLuminanceThreshold = 0.85;
-
-            switch (tier)
-            {
-                case PhotoQualityTier.High:
-                    TempData["PhotoQualitySuccess"] = "Ready for ID - High Quality";
-                    break;
-
-                case PhotoQualityTier.Low:
-                    // Lighting issues take priority over blur — when both are bad, the
-                    // user-visible problem is almost always the lighting, and "blurry"
-                    // is the catch-all for everything else (low sharpness).
-                    if (luminance < DarkLuminanceThreshold)
-                        TempData["PhotoQualityWarning"] = "This photo is too dark - try finding better light";
-                    else if (luminance > WashedOutLuminanceThreshold)
-                        TempData["PhotoQualityWarning"] = "This photo is washed out - try adjusting exposure";
-                    else
-                        TempData["PhotoQualityWarning"] = "This photo looks a bit blurry - steady your camera or try again";
-                    break;
-            }
         }
 
         #region CSP-145 / CSP-96: Sighting Gallery Feature
