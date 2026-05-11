@@ -80,25 +80,30 @@
                                 <i class="bi bi-trophy-fill"></i> Leaderboard
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-light" asp-controller="Species" asp-action="Search">
-                                <i class="bi bi-search"></i> Search for Animals
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle text-light" href="#" id="searchForDropdown" role="button"
+                                   data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-search"></i> Search for
                             </a>
+                            <ul class="dropdown-menu" aria-labelledby="searchForDropdown">
+                                <li>
+                                    <a id="searchForAnimalsNavLink" class="dropdown-item text-light" asp-controller="Species" asp-action="Search">
+                                        <i class="bi bi-search"></i> Search for Animals
+                                    </a>
+                                </li>
+                                @if (User.Identity?.IsAuthenticated == true)
+                                {
+                                    @* Sprint 5, CSP-54 *@
+                                    <li>
+                                        <a id="findUsersNavLink" class="dropdown-item text-light" asp-controller="User" asp-action="Search">
+                                            <i class="bi bi-person-search"></i> Find Users
+                                        </a>
+                                    </li>
+                                }
+                            </ul>
                         </li>
                         @if (User.Identity?.IsAuthenticated == true)
                         {
-                            @* Sprint 5, CSP-54 *@
-                            <li class="nav-item">
-                                <a class="nav-link text-light" asp-controller="User" asp-action="Search">
-                                    <i class="bi bi-person-search"></i> Find Users
-                                </a>
-                            </li>
-                            @* CSP-187: activity feed of followed users' sightings *@
-                            <li class="nav-item">
-                                <a id="feedNavLink" class="nav-link text-light" asp-controller="Feed" asp-action="Index">
-                                    <i class="bi bi-rss-fill"></i> Feed
-                                </a>
-                            </li>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-light" href="#" id="sightingsDropdown" role="button"
                                        data-bs-toggle="dropdown" aria-expanded="false">
@@ -178,6 +183,11 @@
                                     <li class="menuItem">
                                         <a class="nav-link dropdown-item text-light" id="badgeMenuItem" asp-controller="Dashboard" asp-action="Badges">
                                             <i class="bi bi-shield"></i> Badges
+                                        </a>
+                                    </li>
+                                    <li class="menuItem">
+                                        <a id="feedNavLink" class="nav-link dropdown-item text-light" asp-controller="Feed" asp-action="Index">
+                                            <i class="bi bi-rss-fill"></i> Feed
                                         </a>
                                     </li>
                                     <li class="menuItem">
