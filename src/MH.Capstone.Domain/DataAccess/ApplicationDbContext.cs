@@ -30,6 +30,7 @@ namespace MH.Capstone.Domain.DataAccess
         public DbSet<UserBlock> UserBlocks { get; set; } = null!;
         public DbSet<Comment> Comments { get; set; } = null!;
         public DbSet<CommentModerationLog> CommentModerationLogs { get; set; } = null!;
+        public DbSet<LiveNotificationPreference> LiveNotificationPreferences { get; set; } = null!; // CSP-180
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

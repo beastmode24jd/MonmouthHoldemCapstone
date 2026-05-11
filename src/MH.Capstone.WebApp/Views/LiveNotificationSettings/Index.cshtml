@@ -1,0 +1,44 @@
+@model MH.Capstone.WebApp.Models.LiveNotificationSettingsViewModel
+@{
+    ViewData["Title"] = "Live Notification Settings";
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-body">
+            <h1 class="card-title">
+                <i class="bi bi-broadcast text-primary"></i> Live Notifications
+            </h1>
+            <hr />
+
+            @if (TempData["LiveNotificationsSaved"] is true)
+            {
+                <div id="liveNotificationsSuccess" class="alert alert-success" role="alert">
+                    Preferences saved.
+                </div>
+            }
+
+            <p class="text-muted">
+                When enabled, you will receive in-app toasts when other users earn points
+                on the leaderboard. Disable this if you find live updates disruptive.
+            </p>
+
+            <form asp-action="Index" method="post">
+                @Html.AntiForgeryToken()
+                <div class="form-check form-switch fs-5">
+                    <input id="liveNotificationsToggle"
+                           asp-for="Enabled"
+                           type="checkbox"
+                           class="form-check-input" />
+                    <label class="form-check-label" for="liveNotificationsToggle">
+                        Receive live in-app notifications
+                    </label>
+                </div>
+
+                <button id="saveLiveNotificationsBtn" type="submit" class="btn btn-primary mt-3">
+                    <i class="bi bi-save"></i> Save
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

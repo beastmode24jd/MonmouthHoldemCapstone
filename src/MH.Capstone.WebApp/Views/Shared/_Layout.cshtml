@@ -176,6 +176,11 @@
                                         </a>
                                     </li>
                                     <li class="menuItem">
+                                        <a class="nav-link dropdown-item text-light" id="badgeMenuItem" asp-controller="Dashboard" asp-action="Badges">
+                                            <i class="bi bi-shield"></i> Badges
+                                        </a>
+                                    </li>
+                                    <li class="menuItem">
                                         <a class="nav-link dropdown-item text-light" asp-controller="Dashboard" asp-action="Settings">
                                             <i class="bi bi-gear"></i> Account Settings
                                         </a>
@@ -242,6 +247,11 @@
     {
         <script src="~/js/offline-queue.js" asp-append-version="true"></script>
     }
+
+    @* CSP-180: Site-wide SignalR connection for live notifications/toasts *@
+    <script src="https://unpkg.com/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
+    <script src="~/js/live-hub.js" asp-append-version="true"></script>
+
     @await RenderSectionAsync("Scripts", required: false)
 
     @if (User.Identity?.IsAuthenticated == true)

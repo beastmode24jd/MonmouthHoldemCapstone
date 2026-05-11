@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using MH.Capstone.Domain.Constants;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
@@ -218,6 +218,7 @@ namespace MH.Capstone.WebApp.Controllers
                      string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
 
             await _badgeService.AddBadge(user, BadgeId.FirstSightingBadgeGUID, userTimeZoneId);
+            await _badgeService.UpdateBadge(user, BadgeId.SightingNoviceBadgeGUID, userTimeZoneId);
             return RedirectToAction("Index", "Dashboard");
         }
 

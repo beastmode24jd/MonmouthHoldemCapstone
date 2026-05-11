@@ -13,6 +13,8 @@ using Microsoft.EntityFrameworkCore;
 using MH.Capstone.Domain.Tools;
 using MH.Capstone.Domain.Constants.Configurables;
 using MH.Capstone.WebApp.Filters;
+using MH.Capstone.WebApp.Hubs;
+using MH.Capstone.WebApp.Services;
 using System.Threading.Channels;
 
 namespace MH.Capstone.WebApp
@@ -135,6 +137,11 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<IBlockService, BlockService>();
             builder.Services.AddScoped<ICommentService, CommentService>();
 
+            // CSP-180: Real-time leaderboard / live notifications
+            builder.Services.AddScoped<ILiveNotificationPreferenceService, LiveNotificationPreferenceService>();
+            builder.Services.AddScoped<ILiveBroadcastService, LiveBroadcastService>();
+            builder.Services.AddHostedService<LeaderboardChangeWatcher>();
+
             // AI Companion (CSP-120) — Gemini-backed wildlife education chat
             if (featureFlags.IsEnabled("EnableGeminiAIService") && !EF.IsDesignTime)
             {
@@ -203,6 +210,9 @@ namespace MH.Capstone.WebApp
             })
                 .AddNewtonsoftJson();
 
+            // CSP-180: SignalR for real-time leaderboard pushes
+            builder.Services.AddSignalR();
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -226,6 +236,9 @@ namespace MH.Capstone.WebApp
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}")
                 .WithStaticAssets();
+
+            // CSP-180: SignalR hub endpoint for live leaderboard
+            app.MapHub<LeaderboardHub>("/hubs/leaderboard");
 
             return app;
         }
