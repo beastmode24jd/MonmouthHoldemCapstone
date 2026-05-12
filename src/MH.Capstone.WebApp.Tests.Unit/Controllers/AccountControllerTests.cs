@@ -20,6 +20,8 @@ public class AccountControllerTests
     private Mock<IUserService> _mockUserService;
     private Mock<ILogger<AccountController>> _mockLogger;
     private Mock<INotificationService> _mockNotificationService;
+    private Mock<IFollowService> _mockFollowService;
+    private Mock<IBlockService> _mockBlockService;
     private AccountController _controller;
     private Mock<UserManager<ApplicationUser>> _mockUserManager;
     private Mock<IUrlHelper> _mockUrlHelper;
@@ -31,6 +33,8 @@ public class AccountControllerTests
         _mockUserService = new Mock<IUserService>();
         _mockLogger = new Mock<ILogger<AccountController>>();
         _mockNotificationService = new Mock<INotificationService>();
+        _mockFollowService = new Mock<IFollowService>();
+        _mockBlockService = new Mock<IBlockService>();
         _mockUrlHelper = new Mock<IUrlHelper>();
 
         // Mock UserManager (requires a Mock UserStore)
@@ -44,6 +48,8 @@ public class AccountControllerTests
             _mockUserManager.Object,
             _mockNotificationService.Object,
             new FeatureFlags(),
+            _mockFollowService.Object,
+            _mockBlockService.Object,
             _mockLogger.Object);
 
         // Setup the Mock URL Helper to return a dummy string

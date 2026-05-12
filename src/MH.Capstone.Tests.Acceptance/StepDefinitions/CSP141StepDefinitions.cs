@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using FluentAssertions;
 using MH.Capstone.Tests.Acceptance.Drivers;
+using MH.Capstone.Tests.Acceptance.Helpers;
 using OpenQA.Selenium;
 using Reqnroll;
 using SixLabors.ImageSharp;
@@ -85,12 +86,11 @@ public class CSP141StepDefinitions
 
     private void SubmitSightingWithSpecies(string speciesName)
     {
-        _tempImagePath = Path.Combine(Path.GetTempPath(), $"csp141_{Guid.NewGuid():N}.jpg");
-        using (var image = new Image<Rgba32>(1280, 960, new Rgba32(128, 128, 128, 255)))
-        using (var fs = File.Create(_tempImagePath))
-        {
-            image.SaveAsJpeg(fs);
-        }
+        // CSP-189: must use a non-Low-tier image — the upload form now rejects
+        // Low-tier photos at the gate rather than accepting-with-warning. The old
+        // solid-gray JPEG (sharpness ≈ 0) classifies as Low and would be rejected
+        // before any scoring/anidex updates ever ran.
+        _tempImagePath = TestImageFactory.CreateValid();
 
         _sightingsDriver.NavigateToSightingsUpload();
         _sightingsDriver.SetImageForUpload(_tempImagePath);

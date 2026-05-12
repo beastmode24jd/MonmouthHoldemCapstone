@@ -62,9 +62,13 @@ public static class TestImageFactory
     /// decodable by ImageSharp). Use this when a test only needs a sighting upload to succeed
     /// and does not care about the resulting quality tier.
     /// </summary>
+    /// <remarks>
+    /// CSP-189: must be a non-Low-tier image, since the upload form now rejects Low-tier
+    /// photos rather than accepting-with-warning. Uses the "high-quality" stripes preset.
+    /// </remarks>
     /// <returns>Absolute path to the generated temp file.</returns>
     public static string CreateValid()
-        => CreateByQuality("blurry");
+        => CreateByQuality("high-quality");
 
     private static Image<Rgba32> CreateVerticalStripesImage(int width, int height)
     {

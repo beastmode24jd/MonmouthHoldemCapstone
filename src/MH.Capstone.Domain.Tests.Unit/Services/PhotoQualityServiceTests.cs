@@ -172,4 +172,45 @@ public class PhotoQualityServiceTests
 
         Assert.That(result.Tier, Is.EqualTo(PhotoQualityTier.Medium));
     }
+
+    // CSP-189 — GetLowQualityReasonMessage classifies Low-tier photos by primary cause.
+    // Lighting issues take priority over blur because that's the user-visible problem.
+
+    [Test]
+    public void GetLowQualityReasonMessage_TooDark_MentionsLighting()
+    {
+        var sut = CreateSut();
+        var msg = sut.GetLowQualityReasonMessage(sharpness: 50.0, luminance: 0.10);
+
+        Assert.That(msg, Does.Contain("dark").IgnoreCase);
+    }
+
+    [Test]
+    public void GetLowQualityReasonMessage_WashedOut_MentionsOverexposure()
+    {
+        var sut = CreateSut();
+        var msg = sut.GetLowQualityReasonMessage(sharpness: 50.0, luminance: 0.95);
+
+        Assert.That(msg, Does.Contain("overexposed").IgnoreCase);
+    }
+
+    [Test]
+    public void GetLowQualityReasonMessage_NormalLuminanceLowSharpness_FallsBackToBlurry()
+    {
+        var sut = CreateSut();
+        var msg = sut.GetLowQualityReasonMessage(sharpness: 50.0, luminance: 0.50);
+
+        Assert.That(msg, Does.Contain("blurry").IgnoreCase);
+    }
+
+    [Test]
+    public void GetLowQualityReasonMessage_BothBad_PrioritizesLighting()
+    {
+        var sut = CreateSut();
+        // Low sharpness AND too dark — the user should hear "too dark", not "blurry".
+        var msg = sut.GetLowQualityReasonMessage(sharpness: 0.0, luminance: 0.05);
+
+        Assert.That(msg, Does.Contain("dark").IgnoreCase);
+        Assert.That(msg, Does.Not.Contain("blurry").IgnoreCase);
+    }
 }

@@ -15,6 +15,9 @@ namespace MH.Capstone.WebApp.Tests.Unit.Controllers;
 public class UserControllerTests
 {
     private Mock<IUserService> _mockUserService = null!;
+    private Mock<IFollowService> _mockFollowService = null!;
+    private Mock<IBlockService> _mockBlockService = null!;
+    private Mock<Microsoft.AspNetCore.Identity.UserManager<ApplicationUser>> _mockUserManager = null!;
     private Mock<ILogger<UserController>> _mockLogger = null!;
     private UserController _controller = null!;
 
@@ -22,8 +25,18 @@ public class UserControllerTests
     public void SetUp()
     {
         _mockUserService = new Mock<IUserService>();
+        _mockFollowService = new Mock<IFollowService>();
+        _mockBlockService = new Mock<IBlockService>();
+        var store = new Mock<Microsoft.AspNetCore.Identity.IUserStore<ApplicationUser>>();
+        _mockUserManager = new Mock<Microsoft.AspNetCore.Identity.UserManager<ApplicationUser>>(
+            store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
         _mockLogger = new Mock<ILogger<UserController>>();
-        _controller = new UserController(_mockUserService.Object, _mockLogger.Object);
+        _controller = new UserController(
+            _mockUserService.Object,
+            _mockFollowService.Object,
+            _mockBlockService.Object,
+            _mockUserManager.Object,
+            _mockLogger.Object);
     }
 
     [TearDown]

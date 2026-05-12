@@ -23,6 +23,8 @@ public class SightingControllerTests
     private Mock<IBadgeService> _mockBadgeService = null!;
     private Mock<IPhotoQualityService> _mockPhotoQualityService = null!;
     private Mock<IAnimalFunFactService> _mockFunFactService = null!;
+    private Mock<ICommentService> _mockCommentService = null!;
+    private Mock<IUserService> _mockUserService = null!;
     private SightingController _controller = null!;
 
     private static readonly string TestUserId = Guid.NewGuid().ToString();
@@ -41,6 +43,12 @@ public class SightingControllerTests
         _mockBadgeService = new Mock<IBadgeService>();
         _mockPhotoQualityService = new Mock<IPhotoQualityService>();
         _mockFunFactService = new Mock<IAnimalFunFactService>();
+        _mockCommentService = new Mock<ICommentService>();
+        _mockUserService = new Mock<IUserService>();
+
+        _mockCommentService
+            .Setup(c => c.GetCommentsForSightingAsync(It.IsAny<Guid>(), It.IsAny<Guid?>()))
+            .ReturnsAsync(new List<Comment>());
 
         // Default no-op result so existing tests that don't care about photo quality still run.
         _mockPhotoQualityService
@@ -57,7 +65,9 @@ public class SightingControllerTests
             _mockUserManager.Object,
             _mockBadgeService.Object,
             _mockPhotoQualityService.Object,
-            _mockFunFactService.Object);
+            _mockFunFactService.Object,
+            _mockCommentService.Object,
+            _mockUserService.Object);
 
         _controller.ControllerContext = new ControllerContext
         {
@@ -406,15 +416,12 @@ public class SightingControllerTests
             "no sighting should be persisted when the resolution gate rejects the image");
     }
 
-    [TestCase(PhotoQualityTier.High,    450.0, 0.55, "PhotoQualitySuccess", "Ready for ID - High Quality")]
-    [TestCase(PhotoQualityTier.Low,      50.0, 0.50, "PhotoQualityWarning", "blurry")]
-    [TestCase(PhotoQualityTier.Low,       0.0, 0.10, "PhotoQualityWarning", "too dark")]
-    [TestCase(PhotoQualityTier.Low,       0.0, 0.95, "PhotoQualityWarning", "washed out")]
-    public async Task Upload_Post_AfterSuccessfulSave_SetsTempDataMessageMatchingTier(
-        PhotoQualityTier tier, double sharpness, double luminance,
-        string expectedTempDataKey, string expectedMessageSubstring)
+    [TestCase(PhotoQualityTier.High,   450.0, 0.55)]
+    [TestCase(PhotoQualityTier.Medium, 200.0, 0.50)]
+    public async Task Upload_Post_AcceptedTier_SetsSingleSuccessFlash(
+        PhotoQualityTier tier, double sharpness, double luminance)
     {
-        // Arrange — analyzer returns the given tier/metric combo against a large enough image.
+        // CSP-189: High and Medium tiers both succeed with the same confirmation flash.
         var vm = BuildViewModelWithImage();
 
         _mockSightingsService
@@ -427,38 +434,53 @@ public class SightingControllerTests
             .Setup(p => p.AnalyzeAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((tier, sharpness, luminance, 2400, 1800));
 
-        // Act
         await _controller.Upload(vm);
 
-        // Assert — TempData has the correct flash message under the tier-appropriate key.
-        var actual = _controller.TempData[expectedTempDataKey] as string;
-        Assert.That(actual, Is.Not.Null,
-            $"TempData['{expectedTempDataKey}'] should be set for tier {tier}");
-        Assert.That(actual, Does.Contain(expectedMessageSubstring).IgnoreCase);
+        var success = _controller.TempData["PhotoQualitySuccess"] as string;
+        Assert.That(success, Is.Not.Null, "accepted uploads should set the success flash");
+        Assert.That(success, Does.Contain("Great photo").IgnoreCase);
+        Assert.That(_controller.TempData["PhotoQualityWarning"], Is.Null,
+            "warning flash is no longer used — Low tier rejects at the form instead");
     }
 
-    [Test]
-    public async Task Upload_Post_WithMediumTier_DoesNotSetAnyFlashMessage()
+    [TestCase(50.0,  0.50, "blurry")]
+    [TestCase(0.0,   0.10, "too dark")]
+    [TestCase(0.0,   0.95, "overexposed")]
+    public async Task Upload_Post_WithLowTier_RejectsSubmissionWithReasonMessage(
+        double sharpness, double luminance, string expectedReasonSubstring)
     {
-        // Arrange — Medium tier means the photo passed but isn't notable; no message either way.
+        // CSP-189: Low tier no longer saves with a warning — it returns to the form
+        // with a ModelState error explaining why so the user can re-upload.
         var vm = BuildViewModelWithImage();
 
         _mockSightingsService
             .Setup(s => s.ValidateImage(It.IsAny<IFormFile>()))
             .Returns(true);
-        _mockSightingsService
-            .Setup(s => s.CreateSightingAsync(It.IsAny<Sighting>(), It.IsAny<string>()))
-            .ReturnsAsync(10);
         _mockPhotoQualityService
             .Setup(p => p.AnalyzeAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PhotoQualityTier.Medium, 200.0, 0.50, 1600, 1200));
+            .ReturnsAsync((PhotoQualityTier.Low, sharpness, luminance, 2400, 1800));
+        _mockPhotoQualityService
+            .Setup(p => p.GetLowQualityReasonMessage(sharpness, luminance))
+            .Returns($"This photo is {expectedReasonSubstring}. Try again.");
 
-        // Act
-        await _controller.Upload(vm);
+        var result = await _controller.Upload(vm);
 
-        // Assert
-        Assert.That(_controller.TempData["PhotoQualitySuccess"], Is.Null);
-        Assert.That(_controller.TempData["PhotoQualityWarning"], Is.Null);
+        Assert.That(result, Is.InstanceOf<ViewResult>(),
+            "Low-tier submissions should return the Upload view, not redirect");
+        Assert.That(_controller.ModelState.IsValid, Is.False);
+
+        var imageErrors = _controller.ModelState[nameof(SightingUploadViewModel.UploadedImage)]?.Errors;
+        Assert.That(imageErrors, Is.Not.Null.And.Not.Empty);
+        Assert.That(
+            imageErrors!.Any(e => e.ErrorMessage.Contains(expectedReasonSubstring,
+                StringComparison.OrdinalIgnoreCase)),
+            Is.True,
+            $"ModelState error should mention the low-quality reason '{expectedReasonSubstring}'");
+
+        _mockSightingsService.Verify(
+            s => s.CreateSightingAsync(It.IsAny<Sighting>(), It.IsAny<string>()),
+            Times.Never,
+            "Low-tier photo must not be persisted");
     }
 
     [Test]

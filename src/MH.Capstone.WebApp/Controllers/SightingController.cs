@@ -22,11 +22,15 @@ namespace MH.Capstone.WebApp.Controllers
         private readonly IBadgeService _badgeService;
         private readonly IPhotoQualityService _photoQualityService;
         private readonly IAnimalFunFactService _funFactService;
+        private readonly ICommentService _commentService;
+        private readonly IUserService _userService;
 
         public SightingController(ILogger<SightingController> logger, ISightingsService sightingsService,
             UserManager<ApplicationUser> userManager, IBadgeService badgeService,
             IPhotoQualityService photoQualityService,
-            IAnimalFunFactService funFactService)
+            IAnimalFunFactService funFactService,
+            ICommentService commentService,
+            IUserService userService)
         {
             _logger = logger;
             _sightingsService = sightingsService;
@@ -34,6 +38,8 @@ namespace MH.Capstone.WebApp.Controllers
             _badgeService = badgeService;
             _photoQualityService = photoQualityService;
             _funFactService = funFactService;
+            _commentService = commentService;
+            _userService = userService;
         }
 
         #region CSP-177: Offline Queue
@@ -83,6 +89,28 @@ namespace MH.Capstone.WebApp.Controllers
                 userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
             }
             viewModel.Timestamp = TimeZoneInfo.ConvertTime(viewModel.Timestamp, userZone);
+
+            // CSP-187: load comments (filtered for hidden + blocked authors) and resolve author names.
+            var currentUser = await _userManager.GetUserAsync(User);
+            Guid? viewerId = currentUser?.GuidId;
+            viewModel.ViewerCanModerate = currentUser != null && await _userManager.IsInRoleAsync(currentUser, "Admin");
+
+            var comments = (await _commentService.GetCommentsForSightingAsync(id, viewerId)).ToList();
+            var rows = new List<CommentRowViewModel>(comments.Count);
+            foreach (var c in comments)
+            {
+                var authorId = Guid.Parse(c.AuthorIdentityId);
+                var author = await _userService.GetUserByIdAsync(authorId);
+                rows.Add(new CommentRowViewModel
+                {
+                    Id = c.Id,
+                    AuthorId = authorId,
+                    AuthorDisplayName = author?.DisplayName ?? "Unknown",
+                    Body = c.Body,
+                    CreatedAt = TimeZoneInfo.ConvertTime(c.CreatedAt, userZone),
+                });
+            }
+            viewModel.Comments = rows;
 
             return View(viewModel);
         }
@@ -165,6 +193,15 @@ namespace MH.Capstone.WebApp.Controllers
                 return View(sightingUpload);
             }
 
+            // CSP-189: Reject Low-tier photos at the form level so the user gets a clear
+            // "try again" experience instead of a confusing "saved but try again" flash.
+            if (quality.Tier == PhotoQualityTier.Low)
+            {
+                ModelState.AddModelError(nameof(sightingUpload.UploadedImage),
+                    _photoQualityService.GetLowQualityReasonMessage(quality.Sharpness, quality.Luminance));
+                return View(sightingUpload);
+            }
+
             dataModel.QualityTier = quality.Tier;
             dataModel.SharpnessScore = quality.Sharpness;
             dataModel.LuminanceAverage = quality.Luminance;
@@ -177,10 +214,9 @@ namespace MH.Capstone.WebApp.Controllers
             // their profile and badges immediately after upload.
             _ = await _sightingsService.CreateSightingAsync(dataModel, sightingUpload.DeviceTimezone);
 
-            // CSP-122: surface a flash message based on the photo's quality tier so the
-            // user gets immediate feedback after the redirect to Dashboard. Medium tier
-            // is intentionally silent (passed, but nothing to celebrate or warn about).
-            SetPhotoQualityFlashMessage(quality.Tier, quality.Sharpness, quality.Luminance);
+            // CSP-189: Only one positive outcome now — Low is rejected above, so by here
+            // the photo is High or Medium and we acknowledge it with a single confirmation.
+            TempData["PhotoQualitySuccess"] = "Great photo! Upload accepted.";
 
             // Since invalid Sightings were already checked and the sighting has already been uploaded,
             // give the user the First Sighting Badge
@@ -192,36 +228,6 @@ namespace MH.Capstone.WebApp.Controllers
             await _badgeService.AddBadge(user, BadgeId.FirstSightingBadgeGUID, userTimeZoneId);
             await _badgeService.UpdateBadge(user, BadgeId.SightingNoviceBadgeGUID, userTimeZoneId);
             return RedirectToAction("Index", "Dashboard");
-        }
-
-        // CSP-122: maps a photo-quality analysis result to a TempData flash message.
-        // Keys are read by the Dashboard view after the post-upload redirect.
-        //   - High  → success badge
-        //   - Low   → warning, with text picked by which sub-criterion triggered Low
-        //   - Other → no message (Medium passes silently; Unknown shouldn't reach here)
-        private void SetPhotoQualityFlashMessage(PhotoQualityTier tier, double sharpness, double luminance)
-        {
-            const double DarkLuminanceThreshold = 0.20;
-            const double WashedOutLuminanceThreshold = 0.85;
-
-            switch (tier)
-            {
-                case PhotoQualityTier.High:
-                    TempData["PhotoQualitySuccess"] = "Ready for ID - High Quality";
-                    break;
-
-                case PhotoQualityTier.Low:
-                    // Lighting issues take priority over blur — when both are bad, the
-                    // user-visible problem is almost always the lighting, and "blurry"
-                    // is the catch-all for everything else (low sharpness).
-                    if (luminance < DarkLuminanceThreshold)
-                        TempData["PhotoQualityWarning"] = "This photo is too dark - try finding better light";
-                    else if (luminance > WashedOutLuminanceThreshold)
-                        TempData["PhotoQualityWarning"] = "This photo is washed out - try adjusting exposure";
-                    else
-                        TempData["PhotoQualityWarning"] = "This photo looks a bit blurry - steady your camera or try again";
-                    break;
-            }
         }
 
         #region CSP-145 / CSP-96: Sighting Gallery Feature
