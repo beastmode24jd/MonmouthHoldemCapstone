@@ -125,10 +125,9 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<ISightingsService, SightingsService>();
             builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
             builder.Services.AddScoped<IReportService, ReportService>();
-            // Acceptance tests register TestPhotoQualityService via TestWebAppHost before
-            // calling this method. Skip the real registration in that environment so the
-            // stub wins — DI is last-registration-wins, and the stub bypasses the analyzer
-            // so test-generated images aren't subject to CSP-189's Low-tier rejection.
+            // Acceptance tests register PhotoQualityService via TestWebAppHost before
+            // calling this method. Skip the duplicate registration here — DI last-registration
+            // wins and the TestWebAppHost already owns the lifetime (Singleton).
             if (!builder.Environment.IsEnvironment("Acceptance"))
             {
                 builder.Services.AddScoped<IPhotoQualityService, PhotoQualityService>();
