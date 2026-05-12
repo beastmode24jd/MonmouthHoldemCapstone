@@ -99,19 +99,21 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
         [Then("Alex should see the upload error mentioning {string}")]
         public void ThenAlexShouldSeeUploadErrorMentioning(string substring)
         {
+            // Use selectors scoped to actual ASP.NET validation elements so we don't
+            // accidentally match the navbar notification link (also .text-danger).
             var summary = _wait.Until(d =>
             {
-                var el = d.FindElement(By.CssSelector("div[asp-validation-summary], div.validation-summary-errors, .text-danger"));
+                var el = d.FindElement(By.CssSelector("div.validation-summary-errors, .field-validation-error"));
                 return string.IsNullOrWhiteSpace(el.Text) ? null : el;
             });
 
-            // The simplest reliable assertion: any text-danger element on the page contains the reason.
-            var dangerTexts = _webDriver.FindElements(By.CssSelector(".text-danger"))
+            var errorTexts = _webDriver
+                .FindElements(By.CssSelector("div.validation-summary-errors, .field-validation-error"))
                 .Select(e => e.Text ?? string.Empty)
                 .ToList();
 
-            dangerTexts.Any(t => t.Contains(substring, StringComparison.OrdinalIgnoreCase))
-                .Should().BeTrue($"expected an upload error mentioning '{substring}', got: {string.Join(" | ", dangerTexts)}");
+            errorTexts.Any(t => t.Contains(substring, StringComparison.OrdinalIgnoreCase))
+                .Should().BeTrue($"expected an upload error mentioning '{substring}', got: {string.Join(" | ", errorTexts)}");
         }
 
         [Then("the upload stays on the Sighting Upload page")]
