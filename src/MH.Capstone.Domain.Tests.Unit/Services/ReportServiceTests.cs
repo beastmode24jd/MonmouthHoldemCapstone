@@ -359,6 +359,7 @@ public class ReportServiceTests
 }
 
 #region Helper classes
+
 // --- ASYNC QUERYABLE MOCKING HELPERS (used for await _reportRepo.GetAllAsync()) ---
 
 public static class AsyncQueryableExtensions

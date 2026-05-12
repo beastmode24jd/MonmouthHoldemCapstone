@@ -14,19 +14,13 @@ namespace MH.Capstone.Domain.Services
     {
         private readonly IRepository<Report, ApplicationDbContext> _reportRepo;
         private readonly INotificationService _notificationService;
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly IRepository<ApplicationUser, ApplicationDbContext> _userRepo;
 
         public ReportService(
             IRepository<Report, ApplicationDbContext> reportRepo,
-            INotificationService notificationService,
-            UserManager<ApplicationUser> userManager,
-            IRepository<ApplicationUser, ApplicationDbContext> userRepo)
+            INotificationService notificationService)
         {
             _reportRepo = reportRepo;
             _notificationService = notificationService;
-            _userManager = userManager;
-            _userRepo = userRepo;
         }
 
         public async Task<bool> SubmitReportAsync(Report report)
@@ -79,26 +73,24 @@ namespace MH.Capstone.Domain.Services
 
         // Sort by Descending.
 
-        public async Task<List<Report>> SortReports(string adminId,
+        public async Task<(List<Report> Reports, int TotalCount)> SortReports(
             ReportFilterType reportType,
             string? pageURL,
             string? reportingUserId,
-            DateTime? date)
+            DateTime? date,
+            bool showResolved, // false means this isn't selected
+            int page,          
+            int pageSize)
         {
             // ReportFilterType values:
             //      pageURL == 0
             //      reportingUserId == reporter
             //      date == 2
+            //      resolved == 3
 
             //      Respective argument fields are nullable to be omitted as needed.
 
-            // Sort and check adminId with _userManager ***********
-            var user = await _userManager.FindByIdAsync(adminId);
-
-            if (user == null || !await _userManager.IsInRoleAsync(user, "Admin"))
-            {
-                throw new UnauthorizedAccessException("Access Denied: You do not have permission to view or sort reports.");
-            }
+            // AdminId check should go in Controller, before the ReportService method call
             
             // Get all the reports available
             IQueryable<Report> query = await _reportRepo.GetAllAsync();
@@ -119,6 +111,14 @@ namespace MH.Capstone.Domain.Services
                 // Filters for reports submitted on or after the provided date
                 query = query.Where(r => r.SubmittedAt <= date.Value);
             }
+            
+            if (showResolved == true)
+            {
+                query = query.Where(r => r.IsResolved == true);
+            }
+
+            // Get total query list count before pagination
+            int totalCount = await query.CountAsync();
 
             // Apply Sorting
             query = reportType switch
@@ -126,10 +126,17 @@ namespace MH.Capstone.Domain.Services
                 ReportFilterType.PageURL => query.OrderBy(r => r.ReportedPageUrl),
                 ReportFilterType.Reporter => query.OrderBy(r => r.ReportingUserIdentityId),
                 ReportFilterType.Date => query.OrderByDescending(r => r.SubmittedAt),
+                ReportFilterType.Resolved => query.OrderByDescending(r => r.SubmittedAt),
                 _ => query.OrderByDescending(r => r.SubmittedAt) // Default to newest at the top of the display
             };
-            
-            return await query.ToListAsync();
+
+            // Apply Pagination
+            var reports = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (reports, totalCount);
         }
     }
 }

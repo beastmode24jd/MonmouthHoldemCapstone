@@ -4,26 +4,25 @@ Feature: Admin Report System
     So I can see Badges I have earned, and get hints on how to earn uncompleted Badges.
 
 @report
-Scenario: Non-moderator cannot access moderation tools
+Scenario: Regular user cannot access admin tools
     Given a regular authenticated user logs in
     When they attempt to access the moderation queue URL
     Then access is denied and no moderation controls are visible
 
 @justThisOne
-Scenario: Moderator filters and views queue
+Scenario: Admin filters and views queue
     Given a moderator is authenticated
     When they open the moderation queue and apply filters
     Then the queue list is filtered and results are paged
 
 @report
-Scenario: Moderator performs a bulk dismiss
+Scenario: Admin performs a bulk dismiss
     Given multiple reports are selected
     When the moderator clicks Dismiss and confirms
     Then selected reports are marked dismissed and an audit log is created for each
 
 @report
-Scenario: Moderator soft-bans a user and creates an appeal entry
-    Given a moderator reviews a user's repeated policy violations
-    When they apply a soft-ban action with reason
-    Then the user is marked as soft-banned and an appeal record is created
-    And the action is recorded in the moderation audit log
+Scenario: Admin soft-locks a user account
+    Given a moderator searches user accounts
+    When they toggle a soft-lock on the account
+    Then the account is marked as soft-locked and is unable to log in

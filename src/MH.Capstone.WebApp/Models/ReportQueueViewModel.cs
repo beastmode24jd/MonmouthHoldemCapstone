@@ -1,0 +1,22 @@
+using MH.Capstone.Domain.DataModels;
+
+namespace MH.Capstone.WebApp.Models
+{
+    public class ReportQueueViewModel
+    {
+        // Data
+        public List<Report> Reports { get; set; } = new();
+
+        // Filtering & Sorting
+        public string? PageUrlFilter { get; set; }
+        public string? ReporterIdFilter { get; set; }
+        public DateTime? DateFilter { get; set; }
+        public ReportFilterType SortBy { get; set; }
+        public bool ShowResolved { get; set; }
+
+        // Pagination data
+        public int CurrentPage { get; set; } = 1;
+        public int TotalPages { get; set; }
+        public int PageSize { get; set; } = 10;
+    }
+}
