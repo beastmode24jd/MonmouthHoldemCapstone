@@ -9,8 +9,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq.Expressions;
+//using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore.Query;
+using MockQueryable.Moq;
+using MockQueryable;
 
 namespace MH.Capstone.Domain.Tests.Unit.Services;
 
@@ -171,11 +173,13 @@ public class ReportServiceTests
             {
                 new Report { ReportedPageUrl = pageURL, ReportingUserId = userId, SubmittedAt = DateTime.UtcNow },
                 new Report { ReportedPageUrl = wrongURL, ReportingUserId = userId, SubmittedAt = DateTime.UtcNow}
-            }.AsQueryable().AsAsyncQueryable();
+            };
+
+        var mockAsyncQueryable = reports.BuildMock();
 
         // Save reportList to _reportRepoMock
         _reportRepoMock.Setup(repo => repo.GetAllAsync())
-                           .ReturnsAsync(reports);
+                           .ReturnsAsync(mockAsyncQueryable);
 
         // Act
         var (result, totalCount) = await _reportService.SortReports(
@@ -207,11 +211,13 @@ public class ReportServiceTests
             new Report { ReportedPageUrl = pageURL, ReportingUserId = userId, SubmittedAt = DateTime.UtcNow },
             new Report { ReportedPageUrl = pageURL, ReportingUserId = userId, SubmittedAt = DateTime.UtcNow.AddHours(-1)},
             new Report { ReportedPageUrl = pageURL, ReportingUserId = wrongUserId, SubmittedAt = DateTime.UtcNow}
-        }.AsQueryable().AsAsyncQueryable();
+        };
+
+        var mockAsyncQueryable = reports.BuildMock();
 
         // Save reportList to _reportRepoMock
         _reportRepoMock.Setup(repo => repo.GetAllAsync())
-                           .ReturnsAsync(reports);
+                           .ReturnsAsync(mockAsyncQueryable);
 
         // Act
         var (result, totalCount) = await _reportService.SortReports(
@@ -245,11 +251,13 @@ public class ReportServiceTests
         {
             new Report { ReportedPageUrl = pageURL, ReportingUserId = userId, SubmittedAt = olderTime },
             new Report { ReportedPageUrl = pageURL, ReportingUserId = userId, SubmittedAt = newerTime}
-        }.AsQueryable().AsAsyncQueryable();
+        };
+
+        var mockAsyncQueryable = reports.BuildMock();
 
         // Save reportList to _reportRepoMock
         _reportRepoMock.Setup(repo => repo.GetAllAsync())
-                           .ReturnsAsync(reports);
+                           .ReturnsAsync(mockAsyncQueryable);
 
         // Act
         var (result, totalCount) = await _reportService.SortReports(
@@ -275,9 +283,11 @@ public class ReportServiceTests
             ReportedPageUrl = $"/url/{i}", 
             ReportingUserIdentityId = "admin",
             SubmittedAt = DateTime.UtcNow.AddDays(-i) 
-        }).AsQueryable().AsAsyncQueryable();
+        }).ToList();
 
-        _reportRepoMock.Setup(repo => repo.GetAllAsync()).ReturnsAsync(reports);
+        var mockAsyncQueryable = reports.BuildMock();
+
+        _reportRepoMock.Setup(repo => repo.GetAllAsync()).ReturnsAsync(mockAsyncQueryable);
 
         // Act: Request page 2 with a size of 2
         var (result, totalCount) = await _reportService.SortReports(
@@ -298,11 +308,13 @@ public class ReportServiceTests
         string pageURL = "/Sighting/456";
 
         // Set up _reportRepoMock to return no entries (empty list)
-        var reports = new List<Report>().AsQueryable().AsAsyncQueryable();
+        var reports = new List<Report>();
+
+        var mockAsyncQueryable = reports.BuildMock();
 
         // Save reportList to _reportRepoMock
         _reportRepoMock.Setup(repo => repo.GetAllAsync())
-                           .ReturnsAsync(reports);
+                           .ReturnsAsync(mockAsyncQueryable);
         
         // Act
         var (result, totalCount) = await _reportService.SortReports(
@@ -315,62 +327,3 @@ public class ReportServiceTests
 
     #endregion
 }
-
-#region Helper classes
-
-// --- ASYNC QUERYABLE MOCKING HELPERS (used for await _reportRepo.GetAllAsync()) ---
-
-public static class AsyncQueryableExtensions
-{
-    public static IQueryable<T> AsAsyncQueryable<T>(this IEnumerable<T> source)
-        => new TestAsyncEnumerable<T>(source);
-}
-
-internal class TestAsyncEnumerable<T> : EnumerableQuery<T>, IAsyncEnumerable<T>, IQueryable<T>
-{
-    public TestAsyncEnumerable(IEnumerable<T> enumerable) : base(enumerable) { }
-    public TestAsyncEnumerable(Expression expression) : base(expression) { }
-
-    public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken token = default) 
-        => new TestAsyncEnumerator<T>(this.AsEnumerable().GetEnumerator());
-
-    // Fix: Explicitly implement the IQueryable.Provider property
-    IQueryProvider IQueryable.Provider => new TestAsyncQueryProvider<T>(this);
-}
-
-internal class TestAsyncEnumerator<T> : IAsyncEnumerator<T>
-{
-    private readonly IEnumerator<T> _inner;
-    public TestAsyncEnumerator(IEnumerator<T> inner) => _inner = inner;
-    public T Current => _inner.Current;
-    public ValueTask<bool> MoveNextAsync() => new ValueTask<bool>(_inner.MoveNext());
-    public ValueTask DisposeAsync() { _inner.Dispose(); return ValueTask.CompletedTask; }
-}
-
-internal class TestAsyncQueryProvider<TEntity> : IAsyncQueryProvider
-{
-    private readonly IQueryProvider _inner;
-    internal TestAsyncQueryProvider(IQueryProvider inner) => _inner = inner;
-
-    public IQueryable CreateQuery(Expression expression) => new TestAsyncEnumerable<TEntity>(expression);
-    public IQueryable<TElement> CreateQuery<TElement>(Expression expression) => new TestAsyncEnumerable<TElement>(expression);
-    public object? Execute(Expression expression) => _inner.Execute(expression);
-    public TResult Execute<TResult>(Expression expression) => _inner.Execute<TResult>(expression);
-
-    // This is the logic that ToListAsync() calls
-    public TResult ExecuteAsync<TResult>(Expression expression, CancellationToken token = default)
-    {
-        var expectedResultType = typeof(TResult).GetGenericArguments()[0];
-        var executionResult = typeof(IQueryProvider)
-            .GetMethods()
-            .First(m => m.Name == nameof(IQueryProvider.Execute) && m.IsGenericMethod)
-            .MakeGenericMethod(expectedResultType)
-            .Invoke(_inner, new[] { expression });
-
-        return (TResult)typeof(Task).GetMethod(nameof(Task.FromResult))!
-            .MakeGenericMethod(expectedResultType)
-            .Invoke(null, new[] { executionResult })!;
-    }
-}
-
-#endregion
