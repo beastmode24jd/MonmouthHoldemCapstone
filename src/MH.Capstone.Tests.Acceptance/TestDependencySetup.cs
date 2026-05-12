@@ -45,6 +45,7 @@ public static class TestDependencySetup
         services.AddTransient<DashboardDriver>();
         services.AddTransient<SightingGalleryDriver>();
         services.AddTransient<SightingsDriver>();
+        services.AddTransient<SightingDetailsDriver>(); // CSP-172
         services.AddTransient<WildlifeSearchDriver>();
         services.AddTransient<PasswordResetDriver>();
         services.AddTransient<EmailVerificationDriver>();
@@ -54,6 +55,13 @@ public static class TestDependencySetup
         services.AddTransient<NotificationPreferencesDriver>();
         services.AddTransient<AccountSettingsDriver>();
         services.AddTransient<AnidexDriver>(); // CSP-142
+        services.AddTransient<OfflineQueueDriver>(); // CSP-177
+        services.AddTransient<LeaderboardDriver>(); // CSP-176
+        services.AddTransient<LeaderboardLiveDriver>(); // CSP-180
+        services.AddTransient<LiveNotificationSettingsDriver>(); // CSP-180
+        services.AddTransient<FeedDriver>();     // CSP-187
+        services.AddTransient<ProfileDriver>();  // CSP-187
+        services.AddTransient<CommentsDriver>(); // CSP-187
 
         return services;
     }

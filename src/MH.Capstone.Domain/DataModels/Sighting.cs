@@ -92,6 +92,13 @@ namespace MH.Capstone.Domain.DataModels
 
         #endregion
 
+        #region CSP-177: Offline Queue Idempotency
+
+        [MaxLength(36)]
+        public string? ClientSightingId { get; set; } = null;
+
+        #endregion
+
         public Sighting() {}
 
         public Sighting(Guid id, Guid userId, decimal latitude, decimal longitude, DateTimeOffset timestamp, 

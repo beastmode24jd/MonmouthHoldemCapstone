@@ -374,7 +374,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services
             });
         }
 
-    #region SearchUsersAsync — Sprint 5, CSP-54
+    #region SearchUsersAsync — Sprint 5, CSP-54 / Sprint 6, CSP-200 (DisplayName-only)
 
     [Test]
     public async Task SearchUsersAsync_EmptyQuery_ReturnsNoResults()
@@ -393,12 +393,12 @@ namespace MH.Capstone.Domain.Tests.Unit.Services
     }
 
     [Test]
-    public async Task SearchUsersAsync_ExactUsernameMatch_ReturnsUser()
+    public async Task SearchUsersAsync_ExactDisplayNameMatch_ReturnsUser()
     {
         // Arrange
         var users = new List<ApplicationUser>
         {
-            new() { Id = "1", UserName = "Alice" }
+            new() { Id = "1", UserName = "alice@test.com", DisplayName = "Alice" }
         };
         _userRepoMock
             .Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>>()))
@@ -410,7 +410,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services
 
         // Assert
         Assert.That(results, Has.Count.EqualTo(1));
-        Assert.That(results[0].UserName, Is.EqualTo("Alice"));
+        Assert.That(results[0].DisplayName, Is.EqualTo("Alice"));
     }
 
     [Test]
@@ -419,8 +419,8 @@ namespace MH.Capstone.Domain.Tests.Unit.Services
         // Arrange
         var users = new List<ApplicationUser>
         {
-            new() { Id = "1", UserName = "AliceSmith" },
-            new() { Id = "2", UserName = "Bob" }
+            new() { Id = "1", UserName = "alicesmith@test.com", DisplayName = "AliceSmith" },
+            new() { Id = "2", UserName = "bob@test.com",        DisplayName = "Bob" }
         };
         _userRepoMock
             .Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>>()))
@@ -432,7 +432,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services
 
         // Assert — both come back because the mock doesn't evaluate the predicate;
         // this verifies the sort/ordering logic that runs in-process.
-        Assert.That(results.Any(u => u.UserName == "AliceSmith"), Is.True);
+        Assert.That(results.Any(u => u.DisplayName == "AliceSmith"), Is.True);
     }
 
     [Test]
@@ -441,7 +441,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services
         // Arrange
         var users = new List<ApplicationUser>
         {
-            new() { Id = "1", UserName = "Alice" }
+            new() { Id = "1", UserName = "alice@test.com", DisplayName = "Alice" }
         };
         _userRepoMock
             .Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>>()))
@@ -453,7 +453,7 @@ namespace MH.Capstone.Domain.Tests.Unit.Services
 
         // Assert
         Assert.That(results, Has.Count.EqualTo(1));
-        Assert.That(results[0].UserName, Is.EqualTo("Alice"));
+        Assert.That(results[0].DisplayName, Is.EqualTo("Alice"));
     }
 
     [Test]
@@ -462,8 +462,8 @@ namespace MH.Capstone.Domain.Tests.Unit.Services
         // Arrange — repo returns both users (predicate not evaluated by mock)
         var users = new List<ApplicationUser>
         {
-            new() { Id = "1", UserName = "AliceSmith" },  // substring match
-            new() { Id = "2", UserName = "Alice" }         // full match
+            new() { Id = "1", UserName = "alicesmith@test.com", DisplayName = "AliceSmith" },  // substring match
+            new() { Id = "2", UserName = "alice@test.com",      DisplayName = "Alice" }        // full match
         };
         _userRepoMock
             .Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>>()))
@@ -474,8 +474,8 @@ namespace MH.Capstone.Domain.Tests.Unit.Services
         var results = (await sut.SearchUsersAsync("Alice")).ToList();
 
         // Assert — full match "Alice" comes before substring match "AliceSmith"
-        Assert.That(results[0].UserName, Is.EqualTo("Alice"));
-        Assert.That(results[1].UserName, Is.EqualTo("AliceSmith"));
+        Assert.That(results[0].DisplayName, Is.EqualTo("Alice"));
+        Assert.That(results[1].DisplayName, Is.EqualTo("AliceSmith"));
     }
 
     [Test]
@@ -484,9 +484,9 @@ namespace MH.Capstone.Domain.Tests.Unit.Services
         // Arrange
         var users = new List<ApplicationUser>
         {
-            new() { Id = "3", UserName = "Charlie_ali" },
-            new() { Id = "1", UserName = "Ali_first" },
-            new() { Id = "2", UserName = "Bali_second" }
+            new() { Id = "3", UserName = "charlie@test.com", DisplayName = "Charlie_ali" },
+            new() { Id = "1", UserName = "first@test.com",   DisplayName = "Ali_first" },
+            new() { Id = "2", UserName = "second@test.com",  DisplayName = "Bali_second" }
         };
         _userRepoMock
             .Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>>()))
@@ -496,10 +496,43 @@ namespace MH.Capstone.Domain.Tests.Unit.Services
         // Act
         var results = (await sut.SearchUsersAsync("ali")).ToList();
 
-        // Assert — all are substring matches, sorted alphabetically
-        Assert.That(results[0].UserName, Is.EqualTo("Ali_first"));
-        Assert.That(results[1].UserName, Is.EqualTo("Bali_second"));
-        Assert.That(results[2].UserName, Is.EqualTo("Charlie_ali"));
+        // Assert — all are substring matches, sorted alphabetically by DisplayName
+        Assert.That(results[0].DisplayName, Is.EqualTo("Ali_first"));
+        Assert.That(results[1].DisplayName, Is.EqualTo("Bali_second"));
+        Assert.That(results[2].DisplayName, Is.EqualTo("Charlie_ali"));
+    }
+
+    // Sprint 6, CSP-200: the predicate handed to the repo must filter on
+    // DisplayName, not email. This captures the expression and evaluates it
+    // against fake users — proving an email-only match is rejected.
+    [Test]
+    public async Task SearchUsersAsync_PredicateMatchesDisplayNameNotEmail()
+    {
+        // Arrange — capture the predicate that the service hands to the repo.
+        System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>? captured = null;
+        _userRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>>()))
+            .Callback<System.Linq.Expressions.Expression<Func<ApplicationUser, bool>>>(e => captured = e)
+            .ReturnsAsync(new List<ApplicationUser>().AsQueryable());
+
+        var emailMatch = new ApplicationUser
+            { Id = "1", UserName = "smith.john@test.com", DisplayName = "NatureLover", IsDeactivated = false };
+        var displayMatch = new ApplicationUser
+            { Id = "2", UserName = "user@test.com",       DisplayName = "SmithDisplay", IsDeactivated = false };
+        var unsetUser = new ApplicationUser
+            { Id = "3", UserName = "smith.unset@test.com", DisplayName = "UNSET", IsDeactivated = false };
+
+        var sut = CreateSut();
+
+        // Act
+        await sut.SearchUsersAsync("smith");
+
+        // Assert — predicate must reject the email-only and UNSET users, accept the DisplayName match.
+        Assert.That(captured, Is.Not.Null, "service should pass a predicate to the repo");
+        var compiled = captured!.Compile();
+        Assert.That(compiled(emailMatch),  Is.False, "user matched only by email must be excluded");
+        Assert.That(compiled(displayMatch), Is.True,  "user matched by DisplayName must be included");
+        Assert.That(compiled(unsetUser),    Is.False, "user with DisplayName 'UNSET' must be excluded");
     }
 
     #endregion

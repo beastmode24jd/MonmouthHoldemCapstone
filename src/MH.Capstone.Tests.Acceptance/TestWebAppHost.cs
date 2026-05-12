@@ -10,6 +10,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
+using MH.Capstone.Domain.DataAccess;
+using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.Tests.Acceptance.Support;
 
@@ -73,7 +76,11 @@ internal static class TestWebAppHost
                 });
 
             builder.Services.AddSingleton<IAIService, TestAIService>();
-            builder.Services.AddSingleton<IPhotoQualityService, TestPhotoQualityService>();
+            // CSP-122/189: use the real PhotoQualityService so CSP-122 acceptance tests
+            // can verify that blurry/dark/overexposed images are rejected. All other
+            // upload-path tests use TestImageFactory.CreateValid() (high-quality stripes)
+            // which classifies as High and clears the gate.
+            builder.Services.AddSingleton<IPhotoQualityService, PhotoQualityService>();
             EnsureStaticAssetsManifest();
 
             var runtimeProvider = new TestOutputLoggerProvider();
@@ -96,6 +103,24 @@ internal static class TestWebAppHost
 
                 // Probe the actual bound address so failures are obvious
                 await ProbePortAsync("127.0.0.1", portToTry);
+
+                // Ensure both DbContext schemas are up to date before seeding.
+                try
+                {
+                    using var migScope = _app.Services.CreateScope();
+                    await migScope.ServiceProvider
+                        .GetRequiredService<ApplicationDbContext>()
+                        .Database.MigrateAsync();
+                    await migScope.ServiceProvider
+                        .GetRequiredService<CacheDbContext>()
+                        .Database.MigrateAsync();
+                    TestContext.Progress.WriteLine("[TestWebAppHost] Migrations applied.");
+                }
+                catch (Exception ex)
+                {
+                    TestContext.Progress.WriteLine($"[TestWebAppHost] MIGRATION FAILED: {ex.GetType().Name}: {ex.Message}");
+                    throw;
+                }
 
                 // Wipe and re-seed the acceptance test database.
                 try

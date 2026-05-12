@@ -28,6 +28,7 @@ public class SightingsServiceTests
     private Mock<INotificationService> _notificationServiceMock;
     private Mock<IRepository<Sighting, ApplicationDbContext>> _sightingsRepoMock;
     private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock;
+    private Mock<IBadgeService> _badgeServiceMock;
     private FakeImageGenerator _imageGenerator;
 
     // Remember: Arrange, Act, Assert
@@ -40,6 +41,7 @@ public class SightingsServiceTests
         _scoringServiceMock = new Mock<IScoringService>();
         _notificationServiceMock = new Mock<INotificationService>();
         _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
+        _badgeServiceMock = new Mock<IBadgeService>();
 
         // GLOBAL MOCKS for new dependencies
         _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(It.IsAny<string>()))
@@ -52,6 +54,10 @@ public class SightingsServiceTests
         // Provide an empty list of users by default so FirstOrDefault doesn't crash
         _userRepoMock.Setup(r => r.GetAllAsync())
             .ReturnsAsync(new List<ApplicationUser>().AsQueryable());
+
+        // Default: return empty sightings for any predicate query (covers unique species count after upload)
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(Enumerable.Empty<Sighting>().AsQueryable());
     }
 
     [TearDown]
@@ -65,7 +71,8 @@ public class SightingsServiceTests
             _scoringServiceMock.Object,
             _notificationServiceMock.Object,
             _sightingsRepoMock.Object,
-            _userRepoMock.Object);
+            _userRepoMock.Object,
+            _badgeServiceMock.Object);
 
     private void AssertAllMockVerifications()
     {
@@ -75,6 +82,7 @@ public class SightingsServiceTests
         _scoringServiceMock.Verify();
         _notificationServiceMock.Verify();
         _userRepoMock.Verify();
+        _badgeServiceMock.Verify();
     }
 
     // Will run 2^4 = 16 times, testing all combinations of the valid values for lat, long, timestamp, and description
@@ -724,6 +732,63 @@ public class SightingsServiceTests
 
     #endregion
 
+    #region CSP-172: GetSightingByIdAsync Tests
+
+    [Test]
+    public async Task GetSightingByIdAsync_ExistingId_ReturnsThatSighting()
+    {
+        // Arrange
+        var sightingId = Guid.NewGuid();
+        var sighting = new Sighting
+        {
+            Id = sightingId,
+            UserId = Guid.NewGuid(),
+            Latitude = 44.0m,
+            Longitude = -123.0m,
+            Timestamp = DateTimeOffset.UtcNow.AddDays(-1),
+            Description = "Test sighting",
+            ImageBuffer = [0x01],
+            SpeciesName = "Coyote"
+        };
+
+        _sightingsRepoMock.Setup(r => r.FindByIdAsync(It.Is<Guid>(g => g == sightingId)))
+            .ReturnsAsync(sighting)
+            .Verifiable(Times.Once);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetSightingByIdAsync(sightingId);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Id, Is.EqualTo(sightingId));
+        Assert.That(result.SpeciesName, Is.EqualTo("Coyote"));
+        AssertAllMockVerifications();
+    }
+
+    [Test]
+    public async Task GetSightingByIdAsync_UnknownId_ReturnsNull()
+    {
+        // Arrange
+        var unknownId = Guid.NewGuid();
+
+        _sightingsRepoMock.Setup(r => r.FindByIdAsync(It.Is<Guid>(g => g == unknownId)))
+            .ReturnsAsync((Sighting?)null)
+            .Verifiable(Times.Once);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetSightingByIdAsync(unknownId);
+
+        // Assert
+        Assert.That(result, Is.Null);
+        AssertAllMockVerifications();
+    }
+
+    #endregion
+
     [Test]
     public async Task CreateSightingAsync_UserHasActiveStreak_Applies1Point5Multiplier()
     {
@@ -782,6 +847,101 @@ public class SightingsServiceTests
     {
         return new FormFile(stream, offset, len, "file", filename);
     }
+
+    #region CSP-177: Offline Queue Idempotency
+
+    [Test]
+    public async Task CreateSightingAsync_WithNullClientId_CreatesSightingNormally()
+    {
+        // Arrange
+        var sighting = _validSighting;
+        sighting.ClientSightingId = null;
+        var pointsValue = 10;
+
+        _scoringServiceMock.Setup(s => s.CalculatePointsAsync(It.IsAny<int>())).ReturnsAsync(pointsValue);
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(Enumerable.Empty<Sighting>().AsQueryable());
+        _sightingsRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<Sighting>()))
+            .ReturnsAsync(sighting).Verifiable(Times.Once);
+        _userRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(new List<ApplicationUser>
+                { new ApplicationUser { Id = sighting.UserIdentityId } }.AsQueryable());
+        _userRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<ApplicationUser>())).ReturnsAsync(new ApplicationUser());
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.CreateSightingAsync(sighting);
+
+        // Assert — sighting repo was called to create a new record
+        _sightingsRepoMock.Verify(r => r.AddOrUpdateAsync(It.IsAny<Sighting>()), Times.Once);
+    }
+
+    [Test]
+    public async Task CreateSightingAsync_WithNewClientId_CreatesSighting()
+    {
+        // Arrange
+        var sighting = _validSighting;
+        sighting.ClientSightingId = Guid.NewGuid().ToString();
+        var pointsValue = 20;
+
+        _scoringServiceMock.Setup(s => s.CalculatePointsAsync(It.IsAny<int>())).ReturnsAsync(pointsValue);
+        // No existing sighting with this client ID
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(Enumerable.Empty<Sighting>().AsQueryable());
+        _sightingsRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<Sighting>()))
+            .ReturnsAsync(sighting).Verifiable(Times.Once);
+        _userRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(new List<ApplicationUser>
+                { new ApplicationUser { Id = sighting.UserIdentityId } }.AsQueryable());
+        _userRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<ApplicationUser>())).ReturnsAsync(new ApplicationUser());
+
+        var sut = CreateSut();
+
+        // Act
+        await sut.CreateSightingAsync(sighting);
+
+        // Assert — a new sighting was persisted
+        _sightingsRepoMock.Verify(r => r.AddOrUpdateAsync(It.IsAny<Sighting>()), Times.Once);
+    }
+
+    [Test]
+    public async Task CreateSightingAsync_WithDuplicateClientId_ReturnsExistingPointsWithoutCreatingDuplicate()
+    {
+        // Arrange
+        var clientId = Guid.NewGuid().ToString();
+        var existingPointValue = 50;
+        var sighting = _validSighting;
+        sighting.ClientSightingId = clientId;
+
+        var existingSighting = new Sighting
+        {
+            Id = Guid.NewGuid(),
+            UserIdentityId = sighting.UserIdentityId,
+            ClientSightingId = clientId,
+            PointValue = existingPointValue,
+            Latitude = 45m,
+            Longitude = -123m,
+            Timestamp = DateTimeOffset.UtcNow.AddDays(-1),
+            ImageBuffer = [0x01],
+            SpeciesName = "Test Species"
+        };
+
+        // Repo returns the existing sighting when queried by ClientSightingId
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(new List<Sighting> { existingSighting }.AsQueryable());
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.CreateSightingAsync(sighting);
+
+        // Assert — returns existing points, no new record added
+        Assert.That(result, Is.EqualTo(existingPointValue));
+        _sightingsRepoMock.Verify(r => r.AddOrUpdateAsync(It.IsAny<Sighting>()), Times.Never);
+    }
+
+    #endregion
 }
 
 [ExcludeFromCodeCoverage]

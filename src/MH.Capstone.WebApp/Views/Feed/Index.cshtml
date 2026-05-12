@@ -1,0 +1,101 @@
+@model FeedViewModel
+@{
+    ViewData["Title"] = "Activity Feed";
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-body">
+            <h1 class="card-title">
+                <i class="bi bi-rss-fill text-primary"></i> Activity Feed
+            </h1>
+            <hr />
+
+            @if (!Model.HasFollowees)
+            {
+                <div id="feedNoFollowees" class="text-center py-5">
+                    <i class="bi bi-people display-1 text-muted mb-3"></i>
+                    <h3 class="text-muted">Your Feed is Empty</h3>
+                    <p class="lead text-muted mb-4">
+                        Follow other users to see their sightings here.
+                    </p>
+                    <a id="feedFindUsersLink" asp-controller="User" asp-action="Search" class="btn btn-primary btn-lg">
+                        <i class="bi bi-search"></i> Find Users to Follow
+                    </a>
+                </div>
+            }
+            else if (Model.Sightings.Count == 0)
+            {
+                <div id="feedEmptyFollowees" class="text-center py-5">
+                    <i class="bi bi-binoculars display-1 text-muted mb-3"></i>
+                    <h3 class="text-muted">Nothing to See Yet</h3>
+                    <p class="lead text-muted">
+                        The users you follow haven't posted any sightings yet.
+                    </p>
+                </div>
+            }
+            else
+            {
+                <div id="feedSightingsGrid" class="row g-4">
+                    @foreach (var sighting in Model.Sightings)
+                    {
+                        string rarityBadgeClass = sighting.Rarity switch
+                        {
+                            "Mythic" => "bg-purple",
+                            "Rare"   => "bg-primary",
+                            "Common" => "bg-success",
+                            _        => "bg-secondary"
+                        };
+
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 feed-card-wrapper"
+                             data-user-id="@sighting.SubmittedByUserId">
+                            <a class="sighting-card-link"
+                               data-sighting-id="@sighting.Id"
+                               asp-controller="Sighting" asp-action="Details" asp-route-id="@sighting.Id">
+                                <div class="card h-100 shadow-sm sighting-card">
+                                    <img src="@sighting.ImageDataUrl"
+                                         class="card-img-top sighting-image"
+                                         alt="Sighting image"
+                                         loading="lazy" />
+                                    <div class="card-body d-flex flex-column">
+                                        <p class="card-text text-muted small mb-1">
+                                            <i class="bi bi-person-circle"></i>
+                                            <span class="sighting-attribution">@sighting.SubmittedByUsername</span>
+                                        </p>
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="badge bg-primary">@sighting.PointValue points</span>
+                                        </div>
+                                        <div class="mb-2">
+                                            <small class="text-muted">
+                                                <i class="bi bi-clock"></i> @sighting.Timestamp.ToString("MMM dd, yyyy h:mm tt")
+                                            </small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <span class="badge @rarityBadgeClass">
+                                                @sighting.Rarity (@sighting.RarityMultiplier.ToString("0.0")x)
+                                            </span>
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(sighting.Description))
+                                        {
+                                            <p class="card-text small flex-grow-1 text-truncate" title="@sighting.Description">
+                                                @sighting.Description
+                                            </p>
+                                        }
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .sighting-card { transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; cursor: pointer; }
+    .sighting-card:hover { transform: translateY(-5px); box-shadow: 0 0.5rem 1rem rgba(0,0,0,.15) !important; }
+    .sighting-image { width: 100%; height: 200px; object-fit: cover; object-position: center; }
+    .sighting-card-link { display: block; color: inherit; text-decoration: none; }
+    .sighting-card-link:hover, .sighting-card-link:focus { color: inherit; text-decoration: none; }
+</style>

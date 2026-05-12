@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using MH.Capstone.Domain.ApiContracts.Ninja;
 using MH.Capstone.Domain.DataAccess;
 using MH.Capstone.Domain.DataModels;
 using Microsoft.AspNetCore.Identity;
@@ -82,6 +83,7 @@ internal static class AcceptanceTestSeeder
     {
         using var scope = services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var cacheDb = scope.ServiceProvider.GetRequiredService<CacheDbContext>();
 
         await ClearAllAsync(db, token);
         await SeedRolesAsync(db, token);
@@ -92,6 +94,9 @@ internal static class AcceptanceTestSeeder
         await SeedUserBadgesAsync(db, token);
         await SeedNotificationsAsync(db, token);
         await SeedReportsAsync(db, token);
+
+        await ClearCacheAsync(cacheDb, token);
+        await SeedAnimalCacheAsync(cacheDb, token);
     }
 
     // =========================================================================
@@ -105,6 +110,14 @@ internal static class AcceptanceTestSeeder
         await db.Reports.ExecuteDeleteAsync(token);
         await db.Notifications.ExecuteDeleteAsync(token);
         await db.UserBadges.ExecuteDeleteAsync(token);
+
+        // CSP-187: moderation log -> Comment -> Sighting; clear logs first, then comments,
+        // then sightings (existing line). Follow + block tables are independent leaves.
+        await db.CommentModerationLogs.ExecuteDeleteAsync(token);
+        await db.Comments.ExecuteDeleteAsync(token);
+        await db.UserFollows.ExecuteDeleteAsync(token);
+        await db.UserBlocks.ExecuteDeleteAsync(token);
+
         await db.Sightings.ExecuteDeleteAsync(token);
 
         // 2. Club tables — Messages and ClubMemberships reference both Club and User;
@@ -158,6 +171,7 @@ internal static class AcceptanceTestSeeder
                 Title       = "Custom Profile Badge",
                 Description = "Uploaded a custom profile image.",
                 PointValue  = 10,
+                HintToEarn  = "Upload a custom profile icon.",
             },
             new Badge
             {
@@ -165,6 +179,7 @@ internal static class AcceptanceTestSeeder
                 Title       = "Custom Bio Badge",
                 Description = "Updated your profile with a custom description.",
                 PointValue  = 10,
+                HintToEarn  = "Update your profile with a custom bio.",
             },
             new Badge
             {
@@ -172,6 +187,16 @@ internal static class AcceptanceTestSeeder
                 Title       = "First Sighting Badge",
                 Description = "Uploaded your first Sighting!",
                 PointValue  = 25,
+                HintToEarn  = "Upload a Sighting.",
+            },
+            new Badge
+            {
+                BadgeID     = BadgeConstants.SightingNoviceBadgeGUID,
+                Title       = "Sighting Novice",
+                Description = "Captured 5 animal Sightings!",
+                PointValue  = 35,
+                HintToEarn  = "Upload 5 Sightings.",
+                BadgeSteps  = 5,
             }
         );
         await db.SaveChangesAsync(token);
@@ -369,6 +394,21 @@ internal static class AcceptanceTestSeeder
                 loginStreak: true,
                 rarity: "Common",
                 rarityMultiplier: 1.7) { SpeciesName = "Great Blue Heron" },
+
+            // CSP-172: SpeciesName is intentionally a string the Animals API will
+            // never resolve, so the details page must render its fun-fact fallback.
+            new Sighting(
+                id:          new Guid("a1000000-0000-0000-0000-000000000004"),
+                userId:      AlexUserId,
+                latitude:    44.851000m,
+                longitude:  -123.231000m,
+                timestamp:   DateTimeOffset.UtcNow.AddDays(-3),
+                description: "An unrecognized animal photographed near the WOU campus.",
+                imageBuffer: img,
+                pointValue: 10,
+                loginStreak: true,
+                rarity: "Common",
+                rarityMultiplier: 1.0) { SpeciesName = "Mystery Critter Z" },
 
             // ── Lily ──────────────────────────────────────────────────────────
 
@@ -659,5 +699,68 @@ internal static class AcceptanceTestSeeder
         );
 
         await db.SaveChangesAsync(token);
+    }
+
+    // =========================================================================
+    // Cache — clear then re-seed with known animal results so CSP-58 search
+    // scenarios never need to reach the real Ninjas API.
+    // Cache key matches ApiCallerCachingProxy: Url="animals", QueryParams="name=eagle"
+    // =========================================================================
+
+    private static async Task ClearCacheAsync(CacheDbContext cacheDb, CancellationToken token)
+    {
+        await cacheDb.AnimalApiCache.ExecuteDeleteAsync(token);
+    }
+
+    private static async Task SeedAnimalCacheAsync(CacheDbContext cacheDb, CancellationToken token)
+    {
+        var eagleTaxonomy = new AnimalApiTaxonomyDto(
+            kingdom: "Animalia",
+            phylum: "Chordata",
+            taxClass: "Aves",
+            order: "Accipitriformes",
+            family: "Accipitridae",
+            genus: "Haliaeetus",
+            scientificName: "Haliaeetus leucocephalus");
+
+        var eagleCharacteristics = new AnimalApiCharacteristics(
+            prey: "Fish, rabbits, squirrels",
+            nameOfYoung: "Eaglet",
+            groupBehavior: "Solitary",
+            estimatedPopulationSize: "70,000",
+            biggestThreat: "Habitat loss",
+            mostDistinctiveFeature: "White head and tail feathers",
+            gestationPeriod: "35 days",
+            habitat: "Near large bodies of open water",
+            diet: "Carnivore",
+            averageLitterSize: "2",
+            lifestyle: "Diurnal",
+            commonName: "Bald Eagle",
+            numberOfSpecies: "1",
+            location: "North America",
+            slogan: "The national bird of the United States of America",
+            group: "Bird",
+            color: "Brown",
+            skinType: "Feathers",
+            topSpeed: "99 mph",
+            lifespan: "20-30 years",
+            weight: "3-6.3 kg",
+            height: "70-102 cm",
+            ageOfSexualMaturity: "4-5 years",
+            ageOfWeaning: "N/A");
+
+        cacheDb.AnimalApiCache.Add(new NinjaAnimalCacheEntity
+        {
+            Url         = "animals",
+            QueryParams = "name=eagle",
+            CachedAt    = DateTimeOffset.UtcNow,
+            CachedResponses = new List<AnimalApiDto>
+            {
+                new AnimalApiDto("Bald Eagle", eagleTaxonomy,
+                    new[] { "North America" }, eagleCharacteristics),
+            }
+        });
+
+        await cacheDb.SaveChangesAsync(token);
     }
 }

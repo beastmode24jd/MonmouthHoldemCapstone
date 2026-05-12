@@ -1,11 +1,10 @@
 using FluentAssertions;
 using MH.Capstone.Tests.Acceptance.Configuration;
 using MH.Capstone.Tests.Acceptance.Drivers;
+using MH.Capstone.Tests.Acceptance.Helpers;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
 using Reqnroll;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions
 {
@@ -152,15 +151,10 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
 
         #region Helpers
 
-        // Generates a valid 1024×1024 JPEG so the CSP-122 photo quality gate (long side
-        // ≥ 1024 px) does not reject the image when the form is submitted for real.
-        private static string GenerateValidUploadImage()
-        {
-            var path = Path.Combine(Path.GetTempPath(), $"csp144_{Guid.NewGuid():N}.jpg");
-            using var image = new Image<Rgb24>(1024, 1024);
-            image.SaveAsJpeg(path);
-            return path;
-        }
+        // CSP-189: must be a non-Low-tier image. The old uninitialized 1024×1024 JPEG had
+        // sharpness ≈ 0 and is now rejected at the form rather than accepted-with-warning.
+        // TestImageFactory.CreateValid() returns the high-quality stripes preset.
+        private static string GenerateValidUploadImage() => TestImageFactory.CreateValid();
 
         // Replaces window.fetch in the browser so /SightingAI/Identify returns a known
         // response per scenario, without ever touching the real Gemini API.

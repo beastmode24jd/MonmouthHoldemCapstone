@@ -1,6 +1,7 @@
 using System;
 using FluentAssertions;
 using MH.Capstone.Tests.Acceptance.Drivers;
+using MH.Capstone.Tests.Acceptance.Helpers;
 using Reqnroll;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -79,18 +80,13 @@ namespace MH.Capstone.Tests.Acceptance.StepDefinitions
         [Given("user has entered all valid and required information")]
         public void GivenUserHasEnteredAllValidAndRequiredInformation()
         {
-            // Generate a real 1280x960 JPEG so the image clears the CSP-122 photo-quality
-            // analyzer (which decodes the bytes via ImageSharp) and the >=1024 px long-side
-            // resolution gate. Magic-byte-only payloads are no longer sufficient.
-            var path = Path.Combine(Path.GetTempPath(), $"valid_image_{Guid.NewGuid()}.jpg");
-            using (var image = new Image<Rgba32>(1280, 960, new Rgba32(128, 128, 128, 255)))
-            using (var fs = File.Create(path))
-            {
-                image.SaveAsJpeg(fs);
-            }
-            _preparedImageFilePath = path;
+            // CSP-189: must use a non-Low-tier image — the upload form now rejects
+            // Low-tier photos at the gate rather than accepting-with-warning, so a
+            // solid-gray JPEG (sharpness ≈ 0) would never reach the dashboard.
+            // TestImageFactory.CreateValid() returns a high-sharpness stripes image.
+            _preparedImageFilePath = TestImageFactory.CreateValid();
 
-            _sightingsDriver.SetImageForUpload(path);
+            _sightingsDriver.SetImageForUpload(_preparedImageFilePath);
 
             // Set the other form fields to valid values as well. Timestamp must be in the
             // past per the [PastDateTime] validator — DateTimeOffset.Now flips into the

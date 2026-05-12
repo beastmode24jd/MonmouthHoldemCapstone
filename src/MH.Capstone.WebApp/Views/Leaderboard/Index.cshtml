@@ -23,37 +23,46 @@
                 </div>
             }
 
-            @* Leaderboard table *@
-            <table class="table table-hover align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th scope="col">#</th>
-                        <th scope="col">Player</th>
-                        <th scope="col">Points</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @{
-                        // Calculate the rank number for the first entry on this page.
-                        // Page 1 starts at rank 1, page 2 starts at rank 31, etc.
-                        int rankStart = (Model.CurrentPage - 1) * 30 + 1;
-                    }
-                    @for (int i = 0; i < Model.Users.Count; i++)
-                    {
-                        var entry = Model.Users[i];
-                        // Highlight the logged-in user's row with a distinct background color.
-                        var rowClass = entry.Id == Model.CurrentUserId ? "table-primary fw-bold" : "";
-
-                        <tr class="@rowClass" id="user-@entry.Id">
-                            <td>@(rankStart + i)</td>
-                            <td>@entry.DisplayName</td>
-                            <td>@entry.Points</td>
+            @* Leaderboard table — CSP-176: wrapped in `.table-responsive` so long
+               display names fall back to a *table-internal* horizontal scroll on
+               narrow viewports instead of pushing the whole page wider than the
+               screen. Desktop renders identically (the wrapper has no visual effect
+               when the table fits). *@
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Player</th>
+                            <th scope="col">Points</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @{
+                            // Calculate the rank number for the first entry on this page.
+                            // Page 1 starts at rank 1, page 2 starts at rank 31, etc.
+                            int rankStart = (Model.CurrentPage - 1) * 30 + 1;
+                        }
+                        @for (int i = 0; i < Model.Users.Count; i++)
+                        {
+                            var entry = Model.Users[i];
+                            // Highlight the logged-in user's row with a distinct background color.
+                            var rowClass = entry.Id == Model.CurrentUserId ? "table-primary fw-bold" : "";
 
-            @* Prev / Next pagination arrows — only shown when there is more than one page *@
+                            <tr class="@rowClass" id="user-@entry.Id">
+                                <td>@(rankStart + i)</td>
+                                <td>@entry.DisplayName</td>
+                                <td>@entry.Points</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @* Prev / Next pagination arrows — only shown when there is more than one page.
+               CSP-176: hide the "Previous"/"Next" labels on xs viewports (icons + page
+               indicator are still visible), and shorten the indicator to "X / Y" on
+               mobile. Desktop layout is unchanged. *@
             @if (Model.TotalPages > 1)
             {
                 <nav aria-label="Leaderboard pagination">
@@ -61,18 +70,23 @@
                         <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
                             <a class="page-link"
                                asp-action="Index"
-                               asp-route-page="@(Model.CurrentPage - 1)">
-                                <i class="bi bi-arrow-left"></i> Previous
+                               asp-route-page="@(Model.CurrentPage - 1)"
+                               aria-label="Previous">
+                                <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline"> Previous</span>
                             </a>
                         </li>
                         <li class="page-item disabled">
-                            <span class="page-link">Page @Model.CurrentPage of @Model.TotalPages</span>
+                            <span class="page-link">
+                                <span class="d-none d-sm-inline">Page @Model.CurrentPage of @Model.TotalPages</span>
+                                <span class="d-inline d-sm-none">@Model.CurrentPage / @Model.TotalPages</span>
+                            </span>
                         </li>
                         <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
                             <a class="page-link"
                                asp-action="Index"
-                               asp-route-page="@(Model.CurrentPage + 1)">
-                                Next <i class="bi bi-arrow-right"></i>
+                               asp-route-page="@(Model.CurrentPage + 1)"
+                               aria-label="Next">
+                                <span class="d-none d-sm-inline">Next </span><i class="bi bi-arrow-right"></i>
                             </a>
                         </li>
                     </ul>
@@ -82,3 +96,9 @@
         </div>
     </div>
 </div>
+
+@* CSP-180: SignalR client is loaded in _Layout.cshtml; this just hooks
+   the leaderboard-page-specific listeners onto the site-wide connection. *@
+@section Scripts {
+    <script src="~/js/leaderboard-live.js" asp-append-version="true"></script>
+}

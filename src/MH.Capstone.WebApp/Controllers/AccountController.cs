@@ -20,6 +20,8 @@ namespace MH.Capstone.WebApp.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly INotificationService _notificationService;
         private readonly FeatureFlags _featureFlags;
+        private readonly IFollowService _followService;
+        private readonly IBlockService _blockService;
 
         // Logger for tracking authentication-related events
         private readonly ILogger<AccountController> _logger;
@@ -31,6 +33,8 @@ namespace MH.Capstone.WebApp.Controllers
             UserManager<ApplicationUser> userManager,
             INotificationService notificationService,
             FeatureFlags featureFlags,
+            IFollowService followService,
+            IBlockService blockService,
             ILogger<AccountController> logger)
         {
             _authService = authService;
@@ -38,6 +42,8 @@ namespace MH.Capstone.WebApp.Controllers
             _userManager = userManager;
             _notificationService = notificationService;
             _featureFlags = featureFlags;
+            _followService = followService;
+            _blockService = blockService;
             _logger = logger;
         }
 
@@ -74,6 +80,13 @@ namespace MH.Capstone.WebApp.Controllers
                 // Create an Account ViewModel for the user being viewed, and indicate whether they are the authenticated user
                 vm = new AccountViewModel(userFromId, userFromId.Id == user.Id);
                 _logger.LogInformation("Id provided");
+
+                // CSP-187: only populate follow/block state when viewing another user.
+                if (!vm.IsAuthenticatedUser)
+                {
+                    vm.IsFollowedByCurrentUser = await _followService.IsFollowingAsync(user.GuidId, vm.Id);
+                    vm.IsBlockedByCurrentUser = await _blockService.IsBlockedAsync(user.GuidId, vm.Id);
+                }
             }
 
             return View(vm);
