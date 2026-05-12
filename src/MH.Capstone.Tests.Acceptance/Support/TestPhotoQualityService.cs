@@ -17,4 +17,9 @@ public class TestPhotoQualityService : IPhotoQualityService
     {
         return Task.FromResult((PhotoQualityTier.Medium, 200.0, 0.5, 1200, 900));
     }
+
+    // CSP-189: Stub never produces Low-tier results, so this is unreachable in practice;
+    // we implement it to satisfy the interface contract for the test host.
+    public string GetLowQualityReasonMessage(double sharpness, double luminance)
+        => "Test stub: low-quality reason not modeled.";
 }

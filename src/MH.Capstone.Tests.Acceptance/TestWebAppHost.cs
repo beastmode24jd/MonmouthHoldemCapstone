@@ -12,6 +12,7 @@ using NUnit.Framework;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using MH.Capstone.Domain.DataAccess;
+using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.Tests.Acceptance.Support;
 
@@ -75,7 +76,11 @@ internal static class TestWebAppHost
                 });
 
             builder.Services.AddSingleton<IAIService, TestAIService>();
-            builder.Services.AddSingleton<IPhotoQualityService, TestPhotoQualityService>();
+            // CSP-122/189: use the real PhotoQualityService so CSP-122 acceptance tests
+            // can verify that blurry/dark/overexposed images are rejected. All other
+            // upload-path tests use TestImageFactory.CreateValid() (high-quality stripes)
+            // which classifies as High and clears the gate.
+            builder.Services.AddSingleton<IPhotoQualityService, PhotoQualityService>();
             EnsureStaticAssetsManifest();
 
             var runtimeProvider = new TestOutputLoggerProvider();

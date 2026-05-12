@@ -98,6 +98,18 @@ public class PhotoQualityService : IPhotoQualityService
         return (sumOfSquares / count) - (mean * mean);
     }
 
+    // CSP-189: User-facing reason for a Low-tier failure. Lighting issues take
+    // priority over blur — when both are bad, the user-visible problem is almost
+    // always the lighting, and "blurry" is the catch-all for low sharpness.
+    public string GetLowQualityReasonMessage(double sharpness, double luminance)
+    {
+        if (luminance < DarkLuminanceThreshold)
+            return "This photo is too dark. Try better lighting and upload again.";
+        if (luminance > WashedOutLuminanceThreshold)
+            return "This photo is overexposed. Try adjusting the lighting and upload again.";
+        return "This photo is too blurry. Steady your camera and upload again.";
+    }
+
     private static PhotoQualityTier ClassifyTier(double sharpness, double luminance, int longSide)
     {
         if (sharpness < BlurThreshold ||
