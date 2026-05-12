@@ -18,17 +18,26 @@ namespace MH.Capstone.Domain.Services
         private readonly IRepository<UserBadge, ApplicationDbContext> _userBadgeRepo;
         private readonly IRepository<ApplicationUser, ApplicationDbContext> _userRepo;
         private readonly INotificationService _notificationService;
+        private readonly ILogger<BadgeService> _logger;
+        private readonly ILiveBroadcastService _liveBroadcast;
+        private readonly ILeaderboardService _leaderboardService;
 
         public BadgeService(IRepository<Badge, ApplicationDbContext> badgeRepo,
         IRepository<UserBadge, ApplicationDbContext> userBadgeRepo,
         IRepository<ApplicationUser, ApplicationDbContext> userRepo,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        ILogger<BadgeService> logger,
+        ILiveBroadcastService liveBroadcast,
+        ILeaderboardService leaderboardService)
         {
             // Switch Dependency Injection of DB context fully over to Repository structure
             _badgeRepo = badgeRepo;
             _userBadgeRepo = userBadgeRepo;
             _userRepo = userRepo;
             _notificationService = notificationService;
+            _logger = logger;
+            _liveBroadcast = liveBroadcast;
+            _leaderboardService = leaderboardService;
         }
 
         public async Task AddBadge(ApplicationUser user, Guid newBadgeID, string ianaTimeZoneId = "America/Los_Angeles")
@@ -75,6 +84,24 @@ namespace MH.Capstone.Domain.Services
 
             user.Points += badgePointTotal;
             await _userRepo.AddOrUpdateAsync(user);
+
+            // Event-driven leaderboard broadcast — fires immediately after the point save.
+            try
+            {
+                int rank = await _leaderboardService.GetUserRankAsync(user.Id);
+                await _liveBroadcast.BroadcastLeaderboardUpdateAsync(new LeaderboardEntryUpdate
+                {
+                    UserId = user.Id,
+                    DisplayName = user.DisplayName,
+                    Points = user.Points,
+                    Rank = rank
+                });
+            }
+            catch (Exception broadcastEx)
+            {
+                _logger.LogWarning(broadcastEx,
+                    "Leaderboard broadcast failed for user {UserId}; badge award is unaffected", user.Id);
+            }
 
             // Send the notification for the Badge. *************
             // Convert timezone IANA ID to a TimeZoneInfo object
