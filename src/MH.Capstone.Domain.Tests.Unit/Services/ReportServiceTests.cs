@@ -149,9 +149,6 @@ public class ReportServiceTests
     #region Report Filter
     // [CSP-179] ***************************
 
-    // Pass in different argument for different sorting systems.
-    //      Reuse the general code.
-
     // ReportFilterType values:
             //      - page sort
             //      - reporter sort

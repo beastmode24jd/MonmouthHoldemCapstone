@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using MH.Capstone.WebApp.Models;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.Domain.Services;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace MH.Capstone.WebApp.Controllers
 {
@@ -13,10 +15,15 @@ namespace MH.Capstone.WebApp.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IAuthenticationService _authService;
 
-        public AdminController(UserManager<ApplicationUser> userManager, IAuthenticationService authService)
+        private readonly IReportService _reportService;
+
+        public AdminController(UserManager<ApplicationUser> userManager, 
+        IAuthenticationService authService,
+        IReportService reportService)
         {
             _userManager = userManager;
             _authService = authService;
+            _reportService = reportService;
         }
 
         [HttpGet]
@@ -26,9 +33,30 @@ namespace MH.Capstone.WebApp.Controllers
         }
 
         [HttpGet]
-        public IActionResult Reports()
+        public async Task<IActionResult> Reports(ReportQueueViewModel vm)
         {
-            return View();
+            var (reports, totalCount) = await _reportService.SortReports(
+                vm.SortBy, 
+                vm.PageUrlFilter, 
+                vm.ReporterIdFilter, 
+                vm.DateFilter, 
+                vm.ShowResolved, 
+                vm.CurrentPage, 
+                vm.PageSize);
+
+            vm.Reports = reports;
+            vm.TotalPages = (int)Math.Ceiling(totalCount / (double)vm.PageSize);
+
+            // Populate the SelectList items here
+            vm.SortOptions = Enum.GetValues(typeof(ReportFilterType))
+                .Cast<ReportFilterType>()
+                .Select(e => new SelectListItem
+                {
+                    Value = e.ToString(),
+                    Text = e.ToString()
+                }).ToList();
+
+            return View(vm);
         }
 
         [HttpPost]

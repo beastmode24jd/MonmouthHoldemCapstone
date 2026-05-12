@@ -1,4 +1,5 @@
 using MH.Capstone.Domain.DataModels;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace MH.Capstone.WebApp.Models
 {
@@ -6,6 +7,9 @@ namespace MH.Capstone.WebApp.Models
     {
         // Data
         public List<Report> Reports { get; set; } = new();
+
+        // This will hold the pre-processed ReportFilterType options list for the View
+        public List<SelectListItem> SortOptions { get; set; } = new();
 
         // Filtering & Sorting
         public string? PageUrlFilter { get; set; }

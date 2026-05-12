@@ -1,13 +1,69 @@
+@model MH.Capstone.WebApp.Models.ReportQueueViewModel
 @{
     ViewData["Title"] = "Report Queue";
 }
 
 <div class="container mt-4">
-    <div class="card shadow">
-        <div class="card-body">
-            <h2 class="card-title">Admin Report Queue</h2>
-            <hr />
-            <p class="text">You shouldn't be able to access this page as a regular user!!!</p>
+    <h2 class="card-title">Admin Report Queue</h2>
+    <hr />
+    <form asp-action="Reports" method="get" class="row g-3 mb-4">
+        <div class="col-md-3">
+            <label class="form-label">Search URL</label>
+            <input asp-for="PageUrlFilter" class="form-control" placeholder="example.com..." />
         </div>
-    </div>
+        <div class="col-md-2">
+            <label class="form-label">Status</label>
+            <select asp-for="ShowResolved" class="form-select">
+                <option value="false">Unresolved</option>
+                <option value="true">Resolved</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Sort By</label>
+            <select asp-for="SortBy" asp-items="Model.SortOptions" class="form-select"></select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-dark w-100">Filter</button>
+        </div>
+    </form>
+
+    <table class="table table-hover shadow-sm">
+        <thead class="table-dark">
+            <tr>
+                <th>Date</th>
+                <th>Reporter</th>
+                <th>URL</th>
+                <th>Reason</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var report in Model.Reports)
+            {
+                <tr>
+                    <td>@report.SubmittedAt.ToShortDateString()</td>
+                    <td>@report.ReportingUserIdentityId</td>
+                    <td><a href="@report.ReportedPageUrl" target="_blank">Link</a></td>
+                    <td>@report.Reason</td>
+                    <td>
+                        <button class="btn btn-sm btn-btn-secondary btn-outline-success">Details</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <nav>
+        <ul class="pagination">
+            @for (int i = 1; i <= Model.TotalPages; i++)
+            {
+                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                    <a class="page-link" asp-action="Reports" 
+                       asp-route-CurrentPage="@i" 
+                       asp-route-ShowResolved="@Model.ShowResolved"
+                       asp-route-SortBy="@Model.SortBy">@i</a>
+                </li>
+            }
+        </ul>
+    </nav>     
 </div>
