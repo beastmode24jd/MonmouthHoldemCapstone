@@ -93,7 +93,7 @@ namespace MH.Capstone.Domain.Services
             // AdminId check should go in Controller, before the ReportService method call
             
             // Get all the reports available
-            IQueryable<Report> query = await _reportRepo.GetAllAsync();
+            IQueryable<Report> query = (await _reportRepo.GetAllAsync()).Include(r => r.Reporter);
 
             // Apply ReportFilterType (Only if arguments are provided)
             if (!string.IsNullOrWhiteSpace(pageURL))

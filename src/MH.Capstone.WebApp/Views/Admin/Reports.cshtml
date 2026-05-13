@@ -9,7 +9,13 @@
     <form asp-action="Reports" method="get" class="row g-3 mb-4">
         <div class="col-md-3">
             <label class="form-label">Search URL</label>
-            <input asp-for="PageUrlFilter" class="form-control" placeholder="example.com..." />
+            <input asp-for="PageUrlFilter" class="form-control" placeholder="https://wildlifeAID..." />
+        </div>
+        <div class="col-md-2">
+        <label class="form-label">Date Filter</label>
+        @* HTML5 type="date" creates the calendar picker.  *@
+        <input asp-for="DateFilter" type="date" class="form-control" 
+               value="@Model.DateFilter?.ToString("yyyy-MM-dd")" />
         </div>
         <div class="col-md-2">
             <label class="form-label">Status</label>
@@ -28,23 +34,29 @@
     </form>
 
     <table class="table table-hover shadow-sm">
-        <thead class="table-dark">
+        <thead class="table-dark align-center">
             <tr>
                 <th>Date</th>
                 <th>Reporter</th>
                 <th>URL</th>
                 <th>Reason</th>
+                <th>Resolved</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
             @foreach (var report in Model.Reports)
             {
-                <tr>
+                <tr class="text">
                     <td>@report.SubmittedAt.ToShortDateString()</td>
-                    <td>@report.ReportingUserIdentityId</td>
+                    <td>@report.Reporter.DisplayName</td>
                     <td><a href="@report.ReportedPageUrl" target="_blank">Link</a></td>
                     <td>@report.Reason</td>
+                    <td class="text-center align-center">
+                    @* Displays marked or unmarked static checkbox, for Resolved/Unresolved status *@
+                        <input type="checkbox" class="form-check-input" 
+                           @(report.IsResolved ? "checked" : "") disabled />
+                    </td>
                     <td>
                         <button class="btn btn-sm btn-btn-secondary btn-outline-success">Details</button>
                     </td>

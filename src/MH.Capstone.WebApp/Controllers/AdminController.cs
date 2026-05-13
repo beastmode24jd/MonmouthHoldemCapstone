@@ -13,6 +13,7 @@ namespace MH.Capstone.WebApp.Controllers
     public class AdminController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;
+
         private readonly IAuthenticationService _authService;
 
         private readonly IReportService _reportService;
@@ -35,11 +36,14 @@ namespace MH.Capstone.WebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> Reports(ReportQueueViewModel vm)
         {
+            // Auto-fill the DateFilter to the current UTC date/time if not already set [cite: 7]
+            vm.DateFilter ??= DateTime.UtcNow;
+
             var (reports, totalCount) = await _reportService.SortReports(
                 vm.SortBy, 
                 vm.PageUrlFilter, 
-                vm.ReporterIdFilter, 
-                vm.DateFilter, 
+                vm.ReporterIdFilter, // Shows as Display Name to front-end
+                vm.DateFilter, // Current UTC time as default (FOR NOW) if none is selected
                 vm.ShowResolved, 
                 vm.CurrentPage, 
                 vm.PageSize);
