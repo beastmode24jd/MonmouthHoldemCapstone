@@ -15,7 +15,7 @@ namespace MH.Capstone.Domain.Services.Abstraction
             string? pageURL,
             string? reportingUserId,
             DateTime? date,
-            bool showResolved, // false means this isn't selected
+            bool? showResolved, // false means this isn't selected
             int page,          
             int pageSize);
     }

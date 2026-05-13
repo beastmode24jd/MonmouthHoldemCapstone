@@ -12,6 +12,10 @@
             <input asp-for="PageUrlFilter" class="form-control" placeholder="https://wildlifeAID..." />
         </div>
         <div class="col-md-2">
+            <label class="form-label">Ticket User</label>
+            <input asp-for="UserSearch" class="form-control" placeholder="Username here..." />
+        </div>
+        <div class="col-md-2">
         <label class="form-label">Date Filter</label>
         @* HTML5 type="date" creates the calendar picker.  *@
         <input asp-for="DateFilter" type="date" class="form-control" 
@@ -20,12 +24,14 @@
         <div class="col-md-2">
             <label class="form-label">Status</label>
             <select asp-for="ShowResolved" class="form-select">
+                @* Setting value to "" maps to null in the ViewModel *@
+                <option value="">All</option> 
                 <option value="false">Unresolved</option>
                 <option value="true">Resolved</option>
             </select>
         </div>
         <div class="col-md-2">
-            <label class="form-label">Sort By</label>
+            <label class="form-label">Sort Desc by:</label>
             <select asp-for="SortBy" asp-items="Model.SortOptions" class="form-select"></select>
         </div>
         <div class="col-md-2 d-flex align-items-end">
@@ -38,7 +44,7 @@
             <tr>
                 <th>Date</th>
                 <th>Reporter</th>
-                <th>URL</th>
+                <th>Page</th>
                 <th>Reason</th>
                 <th>Resolved</th>
                 <th>Actions</th>

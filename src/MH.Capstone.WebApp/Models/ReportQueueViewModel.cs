@@ -14,9 +14,10 @@ namespace MH.Capstone.WebApp.Models
         // Filtering & Sorting
         public string? PageUrlFilter { get; set; }
         public string? ReporterIdFilter { get; set; }
+        public string? UserSearch { get; set; }
         public DateTime? DateFilter { get; set; }
         public ReportFilterType SortBy { get; set; }
-        public bool ShowResolved { get; set; }
+        public bool? ShowResolved { get; set; }
 
         // Pagination data
         public int CurrentPage { get; set; } = 1;

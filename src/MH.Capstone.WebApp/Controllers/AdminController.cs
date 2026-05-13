@@ -6,6 +6,7 @@ using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.Domain.Services;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 
 namespace MH.Capstone.WebApp.Controllers
 {
@@ -39,10 +40,22 @@ namespace MH.Capstone.WebApp.Controllers
             // Auto-fill the DateFilter to the current UTC date/time if not already set [cite: 7]
             vm.DateFilter ??= DateTime.UtcNow;
 
+            string? reporterId = null;
+
+            // If the user provided a search name, find the corresponding ID
+            if (!string.IsNullOrWhiteSpace(vm.UserSearch))
+            {
+                var user = await _userManager.Users
+                    .FirstOrDefaultAsync(u => u.DisplayName == vm.UserSearch);
+                
+                // If found, use their ID; if not found, use a dummy ID to return 0 results
+                reporterId = user?.Id ?? "ID_NOT_FOUND";
+            }
+
             var (reports, totalCount) = await _reportService.SortReports(
                 vm.SortBy, 
                 vm.PageUrlFilter, 
-                vm.ReporterIdFilter, // Shows as Display Name to front-end
+                reporterId, // Shows as Display Name to front-end
                 vm.DateFilter, // Current UTC time as default (FOR NOW) if none is selected
                 vm.ShowResolved, 
                 vm.CurrentPage, 

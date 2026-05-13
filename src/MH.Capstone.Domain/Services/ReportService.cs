@@ -78,7 +78,7 @@ namespace MH.Capstone.Domain.Services
             string? pageURL,
             string? reportingUserId,
             DateTime? date,
-            bool showResolved, // false means this isn't selected
+            bool? showResolved, // null means this isn't selected
             int page,          
             int pageSize)
         {
@@ -112,9 +112,9 @@ namespace MH.Capstone.Domain.Services
                 query = query.Where(r => r.SubmittedAt <= date.Value);
             }
             
-            if (showResolved == true)
+            if (showResolved.HasValue)
             {
-                query = query.Where(r => r.IsResolved == true);
+                query = query.Where(r => r.IsResolved == showResolved.Value);
             }
 
             // Get total query list count before pagination
