@@ -146,6 +146,8 @@ namespace MH.Capstone.WebApp
             // CSP-180: Real-time leaderboard / live notifications
             builder.Services.AddScoped<ILiveNotificationPreferenceService, LiveNotificationPreferenceService>();
             builder.Services.AddScoped<ILiveBroadcastService, LiveBroadcastService>();
+            builder.Services.Configure<LeaderboardWatcherOptions>(
+                builder.Configuration.GetSection(LeaderboardWatcherOptions.Section));
             builder.Services.AddHostedService<LeaderboardChangeWatcher>();
 
             // AI Companion (CSP-120) — Gemini-backed wildlife education chat

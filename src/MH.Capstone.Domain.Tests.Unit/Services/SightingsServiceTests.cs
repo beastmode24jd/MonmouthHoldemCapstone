@@ -29,6 +29,8 @@ public class SightingsServiceTests
     private Mock<IRepository<Sighting, ApplicationDbContext>> _sightingsRepoMock;
     private Mock<IRepository<ApplicationUser, ApplicationDbContext>> _userRepoMock;
     private Mock<IBadgeService> _badgeServiceMock;
+    private Mock<ILiveBroadcastService> _liveBroadcastMock;
+    private Mock<ILeaderboardService> _leaderboardServiceMock;
     private FakeImageGenerator _imageGenerator;
 
     // Remember: Arrange, Act, Assert
@@ -42,6 +44,14 @@ public class SightingsServiceTests
         _notificationServiceMock = new Mock<INotificationService>();
         _userRepoMock = new Mock<IRepository<ApplicationUser, ApplicationDbContext>>();
         _badgeServiceMock = new Mock<IBadgeService>();
+        _liveBroadcastMock = new Mock<ILiveBroadcastService>();
+        _liveBroadcastMock
+            .Setup(b => b.BroadcastLeaderboardUpdateAsync(It.IsAny<LeaderboardEntryUpdate>()))
+            .Returns(Task.CompletedTask);
+        _leaderboardServiceMock = new Mock<ILeaderboardService>();
+        _leaderboardServiceMock
+            .Setup(s => s.GetUserRankAsync(It.IsAny<string>()))
+            .ReturnsAsync(1);
 
         // GLOBAL MOCKS for new dependencies
         _scoringServiceMock.Setup(s => s.GetGlobalSightingsCountAsync(It.IsAny<string>()))
@@ -72,7 +82,9 @@ public class SightingsServiceTests
             _notificationServiceMock.Object,
             _sightingsRepoMock.Object,
             _userRepoMock.Object,
-            _badgeServiceMock.Object);
+            _badgeServiceMock.Object,
+            _liveBroadcastMock.Object,
+            _leaderboardServiceMock.Object);
 
     private void AssertAllMockVerifications()
     {
@@ -420,6 +432,28 @@ public class SightingsServiceTests
         // Act & Assert
         Assert.That(sut.ValidateImage(imgFile), Is.False);
         AssertAllMockVerifications();
+    }
+
+    [Test]
+    public void CreateSightingAsync_BroadcastThrows_SightingStillSucceeds()
+    {
+        // Arrange — broadcast is wired to throw; sighting should still commit and return points
+        var userId = Guid.NewGuid().ToString();
+        var user = new ApplicationUser { Id = userId, DisplayName = "Alex", Points = 0 };
+
+        _userRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(new List<ApplicationUser> { user }.AsQueryable());
+        _scoringServiceMock.Setup(s => s.CalculatePointsAsync(It.IsAny<int>())).ReturnsAsync(10);
+        _liveBroadcastMock
+            .Setup(b => b.BroadcastLeaderboardUpdateAsync(It.IsAny<LeaderboardEntryUpdate>()))
+            .ThrowsAsync(new InvalidOperationException("SignalR down"));
+
+        var sighting = _validSighting;
+        sighting.UserIdentityId = userId;
+        var sut = CreateSut();
+
+        // Act & Assert — must not throw despite broadcast failure
+        Assert.DoesNotThrowAsync(() => sut.CreateSightingAsync(sighting));
     }
 
     #region CSP-145: GetUserSightingsAsync Tests

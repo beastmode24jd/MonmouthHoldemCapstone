@@ -1,8 +1,10 @@
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
+using MH.Capstone.Domain.Tools;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace MH.Capstone.Domain.Services.Background
 {
@@ -11,7 +13,7 @@ namespace MH.Capstone.Domain.Services.Background
     // not modify ScoringService or LeaderboardService.
     public class LeaderboardChangeWatcher : BackgroundService
     {
-        private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
+        private readonly TimeSpan _pollInterval;
 
         // Rank-change toasts only fire for users involved in the top N positions.
         // A user moving from rank 9 → 11 still notifies (oldRank ≤ N), so users
@@ -30,15 +32,17 @@ namespace MH.Capstone.Domain.Services.Background
 
         public LeaderboardChangeWatcher(
             IServiceScopeFactory scopeFactory,
-            ILogger<LeaderboardChangeWatcher> logger)
+            ILogger<LeaderboardChangeWatcher> logger,
+            IOptions<LeaderboardWatcherOptions> options)
         {
             _scopeFactory = scopeFactory;
             _logger = logger;
+            _pollInterval = TimeSpan.FromHours(options.Value.PollIntervalHours);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("LeaderboardChangeWatcher started (interval: {Interval})", PollInterval);
+            _logger.LogInformation("LeaderboardChangeWatcher started (interval: {Interval})", _pollInterval);
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -57,7 +61,7 @@ namespace MH.Capstone.Domain.Services.Background
 
                 try
                 {
-                    await Task.Delay(PollInterval, stoppingToken);
+                    await Task.Delay(_pollInterval, stoppingToken);
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
