@@ -7,35 +7,43 @@
     <h2 class="card-title">Admin Report Queue</h2>
     <hr />
     <form asp-action="Reports" method="get" class="row g-3 mb-4">
-        <div class="col-md-3">
-            <label class="form-label">Search URL</label>
-            <input asp-for="PageUrlFilter" class="form-control" placeholder="https://wildlifeAID..." />
+        @* Search Bars (page URL and User search) *@
+        <div class="row g-3 mb-2">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Search URL</label>
+                <input asp-for="PageUrlFilter" class="form-control" placeholder="https://wildlifeAID..." />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Ticket Reporter</label>
+                <input asp-for="UserSearch" class="form-control" placeholder="Username here..." />
+            </div>
         </div>
-        <div class="col-md-2">
-            <label class="form-label">Ticket User</label>
-            <input asp-for="UserSearch" class="form-control" placeholder="Username here..." />
-        </div>
-        <div class="col-md-2">
-        <label class="form-label">Date Filter</label>
-        @* HTML5 type="date" creates the calendar picker.  *@
-        <input asp-for="DateFilter" type="date" class="form-control" 
-               value="@Model.DateFilter?.ToString("yyyy-MM-dd")" />
-        </div>
-        <div class="col-md-2">
-            <label class="form-label">Status</label>
-            <select asp-for="ShowResolved" class="form-select">
-                @* Setting value to "" maps to null in the ViewModel *@
-                <option value="">All</option> 
-                <option value="false">Unresolved</option>
-                <option value="true">Resolved</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <label class="form-label">Sort Desc by:</label>
-            <select asp-for="SortBy" asp-items="Model.SortOptions" class="form-select"></select>
-        </div>
-        <div class="col-md-2 d-flex align-items-end">
-            <button type="submit" class="btn btn-dark w-100">Filter</button>
+
+
+        @* Filter Toggles & Actions *@
+        <div class="row g-3 mt-0">
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Date Filter</label>
+                <input asp-for="DateFilter" type="date" class="form-control" 
+                       value="@Model.DateFilter?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Status</label>
+                <select asp-for="ShowResolved" class="form-select">
+                    <option value="">All</option> 
+                    <option value="false">Unresolved</option>
+                    <option value="true">Resolved</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Sort Descending by:</label>
+                <select asp-for="SortBy" asp-items="Model.SortOptions" class="form-select"></select>
+            </div>
+            @* Submit and Clear buttons *@
+            <div class="col-md-3 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-dark flex-grow-1">Filter</button>
+                <a asp-action="Reports" class="btn btn-secondary flex-grow-1">Clear</a>
+            </div>
         </div>
     </form>
 
@@ -46,7 +54,7 @@
                 <th>Reporter</th>
                 <th>Page</th>
                 <th>Reason</th>
-                <th>Resolved</th>
+                <th class="text-center">Resolved</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -56,7 +64,9 @@
                 <tr class="text">
                     <td>@report.SubmittedAt.ToShortDateString()</td>
                     <td>@report.Reporter.DisplayName</td>
-                    <td><a href="@report.ReportedPageUrl" target="_blank">Link</a></td>
+                    <td>
+                        <a href="@report.ReportedPageUrl" target="_blank"
+                        class="text-decoration-none btn-link text-primary small">Link</a></td>
                     <td>@report.Reason</td>
                     <td class="text-center align-center">
                     @* Displays marked or unmarked static checkbox, for Resolved/Unresolved status *@
