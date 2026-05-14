@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using FluentAssertions;
 using MH.Capstone.Domain.DataAccess;
+using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.Tests.Acceptance.Drivers;
 using MH.Capstone.Tests.Acceptance.Seeding;
 using Microsoft.EntityFrameworkCore;
@@ -85,6 +86,20 @@ public class CSP180StepDefinitions
         var alex = await dbContext.Users.FirstAsync(u => u.Id == alexId);
         alex.Points += PointsBoost;
         await dbContext.SaveChangesAsync();
+
+        // The leaderboard is now event-driven rather than polled. Directly broadcasting
+        // here mirrors what SightingsService/BadgeService do after a real points award so
+        // that the acceptance test still exercises the live-update path without polling.
+        var broadcast = scope.ServiceProvider.GetRequiredService<ILiveBroadcastService>();
+        var leaderboard = scope.ServiceProvider.GetRequiredService<ILeaderboardService>();
+        int rank = await leaderboard.GetUserRankAsync(alexId);
+        await broadcast.BroadcastLeaderboardUpdateAsync(new LeaderboardEntryUpdate
+        {
+            UserId = alexId,
+            DisplayName = alex.DisplayName,
+            Points = alex.Points,
+            Rank = rank
+        });
     }
 
     [When("the real-time connection drops and reconnects")]

@@ -19,13 +19,17 @@ namespace MH.Capstone.Domain.Services
         private readonly IScoringService _scoringService;
         private readonly INotificationService _notificationService;
         private readonly IBadgeService _badgeService;
+        private readonly ILiveBroadcastService _liveBroadcast;
+        private readonly ILeaderboardService _leaderboardService;
 
         public SightingsService(
             ILogger<SightingsService> logger, IScoringService scoringService,
             INotificationService notificationService,
             IRepository<Sighting, ApplicationDbContext> sightingsRepo,
             IRepository<ApplicationUser, ApplicationDbContext> userRepo,
-            IBadgeService badgeService)
+            IBadgeService badgeService,
+            ILiveBroadcastService liveBroadcast,
+            ILeaderboardService leaderboardService)
         {
             _logger = logger;
             _sightingsRepo = sightingsRepo;
@@ -33,6 +37,8 @@ namespace MH.Capstone.Domain.Services
             _userRepo = userRepo;
             _notificationService = notificationService;
             _badgeService = badgeService;
+            _liveBroadcast = liveBroadcast;
+            _leaderboardService = leaderboardService;
         }
 
         public async Task<int> CreateSightingAsync(Sighting entity, string ianaTimeZoneId = "America/Los_Angeles")
@@ -92,6 +98,25 @@ namespace MH.Capstone.Domain.Services
                     // Add and save the points to the user
                     user.Points += pointsEarned;
                     await _userRepo.AddOrUpdateAsync(user);
+
+                    // Event-driven leaderboard broadcast — fires immediately after the point save
+                    // so connected clients see the update in real time without polling.
+                    try
+                    {
+                        int rank = await _leaderboardService.GetUserRankAsync(user.Id);
+                        await _liveBroadcast.BroadcastLeaderboardUpdateAsync(new LeaderboardEntryUpdate
+                        {
+                            UserId = user.Id,
+                            DisplayName = user.DisplayName,
+                            Points = user.Points,
+                            Rank = rank
+                        });
+                    }
+                    catch (Exception broadcastEx)
+                    {
+                        _logger.LogWarning(broadcastEx,
+                            "Leaderboard broadcast failed for user {UserId}; sighting submission is unaffected", user.Id);
+                    }
 
                     // Save the point value of the Sighting, then save in DB.
                     entity.PointValue = pointsEarned;

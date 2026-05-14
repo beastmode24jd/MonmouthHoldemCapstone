@@ -9,6 +9,7 @@ using MH.Capstone.Domain.DataAccess.Repositories;
 using MH.Capstone.Domain.Services.Abstraction;
 using System.Text;
 using Moq;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MH.Capstone.Domain.Tests.Unit.Services;
 
@@ -21,6 +22,8 @@ public class BadgeServiceTests
     private Mock<IRepository<Badge, ApplicationDbContext>> _badgeRepoMock;
     private Mock<IRepository<UserBadge, ApplicationDbContext>> _userBadgeRepoMock;
     private Mock<INotificationService> _notificationServiceMock;
+    private Mock<ILiveBroadcastService> _liveBroadcastMock;
+    private Mock<ILeaderboardService> _leaderboardServiceMock;
     private IBadgeService _badgeService;
     private Guid _testBadgeId;
     
@@ -34,12 +37,23 @@ public class BadgeServiceTests
         _badgeRepoMock = new Mock<IRepository<Badge, ApplicationDbContext>>();
         _userBadgeRepoMock = new Mock<IRepository<UserBadge, ApplicationDbContext>>();
         _notificationServiceMock = new Mock<INotificationService>();
+        _liveBroadcastMock = new Mock<ILiveBroadcastService>();
+        _liveBroadcastMock
+            .Setup(b => b.BroadcastLeaderboardUpdateAsync(It.IsAny<LeaderboardEntryUpdate>()))
+            .Returns(Task.CompletedTask);
+        _leaderboardServiceMock = new Mock<ILeaderboardService>();
+        _leaderboardServiceMock
+            .Setup(s => s.GetUserRankAsync(It.IsAny<string>()))
+            .ReturnsAsync(1);
 
         _badgeService = new BadgeService(
             _badgeRepoMock.Object,
             _userBadgeRepoMock.Object,
             _userRepoMock.Object,
-            _notificationServiceMock.Object
+            _notificationServiceMock.Object,
+            NullLogger<BadgeService>.Instance,
+            _liveBroadcastMock.Object,
+            _leaderboardServiceMock.Object
         );
     }
 
