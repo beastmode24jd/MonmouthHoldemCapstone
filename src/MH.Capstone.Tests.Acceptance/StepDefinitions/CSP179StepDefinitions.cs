@@ -19,9 +19,10 @@ public class CSP179StepDefinitions
     private readonly IWebDriver _driver;
     private readonly WebDriverWait _wait;
     private readonly AuthenticationDriver _authDriver;
-
-    // private readonly SightingsDriver _sightingsDriver;
     private readonly string _baseUrl;
+    
+    // Field to track state between When and Then steps
+    private int _initialReportCount;
 
     public CSP179StepDefinitions(
         IWebDriver driver,
@@ -88,45 +89,106 @@ public class CSP179StepDefinitions
     {
         _driver.Navigate().GoToUrl($"{_baseUrl}/Admin/Reports");
 
-        // Click on filter attributes after page is created
+        // Check/Capture initial state before filtering 
+        var rows = _driver.FindElements(By.CssSelector("table tbody tr"));
+        _initialReportCount = rows.Count;
+
+        // Apply a filter (search for a specific user) 
+        var userSearchInput = _driver.FindElement(By.Id("UserSearch"));
+        userSearchInput.Clear();
+        userSearchInput.SendKeys("Alex"); // Seeded user in Scenario 1
+
+        // Change the Sort By Descending dropdown
+        var sortSelect = new SelectElement(_driver.FindElement(By.Id("SortBy")));
+        sortSelect.SelectByValue("Reporter");
+
+        // Click the Filter button (acts as "Submit")
+        var filterButton = _driver.FindElement(By.CssSelector("button[type='submit'].btn-dark"));
+        filterButton.Click();
     }
 
     [Then("the queue list is filtered and results are paged")]
     public void ThenTheQueueListIsFilteredAndResultsArePaged()
     {
-        // Check for attributes on the Report Queue
-        var reportQueue = _driver.PageSource;
+        // Wait for the table to refresh (ensures report row(s) are present)
+        _wait.Until(d => d.FindElements(By.CssSelector("table tbody tr")).Count > 0);
 
-        bool isAdminPageFiltered = reportQueue.Contains("FailNow");
+        var filteredRows = _driver.FindElements(By.CssSelector("table tbody tr"));
 
-        isAdminPageFiltered.Should().BeTrue("The Admin queue should be filtered after being sorted.");
+        // If the filter worked, the rows should be <= the initial count
+        filteredRows.Count.Should().BeLessThanOrEqualTo(_initialReportCount, 
+            "The filter should narrow down the results.");
+
+        // Every row's "Reporter" column (2nd <td>) should contain "Alex"
+        foreach (var row in filteredRows)
+        {
+            var reporterName = row.FindElement(By.CssSelector("td:nth-child(2)")).Text;
+            reporterName.Should().Contain("Alex", 
+                "Filtered results should only show the searched user.");
+        }
+
+        // Check for pagination
+        var paginationExists = _driver.FindElements(By.CssSelector("ul.pagination")).Any();
+        paginationExists.Should().BeTrue("The pagination controls should be visible to the moderator.");
     }
 
+    // Scenario 3: Resolved/Unresolved ticket toggling
+    [Given("an Admin clicks the Details button on a report")]
+    public void GivenAnAdminClicksTheDetailsButtonOnAReport()
+    {
+        _authDriver.PreformLoginForUser("patricia@test.com", "Capstone26!");
+
+    }
+
+    [When("the Admin clicks Resolve or Open")]
+    public void WhenTheAdminClicksResolveOrOpen()
+    {
+        
+    }
+
+    [When("clicks Confirm on the Details modal")]
+    public void WhenClicksConfirmOnTheDetailsModal()
+    {
+        
+    }
+
+    [Then("the selected report is inverted from its previous status")]
+    public void ThenTheSelectedReportIsInvertedFromItsPreviousStatus()
+    {
+        
+    }
+
+
     /* Current test:
-        Scenario: Moderator filters and views queue
-            Given a moderator is authenticated
-            When they open the moderation queue and apply filters (page, date, reporter)
-            Then the queue list is filtered accordingly and results are paged
+        Scenario: Admin resolves a ticket
+            Given an Admin clicks the Details button on a report
+            When the Admin clicks Resolve or Open
+            And clicks Confirm on the Details modal
+            Then the selected report is inverted from its previous status
     */
 
-    /* Next test:
-        Scenario: Moderator performs a bulk dismiss
-            Given multiple reports are selected
-            When the moderator clicks Dismiss and confirms
-            Then selected reports are marked dismissed and an audit log is created for each
+    /* LAST TEST:
+        Scenario: Admin soft-locks a user account
+            Given a moderator searches user accounts
+            When they toggle a soft-lock on the account
+            Then the account is marked as soft-locked and is unable to log in
     */
 
     /* Test list:
         - Admin report page is locked to admin account logins, return HTTP 403 if
                 invalid user tries to access -- DONE (returned 404.)
 
-        - Admin report page displays reports, shows IsResolved value
+        - Admin report page displays reports, shows IsResolved value -- DONE
             Can be filtered by IsResolved bool, Reporter (include unresolved reports)
                 and by SubmittedAt DateTime (default to UTC for simplicity?)
 
-        - Admin can select and dismiss multiple reports.
+        - Admin can resolve a ticket.
 
         - Admin can soft-ban user, creating an appeal entry.
+            NOTE: Run EF migration for DateTimeOffset update here, as well as
+                "softLocked" boolean value for ApplicationUser.
+                    If softLocked == true, lock out of logging in.
+                    Mutable field for Admins only.
 
     */
 }
