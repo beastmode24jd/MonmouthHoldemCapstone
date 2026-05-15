@@ -78,6 +78,20 @@ namespace MH.Capstone.WebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleResolution(Guid id)
+        {
+            var success = await _reportService.reverseReportResolution(id);
+            
+            if (success)
+            {
+                return Json(new { success = true });
+            }
+            
+            return BadRequest(new { success = false, message = "Report not found." });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> PromoteToAdmin(string email, string adminPassword)
         {
             // Check that the admin password is correct.

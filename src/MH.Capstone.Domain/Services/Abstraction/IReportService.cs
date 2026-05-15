@@ -15,8 +15,12 @@ namespace MH.Capstone.Domain.Services.Abstraction
             string? pageURL,
             string? reportingUserId,
             DateTime? date,
-            bool? showResolved, // false means this isn't selected
+            bool? showResolved, // null means this isn't selected
             int page,          
             int pageSize);
+
+        // Reverse the bool value of a Report (Opens if Resolved, Resolves if Open)
+        // Returns false if the report is not found.
+        Task<bool> reverseReportResolution(Guid reportId);
     }
 }

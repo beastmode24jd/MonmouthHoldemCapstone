@@ -70,11 +70,15 @@
                     <td>@report.Reason</td>
                     <td class="text-center align-center">
                     @* Displays marked or unmarked static checkbox, for Resolved/Unresolved status *@
-                        <input type="checkbox" class="form-check-input" 
+                        <input type="checkbox" class="form-check-input resolution-toggle" 
+                            data-id="@report.Id"
                            @(report.IsResolved ? "checked" : "") disabled />
                     </td>
                     <td>
-                        <button class="btn btn-sm btn-btn-secondary btn-outline-success">Details</button>
+                        <button class="btn btn-sm btn-btn-secondary btn-outline-success"
+                            onclick="showDetailsModal('@report.Id', '@report.Description', @report.IsResolved.ToString().ToLower())">
+                            Details
+                        </button>
                     </td>
                 </tr>
             }
@@ -95,3 +99,36 @@
         </ul>
     </nav>     
 </div>
+
+@* Initially hidden report details modal *@
+<div class="modal fade" id="reportDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title">Report Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>
+                    Ticket description:
+                    <p class="ticketDesc" id="modalDescription">
+                        Put desc. here
+                    </p>
+                </p>
+                <p>Resolve or open this ticket?</p>
+                <div class="mb-3">
+                    <label class="form-label">Ticket resolution status:</label>
+                    <input type="checkbox" id="modalIsResolved" class="form-check-input" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmResolveBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/reportModal.js"></script>
+}

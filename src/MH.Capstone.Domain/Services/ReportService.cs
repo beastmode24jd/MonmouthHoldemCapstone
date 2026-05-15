@@ -60,19 +60,6 @@ namespace MH.Capstone.Domain.Services
             }
         }
 
-        // Need methods to filter data based on page URL,
-        //      reporter (associated ApplicationUser),
-        //      and date.
-
-        // Pass in different argument for different sorting systems.
-        //      Reuse the general code.
-        
-        // NOTE: Make a data model enum for sorting different types later.
-        //      Will combine with Report field update to DateTime,
-        //      for bundled EF migration.
-
-        // Sort by Descending.
-
         public async Task<(List<Report> Reports, int TotalCount)> SortReports(
             ReportFilterType reportType,
             string? pageURL,
@@ -88,9 +75,7 @@ namespace MH.Capstone.Domain.Services
             //      date == 2
             //      resolved == 3
 
-            //      Respective argument fields are nullable to be omitted as needed.
-
-            // AdminId check should go in Controller, before the ReportService method call
+            //      Respective argument fields nullable to be omitted as needed.
             
             // Get all the reports available
             IQueryable<Report> query = (await _reportRepo.GetAllAsync()).Include(r => r.Reporter);
@@ -137,6 +122,23 @@ namespace MH.Capstone.Domain.Services
                 .ToListAsync();
 
             return (reports, totalCount);
+        }
+        public async Task<bool> reverseReportResolution(Guid reportId)
+        {
+            // Get the report
+            var report = await _reportRepo.FindByIdAsync(reportId);
+
+            if (report == null)
+            {
+                // Report not found, return false
+                return false;
+            }
+
+            // Reverse the boolean flag
+            report.IsResolved = !report.IsResolved;
+
+            await _reportRepo.AddOrUpdateAsync(report);
+            return true;
         }
     }
 }
