@@ -123,7 +123,7 @@ namespace MH.Capstone.Domain.Services
 
             return (reports, totalCount);
         }
-        public async Task<bool> reverseReportResolution(Guid reportId)
+        public async Task<bool> SetReportResolution(Guid reportId, bool isResolved)
         {
             // Get the report
             var report = await _reportRepo.FindByIdAsync(reportId);

@@ -21,6 +21,6 @@ namespace MH.Capstone.Domain.Services.Abstraction
 
         // Reverse the bool value of a Report (Opens if Resolved, Resolves if Open)
         // Returns false if the report is not found.
-        Task<bool> reverseReportResolution(Guid reportId);
+        Task<bool> SetReportResolution(Guid reportId, bool isResolved);
     }
 }

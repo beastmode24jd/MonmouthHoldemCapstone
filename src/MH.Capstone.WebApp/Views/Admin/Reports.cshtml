@@ -4,6 +4,7 @@
 }
 
 <div class="container mt-4">
+    @Html.AntiForgeryToken()
     <h2 class="card-title">Admin Report Queue</h2>
     <hr />
     <form asp-action="Reports" method="get" class="row g-3 mb-4">
@@ -72,11 +73,13 @@
                     @* Displays marked or unmarked static checkbox, for Resolved/Unresolved status *@
                         <input type="checkbox" class="form-check-input resolution-toggle" 
                             data-id="@report.Id"
-                           @(report.IsResolved ? "checked" : "") disabled />
+                           @(report.IsResolved ? "checked" : "")/>
                     </td>
                     <td>
-                        <button class="btn btn-sm btn-btn-secondary btn-outline-success"
-                            onclick="showDetailsModal('@report.Id', '@report.Description', @report.IsResolved.ToString().ToLower())">
+                        <button class="btn btn-sm btn-success btn-outline-white details-btn"
+                            data-id="@report.Id"
+                            data-description="@(report.Description ?? "No description")"
+                            data-resolved="@report.IsResolved.ToString().ToLower()">
                             Details
                         </button>
                     </td>
@@ -109,17 +112,16 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p>
-                    Ticket description:
-                    <p class="ticketDesc" id="modalDescription">
-                        Put desc. here
-                    </p>
-                </p>
+                <div class="mb-3">
+                    <label class="fw-bold">Ticket description:</label>
+                    <div class="p-2 border bg-light ticketDesc" id="modalDescription" style="white-space: pre-wrap;">
+                        @* Content filled via JS *@
+                    </div>
+                </div>
                 <p>Resolve or open this ticket?</p>
                 <div class="mb-3">
                     <label class="form-label">Ticket resolution status:</label>
                     <input type="checkbox" id="modalIsResolved" class="form-check-input" />
-                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

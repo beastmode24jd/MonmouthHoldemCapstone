@@ -78,9 +78,11 @@ namespace MH.Capstone.WebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ToggleResolution(Guid id)
+        // Add the 'bool status' parameter to receive the checkbox state
+        public async Task<IActionResult> UpdateResolution(Guid id, bool status) 
         {
-            var success = await _reportService.reverseReportResolution(id);
+            // Call the revised service method
+            var success = await _reportService.SetReportResolution(id, status);
             
             if (success)
             {
