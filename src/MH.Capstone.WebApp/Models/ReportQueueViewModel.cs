@@ -15,7 +15,7 @@ namespace MH.Capstone.WebApp.Models
         public string? PageUrlFilter { get; set; }
         public string? ReporterIdFilter { get; set; }
         public string? UserSearch { get; set; }
-        public DateTime? DateFilter { get; set; }
+        public DateTimeOffset? DateFilter { get; set; }
         public ReportFilterType SortBy { get; set; }
         public bool? ShowResolved { get; set; }
 

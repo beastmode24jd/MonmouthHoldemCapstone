@@ -14,10 +14,11 @@ namespace MH.Capstone.Domain.Services.Abstraction
             ReportFilterType reportType,
             string? pageURL,
             string? reportingUserId,
-            DateTime? date,
+            DateTimeOffset? date,
             bool? showResolved, // null means this isn't selected
             int page,          
-            int pageSize);
+            int pageSize,
+            TimeZoneInfo userZone);
 
         // Reverse the bool value of a Report (Opens if Resolved, Resolves if Open)
         // Returns false if the report is not found.

@@ -64,10 +64,11 @@ namespace MH.Capstone.Domain.Services
             ReportFilterType reportType,
             string? pageURL,
             string? reportingUserId,
-            DateTime? date,
+            DateTimeOffset? date, // Modify with userZone to get dates for front-end display?
             bool? showResolved, // null means this isn't selected
             int page,          
-            int pageSize)
+            int pageSize,
+            TimeZoneInfo userZone)
         {
             // ReportFilterType values:
             //      pageURL == 0
@@ -93,7 +94,7 @@ namespace MH.Capstone.Domain.Services
 
             if (date.HasValue)
             {
-                // Filters for reports submitted on or after the provided date
+                // Filters for reports submitted on or after the provided date (in UTC)
                 query = query.Where(r => r.SubmittedAt <= date.Value);
             }
             
@@ -120,6 +121,14 @@ namespace MH.Capstone.Domain.Services
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
+
+            // DateTimeOffset Conversion:
+            //      Adjust the offset for each report for local display
+            foreach (var report in reports)
+            {
+                // Changes the offset of the object to match the user's timezone
+                report.SubmittedAt = TimeZoneInfo.ConvertTime(report.SubmittedAt, userZone);
+            }
 
             return (reports, totalCount);
         }

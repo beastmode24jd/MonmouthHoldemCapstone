@@ -37,12 +37,30 @@ namespace MH.Capstone.WebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> Reports(ReportQueueViewModel vm)
         {
-            // Auto-fill the DateFilter to the current UTC date/time if not already set [cite: 7]
-            vm.DateFilter ??= DateTime.UtcNow;
+            // Get the user device's local timezone cookie, default timezone is PST
+            string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
 
-            string? reporterId = null;
+            TimeZoneInfo userZone;
+            try
+            {
+                userZone = TimeZoneInfo.FindSystemTimeZoneById(userTimeZoneId);
+            }
+            catch
+            {
+                // Fallback for Windows environment or invalid IANA IDs
+                userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+            }
+
+            // Auto-fill the DateFilter to the current timezone date/time if not already set
+            var displayNow = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, userZone);
+
+            // Only auto-fill if the user hasn't selected a date yet
+            // Ensures the <input type="date"> shows today's date in their timezone
+            vm.DateFilter ??= displayNow;
 
             // If the user provided a search name, find the corresponding ID
+            string? reporterId = null;
+
             if (!string.IsNullOrWhiteSpace(vm.UserSearch))
             {
                 var user = await _userManager.Users
@@ -52,14 +70,16 @@ namespace MH.Capstone.WebApp.Controllers
                 reporterId = user?.Id ?? "ID_NOT_FOUND";
             }
 
+            // Get the converted DateTimeOffset values for local display from ReportService.cs
             var (reports, totalCount) = await _reportService.SortReports(
                 vm.SortBy, 
                 vm.PageUrlFilter, 
                 reporterId, // Shows as Display Name to front-end
-                vm.DateFilter, // Current UTC time as default (FOR NOW) if none is selected
+                vm.DateFilter,
                 vm.ShowResolved, 
                 vm.CurrentPage, 
-                vm.PageSize);
+                vm.PageSize,
+                userZone);
 
             vm.Reports = reports;
             vm.TotalPages = (int)Math.Ceiling(totalCount / (double)vm.PageSize);

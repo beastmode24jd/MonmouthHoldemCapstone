@@ -63,7 +63,7 @@
             @foreach (var report in Model.Reports)
             {
                 <tr class="text">
-                    <td>@report.SubmittedAt.ToShortDateString()</td>
+                    <td>@report.SubmittedAt.ToString("MMM dd, yyyy h:mm tt")</td>
                     <td>@report.Reporter.DisplayName</td>
                     <td>
                         <a href="@report.ReportedPageUrl" target="_blank"
