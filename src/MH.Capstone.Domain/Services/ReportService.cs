@@ -146,6 +146,25 @@ namespace MH.Capstone.Domain.Services
             // Connect IsResolved to the bool input
             report.IsResolved = isResolved;
 
+            // Notification Update to the user who submitted the report
+            if (report.IsResolved)
+            {
+                await _notificationService.SendNotificationAsync(Notification.Create(
+                    report.ReportingUserId,
+                    "Report Resolved",
+                    $"Your report for '{report.ReportedPageUrl}' has been closed."
+                ), NotificationType.ReportStatusUpdate);
+            }
+            else if (!report.IsResolved)
+            {
+                // Report was re-opened by Admin, notify user
+                await _notificationService.SendNotificationAsync(Notification.Create(
+                    report.ReportingUserId,
+                    "Report Re-Opened",
+                    $"Your report for '{report.ReportedPageUrl}' has been re-opened."
+                ), NotificationType.ReportStatusUpdate);
+            }
+
             await _reportRepo.AddOrUpdateAsync(report);
             return true;
         }
