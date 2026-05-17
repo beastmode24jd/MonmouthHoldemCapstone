@@ -18,7 +18,7 @@ Scenario: Admin filters and views queue
 @report
 Scenario: Admin resolves a ticket
     Given an Admin clicks the Details button on a report
-    When the Admin clicks Resolve or Open
+    When the Admin clicks the Resolution checkbox
     And clicks Confirm on the Details modal
     Then the selected report is inverted from its previous status
 

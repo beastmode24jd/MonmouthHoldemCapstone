@@ -140,8 +140,8 @@ public class CSP179StepDefinitions
 
     }
 
-    [When("the Admin clicks Resolve or Open")]
-    public void WhenTheAdminClicksResolveOrOpen()
+    [When("the Admin clicks the Resolution checkbox")]
+    public void WhenTheAdminClicksTheResolutionCheckbox()
     {
         
     }
@@ -162,7 +162,7 @@ public class CSP179StepDefinitions
     /* Current test:
         Scenario: Admin resolves a ticket
             Given an Admin clicks the Details button on a report
-            When the Admin clicks Resolve or Open
+            When the Admin clicks the Resolution checkbox
             And clicks Confirm on the Details modal
             Then the selected report is inverted from its previous status
     */

@@ -134,8 +134,8 @@ namespace MH.Capstone.Domain.Services
                 return false;
             }
 
-            // Reverse the boolean flag
-            report.IsResolved = !report.IsResolved;
+            // Connect IsResolved to the bool input
+            report.IsResolved = isResolved;
 
             await _reportRepo.AddOrUpdateAsync(report);
             return true;

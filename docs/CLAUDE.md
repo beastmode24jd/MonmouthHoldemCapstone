@@ -93,7 +93,7 @@ All interfaces in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `IScoringService` | `ScoringService` | Award points using rarity multiplier |
 | `IBadgeService` | `BadgeService` | `AddBadge(user, badgeId, tz)` — awards badge, adds points, sends notification. `UpdateBadge(user, badgeId, tz)` — increments `BadgeProgress` by 1, calls `AddBadge` when `BadgeProgress >= BadgeSteps`. `SyncBadgeProgressAsync(user, badgeId, actualCount, tz)` — idempotent backwards-compat sync: sets `BadgeProgress = actualCount` directly (or calls `AddBadge` if `actualCount >= BadgeSteps`); safe to call on every login. `SortBadgesByTime(list)` — descending chronological sort. |
 | `ILeaderboardService` | `LeaderboardService` | `GetLeaderboardPageAsync()` → `IEnumerable<ApplicationUser>`; controller projects to `LeaderboardEntryViewModel` (excludes `Email`) |
-| `IReportService` | `ReportService` | Submit and resolve content reports |
+| `IReportService` | `ReportService` | `SubmitReportAsync(report)` — validates via `TryValidateEntity`, saves; returns `false` when the DB rejects via unique-constraint violation (duplicate open report from same user for same URL), throws `ArgumentException` on validation failure. Sends `ReportStatusUpdate` notification to the reporter on success. `SortReports(filterType, pageUrl?, reporterIdentityId?, date?, showResolved?, page, pageSize)` — eager-loads `Reporter`, applies optional filters, returns `(Reports, TotalCount)` after pagination. **`SetReportResolution(reportId, isResolved)` — the `isResolved` parameter is ignored; the method toggles the report's existing `IsResolved` flag (`report.IsResolved = !report.IsResolved`).** Returns `false` if report not found |
 | `INotificationService` | `NotificationDispatchService` | Routes notifications by channel. `SendNotificationAsync(notification, type)` — SystemCritical always InAppAndEmail; others consult preference service. Inherits `MarkAllAsReadAsync`, `DeleteAllAsync` from `NotificationServiceBase` |
 | `INotificationPreferenceService` | `NotificationPreferenceService` | Per-user, per-type delivery prefs. `GetPreferencesAsync(user)` excludes SystemCritical. `GetDeliveryChannelAsync(user, type)` defaults to `InAppOnly`. `SavePreferencesAsync` silently ignores SystemCritical |
 | `IEmailService` | `AzureCommunicationEmailService` / `NoOpEmailService` | Send emails (toggled by `UseRealEmailerService` flag) |
@@ -143,7 +143,7 @@ All interfaces in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | Controller | Responsibility |
 |---|---|
 | `AccountController` | Register, login, logout, profile |
-| `AdminController` | Admin-only views |
+| `AdminController` | `[Authorize(Roles="Admin")]` on the class. `GET Manage` — admin landing. `GET Reports(ReportQueueViewModel)` — report queue: resolves `UserSearch` → `DisplayName` lookup (sentinel `"ID_NOT_FOUND"` when not found so 0 results return), defaults `DateFilter` to `DateTime.UtcNow`, delegates to `IReportService.SortReports`, builds `SortOptions` SelectList from `ReportFilterType`. `POST UpdateResolution(Guid id, bool status)` (AJAX, `[ValidateAntiForgeryToken]`) — calls `SetReportResolution`; returns `Json({success})` or `BadRequest`. `POST PromoteToAdmin` / `DemoteFromAdmin` / `DeactivateUser` — each re-verifies the caller's password via `VerifyAdminPasswordAsync` and blocks self-targeting |
 | `DashboardController` | User dashboard (points, badges, recent activity) |
 | `HomeController` | Landing pages |
 | `LeaderboardController` | Global rankings |
@@ -438,6 +438,55 @@ Drill-down view from the Sightings Gallery. Clicking a card navigates to `/Sight
 - `StepDefinitions/CSP172StepDefinitions` — adds two new step bindings reusable by future features: `Given user Lily is logged in` and `Given visitor James is signed out`.
 
 **DI:** `IAnimalFunFactService` is registered scoped in `Program.cs` next to `IPhotoQualityService` (no feature flag).
+
+---
+
+## Admin Report Queue
+
+Admin-only triage UI for user-submitted content reports. Lives at `GET /Admin/Reports` (rendered by `AdminController.Reports`, view `Views/Admin/Reports.cshtml`, JS `wwwroot/js/reportModal.js`).
+
+### Report entity quirk
+
+`Report.ReportingUserId` is `[NotMapped]` — a `Guid` get/set wrapper around the actual DB column `ReportingUserIdentityId` (string, mapped to SQL column `ReportingUserId`, FK to `ApplicationUser`). Setting either updates the other. Queries that filter by user must compare against `ReportingUserIdentityId` (the string), as `SortReports` does.
+
+### `ReportQueueViewModel` filter shape
+
+The view model carries: `SortBy` (`ReportFilterType` enum), `PageUrlFilter`, `UserSearch` (DisplayName, NOT id — controller resolves to id), `DateFilter` (defaults to `DateTime.UtcNow` if unset), `ShowResolved` (nullable bool — `null` = "All"), `CurrentPage`, `PageSize`, `Reports`, `TotalPages`, `SortOptions`.
+
+`ReportFilterType` enum: `PageURL=0, Reporter=1, Date=2, Resolved=3` (per inline comment in `SortReports`).
+
+### Notable behaviors / gotchas
+
+- **`SortReports` date filter direction:** the code is `query.Where(r => r.SubmittedAt <= date.Value)` — reports submitted on or *before* the chosen date. The inline comment claims "on or after" but the code is the source of truth. Combined with the controller defaulting `DateFilter` to `UtcNow`, an unfiltered page load shows all reports up to "now" (effectively everything).
+- **`SetReportResolution` ignores its `bool isResolved` parameter** and toggles `report.IsResolved` instead. Both the table checkbox and the modal confirm end up performing a toggle regardless of the value the JS sends in `?status=`. If the table state and the user's intent disagree (e.g. clicking a checked checkbox to uncheck it), the toggle happens to produce the right result, but the API contract is misleading.
+- `SubmitReportAsync` distinguishes the duplicate case from generic errors by checking `SqlException.IsOfErrorType(SqlErrorNumber.UniqueConstraintViolation)` (or `DbUpdateException` wrapping the same). Other DB failures rethrow.
+
+### View structure (`Views/Admin/Reports.cshtml`)
+
+- Top filter form `GET asp-action="Reports"`: `PageUrlFilter`, `UserSearch`, `DateFilter` (type=date), `ShowResolved` (`""` / `false` / `true`), `SortBy` (bound to `SortOptions`), Filter submit + Clear link (clears all filters by linking to `Reports` with no query).
+- Report table columns: Date, Reporter (`DisplayName`), Page (anchor → `target="_blank"`), Reason, Resolved (`input.form-check-input.resolution-toggle[data-id]`, statically `checked` per row), Actions (`button.details-btn[data-id][data-description][data-resolved]`).
+- Pagination preserves `ShowResolved` and `SortBy` in querystring but **does not** preserve `PageUrlFilter`, `UserSearch`, or `DateFilter` — paging past filtered results drops the filters.
+- Details modal `#reportDetailsModal` (Bootstrap): `#modalDescription` (filled by JS via `innerText`), `#modalIsResolved` checkbox, `#confirmResolveBtn` confirm, Cancel = `data-bs-dismiss="modal"`.
+- `@Html.AntiForgeryToken()` is rendered once at the top of the container so the JS can read it from `input[name="__RequestVerificationToken"]`.
+- **HTML structure note:** the modal markup has a misnested `</div>` around lines 125–132 — the `modal-body` and inner form-check div close out of order, leaving `modal-footer` as a sibling of `modal-body` rather than nested cleanly. Bootstrap's modal still renders, but the DOM tree is not what the indentation suggests.
+
+### `wwwroot/js/reportModal.js`
+
+- Module-scoped `currentActiveReportId` holds the id selected via the Details button.
+- Delegated `click` listener on `document` catches `.details-btn` clicks (so dynamically-added rows would work); reads `data-id`, `data-description`, `data-resolved` and calls `showDetailsModal`.
+- `showDetailsModal(id, desc, isResolved)` writes description via `innerText` (XSS-safe), pre-checks the modal checkbox, and reuses `bootstrap.Modal.getInstance(...)` if present.
+- `#confirmResolveBtn` click → reads modal checkbox → `updateResolution(id, isChecked)` → `location.reload()`.
+- Inline checkbox `.resolution-toggle` change listeners are wired with `querySelectorAll(...).forEach` at script load — they will NOT bind to rows added after initial load. Currently fine because the table is server-rendered, but worth knowing if any future AJAX pagination is added.
+- `updateResolution(id, isResolved)` POSTs to `/Admin/UpdateResolution/${id}?status=${isResolved}` with the antiforgery token in the `RequestVerificationToken` header. Note the URL uses path-style id but querystring status — model binding works because the route default `{id?}` catches the id and `status` binds from the query.
+
+### Page Element IDs (Admin Report Queue)
+
+| Page | Element / Selector | Purpose |
+|---|---|---|
+| `/Admin/Reports` | `PageUrlFilter`, `UserSearch`, `DateFilter`, `ShowResolved`, `SortBy` | Filter form inputs (bound via tag helpers) |
+| `/Admin/Reports` | `.resolution-toggle[data-id]` | Per-row Resolved checkbox (AJAX toggle) |
+| `/Admin/Reports` | `.details-btn[data-id][data-description][data-resolved]` | Per-row Details button (opens modal) |
+| `/Admin/Reports` | `#reportDetailsModal`, `#modalDescription`, `#modalIsResolved`, `#confirmResolveBtn` | Details modal + controls |
 
 ---
 
