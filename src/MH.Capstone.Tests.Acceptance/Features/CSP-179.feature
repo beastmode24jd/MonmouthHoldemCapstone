@@ -25,5 +25,6 @@ Scenario: Admin resolves a ticket
 @report
 Scenario: Admin soft-locks a user account
     Given a moderator searches user accounts
-    When they toggle a soft-lock on the account
-    Then the account is marked as soft-locked and is unable to log in
+    When they toggle a soft lock on the account
+    Then the account is marked as soft locked
+    And is unable to log in

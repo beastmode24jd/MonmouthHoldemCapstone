@@ -23,6 +23,7 @@ public class CSP179StepDefinitions
     
     // Field to track state between When and Then steps
     private int _initialReportCount;
+    private bool _initialReportStatus;
 
     public CSP179StepDefinitions(
         IWebDriver driver,
@@ -137,41 +138,84 @@ public class CSP179StepDefinitions
     public void GivenAnAdminClicksTheDetailsButtonOnAReport()
     {
         _authDriver.PreformLoginForUser("patricia@test.com", "Capstone26!");
+        _driver.Navigate().GoToUrl($"{_baseUrl}/Admin/Reports");
 
+        var firstRow = _driver.FindElement(By.CssSelector("table tbody tr"));
+        var rowCheckbox = firstRow.FindElement(By.CssSelector(".resolution-toggle"));
+
+        // Store the initial Resolved value for the Then step
+        _initialReportStatus = rowCheckbox.Selected;
+        
+        // Click the Details button to get the modal visible
+        firstRow.FindElement(By.CssSelector(".details-btn")).Click();
     }
 
     [When("the Admin clicks the Resolution checkbox")]
     public void WhenTheAdminClicksTheResolutionCheckbox()
     {
-        
+        // Wait for the modal to show
+        _wait.Until(d => d.FindElement(By.Id("reportDetailsModal")).Displayed);
+
+        var modalCheckbox = _driver.FindElement(By.Id("modalIsResolved"));
+        modalCheckbox.Click();
     }
 
     [When("clicks Confirm on the Details modal")]
     public void WhenClicksConfirmOnTheDetailsModal()
     {
-        
+        var confirmBtn = _driver.FindElement(By.Id("confirmResolveBtn"));
+        confirmBtn.Click();
     }
 
     [Then("the selected report is inverted from its previous status")]
     public void ThenTheSelectedReportIsInvertedFromItsPreviousStatus()
     {
+        // Wait for the modal to go away, then compare
+        _wait.Until(d => !d.FindElement(By.Id("reportDetailsModal")).Displayed);
+
+        var updatedCheckbox = _driver.FindElement(By.CssSelector("table tbody tr .resolution-toggle"));
+
+        updatedCheckbox.Selected.Should().Be(!_initialReportStatus, 
+        "The checkbox state in the table should reflect the change made in the modal.");
+    }
+
+    // Scenario 4: Admin can soft lock a user out of their account.
+    [Given("a moderator searches user accounts")]
+    public void GivenAModeratorSearchesUserAccounts()
+    {
+        _authDriver.PreformLoginForUser("patricia@test.com", "Capstone26!");
+        
+        // More goes here later...
+    }
+
+    [When("they toggle a soft lock on the account")]
+    public void WhenTheyToggleASoftLockOnTheAccount()
+    {
         
     }
 
+    [Then("the account is marked as soft locked")]
+    public void ThenTheAccountIsMarkedAsSoftLocked()
+    {
+        
+    }
 
-    /* Current test:
-        Scenario: Admin resolves a ticket
-            Given an Admin clicks the Details button on a report
-            When the Admin clicks the Resolution checkbox
-            And clicks Confirm on the Details modal
-            Then the selected report is inverted from its previous status
-    */
+    [Then("is unable to log in")]
+    public void ThenIsUnableToLogIn()
+    {
+        // Try to log in Alex here.
+
+        // Need to change test seeding to reset Alex to softLocked = false 
+        //      after this test concludes.
+    }
+
 
     /* LAST TEST:
         Scenario: Admin soft-locks a user account
             Given a moderator searches user accounts
             When they toggle a soft-lock on the account
-            Then the account is marked as soft-locked and is unable to log in
+            Then the account is marked as soft locked
+            And is unable to log in
     */
 
     /* Test list:
@@ -182,9 +226,9 @@ public class CSP179StepDefinitions
             Can be filtered by IsResolved bool, Reporter (include unresolved reports)
                 and by SubmittedAt DateTime (default to UTC for simplicity?)
 
-        - Admin can resolve a ticket.
+        - Admin can resolve a ticket. -- DONE
 
-        - Admin can soft-ban user, creating an appeal entry.
+        - Admin can soft-ban a user, locking them out of their account entirely.
             NOTE: Run EF migration for DateTimeOffset update here, as well as
                 "softLocked" boolean value for ApplicationUser.
                     If softLocked == true, lock out of logging in.
