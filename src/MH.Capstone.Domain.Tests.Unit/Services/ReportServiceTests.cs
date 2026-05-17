@@ -59,7 +59,7 @@ public class ReportServiceTests
             ReportingUserId = userId,
             ReportedPageUrl = "/Sighting/123",
             Reason = "Inappropriate content",
-            SubmittedAt = DateTime.UtcNow
+            SubmittedAt = DateTimeOffset.UtcNow
         };
 
         _reportRepoMock.Setup(r => r.AddOrUpdateAsync(
@@ -125,7 +125,7 @@ public class ReportServiceTests
             ReportingUserId = userId,
             ReportedPageUrl = "/Sighting/456",
             Reason = "Inaccurate information",
-            SubmittedAt = DateTime.UtcNow
+            SubmittedAt = DateTimeOffset.UtcNow
         };
 
         _reportRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<Report>()))
@@ -154,8 +154,7 @@ public class ReportServiceTests
             //      - reporter sort
             //      - date sort
             //      - resolved sort
-
-            //      Parameter fields are nullable to be omitted as needed.
+    //      Parameter fields are nullable to be omitted as needed.
 
     [Test]
     public async Task SortReports_ValidReportListAndPageURL_ReturnsSortedList()
@@ -164,6 +163,9 @@ public class ReportServiceTests
         var userId = Guid.NewGuid();
         string pageURL = "/Sighting/456";
         string wrongURL = "/animal/search";
+
+        // Default timezone to pass into ReportService.cs
+        var userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
 
         // Convert list into a Mockable Async IQueryable for _reportRepoMock
         var reports = new List<Report>
@@ -181,7 +183,7 @@ public class ReportServiceTests
         // Act
         var (result, totalCount) = await _reportService.SortReports(
             ReportFilterType.PageURL, 
-            pageURL, null, null, false, 1, 10);
+            pageURL, null, null, false, 1, 10, userZone);
 
         // Assert
         Assert.Multiple(() =>
@@ -202,6 +204,8 @@ public class ReportServiceTests
         var wrongUserId = Guid.NewGuid();
         string pageURL = "/Sighting/456";
 
+        var userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+
         // Convert list into a Mockable Async IQueryable for _reportRepoMock
         var reports = new List<Report>
         {
@@ -219,7 +223,7 @@ public class ReportServiceTests
         // Act
         var (result, totalCount) = await _reportService.SortReports(
             ReportFilterType.Reporter, 
-            null, userId.ToString(), null, false, 1, 10);
+            null, userId.ToString(), null, false, 1, 10, userZone);
 
         // Assert
         Assert.Multiple(() =>
@@ -239,8 +243,9 @@ public class ReportServiceTests
     {
         // Arrange
         var userId = Guid.NewGuid();
-        DateTime olderTime = new DateTime(2000, 1, 1);
-        DateTime newerTime = new DateTime(2018, 9, 6);
+        var userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+        DateTimeOffset olderTime = new DateTimeOffset(new DateTime(2000, 1, 1), userZone.BaseUtcOffset);
+        DateTimeOffset newerTime = new DateTimeOffset(new DateTime(2018, 9, 6), userZone.BaseUtcOffset);
         string pageURL = "/Sighting/456";
 
         // Convert list into a Mockable Async IQueryable for _reportRepoMock
@@ -258,7 +263,7 @@ public class ReportServiceTests
 
         // Act
         var (result, totalCount) = await _reportService.SortReports(
-            ReportFilterType.Date, null, null, DateTime.UtcNow, false, 1, 10);
+            ReportFilterType.Date, null, null, DateTimeOffset.UtcNow, false, 1, 10, userZone);
 
         // Assert
         Assert.Multiple(() =>
@@ -282,13 +287,15 @@ public class ReportServiceTests
             SubmittedAt = DateTime.UtcNow.AddDays(-i) 
         }).ToList();
 
+        var userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+
         var mockAsyncQueryable = reports.BuildMock();
 
         _reportRepoMock.Setup(repo => repo.GetAllAsync()).ReturnsAsync(mockAsyncQueryable);
 
         // Act: Request page 2 with a size of 2
         var (result, totalCount) = await _reportService.SortReports(
-            ReportFilterType.Date, null, null, null, false, 2, 2);
+            ReportFilterType.Date, null, null, null, false, 2, 2, userZone);
 
         // Assert
         Assert.Multiple(() =>
@@ -303,6 +310,7 @@ public class ReportServiceTests
     {
         // Arrange
         string pageURL = "/Sighting/456";
+        var userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
 
         // Set up _reportRepoMock to return no entries (empty list)
         var reports = new List<Report>();
@@ -316,7 +324,7 @@ public class ReportServiceTests
         // Act
         var (result, totalCount) = await _reportService.SortReports(
             ReportFilterType.PageURL, 
-            pageURL, null, null, false, 1, 10);
+            pageURL, null, null, false, 1, 10, userZone);
 
         // Assert
         Assert.That(result, Is.Empty, "SortReports should return an empty list if no reports are found.");
