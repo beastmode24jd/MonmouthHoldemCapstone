@@ -250,17 +250,29 @@ jobs:
           slot-name: 'Production'
           package: './${{ vars.WEBAPP_PUBLISH_DIR }}'
 
-      - name: Deploy EF Core migration bundle - ApplicationDbContext
+      - name: Deploy EF Core migration bundle to ENV - ApplicationDbContext
         if: ${{ success() }}
         run: |
           chmod +x ${{ vars.DOTNET_EF_BUNDLE_DIR }}/${{ vars.DOTNET_EF_BUNDLE_NAME_APPDBCTX }} &&
           ${{ vars.DOTNET_EF_BUNDLE_DIR }}/${{ vars.DOTNET_EF_BUNDLE_NAME_APPDBCTX }} --connection '${{ secrets.AZUREAPPSERVICE_DBCONNSTR }}' --verbose
 
-      - name: Deploy EF Core migration bundle - CacheDbContext
+      - name: Deploy EF Core migration bundle to ENV - CacheDbContext
         if: ${{ success() }}
         run: |
           chmod +x ${{ vars.DOTNET_EF_BUNDLE_DIR }}/${{ vars.DOTNET_EF_BUNDLE_NAME_CACHEDBCTX }} &&
           ${{ vars.DOTNET_EF_BUNDLE_DIR }}/${{ vars.DOTNET_EF_BUNDLE_NAME_CACHEDBCTX }} --connection '${{ secrets.AZUREAPPSERVICE_DBCONNSTR }}' --verbose
+
+      - name: Deploy EF Core migration bundle to AES - ApplicationDbContext
+        if: ${{ success() }}
+        run: |
+          chmod +x ${{ vars.DOTNET_EF_BUNDLE_DIR }}/${{ vars.DOTNET_EF_BUNDLE_NAME_APPDBCTX }} &&
+          ${{ vars.DOTNET_EF_BUNDLE_DIR }}/${{ vars.DOTNET_EF_BUNDLE_NAME_APPDBCTX }} --connection '${{ secrets.AES_AZUREAPPSERVICE_DBCONNSTR }}' --verbose
+
+      - name: Deploy EF Core migration bundle to AES - CacheDbContext
+        if: ${{ success() }}
+        run: |
+          chmod +x ${{ vars.DOTNET_EF_BUNDLE_DIR }}/${{ vars.DOTNET_EF_BUNDLE_NAME_CACHEDBCTX }} &&
+          ${{ vars.DOTNET_EF_BUNDLE_DIR }}/${{ vars.DOTNET_EF_BUNDLE_NAME_CACHEDBCTX }} --connection '${{ secrets.AES_AZUREAPPSERVICE_DBCONNSTR }}' --verbose
 
   auto_merge:
     name: Auto-Merge PR
