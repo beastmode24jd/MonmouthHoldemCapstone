@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MH.Capstone.Domain.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260517020604_UpdateReportWithDateTimeOffset_AddUserAccountLock")]
+    [Migration("20260517235634_UpdateReportWithDateTimeOffset_AddUserAccountLock")]
     partial class UpdateReportWithDateTimeOffset_AddUserAccountLock
     {
         /// <inheritdoc />
@@ -35,6 +35,9 @@ namespace MH.Capstone.Domain.Migrations
 
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
+
+                    b.Property<bool>("AccountLocked")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Bio")
                         .HasMaxLength(250)
@@ -107,9 +110,6 @@ namespace MH.Capstone.Domain.Migrations
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
-
-                    b.Property<bool>("accountLocked")
-                        .HasColumnType("bit");
 
                     b.HasKey("Id");
 

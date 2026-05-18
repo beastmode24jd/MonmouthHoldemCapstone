@@ -36,7 +36,7 @@ namespace MH.Capstone.Domain.DataModels
 
         // CSP-179: Introduce soft-lock feature for account moderation
         // Reversible only by Admin
-        public bool accountLocked { get; set; } = false;
+        public bool AccountLocked { get; set; } = false;
 
         // CSP-110 : Total points earned from wildlife sightings and badges
         public int Points { get; set; } = 0;
