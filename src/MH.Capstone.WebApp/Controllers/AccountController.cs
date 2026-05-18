@@ -113,106 +113,106 @@ namespace MH.Capstone.WebApp.Controllers
         // Displays the login page.
         // If the user is already authenticated, they are redirected to the dashboard.     
         [HttpPost]
-[AllowAnonymous]
-[ValidateAntiForgeryToken]
-[Route("login")]
-public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
-{
-    // Preserve return URL across postback
-    ViewData["ReturnUrl"] = returnUrl;
-
-    // Stop processing if validation attributes fail
-    if (!ModelState.IsValid)
-    {
-        return View(model);
-    }
-
-    // First, check if user exists
-    var user = await _userService.GetUserByEmailAsync(model.Email);
-    
-    // If user doesn't exist, show generic error
-    if (user == null)
-    {
-        ModelState.AddModelError(string.Empty, "Invalid email or password.");
-        return View(model);
-    }
-
-    // Verify password using SignInManager (works even for deactivated accounts)
-    var passwordValid = await _authService.CheckPasswordAsync(model.Email, model.Password);
-
-    // If password is wrong, show generic error (don't reveal account status)
-    if (!passwordValid)
-    {
-        ModelState.AddModelError(string.Empty, "Invalid email or password.");
-        return View(model);
-    }
-
-    // Password is correct - block unverified accounts before revealing deactivation status
-    if (!user.EmailConfirmed)
-    {
-        ViewData["ShowResendVerificationOption"] = true;
-        TempData["UnverifiedEmail"] = model.Email;
-        return View(model);
-    }
-
-    // Password is correct - now we can reveal if account is deactivated
-    if (user.IsDeactivated)
-    {
-        TempData["DeactivatedEmail"] = model.Email;
-        ModelState.AddModelError(string.Empty, "This account has been deactivated.");
-        ViewData["ShowReactivateOption"] = true;
-        return View(model);
-    }
-
-    // Get the login timestamp, since credentials are valid and the account is active
-    var now = DateTimeOffset.UtcNow;
-
-    if (user.LastLogin.HasValue)
-    {
-        // Get the difference between current time and LastLogin for
-        //  the Application User
-        var daysSinceLastLogin = (now - user.LastLogin.Value).TotalDays;
-
-        if (daysSinceLastLogin <= 30)
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        [Route("login")]
+        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
         {
-            // Increment if 1 day has passed, to prevent page refreshes from potentially
-            // artificially inflating the streak
-            if (daysSinceLastLogin >= 1) 
+            // Preserve return URL across postback
+            ViewData["ReturnUrl"] = returnUrl;
+
+            // Stop processing if validation attributes fail
+            if (!ModelState.IsValid)
             {
-                user.LoginStreak++;
+                return View(model);
             }
+
+            // First, check if user exists
+            var user = await _userService.GetUserByEmailAsync(model.Email);
+            
+            // If user doesn't exist, show generic error
+            if (user == null)
+            {
+                ModelState.AddModelError(string.Empty, "Invalid email or password.");
+                return View(model);
+            }
+
+            // Verify password using SignInManager (works even for deactivated accounts)
+            var passwordValid = await _authService.CheckPasswordAsync(model.Email, model.Password);
+
+            // If password is wrong, show generic error (don't reveal account status)
+            if (!passwordValid)
+            {
+                ModelState.AddModelError(string.Empty, "Invalid email or password.");
+                return View(model);
+            }
+
+            // Password is correct - block unverified accounts before revealing deactivation status
+            if (!user.EmailConfirmed)
+            {
+                ViewData["ShowResendVerificationOption"] = true;
+                TempData["UnverifiedEmail"] = model.Email;
+                return View(model);
+            }
+
+            // Password is correct - now we can reveal if account is deactivated
+            if (user.IsDeactivated)
+            {
+                TempData["DeactivatedEmail"] = model.Email;
+                ModelState.AddModelError(string.Empty, "This account has been deactivated.");
+                ViewData["ShowReactivateOption"] = true;
+                return View(model);
+            }
+
+            // Get the login timestamp, since credentials are valid and the account is active
+            var now = DateTimeOffset.UtcNow;
+
+            if (user.LastLogin.HasValue)
+            {
+                // Get the difference between current time and LastLogin for
+                //  the Application User
+                var daysSinceLastLogin = (now - user.LastLogin.Value).TotalDays;
+
+                if (daysSinceLastLogin <= 30)
+                {
+                    // Increment if 1 day has passed, to prevent page refreshes from potentially
+                    // artificially inflating the streak
+                    if (daysSinceLastLogin >= 1) 
+                    {
+                        user.LoginStreak++;
+                    }
+                }
+                else
+                {
+                    user.LoginStreak = 1;
+                }
+            }
+            else
+            {
+                user.LoginStreak = 1;
+            }
+
+            // Save the new LastLogin status to the ApplicationUser.
+            user.LastLogin = now;
+            await _userManager.UpdateAsync(user);
+
+            // Now sign in!
+            await _authService.SignInUserAsync(
+                HttpContext,
+                model.Email,
+                model.RememberMe);
+
+            _logger.LogInformation(
+                "User {Email} logged in successfully",
+                model.Email);
+
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
+
+            return RedirectToAction("Index", "Dashboard");
         }
-        else
-        {
-            user.LoginStreak = 1;
-        }
-    }
-    else
-    {
-        user.LoginStreak = 1;
-    }
-
-    // Save the new LastLogin status to the ApplicationUser.
-    user.LastLogin = now;
-    await _userManager.UpdateAsync(user);
-
-    // Now sign in!
-    await _authService.SignInUserAsync(
-        HttpContext,
-        model.Email,
-        model.RememberMe);
-
-    _logger.LogInformation(
-        "User {Email} logged in successfully",
-        model.Email);
-
-    if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-    {
-        return Redirect(returnUrl);
-    }
-
-    return RedirectToAction("Index", "Dashboard");
-}
 
         // Displays the registration page.
         // Redirects authenticated users to the dashboard.
