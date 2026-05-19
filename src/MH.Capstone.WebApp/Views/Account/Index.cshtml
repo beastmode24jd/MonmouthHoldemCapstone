@@ -26,9 +26,6 @@
                                 </li>
                             }
                             <li class="list-group-item">
-                                <strong>Email:</strong> @Model.Email
-                            </li>
-                            <li class="list-group-item">
                                 <strong>Status:</strong>
                                 @if (Model.IsDeactivated)
                                 {
@@ -39,6 +36,10 @@
                                     <span class="badge bg-success">Active</span>
                                 }
                             </li>
+                            <li class="list-group-item">
+                                <strong>Total points:</strong> @* @Model.WriteThisIntoAccountViewModel_Later *@
+                            </li>
+                            @* Add recent Sightings, Badges, and/or Clubs to their page? *@
                         </ul>
 
                         @* CSP-187: Follow + Block toggles, only shown when viewing another user *@
