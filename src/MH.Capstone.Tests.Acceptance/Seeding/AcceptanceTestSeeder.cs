@@ -94,6 +94,7 @@ internal static class AcceptanceTestSeeder
         await SeedUserBadgesAsync(db, token);
         await SeedNotificationsAsync(db, token);
         await SeedReportsAsync(db, token);
+        await SeedFollowsAsync(db, token); // CSP-211
 
         await ClearCacheAsync(cacheDb, token);
         await SeedAnimalCacheAsync(cacheDb, token);
@@ -698,6 +699,22 @@ internal static class AcceptanceTestSeeder
             }
         );
 
+        await db.SaveChangesAsync(token);
+    }
+
+    // =========================================================================
+    // Seed — Follows (CSP-211)
+    //
+    // Reciprocal Alex↔Lily so either user's profile demonstrates non-zero
+    // follower AND following counts. Patricia is intentionally outside the
+    // graph — gives BDD a fixed empty-state target. Owen/Faye stay out as
+    // well so their forced-DisplayName flow is unaffected.
+    // =========================================================================
+    private static async Task SeedFollowsAsync(ApplicationDbContext db, CancellationToken token)
+    {
+        db.UserFollows.AddRange(
+            new UserFollow(LilyUserId, AlexUserId),  // Lily follows Alex
+            new UserFollow(AlexUserId, LilyUserId)); // Alex follows Lily
         await db.SaveChangesAsync(token);
     }
 
