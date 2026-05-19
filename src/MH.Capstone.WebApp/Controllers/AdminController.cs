@@ -19,13 +19,17 @@ namespace MH.Capstone.WebApp.Controllers
 
         private readonly IReportService _reportService;
 
+        private readonly IUserService _userService;
+
         public AdminController(UserManager<ApplicationUser> userManager, 
         IAuthenticationService authService,
-        IReportService reportService)
+        IReportService reportService,
+        IUserService userService)
         {
             _userManager = userManager;
             _authService = authService;
             _reportService = reportService;
+            _userService = userService;
         }
 
         [HttpGet]
@@ -220,6 +224,7 @@ namespace MH.Capstone.WebApp.Controllers
             return RedirectToAction(nameof(Manage));
         }
 
+/*
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeactivateUser(string targetEmail, string adminPassword)
@@ -277,6 +282,61 @@ namespace MH.Capstone.WebApp.Controllers
 
             return RedirectToAction(nameof(Manage));
         }
+*/
+
+        [HttpGet]
+        public async Task<IActionResult> SearchUsers(string term, bool findLocked)
+        {
+            // Search all active (non-deactivated) users by DisplayName
+            var users = await _userService.SearchUsersAsync(term);
+            
+            // Filter based on whether we want currently locked or currently open accounts
+            var filtered = users
+                .Where(u => u.AccountLocked == findLocked)
+                .Select(u => new { u.Email, u.DisplayName });
+
+            return Json(filtered);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleAccountLock(string targetEmail, string adminPassword, bool shouldLock)
+        {
+            if (!await VerifyAdminPasswordAsync(adminPassword))
+            {
+                TempData["Error"] = "Invalid administrator credentials.";
+                return RedirectToAction(nameof(Manage));
+            }
+
+            var targetUser = await _userManager.FindByEmailAsync(targetEmail);
+            if (targetUser == null)
+            {
+                TempData["Error"] = "User not found.";
+                return RedirectToAction(nameof(Manage));
+            }
+
+            // Prevent self-locking
+            var adminUser = await _userManager.GetUserAsync(User);
+            if (targetEmail.Equals(adminUser?.Email, StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["Error"] = "You cannot lock out your own account.";
+                return RedirectToAction(nameof(Manage));
+            }
+
+            var result = await _userService.LockToggleAccountAsync(targetUser, shouldLock);
+
+            if (result)
+            {
+                TempData["Success"] = $"Account for {targetUser.DisplayName} has been {(shouldLock ? "locked" : "unlocked")}.";
+            }
+            else
+            {
+                TempData["Error"] = "An error occurred while updating the account status.";
+            }
+
+            return RedirectToAction(nameof(Manage));
+        }
+
         private async Task<bool> VerifyAdminPasswordAsync(string password)
         {
             if (string.IsNullOrWhiteSpace(password)) return false;
