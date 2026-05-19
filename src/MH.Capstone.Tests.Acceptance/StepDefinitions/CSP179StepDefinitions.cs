@@ -247,31 +247,4 @@ public class CSP179StepDefinitions
         // Field initialization defaults should set Alex to AccountLocked = false 
         //      after this test concludes.
     }
-
-
-    /* LAST TEST:
-        Scenario: Admin soft-locks a user account
-            Given a moderator searches user accounts
-            When they toggle a soft-lock on the account
-            Then the account is marked as soft locked
-            And is unable to log in
-    */
-
-    /* Test list:
-        - Admin report page is locked to admin account logins, return HTTP 403 if
-                invalid user tries to access -- DONE (returned 404.)
-
-        - Admin report page displays reports, shows IsResolved value -- DONE
-            Can be filtered by IsResolved bool, Reporter (include unresolved reports)
-                and by SubmittedAt DateTime (default to UTC for simplicity?)
-
-        - Admin can resolve a ticket. -- DONE
-
-        - Admin can soft-ban a user, locking them out of their account entirely.
-            NOTE: Run EF migration for DateTimeOffset update here, as well as
-                "softLocked" boolean value for ApplicationUser.
-                    If softLocked == true, lock out of logging in.
-                    Mutable field for Admins only.
-
-    */
 }
