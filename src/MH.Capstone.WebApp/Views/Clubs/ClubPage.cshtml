@@ -7,8 +7,6 @@
     <div class="card shadow">
         <div class="card-body">
 
-            @* Feedback/Error messages for user *@
-
             @if (TempData["InviteSuccess"] != null)
             {
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -50,7 +48,7 @@
 
             @* Owner and creation date *@
             <p class="mb-1">
-                <strong>Owner:</strong> @Model.Club.Owner.UserName
+                <strong>Owner:</strong> @Model.Club.Owner.DisplayName
             </p>
             <p class="text-muted small mb-0">
                 Created @Model.Club.CreatedAt.ToString("MMMM d, yyyy")
@@ -147,7 +145,6 @@
                 </p>
             }
             
-            @* Club Highlights *@
             @if (Model.ClubMembers.Any())
             {
                 <hr />
@@ -306,7 +303,7 @@
     </div>
 }
 
-@* Members list modal — visible to all page visitors *@
+@* Members list modal *@
 <div class="modal fade" id="membersModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-scrollable">
         <div class="modal-content">
