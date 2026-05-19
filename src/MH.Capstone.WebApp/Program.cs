@@ -215,6 +215,7 @@ namespace MH.Capstone.WebApp
             builder.Services.AddControllersWithViews(options =>
             {
                 options.Filters.Add<RequireDisplayNameFilter>();
+                options.Filters.Add<RequireAccountNotLockedFilter>();
             })
                 .AddNewtonsoftJson();
 

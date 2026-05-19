@@ -75,7 +75,7 @@ All in `src/MH.Capstone.Domain/DataModels/`:
 | `Badge` | `Title`, `Description`, `PointValue` (default 10), `BadgeIcon` (byte[]), `HintToEarn` (nvarchar 150, required), `BadgeSteps` (int, default 1 — 1 = single-action badge, >1 = multi-step) |
 | `UserBadge` | Join table: user ↔ badge. `BadgeEarned` (DateTimeOffset?, null = not yet earned), `BadgeProgress` (int, default 0, tracks steps completed toward `BadgeSteps`) |
 | `Notification` | `Title`, `Message`, `SentAt`, `IsRead`, `IsPostdated` |
-| `Report` | `ReportedPageUrl`, `Reason`, `Description`, `IsResolved`. Filtered unique index: no duplicate open reports per user+URL |
+| `Report` | `ReportedPageUrl`, `Reason`, `Description`, `IsResolved`, `SubmittedAt` (`DateTimeOffset`, defaults to `DateTimeOffset.UtcNow` — refactored from `DateTime` so `ReportService.SortReports` can convert the offset to the caller's `TimeZoneInfo` for display). Filtered unique index: no duplicate open reports per user+URL |
 | `EmailQueue` | Outbox: `Recipient`, `Subject`, `HtmlBody`, `ScheduledAt`, `IsSent`, `Attempts`, `Processing` |
 
 ---
@@ -93,7 +93,7 @@ All interfaces in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `IScoringService` | `ScoringService` | Award points using rarity multiplier |
 | `IBadgeService` | `BadgeService` | `AddBadge(user, badgeId, tz)` — awards badge, adds points, sends notification. `UpdateBadge(user, badgeId, tz)` — increments `BadgeProgress` by 1, calls `AddBadge` when `BadgeProgress >= BadgeSteps`. `SyncBadgeProgressAsync(user, badgeId, actualCount, tz)` — idempotent backwards-compat sync: sets `BadgeProgress = actualCount` directly (or calls `AddBadge` if `actualCount >= BadgeSteps`); safe to call on every login. `SortBadgesByTime(list)` — descending chronological sort. |
 | `ILeaderboardService` | `LeaderboardService` | `GetLeaderboardPageAsync()` → `IEnumerable<ApplicationUser>`; controller projects to `LeaderboardEntryViewModel` (excludes `Email`) |
-| `IReportService` | `ReportService` | Submit and resolve content reports |
+| `IReportService` | `ReportService` | `SubmitReportAsync(report)` — validates via `TryValidateEntity`, saves; returns `false` when the DB rejects via unique-constraint violation (duplicate open report from same user for same URL), throws `ArgumentException` on validation failure. Sends `ReportStatusUpdate` notification to the reporter on success. `SortReports(filterType, pageUrl?, reporterIdentityId?, date?, showResolved?, page, pageSize, userZone)` — eager-loads `Reporter`, applies optional filters, paginates, then rewrites each returned report's `SubmittedAt` to `TimeZoneInfo.ConvertTime(SubmittedAt, userZone)` so the view renders in the caller's local zone. Returns `(Reports, TotalCount)`. `SetReportResolution(reportId, isResolved)` — assigns `report.IsResolved = isResolved` directly (the value is no longer toggled), persists, and sends the reporter a `ReportStatusUpdate` notification ("Report Resolved" when `true`, "Report Re-Opened" when `false`). Returns `false` if report not found |
 | `INotificationService` | `NotificationDispatchService` | Routes notifications by channel. `SendNotificationAsync(notification, type)` — SystemCritical always InAppAndEmail; others consult preference service. Inherits `MarkAllAsReadAsync`, `DeleteAllAsync` from `NotificationServiceBase` |
 | `INotificationPreferenceService` | `NotificationPreferenceService` | Per-user, per-type delivery prefs. `GetPreferencesAsync(user)` excludes SystemCritical. `GetDeliveryChannelAsync(user, type)` defaults to `InAppOnly`. `SavePreferencesAsync` silently ignores SystemCritical |
 | `IEmailService` | `AzureCommunicationEmailService` / `NoOpEmailService` | Send emails (toggled by `UseRealEmailerService` flag) |
@@ -143,7 +143,7 @@ All interfaces in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | Controller | Responsibility |
 |---|---|
 | `AccountController` | Register, login, logout, profile |
-| `AdminController` | Admin-only views |
+| `AdminController` | `[Authorize(Roles="Admin")]` on the class. Constructor injects `UserManager<ApplicationUser>`, `IAuthenticationService`, `IReportService`, `IUserService`. `GET Manage` — admin landing (User Role Management page; see Admin Management Page section). `GET Reports(ReportQueueViewModel)` — report queue: reads `UserTimeZone` cookie (default `America/Los_Angeles`; Windows fallback `Pacific Standard Time`), defaults `DateFilter` to user-local now when unset, resolves `UserSearch` → `DisplayName` lookup (sentinel `"ID_NOT_FOUND"` when not found so 0 results return), delegates to `IReportService.SortReports`, builds `SortOptions` SelectList from `ReportFilterType`. `POST UpdateResolution(Guid id, bool status)` (AJAX, `[ValidateAntiForgeryToken]`) — calls `SetReportResolution`; returns `Json({success})` or `BadRequest`. `POST PromoteToAdmin` / `DemoteFromAdmin` — each re-verifies the caller's password via `VerifyAdminPasswordAsync`, blocks self-targeting, and ensures the target user holds only one role at a time (removes existing roles before assigning `Admin`/`User`). `GET SearchUsers(string term, bool findLocked)` — returns JSON `{email, displayName}[]` of users whose `DisplayName` matches `term`, filtered by `AccountLocked == findLocked` (drives the Manage page autocomplete datalists). `POST ToggleAccountLock(targetEmail, adminPassword, shouldLock)` — verifies admin password, blocks self-locking, delegates to `IUserService.LockToggleAccountAsync`. `DeactivateUser` action is currently commented out (lines 227–285) |
 | `DashboardController` | User dashboard (points, badges, recent activity) |
 | `HomeController` | Landing pages |
 | `LeaderboardController` | Global rankings |
@@ -438,6 +438,98 @@ Drill-down view from the Sightings Gallery. Clicking a card navigates to `/Sight
 - `StepDefinitions/CSP172StepDefinitions` — adds two new step bindings reusable by future features: `Given user Lily is logged in` and `Given visitor James is signed out`.
 
 **DI:** `IAnimalFunFactService` is registered scoped in `Program.cs` next to `IPhotoQualityService` (no feature flag).
+
+---
+
+## Admin Report Queue
+
+Admin-only triage UI for user-submitted content reports. Lives at `GET /Admin/Reports` (rendered by `AdminController.Reports`, view `Views/Admin/Reports.cshtml`, JS `wwwroot/js/reportModal.js`).
+
+### Report entity quirk
+
+`Report.ReportingUserId` is `[NotMapped]` — a `Guid` get/set wrapper around the actual DB column `ReportingUserIdentityId` (string, mapped to SQL column `ReportingUserId`, FK to `ApplicationUser`). Setting either updates the other. Queries that filter by user must compare against `ReportingUserIdentityId` (the string), as `SortReports` does.
+
+### `ReportQueueViewModel` filter shape
+
+The view model carries: `SortBy` (`ReportFilterType` enum), `PageUrlFilter`, `UserSearch` (DisplayName, NOT id — controller resolves to id), `DateFilter` (defaults to `DateTime.UtcNow` if unset), `ShowResolved` (nullable bool — `null` = "All"), `CurrentPage`, `PageSize`, `Reports`, `TotalPages`, `SortOptions`.
+
+`ReportFilterType` enum: `PageURL=0, Reporter=1, Date=2, Resolved=3` (per inline comment in `SortReports`).
+
+### Notable behaviors / gotchas
+
+- **`SortReports` date filter direction:** the code is `query.Where(r => r.SubmittedAt <= date.Value)` — reports submitted on or *before* the chosen date. The inline comment claims "on or after" but the code is the source of truth. Combined with the controller defaulting `DateFilter` to `UtcNow`, an unfiltered page load shows all reports up to "now" (effectively everything).
+- **`SetReportResolution` ignores its `bool isResolved` parameter** and toggles `report.IsResolved` instead. Both the table checkbox and the modal confirm end up performing a toggle regardless of the value the JS sends in `?status=`. If the table state and the user's intent disagree (e.g. clicking a checked checkbox to uncheck it), the toggle happens to produce the right result, but the API contract is misleading.
+- `SubmitReportAsync` distinguishes the duplicate case from generic errors by checking `SqlException.IsOfErrorType(SqlErrorNumber.UniqueConstraintViolation)` (or `DbUpdateException` wrapping the same). Other DB failures rethrow.
+
+### View structure (`Views/Admin/Reports.cshtml`)
+
+- Top filter form `GET asp-action="Reports"`: `PageUrlFilter`, `UserSearch`, `DateFilter` (type=date), `ShowResolved` (`""` / `false` / `true`), `SortBy` (bound to `SortOptions`), Filter submit + Clear link (clears all filters by linking to `Reports` with no query).
+- Report table columns: Date, Reporter (`DisplayName`), Page (anchor → `target="_blank"`), Reason, Resolved (`input.form-check-input.resolution-toggle[data-id]`, statically `checked` per row), Actions (`button.details-btn[data-id][data-description][data-resolved]`).
+- Pagination preserves `ShowResolved` and `SortBy` in querystring but **does not** preserve `PageUrlFilter`, `UserSearch`, or `DateFilter` — paging past filtered results drops the filters.
+- Details modal `#reportDetailsModal` (Bootstrap): `#modalDescription` (filled by JS via `innerText`), `#modalIsResolved` checkbox, `#confirmResolveBtn` confirm, Cancel = `data-bs-dismiss="modal"`.
+- `@Html.AntiForgeryToken()` is rendered once at the top of the container so the JS can read it from `input[name="__RequestVerificationToken"]`.
+- **HTML structure note:** the modal markup has a misnested `</div>` around lines 125–132 — the `modal-body` and inner form-check div close out of order, leaving `modal-footer` as a sibling of `modal-body` rather than nested cleanly. Bootstrap's modal still renders, but the DOM tree is not what the indentation suggests.
+
+### `wwwroot/js/reportModal.js`
+
+- Module-scoped `currentActiveReportId` holds the id selected via the Details button.
+- Delegated `click` listener on `document` catches `.details-btn` clicks (so dynamically-added rows would work); reads `data-id`, `data-description`, `data-resolved` and calls `showDetailsModal`.
+- `showDetailsModal(id, desc, isResolved)` writes description via `innerText` (XSS-safe), pre-checks the modal checkbox, and reuses `bootstrap.Modal.getInstance(...)` if present.
+- `#confirmResolveBtn` click → reads modal checkbox → `updateResolution(id, isChecked)` → `location.reload()`.
+- Inline checkbox `.resolution-toggle` change listeners are wired with `querySelectorAll(...).forEach` at script load — they will NOT bind to rows added after initial load. Currently fine because the table is server-rendered, but worth knowing if any future AJAX pagination is added.
+- `updateResolution(id, isResolved)` POSTs to `/Admin/UpdateResolution/${id}?status=${isResolved}` with the antiforgery token in the `RequestVerificationToken` header. Note the URL uses path-style id but querystring status — model binding works because the route default `{id?}` catches the id and `status` binds from the query.
+
+### Page Element IDs (Admin Report Queue)
+
+| Page | Element / Selector | Purpose |
+|---|---|---|
+| `/Admin/Reports` | `PageUrlFilter`, `UserSearch`, `DateFilter`, `ShowResolved`, `SortBy` | Filter form inputs (bound via tag helpers) |
+| `/Admin/Reports` | `.resolution-toggle[data-id]` | Per-row Resolved checkbox (AJAX toggle) |
+| `/Admin/Reports` | `.details-btn[data-id][data-description][data-resolved]` | Per-row Details button (opens modal) |
+| `/Admin/Reports` | `#reportDetailsModal`, `#modalDescription`, `#modalIsResolved`, `#confirmResolveBtn` | Details modal + controls |
+
+---
+
+## Admin Management Page
+
+Admin-only page at `GET /Admin/Manage` (view `Views/Admin/Manage.cshtml`, JS `wwwroot/js/manageAccounts.js` — renamed from `adminModal.js`). Houses four admin actions on one page: promote to Admin, demote from Admin, lock user account, unlock user account. Every action funnels through a single shared admin-password confirmation modal before the form actually submits.
+
+### View structure (`Views/Admin/Manage.cshtml`)
+
+Top of the card renders `TempData["Error"]` and `TempData["Success"]` flash messages as Bootstrap alerts (controller actions always `RedirectToAction(nameof(Manage))` after writing `TempData`, so messages survive the redirect).
+
+Four forms, all sharing the same modal-driven submission pattern:
+
+| Form id | `asp-action` | Hidden inputs | Visible input | Button label |
+|---|---|---|---|---|
+| `promoteForm` | `PromoteToAdmin` | `adminPassword` (`.modal-password-target`) | `email` (id `email`, type=email, required) | "Elevate to Admin" |
+| `demoteForm` | `DemoteFromAdmin` | `adminPassword` (`.modal-password-target`) | `email` (id `demoteEmail`, type=email, required) | "Revoke Admin Status" |
+| `lockForm` | `ToggleAccountLock` | `adminPassword`, `shouldLock="true"`, `targetEmail` (`.selected-email`) | `.user-search` text input bound to `<datalist id="lockList">` via `data-find-locked="false"` | "Lock Account" |
+| `unlockForm` | `ToggleAccountLock` | `adminPassword`, `shouldLock="false"`, `targetEmail` (`.selected-email`) | `.user-search` text input bound to `<datalist id="unlockList">` via `data-find-locked="true"` | "Restore Access" |
+
+All four submit buttons are `type="button"` with `onclick="showPasswordModal('<formId>')"` — forms are **not** submitted directly by the click. The shared `#adminPasswordModal` collects the admin's password, writes it into the active form's `.modal-password-target` hidden field, then calls `form.submit()`. Submission is a regular full-page POST (no AJAX); flash results return via `TempData` on the redirect.
+
+Lock/Unlock differ from Promote/Demote: instead of typing a raw email, the admin types a `DisplayName` into a `.user-search` text input that autocompletes via `<datalist>` populated from `GET /Admin/SearchUsers`. The hidden `.selected-email` field is only populated when the typed text **exactly matches** (case-insensitive) a returned display name; otherwise it is cleared. `showPasswordModal` short-circuits with an `alert(...)` + re-focus when `lockForm`/`unlockForm` is invoked with an empty `.selected-email`.
+
+### `wwwroot/js/manageAccounts.js` (renamed from `adminModal.js`)
+
+- Module-scoped `activeFormId` — set by `showPasswordModal(formId)`, read by the confirm-button click handler.
+- `showPasswordModal(formId)` — exposed as a global so the inline `onclick` handlers in the view can reach it. For `lockForm`/`unlockForm` it guards against an empty `.selected-email` before showing the modal (alert + return; no modal shown). Clears `#modalAdminPassword` between attempts, then constructs a fresh `new bootstrap.Modal(modalElement)` and shows it. Note: unlike `reportModal.js`, this does **not** reuse `bootstrap.Modal.getInstance(...)` — a new instance is created each open.
+- `#confirmAuthBtn` click (wired on `DOMContentLoaded`) — reads `#modalAdminPassword`, alerts if empty, otherwise writes the value into the active form's `.modal-password-target` and calls `form.submit()`. Logs a console error if the form is missing a `.modal-password-target`.
+- `.user-search` `input` event (wired at script load via `querySelectorAll(...).forEach`) — debounced 250ms per input via a closure-scoped `debounceTimer`. Each keystroke clears any pending timer; the final term (after the idle window) past length 2 fires `fetch('/Admin/SearchUsers?term=&findLocked=')`, rebuilds the corresponding `<datalist>` (`option.value = displayName`, `option.dataset.email = email`), then conditionally sets the form's `.selected-email` only when the typed term exactly matches a returned display name (case-insensitive). Debounce was added because `SendKeys`-style rapid typing caused out-of-order fetch responses to clear the hidden field (Lock/Unlock fetches for `"Al"`/`"Ale"` would race past `"Alex"` and clobber the match-set value).
+- Static binding: the input listeners attach at script load via `querySelectorAll`, so dynamically-added `.user-search` rows would not be wired up (currently fine — both inputs are server-rendered).
+
+### Page Element IDs (Admin Management)
+
+| Page | Element / Selector | Purpose |
+|---|---|---|
+| `/Admin/Manage` | `#promoteForm`, `#demoteForm`, `#lockForm`, `#unlockForm` | The four admin action forms |
+| `/Admin/Manage` | `input[name="email"]` (ids `email` / `demoteEmail`) | Email entry for promote/demote |
+| `/Admin/Manage` | `.user-search[data-find-locked]` | Lock/Unlock autocomplete inputs |
+| `/Admin/Manage` | `.selected-email` (hidden, one per lock/unlock form) | Resolved target email (only set on exact datalist match) |
+| `/Admin/Manage` | `.modal-password-target` (hidden, one per form) | Receives the admin password from the modal before submit |
+| `/Admin/Manage` | `#adminPasswordModal`, `#modalAdminPassword`, `#confirmAuthBtn` | Shared admin-password modal + controls |
+| `/Admin/Manage` | `<datalist id="lockList">`, `<datalist id="unlockList">` | Autocomplete suggestion lists populated from `/Admin/SearchUsers` |
 
 ---
 

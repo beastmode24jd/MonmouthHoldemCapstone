@@ -26,6 +26,8 @@ namespace MH.Capstone.Domain.Services.Abstraction
         Task<ApplicationUser?> GetUserByIdAsync(Guid id) => GetUserByIdAsync(id.ToString());
 
         Task<ApplicationUser?> GetUserByClaimsPrincipleAsync(ClaimsPrincipal user);
+
+        Task<bool> LockToggleAccountAsync(ApplicationUser user, bool statusFlag);
     }
 
     public interface IUserProfileService

@@ -82,6 +82,13 @@ namespace MH.Capstone.Domain.Services
                 return false;
             }
 
+            // CSP-179: Admin-imposed soft lock — independent of IsDeactivated and reversible by Admin only.
+            if (user.AccountLocked)
+            {
+                _logger.LogWarning("Failed login attempt for {Email} - account locked by Admin", email);
+                return false;
+            }
+
             // Check if the password is correct using SignInManager
             var result = await _signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: false);
 
@@ -217,6 +224,14 @@ namespace MH.Capstone.Domain.Services
             if (user == null)
             {
                 throw new InvalidOperationException($"User with email {email} not found");
+            }
+
+            // CSP-179: Defense-in-depth — if a caller skipped ValidateCredentialsAsync,
+            // refuse to sign in an Admin-locked account.
+            if (user.AccountLocked)
+            {
+                _logger.LogWarning("SignInUserAsync blocked for {Email} - account locked by Admin", email);
+                throw new InvalidOperationException($"Account {email} is locked and cannot be signed in.");
             }
 
             // Sign in the user with cookie authentication

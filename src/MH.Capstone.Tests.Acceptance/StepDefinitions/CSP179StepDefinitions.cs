@@ -1,0 +1,250 @@
+using System.Diagnostics.CodeAnalysis;
+using FluentAssertions;
+using MH.Capstone.Tests.Acceptance.Drivers;
+using NUnit.Framework;
+using OpenQA.Selenium;
+using Reqnroll;
+using MH.Capstone.Tests.Acceptance.Configuration;
+using MH.Capstone.Tests.Acceptance.Helpers;
+using OpenQA.Selenium.Support.UI;
+
+namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
+
+[Binding]
+[ExcludeFromCodeCoverage]
+// This isolates the step definition methods used to this feature file only
+[Scope(Feature = "Admin Report System")]
+public class CSP179StepDefinitions
+{
+    private readonly IWebDriver _driver;
+    private readonly WebDriverWait _wait;
+    private readonly AuthenticationDriver _authDriver;
+    private readonly string _baseUrl;
+    
+    // Field to track state between When and Then steps
+    private int _initialReportCount;
+    private bool _initialReportStatus;
+
+    public CSP179StepDefinitions(
+        IWebDriver driver,
+        WebDriverWait wait,
+        AuthenticationDriver authDriver,
+        AcceptanceTestSettings settings)
+    {
+        _driver = driver;
+        _wait = wait;
+        _authDriver = authDriver;
+        _baseUrl = settings.BaseUrl.TrimEnd('/');
+    }
+
+    // Resets Alex's sighting count and badge state before each scenario so the
+    // full-suite run does not see Sighting Novice already earned from sightings
+    // other features submit as Alex (CSP-53, CSP-122, CSP-125, CSP-141,
+    // CSP-144, CSP-193, plus this feature's own Scenario 4).
+    [BeforeScenario("report")]
+    public static async Task BeforeBadgeScenario()
+    {
+        await TestWebAppHost.ResetSeedDataAsync();
+    }
+
+    // Scenario 1: Non-moderator cannot access admin report page
+
+    [Given("a regular authenticated user logs in")]
+    public void GivenARegularAuthenticatedUserLogsIn()
+    {
+        _authDriver.PreformLoginForUser("alex@test.com", "Capstone26!");
+    }
+
+    [When("they attempt to access the moderation queue URL")]
+    public void WhenTheyAttemptToAccessTheModerationQueueURL()
+    {
+        _driver.Navigate().GoToUrl($"{_baseUrl}/Admin/Reports");
+    }
+
+    [Then("access is denied and no moderation controls are visible")]
+    public void ThenAccessIsDeniedAndNoModerationControlsAreVisible()
+    {
+        // Check if we were redirected to an AccessDenied page 
+        // OR simply check that the admin-specific header is missing.
+        var pageSource = _driver.PageSource;
+
+        bool isAdminPageDisplayed = pageSource.Contains("Admin Report Queue");
+
+        isAdminPageDisplayed.Should().BeFalse("The Admin queue should not be visible to regular users.");
+
+        // Verify we are not on the Reports URL (standard Identity behavior redirects to /Account/AccessDenied)
+        _driver.Url.Should().NotContain
+            ("/Admin/Reports", "Users should be redirected away from restricted admin queue.");
+    }
+
+    // Scenario 2: Admin can view and filter on Report Queue page
+
+    [Given("a moderator is authenticated")]
+    public void GivenAModeratorIsAuthenticated()
+    {
+        _authDriver.PreformLoginForUser("patricia@test.com", "Capstone26!");
+    }
+
+    [When("they open the moderation queue and apply filters")]
+    public void WhenTheyOpenTheModerationQueueAndApplyFilters()
+    {
+        _driver.Navigate().GoToUrl($"{_baseUrl}/Admin/Reports");
+
+        // Check/Capture initial state before filtering 
+        var rows = _driver.FindElements(By.CssSelector("table tbody tr"));
+        _initialReportCount = rows.Count;
+
+        // Apply a filter (search for a specific user) 
+        var userSearchInput = _driver.FindElement(By.Id("UserSearch"));
+        userSearchInput.Clear();
+        userSearchInput.SendKeys("Alex"); // Seeded user in Scenario 1
+
+        // Change the Sort By Descending dropdown
+        var sortSelect = new SelectElement(_driver.FindElement(By.Id("SortBy")));
+        sortSelect.SelectByValue("Reporter");
+
+        // Click the Filter button (acts as "Submit")
+        var filterButton = _driver.FindElement(By.CssSelector("button[type='submit'].btn-dark"));
+        filterButton.Click();
+    }
+
+    [Then("the queue list is filtered and results are paged")]
+    public void ThenTheQueueListIsFilteredAndResultsArePaged()
+    {
+        // Wait for the table to refresh (ensures report row(s) are present)
+        _wait.Until(d => d.FindElements(By.CssSelector("table tbody tr")).Count > 0);
+
+        var filteredRows = _driver.FindElements(By.CssSelector("table tbody tr"));
+
+        // If the filter worked, the rows should be <= the initial count
+        filteredRows.Count.Should().BeLessThanOrEqualTo(_initialReportCount, 
+            "The filter should narrow down the results.");
+
+        // Every row's "Reporter" column (2nd <td>) should contain "Alex"
+        foreach (var row in filteredRows)
+        {
+            var reporterName = row.FindElement(By.CssSelector("td:nth-child(2)")).Text;
+            reporterName.Should().Contain("Alex", 
+                "Filtered results should only show the searched user.");
+        }
+
+        // Check for pagination
+        var paginationExists = _driver.FindElements(By.CssSelector("ul.pagination")).Any();
+        paginationExists.Should().BeTrue("The pagination controls should be visible to the moderator.");
+    }
+
+    // Scenario 3: Resolved/Unresolved ticket toggling
+    [Given("an Admin clicks the Details button on a report")]
+    public void GivenAnAdminClicksTheDetailsButtonOnAReport()
+    {
+        _authDriver.PreformLoginForUser("patricia@test.com", "Capstone26!");
+        _driver.Navigate().GoToUrl($"{_baseUrl}/Admin/Reports");
+
+        var firstRow = _driver.FindElement(By.CssSelector("table tbody tr"));
+        var rowCheckbox = firstRow.FindElement(By.CssSelector(".resolution-toggle"));
+
+        // Store the initial Resolved value for the Then step
+        _initialReportStatus = rowCheckbox.Selected;
+        
+        // Click the Details button to get the modal visible
+        firstRow.FindElement(By.CssSelector(".details-btn")).Click();
+    }
+
+    [When("the Admin clicks the Resolution checkbox")]
+    public void WhenTheAdminClicksTheResolutionCheckbox()
+    {
+        // Wait for the modal to show
+        _wait.Until(d => d.FindElement(By.Id("reportDetailsModal")).Displayed);
+
+        var modalCheckbox = _driver.FindElement(By.Id("modalIsResolved"));
+        modalCheckbox.Click();
+    }
+
+    [When("clicks Confirm on the Details modal")]
+    public void WhenClicksConfirmOnTheDetailsModal()
+    {
+        var confirmBtn = _driver.FindElement(By.Id("confirmResolveBtn"));
+        confirmBtn.Click();
+    }
+
+    [Then("the selected report is inverted from its previous status")]
+    public void ThenTheSelectedReportIsInvertedFromItsPreviousStatus()
+    {
+        // Wait for the modal to go away, then compare
+        _wait.Until(d => !d.FindElement(By.Id("reportDetailsModal")).Displayed);
+
+        var updatedCheckbox = _driver.FindElement(By.CssSelector("table tbody tr .resolution-toggle"));
+
+        updatedCheckbox.Selected.Should().Be(!_initialReportStatus, 
+        "The checkbox state in the table should reflect the change made in the modal.");
+    }
+
+    // Scenario 4: Admin can soft lock a user out of their account.
+    [Given("a moderator searches user accounts")]
+    public void GivenAModeratorSearchesUserAccounts()
+    {
+        _authDriver.PreformLoginForUser("patricia@test.com", "Capstone26!");
+        _driver.Navigate().GoToUrl($"{_baseUrl}/Admin/Manage");
+        
+        var searchInput = _driver.FindElement(By.Id("activeUserSearch"));
+        var hiddenEmailInput = _driver.FindElement(By.CssSelector("#lockForm .selected-email"));
+
+        searchInput.Clear();
+        searchInput.SendKeys("Alex");
+
+        // Wait until the JS has populated the hidden email field based on the search
+        _wait.Until(d => {
+            var val = hiddenEmailInput.GetAttribute("value");
+            return !string.IsNullOrEmpty(val) && val.Contains("@");
+        });
+
+        _driver.FindElement(By.Id("lockBtn")).Click();
+    }
+
+    [When("they toggle a soft lock on the account")]
+    public void WhenTheyToggleASoftLockOnTheAccount()
+    {
+        // Wait for the password confirmation modal to show
+        _wait.Until(d => d.FindElement(By.Id("adminPasswordModal")).Displayed);
+
+        var adminPasswordInput = _driver.FindElement(By.Id("modalAdminPassword"));
+        adminPasswordInput.SendKeys("Capstone26!");
+
+        _driver.FindElement(By.Id("confirmAuthBtn")).Click();
+    }
+
+    [Then("the account is marked as soft locked")]
+    public void ThenTheAccountIsMarkedAsSoftLocked()
+    {
+        // Wait for confirmation message of account lock.
+        _wait.Until(d => d.FindElement(By.ClassName("alert-success")).Displayed);
+
+        var successMessage = _driver.FindElement(By.ClassName("alert-success")).Text;
+        successMessage.Should().Contain("locked");
+
+        var lockedSearch = _driver.FindElement(By.Id("lockedUserSearch"));
+        var lockedHiddenEmail = _driver.FindElement(By.CssSelector("#unlockForm .selected-email"));
+
+        lockedSearch.Clear();
+        lockedSearch.SendKeys("Alex");
+
+        _wait.Until(d => !string.IsNullOrEmpty(lockedHiddenEmail.GetAttribute("value")));
+        lockedHiddenEmail.GetAttribute("value").Should().Be("alex@test.com", "The account should now appear in the locked users search results.");
+    }
+
+    [Then("is unable to log in")]
+    public void ThenIsUnableToLogIn()
+    {
+        _authDriver.LogoutUser();
+
+        // Try to log in Alex here.
+        var loginAct = () => _authDriver.PreformLoginForUser("alex@test.com", "Capstone26!");
+        loginAct.Should().Throw<Exception>("a locked account should not be allowed to sign in");
+
+        _driver.Url.Should().ContainEquivalentOf("/Account/Login");
+        _driver.PageSource.Should().NotContain("/dashboard");
+
+        // Field initialization defaults should set Alex to AccountLocked = false 
+        //      after this test concludes.
+    }
+}

@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using MH.Capstone.WebApp.Models;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.Domain.Services;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 
 namespace MH.Capstone.WebApp.Controllers
 {
@@ -11,18 +14,106 @@ namespace MH.Capstone.WebApp.Controllers
     public class AdminController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;
+
         private readonly IAuthenticationService _authService;
 
-        public AdminController(UserManager<ApplicationUser> userManager, IAuthenticationService authService)
+        private readonly IReportService _reportService;
+
+        private readonly IUserService _userService;
+
+        public AdminController(UserManager<ApplicationUser> userManager, 
+        IAuthenticationService authService,
+        IReportService reportService,
+        IUserService userService)
         {
             _userManager = userManager;
             _authService = authService;
+            _reportService = reportService;
+            _userService = userService;
         }
 
         [HttpGet]
         public IActionResult Manage()
         {
             return View();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Reports(ReportQueueViewModel vm)
+        {
+            // Get the user device's local timezone cookie, default timezone is PST
+            string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
+
+            TimeZoneInfo userZone;
+            try
+            {
+                userZone = TimeZoneInfo.FindSystemTimeZoneById(userTimeZoneId);
+            }
+            catch
+            {
+                // Fallback for Windows environment or invalid IANA IDs
+                userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+            }
+
+            // Auto-fill the DateFilter to the current timezone date/time if not already set
+            var displayNow = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, userZone);
+
+            // Only auto-fill if the user hasn't selected a date yet
+            // Ensures the <input type="date"> shows today's date in their timezone
+            vm.DateFilter ??= displayNow;
+
+            // If the user provided a search name, find the corresponding ID
+            string? reporterId = null;
+
+            if (!string.IsNullOrWhiteSpace(vm.UserSearch))
+            {
+                var user = await _userManager.Users
+                    .FirstOrDefaultAsync(u => u.DisplayName == vm.UserSearch);
+                
+                // If found, use their ID; if not found, use a dummy ID to return 0 results
+                reporterId = user?.Id ?? "ID_NOT_FOUND";
+            }
+
+            // Get the converted DateTimeOffset values for local display from ReportService.cs
+            var (reports, totalCount) = await _reportService.SortReports(
+                vm.SortBy, 
+                vm.PageUrlFilter, 
+                reporterId, // Shows as Display Name to front-end
+                vm.DateFilter,
+                vm.ShowResolved, 
+                vm.CurrentPage, 
+                vm.PageSize,
+                userZone);
+
+            vm.Reports = reports;
+            vm.TotalPages = (int)Math.Ceiling(totalCount / (double)vm.PageSize);
+
+            // Populate the SelectList items here
+            vm.SortOptions = Enum.GetValues(typeof(ReportFilterType))
+                .Cast<ReportFilterType>()
+                .Select(e => new SelectListItem
+                {
+                    Value = e.ToString(),
+                    Text = e.ToString()
+                }).ToList();
+
+            return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        // Add the 'bool status' parameter to receive the checkbox state
+        public async Task<IActionResult> UpdateResolution(Guid id, bool status) 
+        {
+            // Call the revised service method
+            var success = await _reportService.SetReportResolution(id, status);
+            
+            if (success)
+            {
+                return Json(new { success = true });
+            }
+            
+            return BadRequest(new { success = false, message = "Report not found." });
         }
 
         [HttpPost]
@@ -133,63 +224,59 @@ namespace MH.Capstone.WebApp.Controllers
             return RedirectToAction(nameof(Manage));
         }
 
+        [HttpGet]
+        public async Task<IActionResult> SearchUsers(string term, bool findLocked)
+        {
+            // Search all active (non-deactivated) users by DisplayName
+            var users = await _userService.SearchUsersAsync(term);
+            
+            // Filter based on whether we want currently locked or currently open accounts
+            var filtered = users
+                .Where(u => u.AccountLocked == findLocked)
+                .Select(u => new { u.Email, u.DisplayName });
+
+            return Json(filtered);
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeactivateUser(string targetEmail, string adminPassword)
+        public async Task<IActionResult> ToggleAccountLock(string targetEmail, string adminPassword, bool shouldLock)
         {
-            // Front-end should catch this, but leaving this guard in
-            if (string.IsNullOrWhiteSpace(targetEmail) || string.IsNullOrWhiteSpace(adminPassword))
-            {
-                TempData["Error"] = "Both target email and your admin password are required.";
-                return RedirectToAction(nameof(Manage));
-            }
-
-            // Verify the Admin's identity and password
             if (!await VerifyAdminPasswordAsync(adminPassword))
             {
                 TempData["Error"] = "Invalid administrator credentials.";
                 return RedirectToAction(nameof(Manage));
             }
 
-            // VerifyAdminPasswordAsync checks if the adminUser is null, hence the bang operator
-            var adminUser = await _userManager.GetUserAsync(User);
-            if (targetEmail.Equals(adminUser!.Email, StringComparison.OrdinalIgnoreCase))
-            {
-                // Prevent the Admin from deactivating themselves
-                TempData["Error"] = "You cannot deactivate your account from the Admin Management page.";
-                return RedirectToAction(nameof(Manage));
-            }
-
-            // Find the selected User account
             var targetUser = await _userManager.FindByEmailAsync(targetEmail);
-            if (targetUser == null || targetUser.Email == null)
+            if (targetUser == null)
             {
-                TempData["Error"] = "Please enter a valid email address.";
+                TempData["Error"] = "User not found.";
                 return RedirectToAction(nameof(Manage));
             }
 
-            // Prevent the Admin from deleting *other* Admins.
-            if (await _userManager.IsInRoleAsync(targetUser, "Admin"))
+            // Prevent self-locking
+            var adminUser = await _userManager.GetUserAsync(User);
+            if (targetEmail.Equals(adminUser?.Email, StringComparison.OrdinalIgnoreCase))
             {
-                TempData["Error"] = "Security Restriction: You cannot deactivate another Administrator.";
+                TempData["Error"] = "You cannot lock out your own account.";
                 return RedirectToAction(nameof(Manage));
             }
 
-            // Use AuthenticationService to perform the deactivation
-            // targetUser has already been verified to not be null.
-            var success = await _authService.DeactivateAccountAsync(targetUser.Email!);
+            var result = await _userService.LockToggleAccountAsync(targetUser, shouldLock);
 
-            if (success)
+            if (result)
             {
-                TempData["Success"] = $"Account {targetUser.Email} has been successfully deactivated.";
+                TempData["Success"] = $"Account for {targetUser.DisplayName} has been {(shouldLock ? "locked" : "unlocked")}.";
             }
             else
             {
-                TempData["Error"] = "User not found or operation failed.";
+                TempData["Error"] = "An error occurred while updating the account status.";
             }
 
             return RedirectToAction(nameof(Manage));
         }
+
         private async Task<bool> VerifyAdminPasswordAsync(string password)
         {
             if (string.IsNullOrWhiteSpace(password)) return false;
