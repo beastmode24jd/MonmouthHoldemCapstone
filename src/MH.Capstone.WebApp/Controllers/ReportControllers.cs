@@ -50,7 +50,7 @@ namespace MH.Capstone.WebApp.Controllers
                 ReportedPageUrl = model.ReportedPageUrl,
                 Reason = model.Reason,
                 Description = model.Description,
-                SubmittedAt = DateTime.UtcNow
+                SubmittedAt = DateTimeOffset.UtcNow
             };
 
             var submitted = await _reportService.SubmitReportAsync(report);
