@@ -58,11 +58,11 @@
                         
                         <div class="mb-3">
                             <label class="form-label">Search Active Users</label>
-                            <input type="text" class="form-control user-search" 
+                            <input type="text" id="activeUserSearch" class="form-control user-search" 
                                 data-find-locked="false" list="lockList" placeholder="Type to search...">
                             <datalist id="lockList"></datalist>
                         </div>
-                        <button type="button" class="btn btn-warning" onclick="showPasswordModal('lockForm')">
+                        <button type="button" id="lockBtn" class="btn btn-warning" onclick="showPasswordModal('lockForm')">
                             Lock Account
                         </button>
                     </form>
@@ -77,11 +77,11 @@
                         
                         <div class="mb-3">
                             <label class="form-label">Search Locked Users</label>
-                            <input type="text" class="form-control user-search" 
+                            <input type="text" id="lockedUserSearch" class="form-control user-search" 
                                 data-find-locked="true" list="unlockList" placeholder="Type to search...">
                             <datalist id="unlockList"></datalist>
                         </div>
-                        <button type="button" class="btn btn-success" onclick="showPasswordModal('unlockForm')">
+                        <button type="button" class="btn btn-success" id="unlockBtn" onclick="showPasswordModal('unlockForm')">
                             Restore Access
                         </button>
                     </form>

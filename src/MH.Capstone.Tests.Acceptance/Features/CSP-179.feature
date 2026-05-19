@@ -1,7 +1,7 @@
 Feature: Admin Report System
     As a Wildlife AID admin
-    I want to be able to check my Badges page
-    So I can see Badges I have earned, and get hints on how to earn uncompleted Badges.
+    I want to be able to filter reports
+    So I can moderate content, and lock user accounts if needed.
 
 @report
 Scenario: Regular user cannot access admin tools

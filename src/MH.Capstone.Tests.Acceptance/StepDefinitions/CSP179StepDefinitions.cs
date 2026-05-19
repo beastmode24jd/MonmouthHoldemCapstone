@@ -184,28 +184,66 @@ public class CSP179StepDefinitions
     public void GivenAModeratorSearchesUserAccounts()
     {
         _authDriver.PreformLoginForUser("patricia@test.com", "Capstone26!");
+        _driver.Navigate().GoToUrl($"{_baseUrl}/Admin/Manage");
         
-        // More goes here later...
+        var searchInput = _driver.FindElement(By.Id("activeUserSearch"));
+        var hiddenEmailInput = _driver.FindElement(By.CssSelector("#lockForm .selected-email"));
+
+        searchInput.Clear();
+        searchInput.SendKeys("Alex");
+
+        // Wait until the JS has populated the hidden email field based on the search
+        _wait.Until(d => {
+            var val = hiddenEmailInput.GetAttribute("value");
+            return !string.IsNullOrEmpty(val) && val.Contains("@");
+        });
+
+        _driver.FindElement(By.Id("lockBtn")).Click();
     }
 
     [When("they toggle a soft lock on the account")]
     public void WhenTheyToggleASoftLockOnTheAccount()
     {
-        
+        // Wait for the password confirmation modal to show
+        _wait.Until(d => d.FindElement(By.Id("adminPasswordModal")).Displayed);
+
+        var adminPasswordInput = _driver.FindElement(By.Id("modalAdminPassword"));
+        adminPasswordInput.SendKeys("Capstone26!");
+
+        _driver.FindElement(By.Id("confirmAuthBtn")).Click();
     }
 
     [Then("the account is marked as soft locked")]
     public void ThenTheAccountIsMarkedAsSoftLocked()
     {
-        
+        // Wait for confirmation message of account lock.
+        _wait.Until(d => d.FindElement(By.ClassName("alert-success")).Displayed);
+
+        var successMessage = _driver.FindElement(By.ClassName("alert-success")).Text;
+        successMessage.Should().Contain("locked");
+
+        var lockedSearch = _driver.FindElement(By.Id("lockedUserSearch"));
+        var lockedHiddenEmail = _driver.FindElement(By.CssSelector("#unlockForm .selected-email"));
+
+        lockedSearch.Clear();
+        lockedSearch.SendKeys("Alex");
+
+        _wait.Until(d => !string.IsNullOrEmpty(lockedHiddenEmail.GetAttribute("value")));
+        lockedHiddenEmail.GetAttribute("value").Should().Be("alex@test.com", "The account should now appear in the locked users search results.");
     }
 
     [Then("is unable to log in")]
     public void ThenIsUnableToLogIn()
     {
+        _authDriver.LogoutUser();
+        
         // Try to log in Alex here.
+        _authDriver.PreformLoginForUser("alex@test.com", "Capstone26!");
 
-        // Need to change test seeding to reset Alex to softLocked = false 
+        _driver.Url.Should().Contain("/Account/Login");
+        _driver.PageSource.Should().NotContain("/dashboard");
+
+        // Field initialization defaults should set Alex to AccountLocked = false 
         //      after this test concludes.
     }
 

@@ -75,32 +75,42 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 document.querySelectorAll('.user-search').forEach(input => {
-    input.addEventListener('input', async function() {
+    // Per-input debounce timer — coalesces rapid keystrokes into a single fetch.
+    // Prevents out-of-order responses from clobbering the hidden email field.
+    let debounceTimer = null;
+
+    input.addEventListener('input', function () {
         const term = this.value;
         const findLocked = this.dataset.findLocked;
         const datalist = document.getElementById(this.getAttribute('list'));
         const hiddenEmailInput = this.closest('form').querySelector('.selected-email');
 
+        if (debounceTimer) {
+            clearTimeout(debounceTimer);
+        }
+
         if (term.length < 2) return;
 
-        const response = await fetch(`/Admin/SearchUsers?term=${term}&findLocked=${findLocked}`);
-        const users = await response.json();
+        debounceTimer = setTimeout(async () => {
+            const response = await fetch(`/Admin/SearchUsers?term=${term}&findLocked=${findLocked}`);
+            const users = await response.json();
 
-        datalist.innerHTML = '';
-        users.forEach(user => {
-            let option = document.createElement('option');
-            option.value = user.displayName;
-            option.dataset.email = user.email;
-            datalist.appendChild(option);
-        });
+            datalist.innerHTML = '';
+            users.forEach(user => {
+                let option = document.createElement('option');
+                option.value = user.displayName;
+                option.dataset.email = user.email;
+                datalist.appendChild(option);
+            });
 
-        // If the input exactly matches a display name in our list, set the hidden email field
-        // Ensure hidden input only has a value if the text exactly matches a result
-        const match = users.find(u => u.displayName.toLowerCase() === term.toLowerCase());
-        if (match) {
-            hiddenEmailInput.value = match.email;
-        } else {
-            hiddenEmailInput.value = ''; // Clear it if they type something else
-        }
+            // If the input exactly matches a display name in our list, set the hidden email field
+            // Ensure hidden input only has a value if the text exactly matches a result
+            const match = users.find(u => u.displayName.toLowerCase() === term.toLowerCase());
+            if (match) {
+                hiddenEmailInput.value = match.email;
+            } else {
+                hiddenEmailInput.value = ''; // Clear it if they type something else
+            }
+        }, 250);
     });
 });
