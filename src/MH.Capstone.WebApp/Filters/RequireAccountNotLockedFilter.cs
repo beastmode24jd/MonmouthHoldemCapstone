@@ -17,6 +17,9 @@ namespace MH.Capstone.WebApp.Filters
     {
         public const string LockedMessageTempDataKey = "AccountLockedMessage";
 
+        public const string LockedUserDisplayMessage =
+            "This account has been locked by an administrator. Contact support to have it unlocked.";
+
         private static readonly HashSet<string> _exemptActions = new(StringComparer.OrdinalIgnoreCase)
         {
             "Login",
@@ -69,8 +72,7 @@ namespace MH.Capstone.WebApp.Filters
                 await _signInManager.SignOutAsync();
 
                 var tempData = _tempDataFactory.GetTempData(context.HttpContext);
-                tempData[LockedMessageTempDataKey] =
-                    "Your account has been locked by an administrator. Contact support to have it unlocked.";
+                tempData[LockedMessageTempDataKey] = LockedUserDisplayMessage;
                 tempData.Save();
 
                 context.Result = new RedirectToActionResult("Login", "Account", null);

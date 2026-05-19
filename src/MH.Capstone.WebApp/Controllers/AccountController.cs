@@ -2,6 +2,7 @@ using System.Text;
 using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services.Abstraction;
 using MH.Capstone.Domain.Tools;
+using MH.Capstone.WebApp.Filters;
 using MH.Capstone.WebApp.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -166,8 +167,7 @@ namespace MH.Capstone.WebApp.Controllers
 
             if (user.AccountLocked)
             {
-                TempData["AccountLockedMessage"] = model.Email;
-                ModelState.AddModelError(string.Empty, "This account has been locked by an Admin. Contact support for further details.");
+                ModelState.AddModelError(string.Empty, RequireAccountNotLockedFilter.LockedUserDisplayMessage);
                 return View(model);
             }
 
