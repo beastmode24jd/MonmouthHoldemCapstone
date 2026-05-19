@@ -224,66 +224,6 @@ namespace MH.Capstone.WebApp.Controllers
             return RedirectToAction(nameof(Manage));
         }
 
-/*
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeactivateUser(string targetEmail, string adminPassword)
-        {
-            // Front-end should catch this, but leaving this guard in
-            if (string.IsNullOrWhiteSpace(targetEmail) || string.IsNullOrWhiteSpace(adminPassword))
-            {
-                TempData["Error"] = "Both target email and your admin password are required.";
-                return RedirectToAction(nameof(Manage));
-            }
-
-            // Verify the Admin's identity and password
-            if (!await VerifyAdminPasswordAsync(adminPassword))
-            {
-                TempData["Error"] = "Invalid administrator credentials.";
-                return RedirectToAction(nameof(Manage));
-            }
-
-            // VerifyAdminPasswordAsync checks if the adminUser is null, hence the bang operator
-            var adminUser = await _userManager.GetUserAsync(User);
-            if (targetEmail.Equals(adminUser!.Email, StringComparison.OrdinalIgnoreCase))
-            {
-                // Prevent the Admin from deactivating themselves
-                TempData["Error"] = "You cannot deactivate your account from the Admin Management page.";
-                return RedirectToAction(nameof(Manage));
-            }
-
-            // Find the selected User account
-            var targetUser = await _userManager.FindByEmailAsync(targetEmail);
-            if (targetUser == null || targetUser.Email == null)
-            {
-                TempData["Error"] = "Please enter a valid email address.";
-                return RedirectToAction(nameof(Manage));
-            }
-
-            // Prevent the Admin from deleting *other* Admins.
-            if (await _userManager.IsInRoleAsync(targetUser, "Admin"))
-            {
-                TempData["Error"] = "Security Restriction: You cannot deactivate another Administrator.";
-                return RedirectToAction(nameof(Manage));
-            }
-
-            // Use AuthenticationService to perform the deactivation
-            // targetUser has already been verified to not be null.
-            var success = await _authService.DeactivateAccountAsync(targetUser.Email!);
-
-            if (success)
-            {
-                TempData["Success"] = $"Account {targetUser.Email} has been successfully deactivated.";
-            }
-            else
-            {
-                TempData["Error"] = "User not found or operation failed.";
-            }
-
-            return RedirectToAction(nameof(Manage));
-        }
-*/
-
         [HttpGet]
         public async Task<IActionResult> SearchUsers(string term, bool findLocked)
         {

@@ -143,7 +143,7 @@ All interfaces in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | Controller | Responsibility |
 |---|---|
 | `AccountController` | Register, login, logout, profile |
-| `AdminController` | `[Authorize(Roles="Admin")]` on the class. `GET Manage` — admin landing. `GET Reports(ReportQueueViewModel)` — report queue: resolves `UserSearch` → `DisplayName` lookup (sentinel `"ID_NOT_FOUND"` when not found so 0 results return), defaults `DateFilter` to `DateTime.UtcNow`, delegates to `IReportService.SortReports`, builds `SortOptions` SelectList from `ReportFilterType`. `POST UpdateResolution(Guid id, bool status)` (AJAX, `[ValidateAntiForgeryToken]`) — calls `SetReportResolution`; returns `Json({success})` or `BadRequest`. `POST PromoteToAdmin` / `DemoteFromAdmin` / `DeactivateUser` — each re-verifies the caller's password via `VerifyAdminPasswordAsync` and blocks self-targeting |
+| `AdminController` | `[Authorize(Roles="Admin")]` on the class. Constructor injects `UserManager<ApplicationUser>`, `IAuthenticationService`, `IReportService`, `IUserService`. `GET Manage` — admin landing (User Role Management page; see Admin Management Page section). `GET Reports(ReportQueueViewModel)` — report queue: reads `UserTimeZone` cookie (default `America/Los_Angeles`; Windows fallback `Pacific Standard Time`), defaults `DateFilter` to user-local now when unset, resolves `UserSearch` → `DisplayName` lookup (sentinel `"ID_NOT_FOUND"` when not found so 0 results return), delegates to `IReportService.SortReports`, builds `SortOptions` SelectList from `ReportFilterType`. `POST UpdateResolution(Guid id, bool status)` (AJAX, `[ValidateAntiForgeryToken]`) — calls `SetReportResolution`; returns `Json({success})` or `BadRequest`. `POST PromoteToAdmin` / `DemoteFromAdmin` — each re-verifies the caller's password via `VerifyAdminPasswordAsync`, blocks self-targeting, and ensures the target user holds only one role at a time (removes existing roles before assigning `Admin`/`User`). `GET SearchUsers(string term, bool findLocked)` — returns JSON `{email, displayName}[]` of users whose `DisplayName` matches `term`, filtered by `AccountLocked == findLocked` (drives the Manage page autocomplete datalists). `POST ToggleAccountLock(targetEmail, adminPassword, shouldLock)` — verifies admin password, blocks self-locking, delegates to `IUserService.LockToggleAccountAsync`. `DeactivateUser` action is currently commented out (lines 227–285) |
 | `DashboardController` | User dashboard (points, badges, recent activity) |
 | `HomeController` | Landing pages |
 | `LeaderboardController` | Global rankings |
@@ -487,6 +487,49 @@ The view model carries: `SortBy` (`ReportFilterType` enum), `PageUrlFilter`, `Us
 | `/Admin/Reports` | `.resolution-toggle[data-id]` | Per-row Resolved checkbox (AJAX toggle) |
 | `/Admin/Reports` | `.details-btn[data-id][data-description][data-resolved]` | Per-row Details button (opens modal) |
 | `/Admin/Reports` | `#reportDetailsModal`, `#modalDescription`, `#modalIsResolved`, `#confirmResolveBtn` | Details modal + controls |
+
+---
+
+## Admin Management Page
+
+Admin-only page at `GET /Admin/Manage` (view `Views/Admin/Manage.cshtml`, JS `wwwroot/js/manageAccounts.js` — renamed from `adminModal.js`). Houses four admin actions on one page: promote to Admin, demote from Admin, lock user account, unlock user account. Every action funnels through a single shared admin-password confirmation modal before the form actually submits.
+
+### View structure (`Views/Admin/Manage.cshtml`)
+
+Top of the card renders `TempData["Error"]` and `TempData["Success"]` flash messages as Bootstrap alerts (controller actions always `RedirectToAction(nameof(Manage))` after writing `TempData`, so messages survive the redirect).
+
+Four forms, all sharing the same modal-driven submission pattern:
+
+| Form id | `asp-action` | Hidden inputs | Visible input | Button label |
+|---|---|---|---|---|
+| `promoteForm` | `PromoteToAdmin` | `adminPassword` (`.modal-password-target`) | `email` (id `email`, type=email, required) | "Elevate to Admin" |
+| `demoteForm` | `DemoteFromAdmin` | `adminPassword` (`.modal-password-target`) | `email` (id `demoteEmail`, type=email, required) | "Revoke Admin Status" |
+| `lockForm` | `ToggleAccountLock` | `adminPassword`, `shouldLock="true"`, `targetEmail` (`.selected-email`) | `.user-search` text input bound to `<datalist id="lockList">` via `data-find-locked="false"` | "Lock Account" |
+| `unlockForm` | `ToggleAccountLock` | `adminPassword`, `shouldLock="false"`, `targetEmail` (`.selected-email`) | `.user-search` text input bound to `<datalist id="unlockList">` via `data-find-locked="true"` | "Restore Access" |
+
+All four submit buttons are `type="button"` with `onclick="showPasswordModal('<formId>')"` — forms are **not** submitted directly by the click. The shared `#adminPasswordModal` collects the admin's password, writes it into the active form's `.modal-password-target` hidden field, then calls `form.submit()`. Submission is a regular full-page POST (no AJAX); flash results return via `TempData` on the redirect.
+
+Lock/Unlock differ from Promote/Demote: instead of typing a raw email, the admin types a `DisplayName` into a `.user-search` text input that autocompletes via `<datalist>` populated from `GET /Admin/SearchUsers`. The hidden `.selected-email` field is only populated when the typed text **exactly matches** (case-insensitive) a returned display name; otherwise it is cleared. `showPasswordModal` short-circuits with an `alert(...)` + re-focus when `lockForm`/`unlockForm` is invoked with an empty `.selected-email`.
+
+### `wwwroot/js/manageAccounts.js` (renamed from `adminModal.js`)
+
+- Module-scoped `activeFormId` — set by `showPasswordModal(formId)`, read by the confirm-button click handler.
+- `showPasswordModal(formId)` — exposed as a global so the inline `onclick` handlers in the view can reach it. For `lockForm`/`unlockForm` it guards against an empty `.selected-email` before showing the modal (alert + return; no modal shown). Clears `#modalAdminPassword` between attempts, then constructs a fresh `new bootstrap.Modal(modalElement)` and shows it. Note: unlike `reportModal.js`, this does **not** reuse `bootstrap.Modal.getInstance(...)` — a new instance is created each open.
+- `#confirmAuthBtn` click (wired on `DOMContentLoaded`) — reads `#modalAdminPassword`, alerts if empty, otherwise writes the value into the active form's `.modal-password-target` and calls `form.submit()`. Logs a console error if the form is missing a `.modal-password-target`.
+- `.user-search` `input` event (wired at script load via `querySelectorAll(...).forEach`) — debounce-free: every keystroke past length 2 fires `fetch('/Admin/SearchUsers?term=&findLocked=')`, rebuilds the corresponding `<datalist>` (`option.value = displayName`, `option.dataset.email = email`), then conditionally sets the form's `.selected-email` only when the typed term exactly matches a returned display name (case-insensitive). No abort/cancellation of in-flight requests, so out-of-order responses are possible on fast typing.
+- Static binding: the input listeners attach at script load via `querySelectorAll`, so dynamically-added `.user-search` rows would not be wired up (currently fine — both inputs are server-rendered).
+
+### Page Element IDs (Admin Management)
+
+| Page | Element / Selector | Purpose |
+|---|---|---|
+| `/Admin/Manage` | `#promoteForm`, `#demoteForm`, `#lockForm`, `#unlockForm` | The four admin action forms |
+| `/Admin/Manage` | `input[name="email"]` (ids `email` / `demoteEmail`) | Email entry for promote/demote |
+| `/Admin/Manage` | `.user-search[data-find-locked]` | Lock/Unlock autocomplete inputs |
+| `/Admin/Manage` | `.selected-email` (hidden, one per lock/unlock form) | Resolved target email (only set on exact datalist match) |
+| `/Admin/Manage` | `.modal-password-target` (hidden, one per form) | Receives the admin password from the modal before submit |
+| `/Admin/Manage` | `#adminPasswordModal`, `#modalAdminPassword`, `#confirmAuthBtn` | Shared admin-password modal + controls |
+| `/Admin/Manage` | `<datalist id="lockList">`, `<datalist id="unlockList">` | Autocomplete suggestion lists populated from `/Admin/SearchUsers` |
 
 ---
 

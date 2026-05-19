@@ -164,6 +164,13 @@ namespace MH.Capstone.WebApp.Controllers
                 return View(model);
             }
 
+            if (user.AccountLocked)
+            {
+                TempData["AccountLockedMessage"] = model.Email;
+                ModelState.AddModelError(string.Empty, "This account has been locked by an Admin. Contact support for further details.");
+                return View(model);
+            }
+
             // Get the login timestamp, since credentials are valid and the account is active
             var now = DateTimeOffset.UtcNow;
 
