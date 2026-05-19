@@ -30,6 +30,7 @@ public class DashboardControllerTests
     private Mock<IRepository<Badge, ApplicationDbContext>> _mockBadgeRepo;
     private Mock<INotificationPreferenceService> _mockNotificationPreferenceService;
     private Mock<ISightingsService> _mockSightingsService;
+    private Mock<IFollowService> _mockFollowService;
     private const string TestEmail = "namesNameington@mail.wou";
 
     [SetUp]
@@ -45,6 +46,7 @@ public class DashboardControllerTests
         _mockBadgeRepo = new Mock<IRepository<Badge, ApplicationDbContext>>();
         _mockNotificationPreferenceService = new Mock<INotificationPreferenceService>();
         _mockSightingsService = new Mock<ISightingsService>();
+        _mockFollowService = new Mock<IFollowService>();
 
         _controller = new DashboardController(_mockLogger.Object,
             _mockProfileImageService.Object, _mockAuthService.Object,
@@ -52,7 +54,8 @@ public class DashboardControllerTests
             _mockUserService.Object, _mockNotificationRepo.Object,
             _mockBadgeRepo.Object,
             _mockNotificationPreferenceService.Object,
-            _mockSightingsService.Object);
+            _mockSightingsService.Object,
+            _mockFollowService.Object);
         
         // Mock the user, so the display name isn't null while testing
         var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]

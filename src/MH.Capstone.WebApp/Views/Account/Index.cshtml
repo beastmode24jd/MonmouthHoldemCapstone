@@ -219,3 +219,19 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        // CSP-211: opening /account#followersTab or /account#followingTab
+        // from the dashboard quick-stat links should activate that tab.
+        (function () {
+            const hash = window.location.hash;
+            if (hash !== '#followersTab' && hash !== '#followingTab') return;
+            const btnId = hash === '#followingTab' ? 'followingTabBtn' : 'followersTabBtn';
+            const btn = document.getElementById(btnId);
+            if (btn && window.bootstrap && bootstrap.Tab) {
+                bootstrap.Tab.getOrCreateInstance(btn).show();
+            }
+        })();
+    </script>
+}

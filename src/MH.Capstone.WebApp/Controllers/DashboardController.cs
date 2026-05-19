@@ -45,6 +45,9 @@ namespace MH.Capstone.WebApp.Controllers
 
         private readonly INotificationPreferenceService _notificationPreferenceService;
 
+        // CSP-211: needed to compute follower/following counts for the Quick Stats widget.
+        private readonly IFollowService _followService;
+
         // Constructor that injects the logger dependency
         public DashboardController(ILogger<DashboardController> logger,
             IProfileImageService imageService, IAuthenticationService authService,
@@ -52,7 +55,8 @@ namespace MH.Capstone.WebApp.Controllers
             IUserService userService, IRepository<Notification, ApplicationDbContext> notificationRepo,
             IRepository<Badge, ApplicationDbContext> badgeRepo,
             INotificationPreferenceService notificationPreferenceService,
-            ISightingsService sightingsService)
+            ISightingsService sightingsService,
+            IFollowService followService)
         {
             _logger = logger;
             _imageService = imageService;
@@ -64,6 +68,7 @@ namespace MH.Capstone.WebApp.Controllers
             _notificationRepo = notificationRepo;
             _notificationPreferenceService = notificationPreferenceService;
             _sightingsService = sightingsService;
+            _followService = followService;
         }
 
         // Displays the main dashboard page for authenticated users. 
@@ -141,6 +146,19 @@ namespace MH.Capstone.WebApp.Controllers
             ViewData["UserTimeZone"] = userTimeZoneId;
             ViewData["SortedBadges"] = sortedBadges;
             ViewData["statusMsgHtml"] = statusMsgHtml;
+
+            // CSP-211: follower/following counts surfaced in the Quick Stats card.
+            if (user != null)
+            {
+                ViewData["FollowerCount"] = (await _followService.GetFollowerIdsAsync(user.GuidId)).Count();
+                ViewData["FollowingCount"] = (await _followService.GetFolloweeIdsAsync(user.GuidId)).Count();
+            }
+            else
+            {
+                ViewData["FollowerCount"] = 0;
+                ViewData["FollowingCount"] = 0;
+            }
+
             return View();
         }
 
