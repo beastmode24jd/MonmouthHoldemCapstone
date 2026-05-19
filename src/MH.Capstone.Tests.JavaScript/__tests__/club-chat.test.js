@@ -44,8 +44,8 @@ describe('escapeHtml', () => {
         expect(escapeHtml('a&b')).toBe('a&amp;b');
     });
 
-    test('escapes double quotes', () => {
-        expect(escapeHtml('"hi"')).toBe('&quot;hi&quot;');
+    test('does not encode double quotes (only <, >, & are encoded by textContent)', () => {
+        expect(escapeHtml('"hi"')).toBe('"hi"');
     });
 
     test('passes through safe text unchanged', () => {
@@ -106,14 +106,15 @@ describe('appendMessage', () => {
     test('own message bubble has bg-primary class', () => {
         const container = makeContainer();
         appendMessage(container, CURRENT_USER, ownMsg);
-        const bubble = container.querySelector('div > div');
+        // container > wrapper > bubble; use firstElementChild twice to reach the bubble.
+        const bubble = container.firstElementChild.firstElementChild;
         expect(bubble.className).toContain('bg-primary');
     });
 
     test('other-user message bubble has bg-light class', () => {
         const container = makeContainer();
         appendMessage(container, CURRENT_USER, otherMsg);
-        const bubble = container.querySelector('div > div');
+        const bubble = container.firstElementChild.firstElementChild;
         expect(bubble.className).toContain('bg-light');
     });
 

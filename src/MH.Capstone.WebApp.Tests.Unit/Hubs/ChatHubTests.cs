@@ -46,12 +46,21 @@ public class ChatHubTests
         _mockContext.Setup(c => c.ConnectionId).Returns(TestConnectionId);
     }
 
+    // GetHttpContext() is an extension method — Moq cannot mock extension methods.
+    // DefaultHttpContext registers itself as IHttpContextFeature in its own Features
+    // collection, so returning httpContext.Features from the mock makes GetHttpContext()
+    // resolve to that same HttpContext without referencing IHttpContextFeature directly.
+    private void SetHttpContext(DefaultHttpContext httpContext)
+    {
+        _mockContext.Setup(c => c.Features).Returns(httpContext.Features);
+    }
+
     private ChatHub CreateSut(string? clubIdQueryParam = null)
     {
         var httpContext = new DefaultHttpContext();
         var queryValue = clubIdQueryParam ?? TestClubId.ToString();
         httpContext.Request.QueryString = new QueryString($"?clubId={queryValue}");
-        _mockContext.Setup(c => c.GetHttpContext()).Returns(httpContext);
+        SetHttpContext(httpContext);
 
         return new ChatHub(_mockClubService.Object, _mockUserManager.Object)
         {
@@ -90,9 +99,8 @@ public class ChatHubTests
     [Test]
     public async Task OnConnectedAsync_WithMissingClubId_DoesNotAddToGroup()
     {
-        var httpContext = new DefaultHttpContext();
-        // No clubId in query string at all.
-        _mockContext.Setup(c => c.GetHttpContext()).Returns(httpContext);
+        // No clubId in query string.
+        SetHttpContext(new DefaultHttpContext());
 
         var hub = new ChatHub(_mockClubService.Object, _mockUserManager.Object)
         {
