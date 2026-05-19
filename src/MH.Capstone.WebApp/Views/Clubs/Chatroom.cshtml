@@ -30,7 +30,9 @@
         @* Message list *@
         <div id="messageList"
              class="card-body overflow-y-auto d-flex flex-column gap-3"
-             style="height: 480px; padding-bottom: 1rem;">
+             style="height: 480px; padding-bottom: 1rem;"
+             data-club-id="@Model.Club.Id"
+             data-current-user-id="@Model.CurrentUserId">
 
             @if (!Model.HasMessages)
             {
@@ -95,6 +97,10 @@
         }
     </div>
 </div>
+
+@section Scripts {
+    <script src="~/js/club-chat.js" asp-append-version="true"></script>
+}
 
 <script>
     // Scroll message list to bottom on load.
