@@ -236,11 +236,12 @@ public class CSP179StepDefinitions
     public void ThenIsUnableToLogIn()
     {
         _authDriver.LogoutUser();
-        
-        // Try to log in Alex here.
-        _authDriver.PreformLoginForUser("alex@test.com", "Capstone26!");
 
-        _driver.Url.Should().Contain("/Account/Login");
+        // Try to log in Alex here.
+        var loginAct = () => _authDriver.PreformLoginForUser("alex@test.com", "Capstone26!");
+        loginAct.Should().Throw<Exception>("a locked account should not be allowed to sign in");
+
+        _driver.Url.Should().ContainEquivalentOf("/Account/Login");
         _driver.PageSource.Should().NotContain("/dashboard");
 
         // Field initialization defaults should set Alex to AccountLocked = false 
