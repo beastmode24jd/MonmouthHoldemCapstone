@@ -578,6 +578,164 @@ public class SightingsServiceTests
 
     #endregion
 
+    #region CSP-199: GetSightingsPageAsync Pagination Tests
+
+    // Builds `count` sightings with strictly increasing timestamps (s0 = oldest,
+    // s{count-1} = newest). Input order is oldest-first on purpose so the tests
+    // prove the service applies the descending sort itself.
+    private static List<Sighting> BuildSightings(int count)
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var list = new List<Sighting>(count);
+        for (int i = 0; i < count; i++)
+        {
+            list.Add(new Sighting
+            {
+                Id = Guid.NewGuid(),
+                UserId = Guid.NewGuid(),
+                Timestamp = baseTime.AddMinutes(i),
+                Description = $"s{i}",
+                ImageBuffer = [0x01]
+            });
+        }
+        return list;
+    }
+
+    // Pins: a full page returns exactly pageSize items, TotalCount reflects the
+    // WHOLE dataset (not the page), and paging metadata is correct.
+    [Test]
+    public async Task GetSightingsPageAsync_FirstPage_ReturnsAtMostPageSizeItemsAndFullTotalCount()
+    {
+        _sightingsRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(BuildSightings(25).AsQueryable());
+        var sut = CreateSut();
+
+        var result = await sut.GetSightingsPageAsync(page: 1, pageSize: 20);
+
+        Assert.That(result.Items.Count, Is.EqualTo(20));
+        Assert.That(result.TotalCount, Is.EqualTo(25));
+        Assert.That(result.Page, Is.EqualTo(1));
+        Assert.That(result.PageSize, Is.EqualTo(20));
+        Assert.That(result.TotalPages, Is.EqualTo(2));
+        Assert.That(result.HasPreviousPage, Is.False);
+        Assert.That(result.HasNextPage, Is.True);
+        // Newest sighting (s24) is first because of the descending sort.
+        Assert.That(result.Items[0].Description, Is.EqualTo("s24"));
+    }
+
+    // Pins: the last page returns only the leftover items, not a full page.
+    [Test]
+    public async Task GetSightingsPageAsync_SecondPage_ReturnsOnlyRemainingItems()
+    {
+        _sightingsRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(BuildSightings(25).AsQueryable());
+        var sut = CreateSut();
+
+        var result = await sut.GetSightingsPageAsync(page: 2, pageSize: 20);
+
+        Assert.That(result.Items.Count, Is.EqualTo(5));
+        Assert.That(result.Page, Is.EqualTo(2));
+        Assert.That(result.HasPreviousPage, Is.True);
+        Assert.That(result.HasNextPage, Is.False);
+        // Page 1 held s24..s5; page 2 holds the 5 oldest, newest-first: s4..s0.
+        Assert.That(result.Items[0].Description, Is.EqualTo("s4"));
+        Assert.That(result.Items[^1].Description, Is.EqualTo("s0"));
+    }
+
+    // Pins: items within a page are ordered most-recent-first.
+    [Test]
+    public async Task GetSightingsPageAsync_ReturnsItemsOrderedByTimestampDescending()
+    {
+        _sightingsRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(BuildSightings(5).AsQueryable());
+        var sut = CreateSut();
+
+        var result = await sut.GetSightingsPageAsync(page: 1, pageSize: 20);
+
+        Assert.That(result.Items.Count, Is.EqualTo(5));
+        for (int i = 0; i < result.Items.Count - 1; i++)
+        {
+            Assert.That(result.Items[i].Timestamp,
+                Is.GreaterThan(result.Items[i + 1].Timestamp));
+        }
+    }
+
+    // Pins: asking for a page past the end yields no items but still reports the
+    // true total (so the UI can render "page X of Y" / disable Next correctly).
+    [Test]
+    public async Task GetSightingsPageAsync_PageBeyondLastPage_ReturnsEmptyItemsButCorrectTotalCount()
+    {
+        _sightingsRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(BuildSightings(5).AsQueryable());
+        var sut = CreateSut();
+
+        var result = await sut.GetSightingsPageAsync(page: 3, pageSize: 20);
+
+        Assert.That(result.Items, Is.Empty);
+        Assert.That(result.TotalCount, Is.EqualTo(5));
+        Assert.That(result.HasNextPage, Is.False);
+    }
+
+    // Pins: empty dataset is a valid empty page, not a crash.
+    [Test]
+    public async Task GetSightingsPageAsync_NoSightings_ReturnsEmptyResultWithZeroTotal()
+    {
+        _sightingsRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(Enumerable.Empty<Sighting>().AsQueryable());
+        var sut = CreateSut();
+
+        var result = await sut.GetSightingsPageAsync(page: 1, pageSize: 20);
+
+        Assert.That(result.Items, Is.Empty);
+        Assert.That(result.TotalCount, Is.EqualTo(0));
+        Assert.That(result.TotalPages, Is.EqualTo(0));
+        Assert.That(result.HasNextPage, Is.False);
+        Assert.That(result.HasPreviousPage, Is.False);
+    }
+
+    // Pins: a bad/low page number (0, negative) is clamped to page 1 rather than
+    // returning an empty/garbage page from a negative Skip.
+    [Test]
+    public async Task GetSightingsPageAsync_PageLessThanOne_ClampsToFirstPage()
+    {
+        _sightingsRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(BuildSightings(25).AsQueryable());
+        var sut = CreateSut();
+
+        var result = await sut.GetSightingsPageAsync(page: 0, pageSize: 20);
+
+        Assert.That(result.Page, Is.EqualTo(1));
+        Assert.That(result.Items.Count, Is.EqualTo(20));
+        Assert.That(result.Items[0].Description, Is.EqualTo("s24"));
+    }
+
+    // Pins: consecutive pages are disjoint and together cover every sighting
+    // exactly once, in unbroken descending order.
+    [Test]
+    public async Task GetSightingsPageAsync_ConsecutivePages_DoNotOverlapAndCoverAllSightings()
+    {
+        _sightingsRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(BuildSightings(25).AsQueryable());
+        var sut = CreateSut();
+
+        var page1 = await sut.GetSightingsPageAsync(page: 1, pageSize: 10);
+        var page2 = await sut.GetSightingsPageAsync(page: 2, pageSize: 10);
+        var page3 = await sut.GetSightingsPageAsync(page: 3, pageSize: 10);
+
+        var combined = page1.Items.Concat(page2.Items).Concat(page3.Items)
+            .Select(s => s.Description).ToList();
+
+        Assert.That(page1.Items.Count, Is.EqualTo(10));
+        Assert.That(page2.Items.Count, Is.EqualTo(10));
+        Assert.That(page3.Items.Count, Is.EqualTo(5));
+        Assert.That(combined.Distinct().Count(), Is.EqualTo(25));
+        // Full descending sweep: s24, s23, ..., s0
+        var expected = Enumerable.Range(0, 25).Reverse().Select(i => $"s{i}");
+        Assert.That(combined, Is.EqualTo(expected));
+    }
+
+    #endregion
+
     #region CSP-142: GetUserAnidexAsync Tests
 
     [Test]
