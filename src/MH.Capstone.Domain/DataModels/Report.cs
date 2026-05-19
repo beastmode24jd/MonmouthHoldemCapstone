@@ -42,7 +42,7 @@ namespace MH.Capstone.Domain.DataModels
         public string? Description { get; set; } = null;
 
         [Required]
-        public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;
+        public DateTimeOffset SubmittedAt { get; set; } = DateTimeOffset.UtcNow;
 
         public bool IsResolved { get; set; } = false;
 

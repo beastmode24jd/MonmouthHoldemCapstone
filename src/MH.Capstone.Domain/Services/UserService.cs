@@ -111,5 +111,21 @@ namespace MH.Capstone.Domain.Services
             // Count only active (non-deactivated) users.
             return (await _userRepo.GetAllAsync(u => !u.IsDeactivated)).Count();
         }
+
+        // Sprint 7, CSP-179: Soft-lock a user out of their account, 
+        // by taking the input value of statusFlag and flipping IsDeactivated.
+        public async Task<bool> LockToggleAccountAsync(ApplicationUser user, bool statusFlag)
+        {
+            if (user == null)
+            {
+                // Cannot lock or open a nonexistent account.
+                return false;
+            }
+
+            user.AccountLocked = statusFlag;
+            await user.SaveModelAsync(_userRepo);
+
+            return true;
+        }
     }
 }

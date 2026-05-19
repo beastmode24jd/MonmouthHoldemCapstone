@@ -62,6 +62,7 @@ public static class TestDependencySetup
         services.AddTransient<FeedDriver>();     // CSP-187
         services.AddTransient<ProfileDriver>();  // CSP-187
         services.AddTransient<CommentsDriver>(); // CSP-187
+        services.AddTransient<MapDriver>();      // CSP-217
         services.AddTransient<AccountTabsDriver>(); // CSP-211
 
         return services;
