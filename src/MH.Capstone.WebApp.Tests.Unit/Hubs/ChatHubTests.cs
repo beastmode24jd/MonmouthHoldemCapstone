@@ -56,10 +56,20 @@ public class ChatHubTests
     {
         protected override string? GetClubIdQueryParam() => clubIdQueryParam;
     }
+    
+    // DefaultHttpContext registers itself as IHttpContextFeature in its own Features
+    // collection, so returning httpContext.Features from the mock makes GetHttpContext()
+    // resolve to that same HttpContext without needing to reference IHttpContextFeature directly.
+    private void SetHttpContext(DefaultHttpContext httpContext)
+    {
+        _mockContext.Setup(c => c.Features).Returns(httpContext.Features);
+    }
 
     private ChatHub CreateSut(string? clubIdQueryParam = null)
     {
         var queryValue = clubIdQueryParam ?? TestClubId.ToString();
+        httpContext.Request.QueryString = new QueryString($"?clubId={queryValue}");
+        SetHttpContext(httpContext);
 
         return new TestableChatHub(_mockClubService.Object, _mockUserManager.Object, queryValue)
         {
