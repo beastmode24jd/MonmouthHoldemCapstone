@@ -92,6 +92,9 @@
                     worldCopyJump: false
                 }).setView([lat, lng], zoom);
 
+                // Test hook: acceptance BDD reads/drives the Leaflet instance via this handle.
+                window.__sightingsMap = map;
+
                 // Add OpenStreetMap tiles — noWrap stops OSM from drawing repeating copies.
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
