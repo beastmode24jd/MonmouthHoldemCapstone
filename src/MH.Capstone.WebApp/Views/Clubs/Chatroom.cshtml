@@ -54,7 +54,7 @@
                             }
                             <div>@msg.Content</div>
                             <div class="@(isOwn ? "text-white-50" : "text-muted") small mt-1 text-end">
-                                @msg.SentAt.LocalDateTime.ToString("MMM d, h:mm tt")
+                                @msg.SentAt.DateTime.ToString("MMM d, h:mm tt")
                             </div>
                         </div>
                     </div>
