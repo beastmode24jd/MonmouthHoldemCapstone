@@ -114,6 +114,21 @@ namespace MH.Capstone.WebApp.Controllers
                 return Forbid();
 
             var messages = await _clubService.GetClubMessagesAsync(id);
+
+            string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
+            TimeZoneInfo userZone;
+            try
+            {
+                userZone = TimeZoneInfo.FindSystemTimeZoneById(userTimeZoneId);
+            }
+            catch
+            {
+                userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+            }
+
+            foreach (var message in messages)
+                message.SentAt = TimeZoneInfo.ConvertTime(message.SentAt, userZone);
+
             return View("Chatroom", new ClubMessageViewModel(club, messages, user.Id, isMember));
         }
 

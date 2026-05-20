@@ -49,6 +49,19 @@ namespace MH.Capstone.WebApp.Controllers
                 (decimal)minLng.Value,
                 (decimal)maxLng.Value);
 
+            // [CSP-217] Same UserTimeZone cookie convention used by SightingController/DashboardController
+            // so popup timestamps render in the user's local time, falling back to PST.
+            string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
+            TimeZoneInfo userZone;
+            try
+            {
+                userZone = TimeZoneInfo.FindSystemTimeZoneById(userTimeZoneId);
+            }
+            catch
+            {
+                userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+            }
+
             // Map to anonymous objects for JSON response (don't send entire entity with image bytes)
             var result = sightings.Select(s => new
             {
@@ -56,7 +69,7 @@ namespace MH.Capstone.WebApp.Controllers
                 lat = s.Latitude,
                 lng = s.Longitude,
                 description = s.Description,
-                timestamp = s.Timestamp.ToString("MMM dd, yyyy h:mm tt"),
+                timestamp = TimeZoneInfo.ConvertTime(s.Timestamp, userZone).ToString("MMM dd, yyyy h:mm tt"),
                 imageUrl = $"/Map/SightingImage/{s.Id}"
             });
 
