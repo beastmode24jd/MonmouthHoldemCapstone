@@ -18,9 +18,12 @@ namespace MH.Capstone.WebApp.Hubs
             _userManager = userManager;
         }
 
+        protected virtual string? GetClubIdQueryParam() =>
+            Context.GetHttpContext()?.Request.Query["clubId"].ToString();
+
         public override async Task OnConnectedAsync()
         {
-            var clubIdStr = Context.GetHttpContext()?.Request.Query["clubId"].ToString();
+            var clubIdStr = GetClubIdQueryParam();
             if (!string.IsNullOrEmpty(clubIdStr) && Guid.TryParse(clubIdStr, out var clubId))
                 await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(clubId));
 

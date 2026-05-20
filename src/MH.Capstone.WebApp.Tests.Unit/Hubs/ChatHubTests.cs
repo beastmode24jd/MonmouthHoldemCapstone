@@ -47,22 +47,21 @@ public class ChatHubTests
     }
 
     // GetHttpContext() is an extension method — Moq cannot mock extension methods.
-    // DefaultHttpContext registers itself as IHttpContextFeature in its own Features
-    // collection, so returning httpContext.Features from the mock makes GetHttpContext()
-    // resolve to that same HttpContext without referencing IHttpContextFeature directly.
-    private void SetHttpContext(DefaultHttpContext httpContext)
+    // ChatHub exposes GetClubIdQueryParam() as a protected virtual method so tests
+    // can override it directly without needing to wire up the ASP.NET feature collection.
+    private sealed class TestableChatHub(
+        IClubService clubService,
+        UserManager<ApplicationUser> userManager,
+        string? clubIdQueryParam) : ChatHub(clubService, userManager)
     {
-        _mockContext.Setup(c => c.Features).Returns(httpContext.Features);
+        protected override string? GetClubIdQueryParam() => clubIdQueryParam;
     }
 
     private ChatHub CreateSut(string? clubIdQueryParam = null)
     {
-        var httpContext = new DefaultHttpContext();
         var queryValue = clubIdQueryParam ?? TestClubId.ToString();
-        httpContext.Request.QueryString = new QueryString($"?clubId={queryValue}");
-        SetHttpContext(httpContext);
 
-        return new ChatHub(_mockClubService.Object, _mockUserManager.Object)
+        return new TestableChatHub(_mockClubService.Object, _mockUserManager.Object, queryValue)
         {
             Clients = _mockClients.Object,
             Groups = _mockGroups.Object,
@@ -99,10 +98,8 @@ public class ChatHubTests
     [Test]
     public async Task OnConnectedAsync_WithMissingClubId_DoesNotAddToGroup()
     {
-        // No clubId in query string.
-        SetHttpContext(new DefaultHttpContext());
-
-        var hub = new ChatHub(_mockClubService.Object, _mockUserManager.Object)
+        // No clubId — TestableChatHub returns null from GetClubIdQueryParam.
+        var hub = new TestableChatHub(_mockClubService.Object, _mockUserManager.Object, null)
         {
             Clients = _mockClients.Object,
             Groups = _mockGroups.Object,
