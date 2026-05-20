@@ -31,6 +31,15 @@ public class CSP211StepDefinitions
         _webDriver = webDriver;
     }
 
+    // Wipe + re-seed before each csp-211 scenario so the NewFollower scenario's
+    // Alex->Patricia row doesn't leak into the count/list scenarios that run after it.
+    [BeforeScenario("csp211")]
+    public async Task BeforeCsp211Scenario()
+    {
+        await TestWebAppHost.ResetSeedDataAsync();
+        _webDriver.Manage().Cookies.DeleteAllCookies();
+    }
+
     // -- Navigation -----------------------------------------------------------
 
     [When("Alex navigates to his own account page")]

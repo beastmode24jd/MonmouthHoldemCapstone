@@ -44,8 +44,31 @@ public class AccountTabsDriver
     public int GetFollowerCount() => ReadIntFromSpan("followerCount");
     public int GetFollowingCount() => ReadIntFromSpan("followingCount");
 
-    public void ClickFollowerCount() => _webDriver.FindElement(By.Id("followersTabBtn")).Click();
-    public void ClickFollowingCount() => _webDriver.FindElement(By.Id("followingTabBtn")).Click();
+    public void ClickFollowerCount()
+    {
+        _webDriver.FindElement(By.Id("followersTabBtn")).Click();
+        WaitForTabPaneActive("followersTab");
+    }
+
+    public void ClickFollowingCount()
+    {
+        _webDriver.FindElement(By.Id("followingTabBtn")).Click();
+        WaitForTabPaneActive("followingTab");
+    }
+
+    // Bootstrap toggles `.show .active` on the target pane after a ~150ms fade.
+    // Without waiting, FindElements returns the rows but `.Text` is empty because the
+    // pane is still `display: none`, which is what made GetFollowingDisplayNames
+    // return `{""}` intermittently in CI.
+    private void WaitForTabPaneActive(string tabPaneId)
+    {
+        _wait.Until(d =>
+        {
+            var pane = d.FindElement(By.Id(tabPaneId));
+            var classes = pane.GetAttribute("class") ?? string.Empty;
+            return classes.Contains("show") && classes.Contains("active") && pane.Displayed;
+        });
+    }
 
     /// <summary>Returns the display names rendered in the active follower-list rows.</summary>
     public IReadOnlyList<string> GetFollowerDisplayNames()
