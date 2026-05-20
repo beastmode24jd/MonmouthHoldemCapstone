@@ -56,7 +56,7 @@ public class ChatHubTests
     {
         protected override string? GetClubIdQueryParam() => clubIdQueryParam;
     }
-
+    
     private ChatHub CreateSut(string? clubIdQueryParam = null)
     {
         var queryValue = clubIdQueryParam ?? TestClubId.ToString();
