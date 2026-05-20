@@ -294,7 +294,7 @@ jobs:
       - name: Merge PR into base branch
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.WORKFLOW_DISPATCH_PAT }}
           script: |
             const prNumber = context.payload.pull_request.number;
             await github.rest.pulls.merge({
