@@ -256,6 +256,9 @@ namespace MH.Capstone.WebApp
             // CSP-180: SignalR hub endpoint for live leaderboard
             app.MapHub<LeaderboardHub>("/hubs/leaderboard");
 
+            // CSP-218: SignalR hub endpoint for club chatroom real-time messaging
+            app.MapHub<ChatHub>("/hubs/chat");
+
             return app;
         }
 

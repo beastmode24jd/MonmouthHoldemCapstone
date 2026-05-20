@@ -5,6 +5,13 @@ on:
   workflow_dispatch:
   workflow_call:
 
+# Only one system-test run may execute at a time — tests share a single Azure SQL database
+# and concurrent runs cause data-race failures. cancel-in-progress: false means a second
+# run waits in the queue rather than being killed.
+concurrency:
+  group: system-tests-db-lock
+  cancel-in-progress: false
+
 permissions:
   contents: read
   actions: read
