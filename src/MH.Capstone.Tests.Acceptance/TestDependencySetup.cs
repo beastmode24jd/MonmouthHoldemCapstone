@@ -63,6 +63,7 @@ public static class TestDependencySetup
         services.AddTransient<ProfileDriver>();  // CSP-187
         services.AddTransient<CommentsDriver>(); // CSP-187
         services.AddTransient<MapDriver>();      // CSP-217
+        services.AddTransient<ChatroomDriver>(); // CSP-218
 
         return services;
     }
