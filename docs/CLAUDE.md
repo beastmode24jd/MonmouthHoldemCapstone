@@ -75,7 +75,7 @@ All interfaces in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `IAuthenticationService` | Login, register, logout, password reset, email confirmation |
 | `IUserService` / `IUserProfileService` | Profile management, deactivation. `UpdateDisplayNameAsync` validates 2–50 chars, throws `ArgumentOutOfRangeException` |
 | `IProfileImageService` | Upload/retrieve profile images |
-| `ISightingsService` | Submit/query sightings. `GetAllSightingsAsync()` eager-loads User. `GetUserAnidexAsync(Guid)` → one entry per unique `SpeciesName`; rarity from global count, sorted rarest-first. |
+| `ISightingsService` | Submit/query sightings. `GetAllSightingsAsync()` eager-loads User. `GetUserAnidexAsync(Guid)` → one entry per unique `SpeciesName`; rarity from global count, sorted rarest-first. `GetSightingsPageAsync(page, pageSize)` (CSP-199) → `PagedResult<Sighting>` newest-first, pushes `ORDER BY`/`OFFSET-FETCH` to SQL so only one page of rows+images loads (gallery perf fix); `page < 1` clamps to 1. |
 | `IScoringService` | Award points by rarity. `GetGlobalSightingsCountAsync(string)` — case-insensitive match on `SpeciesName`. |
 | `IBadgeService` | `SyncBadgeProgressAsync(user, badgeId, actualCount, tz)` — idempotent, safe to call on every login. `UpdateBadge` increments progress, calls `AddBadge` when threshold met. `SortBadgesByTime` — descending chronological sort. |
 | `ILeaderboardService` | `GetLeaderboardPageAsync()` → `IEnumerable<ApplicationUser>` |
@@ -195,6 +195,7 @@ Legacy personas still coexist: `alpha@test.com`, `alice@test.com`, `bob@test.com
 | `/Sighting/Gallery` | `filterAll`, `filterMine`, `emptyStateMine`, `sightingsGrid`, `currentUserId` | Gallery filters/state |
 | `/Sighting/Gallery` | `.sighting-card-wrapper[data-user-id]`, `.sighting-attribution` | Per-card user attribution |
 | `/Sighting/Gallery` | `a.sighting-card-link[data-sighting-id]` | Card link → `/Sighting/Details/{id}` |
+| `/Sighting/Gallery` | `galleryPagination`, `pagePrev`, `pageNext` | CSP-199: pagination nav, rendered only when `TotalPages > 1`. Paginated server-side at **20/page** (`GalleryPageSize` const in `SightingController`); `Gallery(int page = 1)` calls `GetSightingsPageAsync`; `SightingGalleryViewModel` carries `CurrentPage`/`PageSize`/`TotalCount`/`TotalPages`/`HasPreviousPage`/`HasNextPage`. **Known limitation:** the `filterAll`/`filterMine` JS toggle filters the current page only — server-side filtering across pages is a deferred follow-up. |
 | `/Sighting/Details/{id}` | `sightingDetailsContainer` | Root container (page rendered signal) |
 | `/Sighting/Details/{id}` | `sightingDetailsImage`, `sightingDetailsUploaderIcon`, `sightingDetailsUploaderName` | Image + uploader |
 | `/Sighting/Details/{id}` | `sightingDetailsSpecies`, `sightingDetailsTimestamp`, `sightingDetailsLocation`, `sightingDetailsDescription` | Sighting metadata |
