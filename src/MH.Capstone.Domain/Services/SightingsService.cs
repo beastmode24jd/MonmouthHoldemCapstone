@@ -231,6 +231,38 @@ namespace MH.Capstone.Domain.Services
 
         #endregion
 
+        #region CSP-199: Paginated Community Gallery
+
+        public async Task<PagedResult<Sighting>> GetSightingsPageAsync(int page, int pageSize)
+        {
+            // Clamp to sane lower bounds so a bad/absent query string can never produce
+            // a negative Skip or a zero-size page.
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 1;
+
+            // GetAllAsync() returns an IQueryable, so OrderBy/Skip/Take compose into the
+            // SQL query — EF emits ORDER BY + OFFSET/FETCH and only this page's rows
+            // (and their image bytes) leave the database. That is the actual fix for the
+            // slow gallery: we stop materializing every sighting's image at once.
+            var query = (await _sightingsRepo.GetAllAsync())
+                .OrderByDescending(s => s.Timestamp);
+
+            int totalCount = query.Count();
+
+            var items = query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            _logger.LogInformation(
+                "Community gallery page {Page} (size {PageSize}) returned {Returned} of {Total} sightings",
+                page, pageSize, items.Count, totalCount);
+
+            return new PagedResult<Sighting>(items, totalCount, page, pageSize);
+        }
+
+        #endregion
+
         #region CSP-145: Sighting Gallery Feature
 
         public async Task<IEnumerable<Sighting>> GetUserSightingsAsync(Guid userId)

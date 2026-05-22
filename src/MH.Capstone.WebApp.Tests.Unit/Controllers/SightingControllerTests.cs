@@ -93,13 +93,24 @@ public class SightingControllerTests
 
     #region CSP-96: Gallery action tests
 
+    // CSP-199: small helper so each test can wrap an in-memory list of sightings
+    // into a PagedResult to feed the new paged service method. Defaults match
+    // the controller's gallery page size (20).
+    private static PagedResult<Sighting> AsPage(
+        IList<Sighting> items, int page = 1, int pageSize = 20, int? totalCount = null)
+        => new PagedResult<Sighting>(
+            items.ToList(),
+            totalCount ?? items.Count,
+            page,
+            pageSize);
+
     [Test]
     public async Task Gallery_ReturnsViewResult_WithSightingGalleryViewModel()
     {
         // Arrange
         _mockSightingsService
-            .Setup(s => s.GetAllSightingsAsync())
-            .ReturnsAsync(new List<Sighting>());
+            .Setup(s => s.GetSightingsPageAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(AsPage(new List<Sighting>()));
 
         // Act
         var result = await _controller.Gallery() as ViewResult;
@@ -110,20 +121,24 @@ public class SightingControllerTests
     }
 
     [Test]
-    public async Task Gallery_CallsGetAllSightingsAsync_NotGetUserSightings()
+    public async Task Gallery_CallsGetSightingsPageAsync_NotLegacyLoadEverything()
     {
         // Arrange
         _mockSightingsService
-            .Setup(s => s.GetAllSightingsAsync())
-            .ReturnsAsync(new List<Sighting>());
+            .Setup(s => s.GetSightingsPageAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(AsPage(new List<Sighting>()));
 
         // Act
         await _controller.Gallery();
 
-        // Assert: GetAllSightingsAsync was called once
-        _mockSightingsService.Verify(s => s.GetAllSightingsAsync(), Times.Once);
-        // GetUserSightingsAsync should NOT be called
-        _mockSightingsService.Verify(s => s.GetUserSightingsAsync(It.IsAny<Guid>()), Times.Never);
+        // Assert: CSP-199 — the controller must use the paged method. The
+        // load-everything overloads from before pagination must NOT be invoked.
+        _mockSightingsService.Verify(
+            s => s.GetSightingsPageAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Once);
+        _mockSightingsService.Verify(
+            s => s.GetAllSightingsAsync(), Times.Never);
+        _mockSightingsService.Verify(
+            s => s.GetUserSightingsAsync(It.IsAny<Guid>()), Times.Never);
     }
 
     [Test]
@@ -131,8 +146,8 @@ public class SightingControllerTests
     {
         // Arrange
         _mockSightingsService
-            .Setup(s => s.GetAllSightingsAsync())
-            .ReturnsAsync(new List<Sighting>());
+            .Setup(s => s.GetSightingsPageAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(AsPage(new List<Sighting>()));
 
         // Act
         var result = await _controller.Gallery() as ViewResult;
@@ -156,14 +171,14 @@ public class SightingControllerTests
         };
 
         _mockSightingsService
-            .Setup(s => s.GetAllSightingsAsync())
-            .ReturnsAsync(sightings);
+            .Setup(s => s.GetSightingsPageAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(AsPage(sightings));
 
         // Act
         var result = await _controller.Gallery() as ViewResult;
         var vm = result!.Model as SightingGalleryViewModel;
 
-        // Assert: both sightings are present
+        // Assert: both sightings on this page are present
         Assert.That(vm!.SightingCount, Is.EqualTo(2));
     }
 
@@ -179,8 +194,8 @@ public class SightingControllerTests
         };
 
         _mockSightingsService
-            .Setup(s => s.GetAllSightingsAsync())
-            .ReturnsAsync(sightings);
+            .Setup(s => s.GetSightingsPageAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(AsPage(sightings));
 
         // Act
         var result = await _controller.Gallery() as ViewResult;
@@ -188,6 +203,64 @@ public class SightingControllerTests
 
         // Assert: the card carries the submitter's user ID for client-side filtering
         Assert.That(vm!.Sightings[0].SubmittedByUserId, Is.EqualTo(user1.Id));
+    }
+
+    #endregion
+
+    #region CSP-199: Gallery pagination behavior
+
+    // Pins: visiting /Sighting/Gallery with no query string defaults to page 1 and
+    // requests the gallery's configured page size (20, within the ticket's 10-20 range).
+    [Test]
+    public async Task Gallery_NoPageParam_RequestsFirstPageWithGallerySize()
+    {
+        _mockSightingsService
+            .Setup(s => s.GetSightingsPageAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(AsPage(new List<Sighting>()));
+
+        await _controller.Gallery();
+
+        _mockSightingsService.Verify(
+            s => s.GetSightingsPageAsync(1, 20), Times.Once);
+    }
+
+    // Pins: /Sighting/Gallery?page=3 actually forwards page 3 to the service.
+    [Test]
+    public async Task Gallery_WithPageParam_PassesPageToService()
+    {
+        _mockSightingsService
+            .Setup(s => s.GetSightingsPageAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(AsPage(new List<Sighting>(), page: 3));
+
+        await _controller.Gallery(page: 3);
+
+        _mockSightingsService.Verify(
+            s => s.GetSightingsPageAsync(3, 20), Times.Once);
+    }
+
+    // Pins: paging metadata (CurrentPage / TotalPages / TotalCount / HasPrev / HasNext)
+    // lands on the ViewModel so the view can render the Prev/Next controls correctly.
+    [Test]
+    public async Task Gallery_SurfacesPagingMetadataOnViewModel()
+    {
+        // 45 total sightings, size 20 -> 3 pages. Viewing page 2 means both Prev and Next exist.
+        var sightings = new List<Sighting>
+        {
+            new() { Id = Guid.NewGuid(), UserId = Guid.NewGuid(),
+                    Timestamp = DateTimeOffset.UtcNow.AddDays(-1), ImageBuffer = [0x01] }
+        };
+        _mockSightingsService
+            .Setup(s => s.GetSightingsPageAsync(2, 20))
+            .ReturnsAsync(AsPage(sightings, page: 2, pageSize: 20, totalCount: 45));
+
+        var result = await _controller.Gallery(page: 2) as ViewResult;
+        var vm = result!.Model as SightingGalleryViewModel;
+
+        Assert.That(vm!.CurrentPage, Is.EqualTo(2));
+        Assert.That(vm.TotalCount, Is.EqualTo(45));
+        Assert.That(vm.TotalPages, Is.EqualTo(3));
+        Assert.That(vm.HasPreviousPage, Is.True);
+        Assert.That(vm.HasNextPage, Is.True);
     }
 
     #endregion
