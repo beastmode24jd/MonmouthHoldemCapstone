@@ -15,6 +15,7 @@ using MH.Capstone.Domain.Constants.Configurables;
 using MH.Capstone.WebApp.Filters;
 using MH.Capstone.WebApp.Hubs;
 using MH.Capstone.WebApp.Services;
+using Microsoft.AspNetCore.Rewrite;
 using System.Threading.Channels;
 
 namespace MH.Capstone.WebApp
