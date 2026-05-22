@@ -48,22 +48,45 @@
 
             <hr class="my-4" />
 
-            <h2><i class="bi bi-person-x-fill"></i> Deactivate User Account</h2>
-            <p class="text-muted">Enter the user's email and <strong>your admin password</strong> to confirm deactivation.</p>
-
-            <form id="deactivateForm" asp-action="DeactivateUser" method="post" class="mt-3">
-                <input type="hidden" name="adminPassword" class="modal-password-target" />
-                <div class="row">
-                    <div class="mb-3 col-md-6">
-                        <label for="targetEmail" class="form-label">User to Deactivate</label>
-                        <input type="email" name="targetEmail" id="targetEmail" class="form-control" required />
-                    </div>
+            <div class="row">
+                <div class="col-md-6 border-end">
+                    <h4><i class="bi bi-lock-fill text-warning"></i> Lock User Account</h4>
+                    <form id="lockForm" asp-action="ToggleAccountLock" method="post">
+                        <input type="hidden" name="adminPassword" class="modal-password-target" />
+                        <input type="hidden" name="shouldLock" value="true" />
+                        <input type="hidden" name="targetEmail" class="selected-email" required />
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Search Active Users</label>
+                            <input type="text" id="activeUserSearch" class="form-control user-search" 
+                                data-find-locked="false" list="lockList" placeholder="Type to search...">
+                            <datalist id="lockList"></datalist>
+                        </div>
+                        <button type="button" id="lockBtn" class="btn btn-warning" onclick="showPasswordModal('lockForm')">
+                            Lock Account
+                        </button>
+                    </form>
                 </div>
-                <p class="text-muted fs-6 mt-0">For security, Admins cannot deactivate themselves from this page.</p>
-                <button type="button" class="btn btn-warning" onclick="showPasswordModal('deactivateForm')">
-                    Confirm Deactivation
-                </button>
-            </form>
+
+                <div class="col-md-6">
+                    <h4><i class="bi bi-unlock-fill text-success"></i> Unlock User Account</h4>
+                    <form id="unlockForm" asp-action="ToggleAccountLock" method="post">
+                        <input type="hidden" name="adminPassword" class="modal-password-target" />
+                        <input type="hidden" name="shouldLock" value="false" />
+                        <input type="hidden" name="targetEmail" class="selected-email" required />
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Search Locked Users</label>
+                            <input type="text" id="lockedUserSearch" class="form-control user-search" 
+                                data-find-locked="true" list="unlockList" placeholder="Type to search...">
+                            <datalist id="unlockList"></datalist>
+                        </div>
+                        <button type="button" class="btn btn-success" id="unlockBtn" onclick="showPasswordModal('unlockForm')">
+                            Restore Access
+                        </button>
+                    </form>
+                </div>
+            </div>
 
         </div>
     </div>
@@ -94,5 +117,5 @@
 
 @section Scripts {
     @* Include the external JS file *@
-    <script src="~/js/adminModal.js"></script>
+    <script src="~/js/manageAccounts.js"></script>
 }

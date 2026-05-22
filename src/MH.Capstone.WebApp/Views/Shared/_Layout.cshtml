@@ -204,6 +204,11 @@
                                                 <i class="bi bi-gear-wide-connected"></i> Manage Accounts
                                             </a>
                                         </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link text-light dropdown-item" asp-controller="Admin" asp-action="Reports">
+                                                <i class="bi bi-flag-fill"></i> View Reports
+                                            </a>
+                                        </li>
                                     }
                                     <li class="menuItem"><hr class="dropdown-divider"></li>
                                     <li class="menuItem">
@@ -368,85 +373,103 @@
 
         <!-- AI Companion Modal -->
         <div class="modal fade" id="aiCompanionModal" tabindex="-1" aria-labelledby="aiCompanionModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-scrollable">
-                <div class="modal-content">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content" style="font-size: 16px;">
                     <div class="modal-header">
                         <h5 class="modal-title" id="aiCompanionModalLabel"><i class="bi bi-chat-dots"></i> AI Wildlife Companion</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <div id="aiCompanionMessages" style="max-height: 300px; overflow-y: auto; margin-bottom: 1rem;">
+                        <div id="aiCompanionMessages" style="max-height: 420px; overflow-y: auto; margin-bottom: 1rem;">
                             <p class="text-muted"><em>Ask me anything about wildlife, animal behavior, or outdoor safety!</em></p>
                         </div>
                         <form id="aiCompanionForm" asp-controller="AICompanion" asp-action="Ask" method="post">
                             @Html.AntiForgeryToken()
-                            <div class="input-group">
-                                <input type="text" name="question" id="aiCompanionQuestion" class="form-control"
-                                       placeholder="Type your question..." required maxlength="500" autocomplete="off" />
-                                <button id="aiCompanionSubmitBtn" type="submit" class="btn btn-primary">
+                            <div class="d-flex gap-2 align-items-end">
+                                <textarea name="question" id="aiCompanionQuestion" class="form-control"
+                                          placeholder="Type your question... (Enter to send, Shift+Enter for new line)"
+                                          required maxlength="500" autocomplete="off" rows="3"
+                                          style="resize: vertical;"></textarea>
+                                <button id="aiCompanionSubmitBtn" type="submit" class="btn btn-primary" style="white-space: nowrap;">
                                     <i class="bi bi-send"></i>
                                 </button>
                             </div>
                         </form>
                     </div>
+                    <div class="modal-footer">
+                        <p class="text-muted fst-italic m-0 text-center w-100" style="font-size: 12px;">You are using an AI Tool. AI can be wrong. Validate responses and seek professional, human help for life-threatening situations.</p>
+                    </div>
                 </div>
             </div>
         </div>
 
+        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
         <script>
-            document.getElementById('aiCompanionForm').addEventListener('submit', async function (e) {
-                e.preventDefault();
-
-                const form = e.target;
+            (function () {
+                const form = document.getElementById('aiCompanionForm');
                 const input = document.getElementById('aiCompanionQuestion');
                 const submitBtn = document.getElementById('aiCompanionSubmitBtn');
                 const messagesDiv = document.getElementById('aiCompanionMessages');
-                const question = input.value.trim();
 
-                if (!question) return;
-
-                // Capture form data BEFORE clearing the input so the question is included.
-                const formData = new FormData(form);
-
-                // Show user message
-                const userBubble = document.createElement('div');
-                userBubble.className = 'mb-2 text-end';
-                userBubble.innerHTML = '<span class="badge bg-primary text-wrap text-start p-2">' + question.replace(/</g, '&lt;') + '</span>';
-                messagesDiv.appendChild(userBubble);
-
-                input.value = '';
-                submitBtn.disabled = true;
-
-                // Show typing indicator
-                const typingDiv = document.createElement('div');
-                typingDiv.className = 'mb-2 ai-reply text-muted';
-                typingDiv.textContent = 'Thinking...';
-                messagesDiv.appendChild(typingDiv);
-                messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-                try {
-                    const response = await fetch(form.action, {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok) {
-                        typingDiv.className = 'mb-2 ai-reply';
-                        typingDiv.innerHTML = '<span class="badge bg-success text-wrap text-start p-2">' + (data.reply || '').replace(/</g, '&lt;') + '</span>';
-                    } else {
-                        typingDiv.className = 'mb-2 ai-reply text-danger';
-                        typingDiv.textContent = data.message || 'Something went wrong.';
+                // Submit on Enter; Shift+Enter inserts newline
+                input.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        form.requestSubmit();
                     }
-                } catch {
-                    typingDiv.className = 'mb-2 ai-reply text-danger';
-                    typingDiv.textContent = 'Could not reach the AI Companion. Please try again.';
-                } finally {
-                    submitBtn.disabled = false;
+                });
+
+                form.addEventListener('submit', async function (e) {
+                    e.preventDefault();
+
+                    const question = input.value.trim();
+                    if (!question) return;
+
+                    const formData = new FormData(form);
+
+                    // Show user message
+                    const userBubble = document.createElement('div');
+                    userBubble.className = 'mb-3 text-end';
+                    userBubble.innerHTML = '<span class="badge bg-primary text-wrap text-start p-2" style="font-size:15px; max-width:90%;">' + question.replace(/</g, '&lt;').replace(/\n/g, '<br>') + '</span>';
+                    messagesDiv.appendChild(userBubble);
+
+                    input.value = '';
+                    submitBtn.disabled = true;
+
+                    // Show typing indicator
+                    const typingDiv = document.createElement('div');
+                    typingDiv.className = 'mb-3 ai-reply text-muted';
+                    typingDiv.textContent = 'Thinking...';
+                    messagesDiv.appendChild(typingDiv);
                     messagesDiv.scrollTop = messagesDiv.scrollHeight;
-                }
-            });
+
+                    try {
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            const rawMarkdown = data.reply || '';
+                            const safeHtml = DOMPurify.sanitize(marked.parse(rawMarkdown));
+                            typingDiv.className = 'mb-3 ai-reply p-3 border rounded bg-light';
+                            typingDiv.innerHTML = safeHtml;
+                        } else {
+                            typingDiv.className = 'mb-3 ai-reply text-danger';
+                            typingDiv.textContent = data.message || 'Something went wrong.';
+                        }
+                    } catch {
+                        typingDiv.className = 'mb-3 ai-reply text-danger';
+                        typingDiv.textContent = 'Could not reach the AI Companion. Please try again.';
+                    } finally {
+                        submitBtn.disabled = false;
+                        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                    }
+                });
+            })();
         </script>
     }
     <script>

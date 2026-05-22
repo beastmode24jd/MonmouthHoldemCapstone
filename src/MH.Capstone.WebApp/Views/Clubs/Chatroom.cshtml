@@ -30,7 +30,9 @@
         @* Message list *@
         <div id="messageList"
              class="card-body overflow-y-auto d-flex flex-column gap-3"
-             style="height: 480px; padding-bottom: 1rem;">
+             style="height: 480px; padding-bottom: 1rem;"
+             data-club-id="@Model.Club.Id"
+             data-current-user-id="@Model.CurrentUserId">
 
             @if (!Model.HasMessages)
             {
@@ -54,7 +56,7 @@
                             }
                             <div>@msg.Content</div>
                             <div class="@(isOwn ? "text-white-50" : "text-muted") small mt-1 text-end">
-                                @msg.SentAt.LocalDateTime.ToString("MMM d, h:mm tt")
+                                @msg.SentAt.DateTime.ToString("MMM d, h:mm tt")
                             </div>
                         </div>
                     </div>
@@ -96,6 +98,10 @@
     </div>
 </div>
 
+@section Scripts {
+    <script src="~/js/club-chat.js" asp-append-version="true"></script>
+}
+
 <script>
     // Scroll message list to bottom on load.
     (function () {
@@ -120,7 +126,7 @@
         input.addEventListener('keydown', function (e) {
             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
-                form.submit();
+                form.requestSubmit();
             }
         });
     })();
