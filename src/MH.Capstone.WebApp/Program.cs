@@ -15,6 +15,7 @@ using MH.Capstone.Domain.Constants.Configurables;
 using MH.Capstone.WebApp.Filters;
 using MH.Capstone.WebApp.Hubs;
 using MH.Capstone.WebApp.Services;
+using Microsoft.AspNetCore.Rewrite;
 using System.Threading.Channels;
 
 namespace MH.Capstone.WebApp
@@ -243,6 +244,11 @@ namespace MH.Capstone.WebApp
             });
 
             app.UseRouting();
+
+            var rewriteOpts = new RewriteOptions()
+                .AddRedirect("github", "https://github.com/jmcshane22/MonmouthHoldemCapstone");
+            
+            app.UseRewriter(rewriteOpts);
             
             app.UseAuthentication();
             app.UseAuthorization();
