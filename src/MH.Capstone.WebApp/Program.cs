@@ -243,6 +243,11 @@ namespace MH.Capstone.WebApp
             });
 
             app.UseRouting();
+
+            var rewriteOpts = new RewriteOptions()
+                .AddRedirect("github", "https://github.com/jmcshane22/MonmouthHoldemCapstone");
+            
+            app.UseRewriter(rewriteOpts);
             
             app.UseAuthentication();
             app.UseAuthorization();
