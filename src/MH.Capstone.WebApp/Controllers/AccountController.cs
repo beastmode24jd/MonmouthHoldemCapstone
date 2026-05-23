@@ -82,6 +82,10 @@ namespace MH.Capstone.WebApp.Controllers
                 vm = new AccountViewModel(userFromId, userFromId.Id == user.Id);
                 _logger.LogInformation("Id provided");
 
+                // Sprint 7: Add bio field, point count, recent Badges, and Clubs to the User Profile
+
+                
+
                 // CSP-187: only populate follow/block state when viewing another user.
                 if (!vm.IsAuthenticatedUser)
                 {

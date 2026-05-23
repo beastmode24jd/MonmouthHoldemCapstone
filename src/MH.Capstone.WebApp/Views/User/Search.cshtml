@@ -24,9 +24,9 @@
             </div>
         </div>
     </div>
-    <div class="card shadow mt-3">
+    
+    <div class="card shadow mt-3" id="resultsCard" style="display:none!important">
         <div class="card-body">
-
             <div id="searchResultsContainer" class="mt-2"></div>
 
             <div class="d-flex align-items-center gap-3 mt-3" id="pagingControls" style="display:none!important">
@@ -78,6 +78,7 @@
         const { results, totalCount, page, pageSize, totalPages } = data;
 
         pagingControls.style.removeProperty('display');
+        resultsCard.style.removeProperty('display');
 
         if (totalCount === 0) {
             resultsContainer.innerHTML = '<p id="noUsersFoundMessage" class="text-muted mt-2">No users were found.</p>';
@@ -114,6 +115,7 @@
     function renderEmpty() {
         resultsContainer.innerHTML = '';
         pagingControls.style.setProperty('display', 'none', 'important');
+        resultsCard.style.setProperty('display', 'none', 'important');
     }
 
     async function performSearch(query, page) {

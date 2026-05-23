@@ -17,14 +17,8 @@
                         aria-label="@Model.DisplayName Profile Image"
                         style="width: 80px; height: 80px; object-fit: cover;" />
                     </div>
-                    <div class="col-12 col-md-10">
+                    <div class="col-12 col-md-10 mt-2 mb-1">
                         <ul class="list-group list-group-flush">
-                            @if (!string.IsNullOrEmpty(Model.DisplayName) && Model.DisplayName != "UNSET")
-                            {
-                                <li class="list-group-item">
-                                    <strong>Username:</strong> @Model.DisplayName
-                                </li>
-                            }
                             <li class="list-group-item">
                                 <strong>Status:</strong>
                                 @if (Model.IsDeactivated)
