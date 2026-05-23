@@ -390,3 +390,93 @@ a.navbar-brand:hover {
 #menuBtn:hover {
     background-color: #612916;
 }
+
+/* Floating Action Button */
+#fabMain {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: #1d6234;
+    border: none;
+    color: #c6e292;
+    font-size: 1.4rem;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+
+#fabMain:hover {
+    background-color: #612916;
+}
+
+#fabIcon {
+    transition: transform 0.3s ease;
+    line-height: 1;
+}
+
+#fabContainer.fab-open #fabIcon {
+    transform: rotate(45deg);
+}
+
+.fab-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-bottom: 0.75rem;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+#fabContainer.fab-open .fab-menu {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.fab-action {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    justify-content: flex-end;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+}
+
+.fab-label {
+    background-color: rgba(28, 38, 28, 0.92);
+    color: #c6e292;
+    padding: 0.3rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    white-space: nowrap;
+    font-family: Arial, Verdana, Tahoma, sans-serif;
+}
+
+.fab-action-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-color: #1c261c;
+    border: 2px solid #c6e292;
+    color: #c6e292;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    transition: background-color 0.2s ease;
+    flex-shrink: 0;
+}
+
+.fab-action:hover .fab-action-btn,
+.fab-action:focus-visible .fab-action-btn {
+    background-color: #612916;
+    border-color: #c6e292;
+}
