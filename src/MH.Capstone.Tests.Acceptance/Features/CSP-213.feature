@@ -7,10 +7,10 @@ Feature: Admin Action Audit Logs
 
 @audit
 Scenario: Audit log page is not accessible to regular users
-    Given user Alex is logged in with the User role
+    Given Alex is logged in
     When Alex navigates directly to the audit log page URL
     Then Alex receives an access-denied response
-    
+
 @audit
 Scenario: Resolving a report creates an audit log entry
     Given an admin is logged in
