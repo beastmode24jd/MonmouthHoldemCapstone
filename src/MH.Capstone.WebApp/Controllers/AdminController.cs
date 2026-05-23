@@ -100,6 +100,15 @@ namespace MH.Capstone.WebApp.Controllers
             return View(vm);
         }
 
+        // Page that displays the admin action audit logs.
+        [HttpGet]
+        [ValidateAntiForgeryToken]
+        [Route("/Audit-Logs")]
+        public async Task<IActionResult> LogPage(AuditQueueViewModel vm)
+        {
+            return View(vm);
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         // Add the 'bool status' parameter to receive the checkbox state

@@ -1,0 +1,11 @@
+@model MH.Capstone.WebApp.Models.AuditQueueViewModel
+@{
+    ViewData["Title"] = "Audit Logs";
+}
+
+<div class="container mt-4">
+    @Html.AntiForgeryToken()
+    <h2 class="card-title">Admin Report Queue</h2>
+    <hr />
+    <p>This should be locked from regular users!</p>
+</div>
