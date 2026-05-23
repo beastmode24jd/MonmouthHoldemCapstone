@@ -45,6 +45,31 @@ namespace MH.Capstone.Domain.Services
             return clubs.OrderBy(c => c.Name).ToList();
         }
 
+        public async Task<IEnumerable<Club>> GetRecentUserClubsAsync(Guid userId, int count, bool includePrivate = true)
+        {
+            if (count <= 0) return Enumerable.Empty<Club>();
+
+            var memberships = (await _membershipRepo.GetAllAsync(
+                    m => m.MemberIdentityId == userId.ToString() && m.AcceptedInvite))
+                .OrderByDescending(m => m.JoinedAt)
+                .ToList();
+
+            if (memberships.Count == 0) return Enumerable.Empty<Club>();
+
+            // Load every joined club into a lookup so we can apply the publicness filter
+            // in membership order. Filtering before Take lets older public clubs backfill
+            // if the user's most recent joins are private.
+            var allClubIds = memberships.Select(m => m.ClubId).ToHashSet();
+            var clubLookup = (await _clubRepo.GetAllAsync(c => allClubIds.Contains(c.Id)))
+                .ToDictionary(c => c.Id);
+
+            return memberships
+                .Select(m => clubLookup[m.ClubId])
+                .Where(c => includePrivate || c.IsPublic)
+                .Take(count)
+                .ToList();
+        }
+
         public async Task<IEnumerable<Club>> GetPendingInvitesAsync(Guid userId)
         {
             var pending = await _membershipRepo.GetAllAsync(

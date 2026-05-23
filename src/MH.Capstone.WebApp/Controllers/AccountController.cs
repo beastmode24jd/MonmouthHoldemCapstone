@@ -24,6 +24,7 @@ namespace MH.Capstone.WebApp.Controllers
         private readonly IFollowService _followService;
         private readonly IBlockService _blockService;
         private readonly IBadgeService _badgeService;
+        private readonly IClubService _clubService;
 
         // Logger for tracking authentication-related events
         private readonly ILogger<AccountController> _logger;
@@ -38,6 +39,7 @@ namespace MH.Capstone.WebApp.Controllers
             IFollowService followService,
             IBlockService blockService,
             IBadgeService badgeService,
+            IClubService clubService,
             ILogger<AccountController> logger)
         {
             _authService = authService;
@@ -48,6 +50,7 @@ namespace MH.Capstone.WebApp.Controllers
             _followService = followService;
             _blockService = blockService;
             _badgeService = badgeService;
+            _clubService = clubService;
             _logger = logger;
         }
 
@@ -102,6 +105,17 @@ namespace MH.Capstone.WebApp.Controllers
                 .Where(ub => ub.BadgeEarned != null)
                 .Take(3)
                 .Select(ub => ub.Badge.Title)
+                .ToList();
+
+            // Sprint 7: Recent Clubs — top 3 clubs by most-recent join (ClubMembership.JoinedAt desc).
+            // Visitors viewing someone else's profile only see public clubs, since
+            // ClubsController.ClubPage 403s on private clubs the viewer isn't a member of.
+            var recentClubs = await _clubService.GetRecentUserClubsAsync(
+                targetUser.GuidId,
+                count: 3,
+                includePrivate: vm.IsAuthenticatedUser);
+            vm.RecentClubs = recentClubs
+                .Select(c => new ProfileClubLink(c.Id, c.Name, c.Description))
                 .ToList();
 
             return View(vm);

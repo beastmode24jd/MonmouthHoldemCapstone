@@ -33,6 +33,10 @@ namespace MH.Capstone.WebApp.Models
         // user has earned none. Controller populates; the ApplicationUser ctor leaves it empty.
         public IReadOnlyList<string> RecentBadgeTitles { get; set; } = Array.Empty<string>();
 
+        // Sprint 7: Top 3 clubs the user has accepted membership in. Empty when the user is
+        // in no clubs. Controller populates; the ApplicationUser ctor leaves it empty.
+        public IReadOnlyList<ProfileClubLink> RecentClubs { get; set; } = Array.Empty<ProfileClubLink>();
+
         // For ASP.NET Core model binding
         public AccountViewModel() { }
 
@@ -49,4 +53,10 @@ namespace MH.Capstone.WebApp.Models
             Points = user.Points;
         }
     }
+
+    // Sprint 7: Minimal projection used by the profile "Recent Clubs" list. Carries only the
+    // fields the view needs (id for the link target, name + description for the button label)
+    // so the domain Club entity stays out of the view layer. Description is nullable to mirror
+    // Club.Description.
+    public record ProfileClubLink(Guid Id, string Name, string? Description);
 }

@@ -60,8 +60,32 @@
                                         </span>
                                     }
                                 </li>
-                                <li class="list-group-item">
+                                <li class="list-group-item" id="profileRecentClubs">
                                     <strong>Recent Clubs:</strong>
+                                    @if (Model.RecentClubs.Count == 0)
+                                    {
+                                        <span class="text-muted ms-1" id="profileRecentClubsEmpty">No clubs joined yet.</span>
+                                    }
+                                    else
+                                    {
+                                        <div class="d-flex flex-wrap gap-2 mt-2">
+                                            @foreach (var club in Model.RecentClubs)
+                                            {
+                                                <a asp-controller="Clubs" asp-action="ClubPage" asp-route-id="@club.Id"
+                                                   class="btn btn-outline-primary btn-sm text-start profile-recent-club"
+                                                   data-club-id="@club.Id"
+                                                   style="max-width: 240px;">
+                                                    <span class="d-block fw-semibold text-truncate">
+                                                        <i class="bi bi-people-fill"></i> @club.Name
+                                                    </span>
+                                                    @if (!string.IsNullOrWhiteSpace(club.Description))
+                                                    {
+                                                        <small class="d-block text-muted text-truncate">@club.Description</small>
+                                                    }
+                                                </a>
+                                            }
+                                        </div>
+                                    }
                                 </li>
                                 <li class="list-group-item">
                                     <strong>Recent Sightings:</strong>
