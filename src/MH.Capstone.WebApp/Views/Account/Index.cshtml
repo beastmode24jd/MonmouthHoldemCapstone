@@ -87,20 +87,26 @@
                                         </div>
                                     }
                                 </li>
-                                <li class="list-group-item" id="profileRecentSightings">
+                                <li class="list-group-item">
                                     <strong>Recent Sightings:</strong>
-                                    @if (Model.RecentSightings.Count == 0)
-                                    {
-                                        <span class="text-muted ms-1" id="profileRecentSightingsEmpty">No sightings yet.</span>
-                                    }
-                                    else
-                                    {
-                                        <partial name="_SightingCardGrid" model="Model.RecentSightings" />
-                                    }
                                 </li>
                             </ul>
                         </div>
                     </div>
+
+                    <div class="col-12 mt-1">
+                        <div id="profileRecentSightings">
+                            @if (Model.RecentSightings.Count == 0)
+                            {
+                                <span class="text-muted ms-1 mt-2" id="profileRecentSightingsEmpty">No sightings yet.</span>
+                            }
+                            else
+                            {
+                                <partial name="_SightingCardGrid" model="Model.RecentSightings" />
+                            }
+                        </div>
+                    </div>
+                
                     <div class="row">
 
                         @* CSP-187: Follow + Block toggles, only shown when viewing another user *@
