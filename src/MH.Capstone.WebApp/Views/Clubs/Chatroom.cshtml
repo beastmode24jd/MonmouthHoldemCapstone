@@ -126,7 +126,7 @@
         input.addEventListener('keydown', function (e) {
             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
-                form.submit();
+                form.requestSubmit();
             }
         });
     })();

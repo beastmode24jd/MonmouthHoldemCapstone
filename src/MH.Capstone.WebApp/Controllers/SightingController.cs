@@ -16,6 +16,10 @@ namespace MH.Capstone.WebApp.Controllers
         // CSP-122: long side below this many pixels is rejected outright at upload.
         private const int MinAcceptableLongSidePixels = 1024;
 
+        // CSP-199: how many sightings the gallery shows per page. Within the ticket's
+        // 10-20 range; this is THE policy decision — the service stays generic.
+        private const int GalleryPageSize = 20;
+
         private readonly ILogger<SightingController> _logger;
         private readonly ISightingsService _sightingsService;
         private readonly UserManager<ApplicationUser> _userManager;
@@ -233,10 +237,12 @@ namespace MH.Capstone.WebApp.Controllers
         #region CSP-145 / CSP-96: Sighting Gallery Feature
 
         // CSP-96: Displays a community-wide gallery of all sightings.
-        // Authenticated users can filter client-side to see only their own sightings.
+        // Authenticated users can filter client-side to see only their own sightings
+        // (filter operates on the current page only — see CSP-199 follow-up).
+        // CSP-199: page is 1-based; default 1 keeps existing /Sighting/Gallery URLs working.
         [HttpGet]
         [Route("Gallery")]
-        public async Task<IActionResult> Gallery()
+        public async Task<IActionResult> Gallery(int page = 1)
         {
             var user = await _userManager.GetUserAsync(User);
 
@@ -246,12 +252,15 @@ namespace MH.Capstone.WebApp.Controllers
                 return StatusCode((int)HttpStatusCode.InternalServerError);
             }
 
-            // Load all sightings with User navigation property for attribution
-            var sightings = await _sightingsService.GetAllSightingsAsync();
-            var viewModel = new SightingGalleryViewModel(sightings, user.Id);
+            // CSP-199: Load only the requested page of sightings + their images instead of
+            // the entire dataset. only ~PageSize rows (and their
+            // image bytes) leave the database per request, not every sighting on record.
+            var pageResult = await _sightingsService.GetSightingsPageAsync(page, GalleryPageSize);
+            var viewModel = new SightingGalleryViewModel(pageResult, user.Id);
 
-            _logger.LogInformation("User {UserId} accessed community gallery with {Count} total sightings",
-                user.Id, viewModel.SightingCount);
+            _logger.LogInformation(
+                "User {UserId} accessed community gallery page {Page} ({Count} of {Total} sightings)",
+                user.Id, viewModel.CurrentPage, viewModel.SightingCount, viewModel.TotalCount);
             
             // Get the timezone from global cookie, defaults to PST
             string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";

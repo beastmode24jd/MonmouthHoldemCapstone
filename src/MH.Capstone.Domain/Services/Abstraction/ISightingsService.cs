@@ -30,6 +30,18 @@ namespace MH.Capstone.Domain.Services.Abstraction
 
         #endregion
 
+        #region CSP-199: Paginated Community Gallery
+
+        /// <summary>
+        /// Returns a single page of community sightings, newest first, plus the paging
+        /// metadata the gallery UI needs. Only this page's rows (and their images) are
+        /// fetched from the database, keeping the gallery fast regardless of total volume.
+        /// <paramref name="page"/> is 1-based and clamped to a minimum of 1.
+        /// </summary>
+        Task<PagedResult<Sighting>> GetSightingsPageAsync(int page, int pageSize);
+
+        #endregion
+
         #region CSP-142: Personal Anidex Collection
 
         /// <summary>
