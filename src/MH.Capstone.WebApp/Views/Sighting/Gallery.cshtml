@@ -182,30 +182,44 @@
 @* CSP-215: card styling now lives in the shared _SightingCardGrid partial. *@
 
 <style>
+    .gallery-pagination {
+        gap: 0.4rem;
+    }
+
+    .gallery-pagination .page-item {
+        margin: 0;
+    }
+
     .gallery-pagination .page-link {
-        color: #355012;
-        background-color: #fff;
-        border-color: #c6e292;
-        font-weight: 500;
-        transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+        color: #c6e292;
+        background-color: #1c261c;
+        border: 2px solid #355012;
+        border-radius: 8px;
+        font-family: Verdana, Tahoma, Arial, sans-serif;
+        font-weight: bold;
+        padding: 0.4rem 0.85rem;
+        min-width: 2.5rem;
+        text-align: center;
+        transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out, border-color 0.15s ease-in-out;
     }
 
     .gallery-pagination .page-link:hover,
     .gallery-pagination .page-link:focus {
         color: #fff;
         background-color: #612916;
-        border-color: #612916;
+        border-color: #c6e292;
     }
 
     .gallery-pagination .page-item.active .page-link {
-        color: #c6e292;
-        background-color: #1d6234;
-        border-color: #1d6234;
+        color: #1c261c;
+        background-color: #c6e292;
+        border-color: #355012;
     }
 
     .gallery-pagination .page-item.disabled .page-link {
-        color: #aaa;
-        background-color: #f5f5f5;
-        border-color: #ddd;
+        color: #6b7a6b;
+        background-color: #2c3a2c;
+        border-color: #3d4a3d;
+        opacity: 0.65;
     }
 </style>

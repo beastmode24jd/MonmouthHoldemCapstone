@@ -36,6 +36,21 @@ nav {
     background-color: #1C261C;
 }
 
+nav .navbar-nav .nav-link,
+nav .navbar-nav .nav-link.text-light,
+nav .navbar-nav .dropdown-toggle,
+nav .navbar-brand,
+nav .navbar-brand.text-light {
+    color: #C6E292;
+}
+
+nav .navbar-nav .nav-link:hover,
+nav .navbar-nav .nav-link:focus,
+nav .navbar-nav .dropdown-toggle:hover,
+nav .navbar-nav .dropdown-toggle:focus {
+    color: #9f6b3f;
+}
+
 h1 {
     font-family: Tahoma, Arial, sans-serif;
     color: #1C261C;
@@ -212,20 +227,23 @@ a.navbar-brand:hover {
 
 .footerText {
     color: #C6E292;
+    font-size: 1rem;
+    font-weight: 500;
+    opacity: 0.85;
 }
 
 .poweredByGemini {
     color: #C6E292;
-    font-size: 0.85rem;
+    font-size: 1rem;
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.4rem;
     opacity: 0.85;
 }
 
 .poweredByGemini .geminiLogo {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     vertical-align: middle;
 }
 
