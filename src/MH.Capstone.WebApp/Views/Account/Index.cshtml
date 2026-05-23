@@ -3,26 +3,26 @@
     ViewData["Title"] = "Account Details";
     // If the user not the authenticated user, show the user's name, email or id in the title, depending on what is set.
     // Otherwise, show a title indicated that a user is viewing their own account.
-    var titleString = Model.IsAuthenticatedUser ? "Showing info for Your Account" :
-        $"Showing info for {Model.Username ?? Model.Email ?? Model.Id.ToString()}";
 }
 
 <div class="container mt-4">
     <div class="card shadow">
         <div class="card-body">
-            <h1 class="card-title">Account Info</h1>
-            <div class="mt-4">
-                <h5>@titleString</h5>
+            <h1 class="card-title">@(Model.IsAuthenticatedUser ? "Your Profile" : $"{Model.DisplayName}'s Profile")</h1>
+            <div class="mt-3">
                 <div class="row">
                     <div class="col-12 col-md-2 d-flex justify-content-center align-items-center">
-                        <img class="dashboardProfile img-fluid" src="@Model.ProfileImageUrl" aria-label="@Model.Username Profile Image" />
+                        <img class="dashboardProfile img-fluid" 
+                        src="@Model.ProfileImageUrl" 
+                        aria-label="@Model.DisplayName Profile Image"
+                        style="width: 80px; height: 80px; object-fit: cover;" />
                     </div>
                     <div class="col-12 col-md-10">
                         <ul class="list-group list-group-flush">
                             @if (!string.IsNullOrEmpty(Model.DisplayName) && Model.DisplayName != "UNSET")
                             {
                                 <li class="list-group-item">
-                                    <strong>Display Name:</strong> @Model.DisplayName
+                                    <strong>Username:</strong> @Model.DisplayName
                                 </li>
                             }
                             <li class="list-group-item">
