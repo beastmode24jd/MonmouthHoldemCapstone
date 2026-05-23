@@ -86,7 +86,7 @@
                             <ul class="dropdown-menu" aria-labelledby="searchForDropdown">
                                 <li>
                                     <a id="searchForAnimalsNavLink" class="dropdown-item" asp-controller="Species" asp-action="Search">
-                                        <i class="bi bi-search"></i> Search for Animals
+                                        <i class="bi bi-binoculars-fill"></i> Animals
                                     </a>
                                 </li>
                                 @if (User.Identity?.IsAuthenticated == true)
@@ -94,7 +94,7 @@
                                     @* Sprint 5, CSP-54 *@
                                     <li>
                                         <a id="findUsersNavLink" class="dropdown-item" asp-controller="User" asp-action="Search">
-                                            <i class="bi bi-person-search"></i> Find Users
+                                            <i class="bi bi-person-lines-fill"></i> Users
                                         </a>
                                     </li>
                                 }
@@ -105,7 +105,7 @@
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="sightingsDropdown" role="button"
                                        data-bs-toggle="dropdown" aria-expanded="false">
-                                    Sightings
+                                    <i class="bi bi-eye-fill"></i> Sightings
                                 </a>
                                 <ul class="dropdown-menu" aria-labelledby="sightingsDropdown">
                                     <li>
