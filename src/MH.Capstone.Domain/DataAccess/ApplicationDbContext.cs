@@ -135,6 +135,24 @@ namespace MH.Capstone.Domain.DataAccess
                 .WithMany()
                 .HasForeignKey(l => l.CommentId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            // CSP-213: audit log has three FKs (performing admin, optional target user, optional target report).
+            // All use NoAction so the audit row survives if the referenced user or report is deleted.
+            modelBuilder.Entity<AuditLog>()
+                .HasOne(a => a.PerformingUser)
+                .WithMany()
+                .HasForeignKey(a => a.PerformingUserIdentityId)
+                .OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<AuditLog>()
+                .HasOne(a => a.TargetUser)
+                .WithMany()
+                .HasForeignKey(a => a.TargetUserIdentityId)
+                .OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<AuditLog>()
+                .HasOne(a => a.TargetReport)
+                .WithMany()
+                .HasForeignKey(a => a.TargetReportId)
+                .OnDelete(DeleteBehavior.NoAction);
         }
     }
 }

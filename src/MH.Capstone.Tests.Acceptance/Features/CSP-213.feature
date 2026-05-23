@@ -21,19 +21,19 @@ Scenario: Resolving a report creates an audit log entry
     And the entry shows the admin's display name and a recent timestamp
 
 @audit
-Scenario: Deactivating a user creates an audit log entry
+Scenario: Locking a user creates an audit log entry
     Given an admin is logged in
     And an active user account exists
-    When the admin deactivates that user account
+    When the admin locks that user account
     And the admin navigates to the audit log page
-    Then an entry is visible for the User Deactivated action
-    And the entry references the deactivated user
+    Then an entry is visible for the locking action
+    And the entry references the locked user
 
 @audit
-Scenario: Reactivating a user creates an audit log entry
+Scenario: Unlocking a user creates an audit log entry
     Given an admin is logged in
-    And a deactivated user account exists
-    When the admin reactivates that user account
+    And a locked user account exists
+    When the admin unlocks that user account
     And the admin navigates to the audit log page
-    Then an entry is visible for the User Reactivated action
-    And the entry references the reactivated user
+    Then an entry is visible for the unlocking action
+    And the entry references the unlocked user

@@ -1,15 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MH.Capstone.Domain.Tools;
-using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 
 namespace MH.Capstone.Domain.DataModels
 {
-    [Table("Audit Logs")]
+    [Table("AuditLogs")]
     public class AuditLog
     {
         [Key]
@@ -17,13 +11,14 @@ namespace MH.Capstone.Domain.DataModels
         public Guid Id { get; set; } // PK
 
         [Required]
-        [Column("Action Type")]
+        [Column("ActionType")]
         public AuditActionType ActionType { get; set; }
 
+        // The admin who performed the action.
         [Required]
-        [Column("PerformingUser Id")]
+        [Column("PerformingUserId")]
         [MaxLength(450)]
-        [ForeignKey(nameof(ApplicationUser))]
+        [ForeignKey(nameof(PerformingUser))]
         public string PerformingUserIdentityId { get; set; } = null!;
 
         [NotMapped]
@@ -33,18 +28,22 @@ namespace MH.Capstone.Domain.DataModels
             set => PerformingUserIdentityId = value.ToString();
         }
 
-        [NotMapped]
-        public Guid TargetUserId
-        {
-            get => Guid.Parse(TargetUserIdentityId);
-            set => TargetUserIdentityId = value.ToString();
-        }
-
-        [Required]
-        [Column("TargetUser Id")]
+        // Optional user the action targeted (lock/unlock, promote/demote, etc.).
+        [Column("TargetUserId")]
         [MaxLength(450)]
         [ForeignKey(nameof(TargetUser))]
-        public string TargetUserIdentityId { get; set; } = null!; // FK
+        public string? TargetUserIdentityId { get; set; }
+
+        [NotMapped]
+        public Guid? TargetUserId
+        {
+            get => TargetUserIdentityId is null ? null : Guid.Parse(TargetUserIdentityId);
+            set => TargetUserIdentityId = value?.ToString();
+        }
+
+        // Optional report the action targeted (resolve/reopen).
+        [ForeignKey(nameof(TargetReport))]
+        public Guid? TargetReportId { get; set; }
 
         [MaxLength(1000)]
         public string? Details { get; set; }
@@ -52,7 +51,8 @@ namespace MH.Capstone.Domain.DataModels
         [Required]
         public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
 
-        public virtual ApplicationUser TargetUser { get; set; } = null!;
-
+        public virtual ApplicationUser PerformingUser { get; set; } = null!;
+        public virtual ApplicationUser? TargetUser { get; set; }
+        public virtual Report? TargetReport { get; set; }
     }
 }
