@@ -23,6 +23,7 @@ namespace MH.Capstone.WebApp.Controllers
         private readonly FeatureFlags _featureFlags;
         private readonly IFollowService _followService;
         private readonly IBlockService _blockService;
+        private readonly IBadgeService _badgeService;
 
         // Logger for tracking authentication-related events
         private readonly ILogger<AccountController> _logger;
@@ -36,6 +37,7 @@ namespace MH.Capstone.WebApp.Controllers
             FeatureFlags featureFlags,
             IFollowService followService,
             IBlockService blockService,
+            IBadgeService badgeService,
             ILogger<AccountController> logger)
         {
             _authService = authService;
@@ -45,6 +47,7 @@ namespace MH.Capstone.WebApp.Controllers
             _featureFlags = featureFlags;
             _followService = followService;
             _blockService = blockService;
+            _badgeService = badgeService;
             _logger = logger;
         }
 
@@ -55,6 +58,7 @@ namespace MH.Capstone.WebApp.Controllers
         {
             var user = await _userManager.GetUserAsync(User);
             AccountViewModel vm;
+            ApplicationUser targetUser;
 
             if (user == null)
             {
@@ -66,6 +70,7 @@ namespace MH.Capstone.WebApp.Controllers
             {
                 // If not, use the current authenticated user
                 // This is hit when the route("") endpoint is used, which allows for the "/account" endpoint
+                targetUser = user;
                 vm = new AccountViewModel(user, true);
                 _logger.LogInformation("No Id provided");
             }
@@ -79,12 +84,9 @@ namespace MH.Capstone.WebApp.Controllers
                 }
 
                 // Create an Account ViewModel for the user being viewed, and indicate whether they are the authenticated user
+                targetUser = userFromId;
                 vm = new AccountViewModel(userFromId, userFromId.Id == user.Id);
                 _logger.LogInformation("Id provided");
-
-                // Sprint 7: Add bio field, point count, recent Badges, and Clubs to the User Profile
-
-                
 
                 // CSP-187: only populate follow/block state when viewing another user.
                 if (!vm.IsAuthenticatedUser)
@@ -93,6 +95,14 @@ namespace MH.Capstone.WebApp.Controllers
                     vm.IsBlockedByCurrentUser = await _blockService.IsBlockedAsync(user.GuidId, vm.Id);
                 }
             }
+
+            // Sprint 7: Recent Badges — top 3 most recently earned badge titles, newest-first.
+            var sortedBadges = await _badgeService.SortBadgesByTime(targetUser.UserBadges.ToList());
+            vm.RecentBadgeTitles = sortedBadges
+                .Where(ub => ub.BadgeEarned != null)
+                .Take(3)
+                .Select(ub => ub.Badge.Title)
+                .ToList();
 
             return View(vm);
         }

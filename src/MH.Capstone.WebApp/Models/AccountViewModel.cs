@@ -10,6 +10,7 @@ namespace MH.Capstone.WebApp.Models
         public string? Username { get; set; }
 
         public string? DisplayName { get; set; }
+        public int? Points { get; set; }
 
         public bool IsDeactivated { get; set; } = false; // Default to false since the deactivation status is unknown.
 
@@ -28,6 +29,10 @@ namespace MH.Capstone.WebApp.Models
 
         public bool IsBlockedByCurrentUser { get; set; } = false;
 
+        // Sprint 7: Top 3 most recently earned badge titles, descending. Empty when the
+        // user has earned none. Controller populates; the ApplicationUser ctor leaves it empty.
+        public IReadOnlyList<string> RecentBadgeTitles { get; set; } = Array.Empty<string>();
+
         // For ASP.NET Core model binding
         public AccountViewModel() { }
 
@@ -41,6 +46,7 @@ namespace MH.Capstone.WebApp.Models
             IsAuthenticatedUser = isAuthedUser;
             IsDeactivated = user.IsDeactivated;
             Bio = user.Bio;
+            Points = user.Points;
         }
     }
 }

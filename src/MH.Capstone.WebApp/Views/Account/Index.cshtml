@@ -31,10 +31,45 @@
                                 }
                             </li>
                             <li class="list-group-item">
-                                <strong>Total points:</strong> @* @Model.WriteThisIntoAccountViewModel_Later *@
+                                <strong>Total points:</strong> <span class="badge bg-dark" id="profilePointsValue">@(Model.Points ?? 0)</span>
                             </li>
-                            @* Add recent Sightings, Badges, and/or Clubs to their page? *@
+                            <li class="list-group-item">
+                                <strong>Bio:</strong> @Model.Bio
+                            </li>
                         </ul>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 col-md-10 mt-1 mb-1">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item" id="profileRecentBadges">
+                                    <strong>Recent Badges:</strong>
+                                    @if (Model.RecentBadgeTitles.Count == 0)
+                                    {
+                                        <span class="text-muted ms-1" id="profileRecentBadgesEmpty">No badges earned yet.</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="ms-1">
+                                            @foreach (var title in Model.RecentBadgeTitles)
+                                            {
+                                                <span class="badge bg-secondary me-1 profile-recent-badge">
+                                                    <i class="bi bi-leaf-fill"></i>
+                                                    @title
+                                                </span>
+                                            }
+                                        </span>
+                                    }
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>Recent Clubs:</strong>
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>Recent Sightings:</strong>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="row">
 
                         @* CSP-187: Follow + Block toggles, only shown when viewing another user *@
                         @if (!Model.IsAuthenticatedUser)
@@ -89,6 +124,16 @@
                             }
                         }
                     </div>
+                </div>
+                <div class="row">
+                    @if(Model.IsAuthenticatedUser)
+                    {
+                        <form asp-controller="Dashboard" asp-action="Settings" method="get">
+                            <button class="btn btn-dark mt-1" id="accountEditBtn">
+                                <i class="bi bi-gear"></i> Edit
+                            </button>
+                        </form>
+                    }
                 </div>
             </div>
         </div>
