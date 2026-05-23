@@ -177,14 +177,16 @@
     </div>
 </div>
 
-@* Hidden element carrying the current user's ID for client-side filtering *@
-<span id="currentUserId" data-user-id="@Model.CurrentUserId" style="display:none"></span>
-
 @* Gallery filter + sessionStorage persistence — CSP-96 *@
+@* CSP-221: the current user's ID is read from the shared #currentUserId span in
+   _Layout.cshtml (its text content). We deliberately do NOT render a second
+   element with that id here — a duplicate id caused getElementById to return the
+   layout span (which has no data-user-id), leaving the filter with an empty id
+   that matched no cards. *@
 <script>
     (function () {
         const STORAGE_KEY = 'galleryFilter';
-        const currentUserId = document.getElementById('currentUserId')?.dataset.userId ?? '';
+        const currentUserId = (document.getElementById('currentUserId')?.textContent ?? '').trim();
 
         const filterAllBtn = document.getElementById('filterAll');
         const filterMineBtn = document.getElementById('filterMine');
@@ -205,7 +207,10 @@
                 filterMineBtn.classList.add('btn-primary', 'active');
 
                 cards.forEach(function (card) {
-                    if (card.dataset.userId === currentUserId) {
+                    // CSP-221: compare case-insensitively. Stored UserIdentityId is written
+                    // lowercase (Guid.ToString()) while CurrentUserId is the raw Identity Id,
+                    // so a case-sensitive === could hide the user's own sightings.
+                    if ((card.dataset.userId ?? '').toLowerCase() === currentUserId.toLowerCase()) {
                         card.style.display = '';
                         visibleCount++;
                     } else {
