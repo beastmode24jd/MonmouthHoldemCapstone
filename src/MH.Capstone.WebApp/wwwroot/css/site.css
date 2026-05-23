@@ -1,3 +1,25 @@
+/* =========================================================================
+   THEME VARIABLES
+   -------------------------------------------------------------------------
+   Change these values to recolor the navbar and footer text site-wide.
+   Every navbar link, dropdown item, and footer text rule below reads from
+   these CSS custom properties — no need to hunt through the rest of the
+   file when adjusting brand colors.
+   ========================================================================= */
+:root {
+    /* Default text color for navbar links, dropdown items, and footer text. */
+    --nav-footer-text-color: #C6E292;
+
+    /* Hover/focus text color for navbar links. */
+    --nav-link-hover-color: #9f6b3f;
+
+    /* Background color for open dropdown menus in the navbar. */
+    --dropdown-bg-color: #154224;
+
+    /* Background color when hovering/focusing a dropdown item. */
+    --dropdown-hover-bg-color: #1D6234;
+}
+
 html {
   font-size: 14px;
 }
@@ -41,14 +63,14 @@ nav .navbar-nav .nav-link.text-light,
 nav .navbar-nav .dropdown-toggle,
 nav .navbar-brand,
 nav .navbar-brand.text-light {
-    color: #C6E292;
+    color: var(--nav-footer-text-color);
 }
 
 nav .navbar-nav .nav-link:hover,
 nav .navbar-nav .nav-link:focus,
 nav .navbar-nav .dropdown-toggle:hover,
 nav .navbar-nav .dropdown-toggle:focus {
-    color: #9f6b3f;
+    color: var(--nav-link-hover-color);
 }
 
 h1 {
@@ -175,7 +197,7 @@ a:hover, a:focus, a:visited {
 }
 
 a.navbar-brand:focus, a.navbar-brand:visited {
-    color: #c6e292;
+    color: var(--nav-footer-text-color);
 }
 
 a.navbar-brand:hover {
@@ -191,7 +213,7 @@ a.navbar-brand:hover {
 }
 
 .dropdown-menu {
-    background-color: #154224;
+    background-color: var(--dropdown-bg-color);
 }
 
 .menuItem {
@@ -210,14 +232,20 @@ a.navbar-brand:hover {
     background-color: #1D6234;
 }
 
-.dropdown-menu > li > a {
-    color: white;
+.dropdown-menu > li > a,
+.dropdown-menu .dropdown-item {
+    color: var(--nav-footer-text-color);
+    background-color: transparent;
 }
 
 .dropdown-menu > li > a:hover,
-.dropdown-menu > li > a:focus {
-    color: white;
-    background-color: #1D6234;
+.dropdown-menu > li > a:focus,
+.dropdown-menu .dropdown-item:hover,
+.dropdown-menu .dropdown-item:focus,
+.dropdown-menu .dropdown-item.active,
+.dropdown-menu .dropdown-item:active {
+    color: var(--nav-footer-text-color);
+    background-color: var(--dropdown-hover-bg-color);
 }
 
 .dropdown-item {
@@ -226,14 +254,14 @@ a.navbar-brand:hover {
 }
 
 .footerText {
-    color: #C6E292;
+    color: var(--nav-footer-text-color);
     font-size: 1rem;
     font-weight: 500;
     opacity: 0.85;
 }
 
 .poweredByGemini {
-    color: #C6E292;
+    color: var(--nav-footer-text-color);
     font-size: 1rem;
     display: inline-flex;
     align-items: center;
