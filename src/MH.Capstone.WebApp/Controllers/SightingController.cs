@@ -99,6 +99,9 @@ namespace MH.Capstone.WebApp.Controllers
             Guid? viewerId = currentUser?.GuidId;
             viewModel.ViewerCanModerate = currentUser != null && await _userManager.IsInRoleAsync(currentUser, "Admin");
 
+            // CSP-37: only the owner sees the edit button. Server re-checks on the edit routes.
+            viewModel.CanEdit = currentUser != null && sighting.UserId == currentUser.GuidId;
+
             var comments = (await _commentService.GetCommentsForSightingAsync(id, viewerId)).ToList();
             var rows = new List<CommentRowViewModel>(comments.Count);
             foreach (var c in comments)
@@ -117,6 +120,91 @@ namespace MH.Capstone.WebApp.Controllers
             viewModel.Comments = rows;
 
             return View(viewModel);
+        }
+
+        #endregion
+
+        #region CSP-37: Edit Sighting
+
+        // GET /Sighting/Edit/{id}. Owner-only: pre-populates the editable fields plus the
+        // read-only context (photo / GPS / timestamp). Non-owners are bounced to login
+        // (the app's standard access-denied signal); unknown ids render the NotFound view.
+        [HttpGet]
+        [Route("Edit/{id:guid}")]
+        public async Task<IActionResult> Edit(Guid id)
+        {
+            var sighting = await _sightingsService.GetSightingByIdAsync(id);
+            if (sighting is null)
+            {
+                _logger.LogInformation("Edit page requested for unknown sighting {SightingId}", id);
+                return View("NotFound");
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user is null)
+            {
+                _logger.LogError("Authenticated user could not be found during Edit GET.");
+                return StatusCode((int)HttpStatusCode.InternalServerError);
+            }
+
+            if (sighting.UserId != user.GuidId)
+            {
+                _logger.LogWarning(
+                    "User {UserId} attempted to open the edit page for sighting {SightingId} they do not own",
+                    user.GuidId, id);
+                return RedirectToAction("Login", "Account");
+            }
+
+            return View(new SightingEditViewModel(sighting));
+        }
+
+        // POST /Sighting/Edit/{id}. Re-checks ownership server-side before validating or saving,
+        // so a hidden/forged form can never edit someone else's sighting. On success, redirects
+        // to Details with a flash message; on validation failure, redraws the form with the
+        // user's input preserved and the read-only context re-hydrated.
+        [HttpPost]
+        [Route("Edit/{id:guid}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(Guid id, SightingEditViewModel model)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user is null)
+            {
+                _logger.LogError("Authenticated user could not be found during Edit POST.");
+                return StatusCode((int)HttpStatusCode.InternalServerError);
+            }
+
+            var sighting = await _sightingsService.GetSightingByIdAsync(id);
+            if (sighting is null)
+            {
+                _logger.LogInformation("Edit POST for unknown sighting {SightingId}", id);
+                return View("NotFound");
+            }
+
+            if (sighting.UserId != user.GuidId)
+            {
+                _logger.LogWarning(
+                    "User {UserId} attempted to submit an edit for sighting {SightingId} they do not own",
+                    user.GuidId, id);
+                return RedirectToAction("Login", "Account");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                // Rebuild from the stored sighting to restore the read-only context (photo / GPS /
+                // timestamp), then overlay the user's attempted edits so their input + the
+                // validation messages both show.
+                var redisplay = new SightingEditViewModel(sighting)
+                {
+                    Description = model.Description,
+                    SpeciesName = model.SpeciesName
+                };
+                return View(redisplay);
+            }
+
+            await _sightingsService.UpdateSightingAsync(id, user.GuidId, model.Description, model.SpeciesName);
+            TempData["EditSuccess"] = "Your sighting was updated.";
+            return RedirectToAction("Details", new { id });
         }
 
         #endregion
