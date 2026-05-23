@@ -21,7 +21,6 @@
                         <i class="bi bi-person-fill"></i> My Sightings
                     </button>
                 </div>
-                <span id="galleryCountLabel" class="text-muted small"></span>
             </div>
 
             @* All-Sightings empty state — shown when DB has no sightings at all *@
@@ -61,8 +60,8 @@
             @* Pagination controls — CSP-199. Only shown when there is more than one page. *@
             @if (Model.TotalPages > 1)
             {
-                <nav id="galleryPagination" aria-label="Sightings gallery pages" class="mt-4">
-                    <ul class="pagination justify-content-center mb-0">
+                <nav id="galleryPagination" aria-label="Sightings gallery pages" class="mt-5">
+                    <ul class="pagination gallery-pagination justify-content-center mb-2">
                         <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
                             <a id="pagePrev" class="page-link"
                                asp-controller="Sighting" asp-action="Gallery"
@@ -92,8 +91,8 @@
                             </a>
                         </li>
                     </ul>
-                    <p class="text-center text-muted small mt-2 mb-0">
-                        Page @Model.CurrentPage of @Model.TotalPages · @Model.TotalCount total sightings
+                    <p class="text-center small mt-1 mb-0" style="color: #355012; font-style: italic;">
+                        Page @Model.CurrentPage of @Model.TotalPages &mdash; @Model.TotalCount total sightings
                     </p>
                 </nav>
             }
@@ -116,7 +115,6 @@
         const filterMineBtn = document.getElementById('filterMine');
         const emptyStateMine = document.getElementById('emptyStateMine');
         const emptyStateAll = document.getElementById('emptyStateAll');
-        const countLabel = document.getElementById('galleryCountLabel');
 
         function applyFilter(filter) {
             sessionStorage.setItem(STORAGE_KEY, filter);
@@ -148,11 +146,6 @@
                 if (emptyStateMine) {
                     emptyStateMine.style.display = visibleCount === 0 ? '' : 'none';
                 }
-                if (countLabel) {
-                    countLabel.textContent = visibleCount === 0
-                        ? ''
-                        : visibleCount + ' ' + (visibleCount === 1 ? 'sighting' : 'sightings');
-                }
             } else {
                 filterAllBtn.classList.add('btn-primary', 'active');
                 filterAllBtn.classList.remove('btn-outline-primary');
@@ -169,9 +162,6 @@
                 }
                 if (emptyStateMine) {
                     emptyStateMine.style.display = 'none';
-                }
-                if (countLabel) {
-                    countLabel.textContent = visibleCount + ' ' + (visibleCount === 1 ? 'sighting' : 'sightings');
                 }
             }
         }
@@ -190,3 +180,32 @@
 </script>
 
 @* CSP-215: card styling now lives in the shared _SightingCardGrid partial. *@
+
+<style>
+    .gallery-pagination .page-link {
+        color: #355012;
+        background-color: #fff;
+        border-color: #c6e292;
+        font-weight: 500;
+        transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+    }
+
+    .gallery-pagination .page-link:hover,
+    .gallery-pagination .page-link:focus {
+        color: #fff;
+        background-color: #612916;
+        border-color: #612916;
+    }
+
+    .gallery-pagination .page-item.active .page-link {
+        color: #c6e292;
+        background-color: #1d6234;
+        border-color: #1d6234;
+    }
+
+    .gallery-pagination .page-item.disabled .page-link {
+        color: #aaa;
+        background-color: #f5f5f5;
+        border-color: #ddd;
+    }
+</style>
