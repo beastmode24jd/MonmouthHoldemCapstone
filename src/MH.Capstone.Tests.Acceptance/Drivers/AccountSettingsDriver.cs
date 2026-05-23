@@ -96,7 +96,17 @@ public class AccountSettingsDriver
         var submit = _driver.FindElement(By.CssSelector("#bioForm button[type=submit]"));
         submit.Click();
 
-        // Form submit posts to Dashboard/UpdateUserBio and redirects back to /dashboard/settings.
+        // Form submit posts to Dashboard/UpdateBio and redirects back to /dashboard/settings.
+        // readyState alone is not enough: it stays "complete" on the current page until the
+        // new doc starts loading, so a subsequent GoToUrl can race past the in-flight redirect
+        // and the bio save never lands. Wait for the clicked element to go stale first, which
+        // confirms the redirected document has actually loaded.
+        _wait.Until(d =>
+        {
+            try { _ = submit.TagName; return false; }
+            catch (StaleElementReferenceException) { return true; }
+            catch { return true; }
+        });
         _wait.Until(d =>
         {
             try
