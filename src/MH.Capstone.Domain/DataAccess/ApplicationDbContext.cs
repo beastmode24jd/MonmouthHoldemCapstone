@@ -21,6 +21,7 @@ namespace MH.Capstone.Domain.DataAccess
         public DbSet<UserBadge> UserBadges { get; set; } = null!;
         public DbSet<Notification> Notifications { get; set; } = null!;
         public DbSet<Report> Reports { get; set; } = null!;
+        public DbSet<AuditLog> AuditLogs { get; set; } = null!;
         public DbSet<EmailQueue> EmailQueue { get; set; } = null!;
         public DbSet<Club> Clubs { get; set; } = null!;
         public DbSet<ClubMembership> ClubMemberships { get; set; } = null!;
