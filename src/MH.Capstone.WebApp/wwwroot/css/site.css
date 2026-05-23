@@ -25,6 +25,7 @@ body {
     margin-bottom: 60px;
     background-color: #afd5be;
     padding-top: 0;
+    overflow-x: hidden;
 }
 
 footer {
@@ -211,6 +212,29 @@ a.navbar-brand:hover {
 
 .footerText {
     color: #C6E292;
+}
+
+.poweredByGemini {
+    color: #C6E292;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    opacity: 0.85;
+}
+
+.poweredByGemini .geminiLogo {
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+}
+
+.poweredByGemini .geminiWordmark {
+    font-weight: 500;
+    background: linear-gradient(90deg, #4796E3, #9168C0, #E8638E);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
 
 .navProfile {
