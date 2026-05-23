@@ -25,6 +25,7 @@ namespace MH.Capstone.WebApp.Controllers
         private readonly IBlockService _blockService;
         private readonly IBadgeService _badgeService;
         private readonly IClubService _clubService;
+        private readonly ISightingsService _sightingsService;
 
         // Logger for tracking authentication-related events
         private readonly ILogger<AccountController> _logger;
@@ -40,6 +41,7 @@ namespace MH.Capstone.WebApp.Controllers
             IBlockService blockService,
             IBadgeService badgeService,
             IClubService clubService,
+            ISightingsService sightingsService,
             ILogger<AccountController> logger)
         {
             _authService = authService;
@@ -51,6 +53,7 @@ namespace MH.Capstone.WebApp.Controllers
             _blockService = blockService;
             _badgeService = badgeService;
             _clubService = clubService;
+            _sightingsService = sightingsService;
             _logger = logger;
         }
 
@@ -116,6 +119,14 @@ namespace MH.Capstone.WebApp.Controllers
                 includePrivate: vm.IsAuthenticatedUser);
             vm.RecentClubs = recentClubs
                 .Select(c => new ProfileClubLink(c.Id, c.Name, c.Description))
+                .ToList();
+
+            // Sprint 7: Recent Sightings — top 3 by Timestamp desc. GetUserSightingsAsync
+            // already orders newest-first, so we just take 3 and project to card view models.
+            var userSightings = await _sightingsService.GetUserSightingsAsync(targetUser.GuidId);
+            vm.RecentSightings = userSightings
+                .Take(3)
+                .Select(s => new SightingCardViewModel(s))
                 .ToList();
 
             return View(vm);

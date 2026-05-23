@@ -27,6 +27,7 @@ public class AccountControllerTests
     private Mock<IUrlHelper> _mockUrlHelper;
     private Mock<IClubService> _mockClubService;
     private Mock<IBadgeService> _mockBadgeService;
+    private Mock<ISightingsService> _mockSightingService;
 
     [SetUp]
     public void Setup()
@@ -39,6 +40,7 @@ public class AccountControllerTests
         _mockBlockService = new Mock<IBlockService>();
         _mockBadgeService = new Mock<IBadgeService>();
         _mockClubService = new Mock<IClubService>();
+        _mockSightingService = new Mock<ISightingsService>();
         _mockUrlHelper = new Mock<IUrlHelper>();
 
         // Mock UserManager (requires a Mock UserStore)
@@ -56,6 +58,7 @@ public class AccountControllerTests
             _mockBlockService.Object,
             _mockBadgeService.Object,
             _mockClubService.Object,
+            _mockSightingService.Object,
             _mockLogger.Object);
 
         // Setup the Mock URL Helper to return a dummy string

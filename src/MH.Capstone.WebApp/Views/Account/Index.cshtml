@@ -60,6 +60,48 @@
                                         </span>
                                     }
                                 </li>
+                                <li class="list-group-item" id="profileRecentSightings">
+                                    <strong>Recent Sightings:</strong>
+                                    @if (Model.RecentSightings.Count == 0)
+                                    {
+                                        <span class="text-muted ms-1" id="profileRecentSightingsEmpty">No sightings yet.</span>
+                                    }
+                                    else
+                                    {
+                                        <div class="row g-2 mt-2">
+                                            @foreach (var sighting in Model.RecentSightings)
+                                            {
+                                                // Mirrors Gallery.cshtml rarity-class mapping
+                                                string rarityBadgeClass = sighting.Rarity switch
+                                                {
+                                                    "Mythic" => "bg-purple",
+                                                    "Rare" => "bg-primary",
+                                                    "Common" => "bg-success",
+                                                    _ => "bg-secondary"
+                                                };
+                                                <div class="col-12 col-sm-4">
+                                                    <a asp-controller="Sighting" asp-action="Details" asp-route-id="@sighting.Id"
+                                                       class="text-reset text-decoration-none profile-recent-sighting"
+                                                       data-sighting-id="@sighting.Id">
+                                                        <div class="card h-100 shadow-sm">
+                                                            <img src="@sighting.ImageDataUrl"
+                                                                 class="card-img-top"
+                                                                 alt="Sighting image"
+                                                                 loading="lazy"
+                                                                 style="height: 120px; object-fit: cover;" />
+                                                            <div class="card-body p-2">
+                                                                <small class="d-block text-muted mb-1">
+                                                                    <i class="bi bi-clock"></i> @sighting.Timestamp.ToString("MMM dd, yyyy")
+                                                                </small>
+                                                                <span class="badge @rarityBadgeClass">@sighting.Rarity</span>
+                                                            </div>
+                                                        </div>
+                                                    </a>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </li>
                                 <li class="list-group-item" id="profileRecentClubs">
                                     <strong>Recent Clubs:</strong>
                                     @if (Model.RecentClubs.Count == 0)
@@ -72,7 +114,7 @@
                                             @foreach (var club in Model.RecentClubs)
                                             {
                                                 <a asp-controller="Clubs" asp-action="ClubPage" asp-route-id="@club.Id"
-                                                   class="btn btn-outline-primary btn-sm text-start profile-recent-club"
+                                                   class="btn btn-dark btn-sm text-start profile-recent-club"
                                                    data-club-id="@club.Id"
                                                    style="max-width: 240px;">
                                                     <span class="d-block fw-semibold text-truncate">
@@ -80,15 +122,12 @@
                                                     </span>
                                                     @if (!string.IsNullOrWhiteSpace(club.Description))
                                                     {
-                                                        <small class="d-block text-muted text-truncate">@club.Description</small>
+                                                        <small class="d-block text-light text-truncate">@club.Description</small>
                                                     }
                                                 </a>
                                             }
                                         </div>
                                     }
-                                </li>
-                                <li class="list-group-item">
-                                    <strong>Recent Sightings:</strong>
                                 </li>
                             </ul>
                         </div>
@@ -149,12 +188,12 @@
                         }
                     </div>
                 </div>
-                <div class="row d-flex align-items-center mb-2">
+                <div class="row d-flex align-items-center mt-1 mb-2">
                     <div class="col-6">
                         @if(Model.IsAuthenticatedUser)
                         {
                             <a asp-controller="Dashboard" asp-action="Settings" id="accountEditBtn"
-                                class="btn btn-dark mt-1 me-3">
+                                class="btn btn-secondary mt-2 me-3">
                                 <i class="bi bi-gear"></i>  Edit
                             </a>
                         }

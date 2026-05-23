@@ -37,6 +37,10 @@ namespace MH.Capstone.WebApp.Models
         // in no clubs. Controller populates; the ApplicationUser ctor leaves it empty.
         public IReadOnlyList<ProfileClubLink> RecentClubs { get; set; } = Array.Empty<ProfileClubLink>();
 
+        // Sprint 7: Top 3 most recent sightings the user has submitted, newest-first by Timestamp.
+        // Reuses SightingCardViewModel so cards on the profile mirror the Gallery styling.
+        public IReadOnlyList<SightingCardViewModel> RecentSightings { get; set; } = Array.Empty<SightingCardViewModel>();
+
         // For ASP.NET Core model binding
         public AccountViewModel() { }
 
