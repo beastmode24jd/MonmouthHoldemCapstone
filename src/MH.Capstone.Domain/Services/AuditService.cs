@@ -44,14 +44,14 @@ namespace MH.Capstone.Domain.Services
 
         // Filter function, allows audits to be searched by date.
         // Return false if unsuccessful.
-        public async Task<(List<AuditLog> Audits, int TotalCount)> GetAuditsByDateRangeAsync(
-            DateTimeOffset start, DateTimeOffset end, int page, int pageSize)
+        public async Task<(List<AuditLog> Audits, int TotalCount)> GetAuditsByDateAsync(
+            DateTimeOffset timestamp, int page, int pageSize)
         {
             // Await the base query
             var baseQuery = await _auditRepo.GetAllAsync();
             
             // Can apply LINQ directly because baseQuery is an IQueryable
-            var query = baseQuery.Where(a => a.Timestamp >= start && a.Timestamp <= end);
+            var query = baseQuery.Where(a => a.Timestamp <= timestamp);
             
             return await ExecuteAuditQueryAsync(query, page, pageSize);
         }

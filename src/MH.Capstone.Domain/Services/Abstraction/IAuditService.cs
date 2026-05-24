@@ -14,8 +14,8 @@ namespace MH.Capstone.Domain.Services.Abstraction
 
         // Filter function, allows audits to be searched by date.
         // Return false if unsuccessful.
-        Task<(List<AuditLog> Audits, int TotalCount)> GetAuditsByDateRangeAsync(
-            DateTimeOffset start, DateTimeOffset end, int page, int pageSize);
+        Task<(List<AuditLog> Audits, int TotalCount)> GetAuditsByDateAsync(
+            DateTimeOffset timestamp, int page, int pageSize);
 
         Task<(List<AuditLog> Audits, int TotalCount)> GetAuditsByAdminAsync(
             Guid adminId, int page, int pageSize);

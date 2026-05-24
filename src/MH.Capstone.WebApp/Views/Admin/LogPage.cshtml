@@ -9,6 +9,38 @@
     <hr />
     <p>This should be locked from regular users!</p>
 
+    @* Search Bars (page URL and User search) *@
+    <form asp-action="LogPage" method="get" class="mb-4">
+        <div class="row g-3 mb-2">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Ticket Admin</label>
+                <input asp-for="AdminSearch" class="form-control" placeholder="Username here..." />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Target User</label>
+                <input asp-for="UserSearch" class="form-control" placeholder="Username here..." />
+            </div>
+        </div>
+
+        @* Date sort? *@
+        <div class="row g-3 mt-0">
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Date Filter</label>
+                <input asp-for="DateFilter" type="date" class="form-control" 
+                        value="@Model.DateFilter?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Sort Descending by:</label>
+                <select asp-for="SortBy" class="form-select"></select>
+            </div>
+            @* Submit and Clear buttons *@
+            <div class="col-md-3 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-dark flex-grow-1">Filter</button>
+                <a asp-action="Reports" class="btn btn-secondary flex-grow-1">Clear</a>
+            </div>
+        </div>
+    </form>
+
     <table class="table table-hover shadow-sm">
         <thead class="table-dark align-center">
             <tr>
@@ -29,7 +61,7 @@
                     </td>
                     <td>@audit.PerformingUser.DisplayName</td>
                     <td>
-                        @(audit.TargetUser.DisplayName == null ? "N/A" : audit.TargetUser.DisplayName);
+                        @(audit.TargetUser?.DisplayName == null ? "N/A" : audit.TargetUser.DisplayName);
                     </td>
                     <td>@audit.Timestamp.ToString("MMM dd, yyyy h:mm tt")</td>
                     <td>

@@ -105,6 +105,27 @@ namespace MH.Capstone.WebApp.Controllers
         [Route("/Audit-Logs")]
         public async Task<IActionResult> LogPage(AuditQueueViewModel vm)
         {
+            // Get the user device's local timezone cookie, default timezone is PST
+            string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
+
+            TimeZoneInfo userZone;
+            try
+            {
+                userZone = TimeZoneInfo.FindSystemTimeZoneById(userTimeZoneId);
+            }
+            catch
+            {
+                // Fallback for Windows environment or invalid IANA IDs
+                userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+            }
+
+            // Auto-fill the DateFilter to the current timezone date/time if not already set
+            var displayNow = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, userZone);
+
+            // Only auto-fill if the user hasn't selected a date yet
+            // Ensures the <input type="date"> shows today's date in their timezone
+            vm.DateFilter ??= displayNow;
+            
             return View(vm);
         }
 

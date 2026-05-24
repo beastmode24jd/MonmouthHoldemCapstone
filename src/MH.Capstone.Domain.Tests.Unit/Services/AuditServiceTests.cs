@@ -70,6 +70,70 @@ public class AuditServiceTests
     }
 
     [Test]
+    public async Task GetAuditsByUserAsync_FiltersCorrectlyAndReturnsEntry()
+    {
+        // Arrange
+        Guid correctUserId = Guid.NewGuid();
+        Guid wrongUserId = Guid.NewGuid();
+        Guid adminId = Guid.NewGuid();
+
+        var data = new List<AuditLog>
+        {
+            new AuditLog { ActionType = AuditActionType.UserLocked, Timestamp = DateTimeOffset.UtcNow,
+            TargetUserId = correctUserId },
+
+            new AuditLog { ActionType = AuditActionType.UserUnlocked, Timestamp = DateTimeOffset.UtcNow.AddMinutes(-1),
+            TargetUserId = wrongUserId },
+
+            new AuditLog { ActionType = AuditActionType.ReportResolved, Timestamp = DateTimeOffset.UtcNow.AddMinutes(-2),
+            PerformingUserId = adminId }
+        }.AsQueryable();
+
+        // Mock the repository to return our list
+        _auditRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(data);
+
+        var sut = CreateSut();
+
+        // Act
+        var (results, count) = await sut.GetAuditsByUserAsync(correctUserId, 1, 10);
+
+        // Assert
+        Assert.That(results, Has.Count.EqualTo(1));
+        Assert.That(results.All(a => a.TargetUserId == correctUserId), Is.True);
+        Assert.That(count, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task GetAuditsByAdminAsync_FiltersCorrectlyAndReturnsEntry()
+    {
+        // Arrange
+        Guid wrongAdminId = Guid.NewGuid();
+        Guid correctAdminId = Guid.NewGuid();
+
+        var data = new List<AuditLog>
+        {
+            new AuditLog { ActionType = AuditActionType.UserUnlocked, Timestamp = DateTimeOffset.UtcNow.AddMinutes(-1),
+            PerformingUserId = wrongAdminId },
+
+            new AuditLog { ActionType = AuditActionType.ReportResolved, Timestamp = DateTimeOffset.UtcNow.AddMinutes(-2),
+            PerformingUserId = correctAdminId }
+        }.AsQueryable();
+
+        // Mock the repository to return our list
+        _auditRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(data);
+
+        var sut = CreateSut();
+
+        // Act
+        var (results, count) = await sut.GetAuditsByAdminAsync(correctAdminId, 1, 10);
+
+        // Assert
+        Assert.That(results, Has.Count.EqualTo(1));
+        Assert.That(results.All(a => a.PerformingUserId == correctAdminId), Is.True);
+        Assert.That(count, Is.EqualTo(1));
+    }
+
+    [Test]
     public async Task GetPagedAuditsAsync_AppliesPaginationCorrectly()
     {
         // Arrange: Create 15 items
