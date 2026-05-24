@@ -14,22 +14,22 @@ namespace MH.Capstone.WebApp.Controllers
     public class AdminController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;
-
         private readonly IAuthenticationService _authService;
-
         private readonly IReportService _reportService;
-
         private readonly IUserService _userService;
+        private readonly IAuditService _auditService;
 
         public AdminController(UserManager<ApplicationUser> userManager, 
         IAuthenticationService authService,
         IReportService reportService,
-        IUserService userService)
+        IUserService userService,
+        IAuditService auditService)
         {
             _userManager = userManager;
             _authService = authService;
             _reportService = reportService;
             _userService = userService;
+            _auditService = auditService;
         }
 
         [HttpGet]
@@ -105,6 +105,8 @@ namespace MH.Capstone.WebApp.Controllers
         [Route("/Audit-Logs")]
         public async Task<IActionResult> LogPage(AuditQueueViewModel vm)
         {
+            (List<AuditLog> Audits, int TotalCount) result;
+
             // Get the user device's local timezone cookie, default timezone is PST
             string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
 
@@ -120,12 +122,51 @@ namespace MH.Capstone.WebApp.Controllers
             }
 
             // Auto-fill the DateFilter to the current timezone date/time if not already set
-            var displayNow = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, userZone);
+            // Pass the user's current local date to the view to use as a placeholder
+            ViewBag.CurrentLocalDate = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, userZone).ToString("yyyy-MM-dd");
 
-            // Only auto-fill if the user hasn't selected a date yet
-            // Ensures the <input type="date"> shows today's date in their timezone
-            vm.DateFilter ??= displayNow;
-            
+            // Decide which service method to call based on inputs
+            if (!string.IsNullOrWhiteSpace(vm.AdminSearch))
+            {
+                // Convert DisplayName to Guid
+                var adminUser = await _userManager.Users
+                    .FirstOrDefaultAsync(u => u.DisplayName == vm.AdminSearch);
+
+                // If the user isn't found, use Guid.Empty to return 0 results.
+                Guid adminId = adminUser != null ? adminUser.GuidId : Guid.Empty;
+
+                result = await _auditService.GetAuditsByAdminAsync(adminId, vm.CurrentPage, vm.PageSize);
+            }
+            else if (!string.IsNullOrWhiteSpace(vm.UserSearch))
+            {
+                var targetUser = await _userManager.Users
+                    .FirstOrDefaultAsync(u => u.DisplayName == vm.UserSearch);
+        
+                // Convert to Guid using the GuidId property
+                Guid targetId = targetUser != null ? targetUser.GuidId : Guid.Empty;
+
+                result = await _auditService.GetAuditsByUserAsync(targetId, vm.CurrentPage, vm.PageSize);
+            }
+            else if (vm.DateFilter.HasValue)
+            {
+                // Push to end of the day so it includes the selected date
+                var adjustedDate = vm.DateFilter.Value.Date.AddDays(1).AddTicks(-1); 
+                result = await _auditService.GetAuditsByDateAsync(adjustedDate, vm.CurrentPage, vm.PageSize);
+            }
+            else
+            {
+                // Default view, if no filters are applied
+                result = await _auditService.GetPagedAuditsAsync(vm.CurrentPage, vm.PageSize);
+            }
+
+            vm.Audits = result.Audits;
+
+            // Protect against divide-by-zero if PageSize is 0
+            if (vm.PageSize > 0) 
+            {
+                vm.TotalPages = (int)Math.Ceiling(result.TotalCount / (double)vm.PageSize);
+            }
+
             return View(vm);
         }
 

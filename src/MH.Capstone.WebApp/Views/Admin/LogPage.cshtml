@@ -25,18 +25,14 @@
         @* Date sort? *@
         <div class="row g-3 mt-0">
             <div class="col-md-3">
-                <label class="form-label fw-bold">Date Filter</label>
+                <label class="form-label fw-bold">Date Filter (Older Than)</label>
                 <input asp-for="DateFilter" type="date" class="form-control" 
-                        value="@Model.DateFilter?.ToString("yyyy-MM-dd")" />
+                        value="@(Model.DateFilter?.ToString("yyyy-MM-dd") ?? ViewBag.CurrentLocalDate)" />
             </div>
-            <div class="col-md-3">
-                <label class="form-label fw-bold">Sort Descending by:</label>
-                <select asp-for="SortBy" class="form-select"></select>
-            </div>
-            @* Submit and Clear buttons *@
-            <div class="col-md-3 d-flex align-items-end gap-2">
-                <button type="submit" class="btn btn-dark flex-grow-1">Filter</button>
-                <a asp-action="Reports" class="btn btn-secondary flex-grow-1">Clear</a>
+            
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Filter</button>
+                <a asp-action="LogPage" class="btn btn-secondary w-100 ms-2">Clear</a>
             </div>
         </div>
     </form>
@@ -74,10 +70,9 @@
                         }
                     </td>
                     <td>
-                        <button class="btn btn-sm btn-success btn-outline-white details-btn"
-                            data-id="@audit.Id"
-                            data-description="@(audit.Details ?? "No description")">
-                            Details
+                        <button type="button" class="btn btn-info btn-sm audit-details-btn" 
+                            data-details="@(audit.Details ?? "No additional details provided.")">
+                                Details
                         </button>
                     </td>
                 </tr>
@@ -90,10 +85,13 @@
             @for (int i = 1; i <= Model.TotalPages; i++)
             {
                 <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
-                    @* <a class="page-link" asp-action="Audits" 
-                       asp-route-CurrentPage="@i" 
-                       asp-route-ShowResolved="@Model.ShowResolved"
-                       asp-route-SortBy="@Model.SortBy">@i</a> *@
+                    <a class="page-link" asp-action="LogPage" 
+                    asp-route-CurrentPage="@i" 
+                    asp-route-AdminSearch="@Model.AdminSearch"
+                    asp-route-UserSearch="@Model.UserSearch"
+                    asp-route-DateFilter="@Model.DateFilter?.ToString("yyyy-MM-dd")">
+                    @i
+                    </a>
                 </li>
             }
         </ul>
@@ -124,5 +122,30 @@
 </div>
 
 @section Scripts {
-    @* <script src="~/js/notWrittenHereYet.js"></script> *@
+    <script>
+        document.addEventListener('click', function (e) {
+            // Check if the clicked element is our Details button
+            if (e.target && e.target.classList.contains('audit-details-btn')) {
+                const details = e.target.getAttribute('data-details');
+                showAuditDetailsModal(details);
+            }
+        });
+
+        function showAuditDetailsModal(details) {
+            // Set the description text in the read-only div
+            const descElement = document.getElementById('auditDetailsDiv');
+            if (descElement) {
+                descElement.innerText = details;
+            }
+
+            // Initialize and show the Bootstrap modal
+            const modalElement = document.getElementById('auditDetailsModal');
+            if (modalElement && typeof bootstrap !== 'undefined') {
+                const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+                modal.show();
+            } else {
+                console.error("Bootstrap or Modal element not found.");
+            }
+        }
+    </script>
 }
