@@ -25,6 +25,12 @@ function showDetailsModal(reportId, description, isResolved) {
         checkbox.checked = isResolved;
     }
 
+    // Clear the Audit Details text box so old notes don't carry over!
+    const detailsInput = document.getElementById('modalAuditDetails');
+    if (detailsInput) {
+        detailsInput.value = "";
+    }
+
     // Initialize and show the modal
     const modalElement = document.getElementById('reportDetailsModal');
     if (modalElement && typeof bootstrap !== 'undefined') {

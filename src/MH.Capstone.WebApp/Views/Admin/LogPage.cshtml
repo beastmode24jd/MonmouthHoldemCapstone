@@ -1,4 +1,5 @@
 @model MH.Capstone.WebApp.Models.AuditQueueViewModel
+@using System.Text.RegularExpressions
 @{
     ViewData["Title"] = "Audit Logs";
 }
@@ -64,11 +65,11 @@
                             <a href="@audit.TargetReport!.ReportedPageUrl" target="_blank"
                             class="text-decoration-none btn-link text-primary small">Link</a>
                         } else {
-                            <a>N/A</a>
+                            <a class="text-decoration-none btn-link text-primary small">N/A</a>
                         }
                     </td>
-                    <td>@audit.ActionType
-                        @* Put a switch case here for better display (spaces in the titles)*@
+                    <td>
+                        @Regex.Replace(audit.ActionType.ToString(), "(\\B[A-Z])", " $1")
                     </td>
                     <td>
                         <button type="button" class="btn btn-success btn-sm audit-details-btn" 
@@ -129,14 +130,13 @@
 @section Scripts {
     <script>
         document.addEventListener('click', function (e) {
-            // Find the closest element matching our button class
             const button = e.target.closest('.audit-details-btn');
             
-            // If a button was clicked, grab the text from the hidden div next to it
             if (button) {
-                const contentDiv = button.nextElementSibling;
-                // Use .innerText to perfectly preserve line breaks!
-                const details = contentDiv ? contentDiv.innerText : "Error loading details.";
+                const contentDiv = button.parentElement.querySelector('.audit-details-content');
+                
+                // Use .textContent instead of .innerText so it can read hidden elements!
+                const details = contentDiv ? contentDiv.textContent.trim() : "Error loading details.";
                 
                 showAuditDetailsModal(details);
             }
