@@ -10,7 +10,7 @@ using Reqnroll;
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
 [Binding]
-[Scope(Tag = "profile")]
+[Scope(Tag = "justThisOne")]
 [ExcludeFromCodeCoverage]
 public class CSP213StepDefinitions
 {
@@ -62,13 +62,16 @@ public class CSP213StepDefinitions
     [When("Alex navigates directly to the audit log page URL")]
     public void WhenAlexNavigatesDirectlyToTheAuditLogPageURL()
     {
-        _driver.Navigate().GoToUrl($"{_baseUrl}/Audit-Log");
+        _driver.Navigate().GoToUrl($"{_baseUrl}/Audit-Logs");
     }
 
-    [Then("Alex receives an access-denied response")]
+    [Then("Alex receives an access denied response")]
     public void ThenAlexReceivesAnAccessDeniedResponse()
     {
-        
+        // Assert that the user was redirected to the path set in Program.cs.
+        // We use .Contain() because ASP.NET Core often appends a ?ReturnUrl= parameter.
+        _wait.Until(d => d.Url.Contains("/Account/AccessDenied"));
+        _driver.Url.Should().Contain("/Account/AccessDenied");
     }
 
     // Scenario 2: Resolving a report creates an audit entry

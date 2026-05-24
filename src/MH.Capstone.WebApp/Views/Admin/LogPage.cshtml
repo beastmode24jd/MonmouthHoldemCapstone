@@ -67,3 +67,30 @@
         </ul>
     </nav> 
 </div>
+
+@* Initially hidden report details modal *@
+<div class="modal fade" id="auditDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title">Audit Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="fw-bold">Details from Admin:</label>
+                    <div class="p-2 border bg-light ticketDesc" id="auditDetailsDiv" style="white-space: pre-wrap;">
+                        @* Content filled via JS *@
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @* <script src="~/js/notWrittenHereYet.js"></script> *@
+}

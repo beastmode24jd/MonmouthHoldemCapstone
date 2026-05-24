@@ -5,11 +5,11 @@ Feature: Admin Action Audit Logs
     investigate disputes,
     and ensure accountability.
 
-@audit
+@justThisOne
 Scenario: Audit log page is not accessible to regular users
     Given Alex is logged in
     When Alex navigates directly to the audit log page URL
-    Then Alex receives an access-denied response
+    Then Alex receives an access denied response
 
 @audit
 Scenario: Resolving a report creates an audit log entry
