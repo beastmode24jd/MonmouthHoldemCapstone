@@ -59,10 +59,13 @@ namespace MH.Capstone.Domain.Services
         public async Task<(List<AuditLog> Audits, int TotalCount)> GetAuditsByAdminAsync(
             Guid adminId, int page, int pageSize)
         {
-            // Await the base query
             var baseQuery = await _auditRepo.GetAllAsync();
+    
+            // Convert the Guid back to a string to match the database column
+            string searchId = adminId.ToString();
             
-            var query = baseQuery.Where(a => a.PerformingUserId == adminId);
+            // Query against the MAPPED property, not the [NotMapped] Guid property!
+            var query = baseQuery.Where(a => a.PerformingUserIdentityId == searchId);
             
             return await ExecuteAuditQueryAsync(query, page, pageSize);
         }
@@ -70,10 +73,12 @@ namespace MH.Capstone.Domain.Services
         public async Task<(List<AuditLog> Audits, int TotalCount)> GetAuditsByUserAsync(
             Guid userId, int page, int pageSize)
         {
-            // Await the base query
             var baseQuery = await _auditRepo.GetAllAsync();
+    
+            string searchId = userId.ToString();
             
-            var query = baseQuery.Where(a => a.TargetUserId == userId);
+            // Query against the MAPPED TargetUser property
+            var query = baseQuery.Where(a => a.TargetUserIdentityId == searchId);
             
             return await ExecuteAuditQueryAsync(query, page, pageSize);
         }

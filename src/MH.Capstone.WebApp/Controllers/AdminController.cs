@@ -172,6 +172,22 @@ namespace MH.Capstone.WebApp.Controllers
             return View(vm);
         }
 
+        [HttpGet]
+        [Route("/Admin/SearchUserNames")]
+        public async Task<IActionResult> SearchUserNames([FromQuery] string term)
+        {
+            if (string.IsNullOrWhiteSpace(term)) return Json(new List<string>());
+
+            // Search the database for DisplayNames containing the typed letters
+            var matches = await _userManager.Users
+                .Where(u => u.DisplayName.Contains(term))
+                .Select(u => u.DisplayName)
+                .Take(10) // Limit to 10 suggestions to keep the dropdown clean
+                .ToListAsync();
+
+            return Json(matches);
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         // Add the 'bool status' parameter to receive the checkbox state

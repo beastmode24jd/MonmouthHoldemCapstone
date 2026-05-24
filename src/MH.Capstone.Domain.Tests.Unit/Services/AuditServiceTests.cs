@@ -4,7 +4,9 @@ using MH.Capstone.Domain.DataModels;
 using MH.Capstone.Domain.Services;
 using MH.Capstone.Domain.Services.Abstraction;
 using Moq;
+using MockQueryable.Moq;
 using System.Diagnostics.CodeAnalysis;
+using MockQueryable;
 
 namespace MH.Capstone.Domain.Tests.Unit.Services;
 
@@ -53,7 +55,7 @@ public class AuditServiceTests
             new AuditLog { ActionType = actionToFind, Timestamp = DateTimeOffset.UtcNow },
             new AuditLog { ActionType = actionToFind, Timestamp = DateTimeOffset.UtcNow.AddMinutes(-1) },
             new AuditLog { ActionType = otherAction, Timestamp = DateTimeOffset.UtcNow.AddMinutes(-2) }
-        }.AsQueryable();
+        }.BuildMock();
 
         // Mock the repository to return our list
         _auditRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(data);
@@ -74,20 +76,21 @@ public class AuditServiceTests
     {
         // Arrange
         Guid correctUserId = Guid.NewGuid();
-        Guid wrongUserId = Guid.NewGuid();
-        Guid adminId = Guid.NewGuid();
+        string correctIdentityId = correctUserId.ToString();
+        string wrongIdentityId = Guid.NewGuid().ToString();
+        string adminId = Guid.NewGuid().ToString();
 
         var data = new List<AuditLog>
         {
             new AuditLog { ActionType = AuditActionType.UserLocked, Timestamp = DateTimeOffset.UtcNow,
-            TargetUserId = correctUserId },
+            TargetUserIdentityId = correctIdentityId },
 
             new AuditLog { ActionType = AuditActionType.UserUnlocked, Timestamp = DateTimeOffset.UtcNow.AddMinutes(-1),
-            TargetUserId = wrongUserId },
+            TargetUserIdentityId = wrongIdentityId },
 
             new AuditLog { ActionType = AuditActionType.ReportResolved, Timestamp = DateTimeOffset.UtcNow.AddMinutes(-2),
-            PerformingUserId = adminId }
-        }.AsQueryable();
+            PerformingUserIdentityId = adminId }
+        }.BuildMock();
 
         // Mock the repository to return our list
         _auditRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(data);
@@ -107,17 +110,18 @@ public class AuditServiceTests
     public async Task GetAuditsByAdminAsync_FiltersCorrectlyAndReturnsEntry()
     {
         // Arrange
-        Guid wrongAdminId = Guid.NewGuid();
+        string wrongAdminId = Guid.NewGuid().ToString();
         Guid correctAdminId = Guid.NewGuid();
+        string correctIdentityId = correctAdminId.ToString();
 
         var data = new List<AuditLog>
         {
             new AuditLog { ActionType = AuditActionType.UserUnlocked, Timestamp = DateTimeOffset.UtcNow.AddMinutes(-1),
-            PerformingUserId = wrongAdminId },
+            PerformingUserIdentityId = wrongAdminId },
 
             new AuditLog { ActionType = AuditActionType.ReportResolved, Timestamp = DateTimeOffset.UtcNow.AddMinutes(-2),
-            PerformingUserId = correctAdminId }
-        }.AsQueryable();
+            PerformingUserIdentityId = correctIdentityId, PerformingUserId = correctAdminId }
+        }.BuildMock();
 
         // Mock the repository to return our list
         _auditRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(data);
@@ -140,7 +144,7 @@ public class AuditServiceTests
         var data = Enumerable.Range(1, 15).Select(i => new AuditLog { 
             Id = Guid.NewGuid(), 
             Timestamp = DateTimeOffset.UtcNow.AddDays(-i) 
-        }).AsQueryable();
+        }).ToList().BuildMock();
 
         _auditRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(data);
         var sut = CreateSut();

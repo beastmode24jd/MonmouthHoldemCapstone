@@ -14,11 +14,13 @@
         <div class="row g-3 mb-2">
             <div class="col-md-6">
                 <label class="form-label fw-bold">Logged Admin</label>
-                <input asp-for="AdminSearch" class="form-control" placeholder="Username here..." />
+                <input asp-for="AdminSearch" id="adminSearchInput" list="adminSuggestions" autocomplete="off" class="form-control" placeholder="Username here..." />
+                <datalist id="adminSuggestions"></datalist>
             </div>
             <div class="col-md-6">
                 <label class="form-label fw-bold">Target User</label>
-                <input asp-for="UserSearch" class="form-control" placeholder="Username here..." />
+                <input asp-for="UserSearch" id="userSearchInput" list="userSuggestions" autocomplete="off" class="form-control" placeholder="Username here..." />
+                <datalist id="userSuggestions"></datalist>
             </div>
         </div>
 
@@ -129,32 +131,6 @@
 
 @section Scripts {
     <script>
-        document.addEventListener('click', function (e) {
-            const button = e.target.closest('.audit-details-btn');
-            
-            if (button) {
-                const contentDiv = button.parentElement.querySelector('.audit-details-content');
-                
-                // Use .textContent instead of .innerText so it can read hidden elements!
-                const details = contentDiv ? contentDiv.textContent.trim() : "Error loading details.";
-                
-                showAuditDetailsModal(details);
-            }
-        });
-
-        function showAuditDetailsModal(details) {
-            const descElement = document.getElementById('auditDetailsDiv');
-            if (descElement) {
-                descElement.innerText = details;
-            }
-
-            const modalElement = document.getElementById('auditDetailsModal');
-            if (modalElement && typeof bootstrap !== 'undefined') {
-                const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
-                modal.show();
-            } else {
-                console.error("Bootstrap or Modal element not found.");
-            }
-        }
+        <script src="~/js/auditLog.js" asp-append-version="true"></script>
     </script>
 }
