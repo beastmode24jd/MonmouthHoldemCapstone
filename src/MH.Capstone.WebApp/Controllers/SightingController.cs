@@ -152,7 +152,9 @@ namespace MH.Capstone.WebApp.Controllers
                 _logger.LogWarning(
                     "User {UserId} attempted to open the edit page for sighting {SightingId} they do not own",
                     user.GuidId, id);
-                return RedirectToAction("Login", "Account");
+                // 403 → cookie auth redirects to /Account/AccessDenied. A plain login redirect
+                // would not stick for an authenticated user — the login page bounces them onward.
+                return Forbid();
             }
 
             return View(new SightingEditViewModel(sighting));
@@ -186,7 +188,7 @@ namespace MH.Capstone.WebApp.Controllers
                 _logger.LogWarning(
                     "User {UserId} attempted to submit an edit for sighting {SightingId} they do not own",
                     user.GuidId, id);
-                return RedirectToAction("Login", "Account");
+                return Forbid();
             }
 
             if (!ModelState.IsValid)

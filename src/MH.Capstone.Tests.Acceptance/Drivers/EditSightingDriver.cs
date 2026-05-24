@@ -66,6 +66,25 @@ public class EditSightingDriver
         WaitForPageReady();
     }
 
+    // True when the browser landed on an access-denied destination after navigating to the edit
+    // page. Authenticated non-owners are Forbid()'d to /Account/AccessDenied; unauthenticated
+    // visitors are challenged to /Account/Login. Either URL counts as "denied".
+    public bool WasAccessDenied()
+    {
+        try
+        {
+            return new WebDriverWait(_webDriver, TimeSpan.FromSeconds(10)).Until(d =>
+            {
+                var url = d.Url.ToLowerInvariant();
+                return url.Contains("/account/accessdenied") || url.Contains("/account/login");
+            });
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     // True when at least one validation message with visible text is present — covers both
     // jQuery-unobtrusive client-side messages and the server-rendered validation summary.
     public bool HasVisibleValidationError()

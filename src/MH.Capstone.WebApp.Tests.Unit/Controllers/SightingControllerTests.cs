@@ -431,16 +431,15 @@ public class SightingControllerTests
     }
 
     [Test]
-    public async Task EditGet_NonOwner_RedirectsToLogin()
+    public async Task EditGet_NonOwner_ReturnsForbid()
     {
         var id = Guid.NewGuid();
         _mockSightingsService.Setup(s => s.GetSightingByIdAsync(id)).ReturnsAsync(BuildOthersSighting(id));
 
-        var result = await _controller.Edit(id) as RedirectToActionResult;
+        // 403 → cookie auth redirects to the configured AccessDeniedPath at runtime.
+        var result = await _controller.Edit(id);
 
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result!.ActionName, Is.EqualTo("Login"));
-        Assert.That(result.ControllerName, Is.EqualTo("Account"));
+        Assert.That(result, Is.InstanceOf<ForbidResult>());
     }
 
     [Test]
@@ -512,18 +511,16 @@ public class SightingControllerTests
     }
 
     [Test]
-    public async Task EditPost_NonOwner_RedirectsToLoginAndDoesNotUpdate()
+    public async Task EditPost_NonOwner_ReturnsForbidAndDoesNotUpdate()
     {
         var id = Guid.NewGuid();
         _mockSightingsService.Setup(s => s.GetSightingByIdAsync(id)).ReturnsAsync(BuildOthersSighting(id));
 
         var model = new SightingEditViewModel { Id = id, Description = "hijacked", SpeciesName = "Fake" };
 
-        var result = await _controller.Edit(id, model) as RedirectToActionResult;
+        var result = await _controller.Edit(id, model);
 
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result!.ActionName, Is.EqualTo("Login"));
-        Assert.That(result.ControllerName, Is.EqualTo("Account"));
+        Assert.That(result, Is.InstanceOf<ForbidResult>());
         _mockSightingsService.Verify(
             s => s.UpdateSightingAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);

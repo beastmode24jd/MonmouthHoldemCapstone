@@ -22,18 +22,15 @@ public class CSP37StepDefinitions
         "Great blue heron standing motionless at the WOU campus pond.";
 
     private readonly IWebDriver _driver;
-    private readonly AuthenticationDriver _authDriver;
     private readonly EditSightingDriver _editDriver;
     private readonly SightingDetailsDriver _detailsDriver;
 
     public CSP37StepDefinitions(
         IWebDriver driver,
-        AuthenticationDriver authDriver,
         EditSightingDriver editDriver,
         SightingDetailsDriver detailsDriver)
     {
         _driver = driver;
-        _authDriver = authDriver;
         _editDriver = editDriver;
         _detailsDriver = detailsDriver;
     }
@@ -150,8 +147,9 @@ public class CSP37StepDefinitions
     [Then("access to the edit page is denied")]
     public void ThenAccessToTheEditPageIsDenied()
     {
-        _authDriver.WasPageAccessDenied().Should().BeTrue(
-            "a non-owner or unauthenticated visitor should be bounced to /Account/Login");
+        // Authenticated non-owner → /Account/AccessDenied (Forbid); unauthenticated → /Account/Login.
+        _editDriver.WasAccessDenied().Should().BeTrue(
+            "a non-owner or unauthenticated visitor must not reach the edit form");
     }
 
     [Then("a validation error is shown on the edit form")]

@@ -100,8 +100,9 @@ All interfaces in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `GET /dashboard/badges` | `BadgesViewModel` passes full `UserBadges` list (not filtered to earned) so progress bar has data |
 | `GET/POST /account/SetDisplayName` | Forced for `DisplayName == "UNSET"` |
 | `GET /Sighting/Details/{id:guid}` | `[Authorize]`. Reads `UserTimeZone` cookie (same convention as Gallery). Returns `View("NotFound")` for unknown ids. Sets `CanEdit` (owner-only) so the view gates the edit button. Renders `TempData["EditSuccess"]` flash after an edit. |
-| `GET /Sighting/Edit/{id:guid}` | `[Authorize]` (CSP-37). Owner-only: pre-populates `SightingEditViewModel` (editable Description+SpeciesName plus read-only photo/GPS/timestamp). Unknown id → `View("NotFound")`; non-owner → `RedirectToAction("Login","Account")` (the app's standard access-denied signal — there is no AccessDenied view). |
-| `POST /Sighting/Edit/{id:guid}` | `[Authorize][ValidateAntiForgeryToken]` (CSP-37). Re-checks ownership server-side **before** validating/saving. Valid → `UpdateSightingAsync` → `TempData["EditSuccess"]` → redirect to `Details`. Invalid ModelState → redraws Edit view with the user's input preserved and read-only context re-hydrated (re-fetches the sighting). Non-owner → redirect to login; unknown id → `NotFound`. |
+| `GET /Sighting/Edit/{id:guid}` | `[Authorize]` (CSP-37). Owner-only: pre-populates `SightingEditViewModel` (editable Description+SpeciesName plus read-only photo/GPS/timestamp). Unknown id → `View("NotFound")`; **authenticated non-owner → `Forbid()`** → cookie auth redirects to `/Account/AccessDenied`. (Plain login-redirect does NOT work for an authenticated user — `Login` GET bounces signed-in users to Dashboard. Unauthenticated visitors hit `[Authorize]` → `/Account/Login`.) |
+| `POST /Sighting/Edit/{id:guid}` | `[Authorize][ValidateAntiForgeryToken]` (CSP-37). Re-checks ownership server-side **before** validating/saving. Valid → `UpdateSightingAsync` → `TempData["EditSuccess"]` → redirect to `Details`. Invalid ModelState → redraws Edit view with the user's input preserved and read-only context re-hydrated (re-fetches the sighting). Non-owner → `Forbid()`; unknown id → `NotFound`. |
+| `GET /Account/AccessDenied` | `[AllowAnonymous]` (CSP-37). Renders the styled access-denied page the cookie auth `AccessDeniedPath` points at (previously 404'd — the path was configured in Program.cs but no action/view existed). Element ids: `accessDeniedContainer`, `accessDeniedMessage`. |
 | `POST /Admin/UpdateResolution/{id}` | AJAX; `status` from querystring, antiforgery token from `input[name="__RequestVerificationToken"]`. |
 
 **`RequireDisplayNameFilter`:** Global filter redirecting `DisplayName == "UNSET"` users. Exempted: `SetDisplayName`, `Login`, `Logout`, `Register`, `RegisterConfirmation`, `VerifyEmail`, `ResendVerification`, `ForgotPassword`, `ResetPassword`, `Reactivate`, `Deactivate`, test email endpoints.
@@ -125,7 +126,7 @@ Base 10 pts. Multiplier by global sightings of that species: Mythic (≤5) = 5×
 | `LeaderboardController` | Global rankings |
 | `MapController` | GPS sighting map (Leaflet.js) |
 | `ReportController` | Submit/view content reports |
-| `SightingController` | Submit/view sightings. `Details(Guid)` depends on `ISightingsService` + `IAnimalFunFactService`. `Edit(Guid)` GET/POST (CSP-37) — owner-only edit of Description+SpeciesName via `SightingEditViewModel`; ownership re-checked server-side, non-owner → redirect to login. |
+| `SightingController` | Submit/view sightings. `Details(Guid)` depends on `ISightingsService` + `IAnimalFunFactService`. `Edit(Guid)` GET/POST (CSP-37) — owner-only edit of Description+SpeciesName via `SightingEditViewModel`; ownership re-checked server-side, authenticated non-owner → `Forbid()` (→ `/Account/AccessDenied`). |
 | `AnidexController` | `GET /anidex` — `[Authorize]`, personal species discovery gallery |
 | `SpeciesController` | Animal lookup via API-Ninjas, cached |
 | `ClubsController` | Club listing, creation, chatroom stubs |
@@ -167,7 +168,7 @@ Reqnroll + Selenium. `ASPNETCORE_ENVIRONMENT = "Acceptance"`. Kestrel on `https:
 
 **Reusable step bindings (CSP-172):** `Given user Lily is logged in`, `Given visitor James is signed out`. Also reusable: `Given user Alex is logged in` (CSP-53), `Given user Patricia is logged in` (CSP-96) — do **not** redefine these in new step files (ambiguous-binding error).
 
-**CSP-37 Edit Sighting (acceptance):** `EditSightingDriver` + `EditSightingPageObject`; `CSP37StepDefinitions` reuses the Alex/Patricia/James login bindings above. Tagged `@csp37`; **resets seed data both `[BeforeScenario]` and `[AfterScenario]`** because scenarios edit Alex's seeded sighting `a1000000-…-001` (shared with CSP-142/CSP-172) — the after-reset prevents leaking the edit into other features' assertions.
+**CSP-37 Edit Sighting (acceptance):** `EditSightingDriver` + `EditSightingPageObject`; `CSP37StepDefinitions` reuses the Alex/Patricia/James login bindings above. Tagged `@csp37`; **resets seed data both `[BeforeScenario]` and `[AfterScenario]`** because scenarios edit Alex's seeded sighting `a1000000-…-001` (shared with CSP-142/CSP-172) — the after-reset prevents leaking the edit into other features' assertions. Denial is checked with `EditSightingDriver.WasAccessDenied()` (URL contains `/account/accessdenied` **or** `/account/login`) — **not** `AuthenticationDriver.WasPageAccessDenied()`, because an authenticated non-owner is `Forbid()`'d to AccessDenied, not Login (login bounces signed-in users to Dashboard).
 
 #### Seed Personas
 

@@ -111,6 +111,18 @@ namespace MH.Capstone.WebApp.Controllers
             return View();
         }
 
+        // Landing page for Forbid() results. Program.cs configures
+        // AccessDeniedPath = /Account/AccessDenied; this renders it instead of 404ing.
+        // Used by CSP-37 when an authenticated non-owner tries to edit someone else's sighting.
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("accessdenied")]
+        public IActionResult AccessDenied(string? returnUrl = null)
+        {
+            ViewData["ReturnUrl"] = returnUrl;
+            return View();
+        }
+
         // Displays the login page.
         // If the user is already authenticated, they are redirected to the dashboard.     
         [HttpPost]
