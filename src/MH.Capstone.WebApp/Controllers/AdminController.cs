@@ -125,6 +125,8 @@ namespace MH.Capstone.WebApp.Controllers
             // Pass the user's current local date to the view to use as a placeholder
             ViewBag.CurrentLocalDate = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, userZone).ToString("yyyy-MM-dd");
 
+            ViewBag.UserTimeZone = userZone;
+
             // Decide which service method to call based on inputs
             if (!string.IsNullOrWhiteSpace(vm.AdminSearch))
             {
@@ -173,17 +175,62 @@ namespace MH.Capstone.WebApp.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         // Add the 'bool status' parameter to receive the checkbox state
-        public async Task<IActionResult> UpdateResolution(Guid id, bool status) 
+        public async Task<IActionResult> UpdateResolution(Guid id, [FromQuery] bool status, [FromQuery] string? details) 
         {
-            // Call the revised service method
-            var success = await _reportService.SetReportResolution(id, status);
-            
-            if (success)
+            var report = await _reportService.GetReportByIdAsync(id);
+    
+            if (report == null)
             {
-                return Json(new { success = true });
+                return NotFound("Report not found.");
             }
             
-            return BadRequest(new { success = false, message = "Report not found." });
+            // Capture the original state BEFORE updating the database
+            bool originalStatus = report.IsResolved;
+
+            // Attempt to update the status in the Report DB
+            bool updateSuccess = await _reportService.SetReportResolution(id, status);
+
+            // Handle routing and Audit generation based on success
+            if (updateSuccess)
+            {
+                // Only generate an Audit if the state ACTUALLY changed, 
+                // OR if the admin explicitly typed a note/details to append to a resolved report.
+                if (originalStatus != status || !string.IsNullOrWhiteSpace(details))
+                {
+                    // Grab the Admin who successfully made the change
+                    var adminUser = await _userManager.GetUserAsync(User);
+                    
+                    if (adminUser != null)
+                    {
+                        // Construct the Audit Log
+                        var audit = new AuditLog
+                        {
+                            // Assign enum based on checkbox status
+                            ActionType = status ? AuditActionType.ReportResolved : AuditActionType.ReportOpened,
+                            
+                            PerformingUserId = adminUser.GuidId,
+                            TargetReportId = id,
+                            
+                            // Directly link the audit to the user who submitted the report
+                            TargetUserId = report.ReportingUserId,
+                            
+                            // Only assign the Details string if the Admin actually typed something
+                            Details = string.IsNullOrWhiteSpace(details) ? null : details,
+                            Timestamp = DateTimeOffset.UtcNow
+                        };
+
+                        // Save the audit to the database
+                        await _auditService.LogActionAsync(audit);
+                    }
+                }
+                // Return a 200 OK to the AJAX fetch call so it can trigger location.reload()
+                return Ok(); 
+            }
+            else
+            {
+                // If the database update failed, return a 400 Bad Request to trigger the AJAX error alert
+                return BadRequest("Failed to update report status.");
+            }
         }
 
         [HttpPost]

@@ -168,5 +168,11 @@ namespace MH.Capstone.Domain.Services
             await _reportRepo.AddOrUpdateAsync(report);
             return true;
         }
+
+        public async Task<Report?> GetReportByIdAsync(Guid reportId)
+        {
+            var report = await _reportRepo.FindByIdAsync(reportId);
+            return report;
+        }
     }
 }

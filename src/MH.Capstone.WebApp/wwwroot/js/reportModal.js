@@ -41,7 +41,12 @@ document.getElementById('confirmResolveBtn').addEventListener('click', async fun
     if (currentActiveReportId) {
         // Get the status from the modal's checkbox
         const isChecked = document.getElementById('modalIsResolved').checked;
-        await updateResolution(currentActiveReportId, isChecked);
+        
+        // Grab the details from the new textarea
+        const details = document.getElementById('modalAuditDetails').value;
+        
+        // Pass the details to the updateResolution function
+        await updateResolution(currentActiveReportId, isChecked, details);
         location.reload(); 
     }
 });
@@ -51,20 +56,25 @@ document.querySelectorAll('.resolution-toggle').forEach(checkbox => {
     checkbox.addEventListener('change', async function() {
         const id = this.getAttribute('data-id');
         const isChecked = this.checked; // Capture the actual state
-        await updateResolution(id, isChecked);
+
+        // Direct toggle bypasses the modal, so we pass an empty string for details
+        await updateResolution(id, isChecked, "");
     });
 });
 
 // Shared AJAX function
-async function updateResolution(reportId, isResolved) {
+async function updateResolution(reportId, isResolved, details) {
     const tokenElement = document.querySelector('input[name="__RequestVerificationToken"]');
     if (!tokenElement) return;
 
     const token = tokenElement.value;
 
     try {
-        // Send the status as a query string or part of the URL
-        const response = await fetch(`/Admin/UpdateResolution/${reportId}?status=${isResolved}`, {
+        // Now 'details' is defined in the function scope and won't throw an error!
+        const encodedDetails = encodeURIComponent(details || "");
+        
+        // Append the encoded details to the fetch URL
+        const response = await fetch(`/Admin/UpdateResolution/${reportId}?status=${isResolved}&details=${encodedDetails}`, {
             method: 'POST',
             headers: {
                 'RequestVerificationToken': token,
