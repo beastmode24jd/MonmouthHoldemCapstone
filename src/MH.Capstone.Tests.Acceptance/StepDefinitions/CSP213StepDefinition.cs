@@ -55,13 +55,14 @@ public class CSP213StepDefinitions
     [Given("Alex is logged in")]
     public void GivenAlexIsLoggedIn()
     {
+        try { _authenticationDriver.LogoutUser(); } catch { /* already logged out */ }
         _authenticationDriver.PreformLoginForUser("alex@test.com", "Capstone26!");
     }
 
     [When("Alex navigates directly to the audit log page URL")]
     public void WhenAlexNavigatesDirectlyToTheAuditLogPageURL()
     {
-        
+        _driver.Navigate().GoToUrl($"{_baseUrl}/Audit-Log");
     }
 
     [Then("Alex receives an access-denied response")]
@@ -71,6 +72,39 @@ public class CSP213StepDefinitions
     }
 
     // Scenario 2: Resolving a report creates an audit entry
+
+    // This first Given step also repeats for Scenarios 3 and 4
+    [Given("an admin is logged in")]
+    public void GivenAnAdminIsLoggedIn()
+    {
+        try { _authenticationDriver.LogoutUser(); } catch { /* already logged out */ }
+        _authenticationDriver.PreformLoginForUser("patricia@test.com", "Capstone26!");
+    }
+
+    [Given("an unresolved report exists")]
+    public void GivenAnUnresolvedReportExists()
+    {
+        
+    }
+
+    [When("the admin resolves the report")]
+    public void WhenTheAdminResolvesTheReport()
+    {
+        
+    }
+
+    // Re-used step in Scenarios 3 and 4.
+    [When("the admin navigates to the audit log page")]
+    public void WhenTheAdminNavigatesToTheAuditLogPage()
+    {
+        _driver.Navigate().GoToUrl($"{_baseUrl}/Audit-Log");
+    }
+
+    [Then("an entry is visible for the Report Resolved action")]
+    public void ThenAnEntryIsVisibleForTheReportResolvedAction()
+    {
+        
+    }
 
     /*
 

@@ -102,7 +102,6 @@ namespace MH.Capstone.WebApp.Controllers
 
         // Page that displays the admin action audit logs.
         [HttpGet]
-        [ValidateAntiForgeryToken]
         [Route("/Audit-Logs")]
         public async Task<IActionResult> LogPage(AuditQueueViewModel vm)
         {

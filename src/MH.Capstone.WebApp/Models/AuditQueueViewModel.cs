@@ -6,6 +6,11 @@ namespace MH.Capstone.WebApp.Models
     public class AuditQueueViewModel
     {
         // Data
-        public List<Report> Audits { get; set; } = new();
+        public List<AuditLog> Audits { get; set; } = new();
+
+        // Pagination data
+        public int CurrentPage { get; set; } = 1;
+        public int TotalPages { get; set; }
+        public int PageSize { get; set; } = 10;
     }
 }

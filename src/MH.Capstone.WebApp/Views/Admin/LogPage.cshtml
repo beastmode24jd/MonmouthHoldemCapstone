@@ -5,7 +5,65 @@
 
 <div class="container mt-4">
     @Html.AntiForgeryToken()
-    <h2 class="card-title">Admin Report Queue</h2>
+    <h2 class="card-title">Action Auditing Log</h2>
     <hr />
     <p>This should be locked from regular users!</p>
+
+    <table class="table table-hover shadow-sm">
+        <thead class="table-dark align-center">
+            <tr>
+                <th>Category</th>
+                <th>Admin</th>
+                <th>User</th>
+                <th>Date</th>
+                <th>Page</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var audit in Model.Audits)
+            {
+                <tr class="text">
+                    <td>@audit.ActionType
+                        @* Put a switch case here for better display (spaces in the titles)*@
+                    </td>
+                    <td>@audit.PerformingUser.DisplayName</td>
+                    <td>
+                        @(audit.TargetUser.DisplayName == null ? "N/A" : audit.TargetUser.DisplayName);
+                    </td>
+                    <td>@audit.Timestamp.ToString("MMM dd, yyyy h:mm tt")</td>
+                    <td>
+                        @(audit.TargetReport != null && audit.TargetReport.ReportedPageUrl != null)
+                        {
+                            <a href="@audit.TargetReport!.ReportedPageUrl" target="_blank"
+                            class="text-decoration-none btn-link text-primary small">Link</a>
+                        } else {
+                            "N/A";
+                        }
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-success btn-outline-white details-btn"
+                            data-id="@audit.Id"
+                            data-description="@(audit.Details ?? "No description")">
+                            Details
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <nav>
+        <ul class="pagination">
+            @for (int i = 1; i <= Model.TotalPages; i++)
+            {
+                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                    @* <a class="page-link" asp-action="Audits" 
+                       asp-route-CurrentPage="@i" 
+                       asp-route-ShowResolved="@Model.ShowResolved"
+                       asp-route-SortBy="@Model.SortBy">@i</a> *@
+                </li>
+            }
+        </ul>
+    </nav> 
 </div>
