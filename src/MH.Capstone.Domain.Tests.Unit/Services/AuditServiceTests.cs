@@ -56,7 +56,7 @@ public class AuditServiceTests
         }.AsQueryable();
 
         // Mock the repository to return our list
-        _auditRepoMock.Setup(r => r.GetAllAsync()).Returns(data);
+        _auditRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(data);
 
         var sut = CreateSut();
 
@@ -64,9 +64,9 @@ public class AuditServiceTests
         var (results, count) = await sut.GetAuditsByActionAsync(actionToFind, 1, 10);
 
         // Assert
-        results.Should().HaveCount(2);
-        results.All(a => a.ActionType == actionToFind).Should().BeTrue();
-        count.Should().Be(2);
+        Assert.That(results, Has.Count.EqualTo(2));
+        Assert.That(results.All(a => a.ActionType == actionToFind), Is.True);
+        Assert.That(count, Is.EqualTo(2));
     }
 
     [Test]
@@ -78,14 +78,14 @@ public class AuditServiceTests
             Timestamp = DateTimeOffset.UtcNow.AddDays(-i) 
         }).AsQueryable();
 
-        _auditRepoMock.Setup(r => r.GetAllAsync()).Returns(data);
+        _auditRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(data);
         var sut = CreateSut();
 
         // Act: Get Page 2 with size 10
         var (results, count) = await sut.GetPagedAuditsAsync(2, 10);
 
         // Assert
-        results.Should().HaveCount(5); // 15 total - 10 on first page = 5 left
-        count.Should().Be(15);
+        Assert.That(results, Has.Count.EqualTo(5)); // 15 total - 10 on first page = 5 left
+        Assert.That(count, Is.EqualTo(15));
     }
 }
