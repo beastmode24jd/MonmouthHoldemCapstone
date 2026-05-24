@@ -5,7 +5,7 @@ Feature: Admin Action Audit Logs
     investigate disputes,
     and ensure accountability.
 
-@justThisOne
+@audit
 Scenario: Audit log page is not accessible to regular users
     Given Alex is logged in
     When Alex navigates directly to the audit log page URL

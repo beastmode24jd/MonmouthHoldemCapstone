@@ -10,7 +10,7 @@ using Reqnroll;
 namespace MH.Capstone.Tests.Acceptance.StepDefinitions;
 
 [Binding]
-[Scope(Tag = "justThisOne")]
+[Scope(Tag = "audit")]
 [ExcludeFromCodeCoverage]
 public class CSP213StepDefinitions
 {
@@ -87,34 +87,104 @@ public class CSP213StepDefinitions
     [Given("an unresolved report exists")]
     public void GivenAnUnresolvedReportExists()
     {
-        
+        // Navigate to the reports queue
+        _driver.Navigate().GoToUrl($"{_baseUrl}/Admin/Reports");
+
+        // Wait for the table to populate
+        _wait.Until(d => d.FindElements(By.CssSelector("table tbody tr")).Count > 0);
+
+        // Find all rows, then find the first one where the resolution checkbox is NOT selected
+        var rows = _driver.FindElements(By.CssSelector("table tbody tr"));
+        var unresolvedRow = rows.FirstOrDefault(r => !r.FindElement(By.CssSelector(".resolution-toggle")).Selected);
+
+        unresolvedRow.Should().NotBeNull("Because AcceptanceTestSeeder seeds 2 unresolved reports, one should be found.");
     }
 
     [When("the admin resolves the report")]
     public void WhenTheAdminResolvesTheReport()
     {
+        // Re-find the unresolved row right before clicking to avoid a StaleElementReferenceException
+        var rows = _driver.FindElements(By.CssSelector("table tbody tr"));
+        var unresolvedRow = rows.First(r => !r.FindElement(By.CssSelector(".resolution-toggle")).Selected);
+
+        // Click the details button on THAT specific row
+        unresolvedRow.FindElement(By.CssSelector(".details-btn")).Click();
+
+        // Wait for modal, check the box, and confirm (Reusing logic from CSP-179)
+        _wait.Until(d => d.FindElement(By.Id("reportDetailsModal")).Displayed);
         
+        _driver.FindElement(By.Id("modalIsResolved")).Click();
+        _driver.FindElement(By.Id("confirmResolveBtn")).Click();
+
+        // Wait for modal to disappear to ensure the post/update finishes
+        _wait.Until(d => !d.FindElement(By.Id("reportDetailsModal")).Displayed);
     }
 
     // Re-used step in Scenarios 3 and 4.
     [When("the admin navigates to the audit log page")]
     public void WhenTheAdminNavigatesToTheAuditLogPage()
     {
-        _driver.Navigate().GoToUrl($"{_baseUrl}/Audit-Log");
+        _driver.Navigate().GoToUrl($"{_baseUrl}/Audit-Logs");
     }
 
     [Then("an entry is visible for the Report Resolved action")]
     public void ThenAnEntryIsVisibleForTheReportResolvedAction()
     {
+        var pageText = _driver.FindElement(By.TagName("body")).Text;
+        
+        // Assert that the specific action type is rendered on the screen
+        pageText.Should().Contain("Report Resolved", "The audit log should display the Report Resolved action type.");
+    }
+
+    [Then("the entry shows the admin's display name and a recent timestamp")]
+    public void ThenTheEntryShowsTheAdminsDisplayNameAndARecentTimestamp()
+    {
+        var pageText = _driver.FindElement(By.TagName("body")).Text;
+        
+        // Patricia is our seeded admin's DisplayName
+        pageText.Should().Contain("Patricia", "The audit log should record the admin who performed the action.");
+        
+        // Because of timezones and rendering formats, checking for the current year/month or 'Just now' 
+        // is usually safer than an exact DateTime match in Acceptance Tests.
+        var currentYear = DateTime.UtcNow.Year.ToString();
+        pageText.Should().Contain(currentYear, "The audit log should display a recent timestamp.");
+    }
+
+    // Scenario 3: Locking a user creates an audit log entry
+
+    // Admin log-in handled in Scenario 2 steps
+
+    [Given("an active user account exists")]
+    public void GivenAnActiveUserAccountExists()
+    {
         
     }
 
+    [When("the admin locks that user account")]
+    public void WhenTheAdminLocksThatUserAccount()
+    {
+        
+    }
+
+    // Audit page navigation step reused from Scenario 2
+
+    [Then("an entry is visible for the locking action")]
+    public void ThenAnEntryIsVisibleForTheLockingAction()
+    {
+        
+    }
+
+    [Then("the entry references the locked user")]
+    public void ThenTheEntryReferencesTheLockedUser()
+    {
+        
+    }
+
+    // Scenario 4: Unlocking a user creates an audit log entry
+
     /*
 
-    Scenario: Audit log page is not accessible to regular users
-        Given Alex is logged in
-        When Alex navigates directly to the audit log page URL
-        Then Alex receives an access-denied response
+    Scenario: Audit log page is not accessible to regular users -- DONE
     
     Scenario: Resolving a report creates an audit log entry
         Given an admin is logged in
