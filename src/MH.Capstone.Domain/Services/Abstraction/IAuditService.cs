@@ -20,6 +20,9 @@ namespace MH.Capstone.Domain.Services.Abstraction
         Task<(List<AuditLog> Audits, int TotalCount)> GetAuditsByAdminAsync(
             Guid adminId, int page, int pageSize);
 
+        Task<(List<AuditLog> Audits, int TotalCount)> GetAuditsByUserAsync(
+            Guid userId, int page, int pageSize);
+
         Task<(List<AuditLog> Audits, int TotalCount)> GetAuditsByActionAsync(
             AuditActionType action, int page, int pageSize);
     }

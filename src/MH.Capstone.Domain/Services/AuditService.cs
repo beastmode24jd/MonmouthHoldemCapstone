@@ -59,13 +59,34 @@ namespace MH.Capstone.Domain.Services
         public async Task<(List<AuditLog> Audits, int TotalCount)> GetAuditsByAdminAsync(
             Guid adminId, int page, int pageSize)
         {
+            // Await the base query
+            var baseQuery = await _auditRepo.GetAllAsync();
             
+            var query = baseQuery.Where(a => a.PerformingUserId == adminId);
+            
+            return await ExecuteAuditQueryAsync(query, page, pageSize);
+        }
+
+        public async Task<(List<AuditLog> Audits, int TotalCount)> GetAuditsByUserAsync(
+            Guid userId, int page, int pageSize)
+        {
+            // Await the base query
+            var baseQuery = await _auditRepo.GetAllAsync();
+            
+            var query = baseQuery.Where(a => a.TargetUserId == userId);
+            
+            return await ExecuteAuditQueryAsync(query, page, pageSize);
         }
 
         public async Task<(List<AuditLog> Audits, int TotalCount)> GetAuditsByActionAsync(
             AuditActionType action, int page, int pageSize)
         {
+            // Await the base query
+            var baseQuery = await _auditRepo.GetAllAsync();
             
+            var query = baseQuery.Where(a => a.ActionType == action);
+            
+            return await ExecuteAuditQueryAsync(query, page, pageSize);
         }
 
         // Private helper
