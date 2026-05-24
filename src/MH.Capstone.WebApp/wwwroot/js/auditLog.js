@@ -47,15 +47,18 @@ function setupAutoSuggest(inputId, datalistId) {
         try {
             const response = await fetch(`/Admin/SearchUserNames?term=${encodeURIComponent(term)}`);
             if (response.ok) {
-                const names = await response.json();
+                const users = await response.json(); // Changed variable name to users for clarity
                 
-                // Clear the old suggestions
                 datalist.innerHTML = '';
                 
-                // Add the new suggestions
-                names.forEach(name => {
+                users.forEach(user => {
                     const option = document.createElement('option');
-                    option.value = name;
+                    
+                    // Update this line to read the property!
+                    // If your endpoint returns just strings, use `user`. If it returns objects, use `user.displayName`.
+                    // To be safe, we can handle both:
+                    option.value = user.displayName || user; 
+                    
                     datalist.appendChild(option);
                 });
             }

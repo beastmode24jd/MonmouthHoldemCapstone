@@ -187,6 +187,8 @@ namespace MH.Capstone.WebApp.Controllers
 
             return Json(matches);
         }
+        
+        
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -358,22 +360,41 @@ namespace MH.Capstone.WebApp.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> SearchUsers(string term, bool findLocked)
+        [Route("/Admin/SearchUsers")]
+        public async Task<IActionResult> SearchUsers([FromQuery] string term, [FromQuery] bool? findLocked)
         {
-            // Search all active (non-deactivated) users by DisplayName
-            var users = await _userService.SearchUsersAsync(term);
-            
-            // Filter based on whether we want currently locked or currently open accounts
-            var filtered = users
-                .Where(u => u.AccountLocked == findLocked)
-                .Select(u => new { u.Email, u.DisplayName });
+            // Return an empty list if the search term is empty
+            if (string.IsNullOrWhiteSpace(term)) 
+            {
+                return Json(new List<object>());
+            }
 
-            return Json(filtered);
+            // Start with the base query: match the DisplayName to the search term
+            var query = _userManager.Users
+                .Where(u => u.DisplayName != null && u.DisplayName.Contains(term));
+
+            // If the fetch call provided a lock status, apply the filter
+            if (findLocked.HasValue)
+            {
+                query = query.Where(u => u.AccountLocked == findLocked.Value);
+            }
+
+            // Project the results into an anonymous object and limit to 10 results
+            var matches = await query
+                .Select(u => new 
+                { 
+                    displayName = u.DisplayName, 
+                    email = u.Email 
+                })
+                .Take(10) 
+                .ToListAsync();
+
+            return Json(matches);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ToggleAccountLock(string targetEmail, string adminPassword, bool shouldLock)
+        public async Task<IActionResult> ToggleAccountLock(string targetEmail, string adminPassword, bool shouldLock, string? auditDetails)
         {
             if (!await VerifyAdminPasswordAsync(adminPassword))
             {
@@ -396,10 +417,28 @@ namespace MH.Capstone.WebApp.Controllers
                 return RedirectToAction(nameof(Manage));
             }
 
+            // Capture the original lock state to prevent logging redundant audits
+            bool originalLockState = targetUser.AccountLocked;
+
             var result = await _userService.LockToggleAccountAsync(targetUser, shouldLock);
 
             if (result)
             {
+                // Only log an audit if the state actually changed, or if notes were provided
+                if (originalLockState != shouldLock || !string.IsNullOrWhiteSpace(auditDetails))
+                {
+                    var audit = new AuditLog
+                    {
+                        ActionType = shouldLock ? AuditActionType.UserLocked : AuditActionType.UserUnlocked,
+                        PerformingUserId = adminUser!.GuidId,
+                        TargetUserId = targetUser.GuidId, // Use targetUser's ID
+                        Details = string.IsNullOrWhiteSpace(auditDetails) ? null : auditDetails,
+                        Timestamp = DateTimeOffset.UtcNow
+                    };
+
+                    await _auditService.LogActionAsync(audit);
+                }
+
                 TempData["Success"] = $"Account for {targetUser.DisplayName} has been {(shouldLock ? "locked" : "unlocked")}.";
             }
             else
