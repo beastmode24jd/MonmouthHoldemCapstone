@@ -96,3 +96,40 @@ async function updateResolution(reportId, isResolved, details) {
         console.error("Error:", error);
     }
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+    setupAutoSuggest('reportUserSearch', 'reporterSuggestions');
+});
+
+function setupAutoSuggest(inputId, datalistId) {
+    const input = document.getElementById(inputId);
+    const datalist = document.getElementById(datalistId);
+
+    if (!input || !datalist) return;
+
+    let debounceTimer = null;
+
+    input.addEventListener('input', function (e) {
+        const term = e.target.value;
+        if (debounceTimer) clearTimeout(debounceTimer);
+        if (term.length < 2) return; 
+
+        // Debounce prevents spamming your database on every single keystroke
+        debounceTimer = setTimeout(async () => {
+            try {
+                const response = await fetch(`/Admin/SearchUserNames?term=${encodeURIComponent(term)}`);
+                if (response.ok) {
+                    const users = await response.json();
+                    datalist.innerHTML = '';
+                    users.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.displayName || user; // Safely handles objects or raw strings
+                        datalist.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error("Auto-suggest fetch failed:", error);
+            }
+        }, 250);
+    });
+}

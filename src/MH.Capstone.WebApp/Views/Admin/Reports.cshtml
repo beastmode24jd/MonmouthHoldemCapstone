@@ -16,7 +16,8 @@
             </div>
             <div class="col-md-6">
                 <label class="form-label fw-bold">Ticket Reporter</label>
-                <input asp-for="UserSearch" class="form-control" placeholder="Username here..." />
+                <input asp-for="UserSearch" id="reportUserSearch" list="reporterSuggestions" autocomplete="off" class="form-control" placeholder="Username here..." />
+                <datalist id="reporterSuggestions"></datalist>
             </div>
         </div>
 
