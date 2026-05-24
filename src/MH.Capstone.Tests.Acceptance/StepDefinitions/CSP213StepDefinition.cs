@@ -157,13 +157,35 @@ public class CSP213StepDefinitions
     [Given("an active user account exists")]
     public void GivenAnActiveUserAccountExists()
     {
-        
+        // Navigate to User Management page
+        _driver.Navigate().GoToUrl($"{_baseUrl}/Admin/Manage");
+
+        // Search for "Alex"
+        var searchInput = _driver.FindElement(By.Id("activeUserSearch"));
+        var hiddenEmailInput = _driver.FindElement(By.CssSelector("#lockForm .selected-email"));
+
+        searchInput.Clear();
+        searchInput.SendKeys("Alex");
+
+        // Wait until the JS has populated the hidden email field based on the search
+        _wait.Until(d => {
+            var val = hiddenEmailInput.GetAttribute("value");
+            return !string.IsNullOrEmpty(val) && val.Contains("@");
+        });
+
+        _driver.FindElement(By.Id("lockBtn")).Click();
     }
 
     [When("the admin locks that user account")]
     public void WhenTheAdminLocksThatUserAccount()
     {
-        
+        // Wait for the password confirmation modal to show
+        _wait.Until(d => d.FindElement(By.Id("adminPasswordModal")).Displayed);
+
+        var adminPasswordInput = _driver.FindElement(By.Id("modalAdminPassword"));
+        adminPasswordInput.SendKeys("Capstone26!");
+
+        _driver.FindElement(By.Id("confirmAuthBtn")).Click();
     }
 
     // Audit page navigation step reused from Scenario 2
@@ -171,36 +193,60 @@ public class CSP213StepDefinitions
     [Then("an entry is visible for the locking action")]
     public void ThenAnEntryIsVisibleForTheLockingAction()
     {
+        _driver.Navigate().GoToUrl($"{_baseUrl}/Audit-Logs");
+
+        // Wait to ensure the table has loaded
+        _wait.Until(d => d.FindElements(By.CssSelector("table tbody tr")).Count > 0);
+
+        // Grab the 5th cell (td) of the first row (tr)
+        var actionCell = _driver.FindElement(By.CssSelector("table tbody tr:first-child td:nth-child(5)"));
         
+        // Check the Audit logs for "User Locked"
+        actionCell.Text.Should().Contain("User Locked");
     }
 
     [Then("the entry references the locked user")]
     public void ThenTheEntryReferencesTheLockedUser()
     {
+        // Grab the 3rd cell (td) of the first row (tr)
+        var targetUserCell = _driver.FindElement(By.CssSelector("table tbody tr:first-child td:nth-child(3)"));
         
+        // Verify the locked user's name is in the cell
+        targetUserCell.Text.Should().Contain("Alex");
     }
 
     // Scenario 4: Unlocking a user creates an audit log entry
 
+    [Given("a locked user account exists")]
+    public void GivenALockedUserAccountExists()
+    {
+        
+    }
+
+    [When("the admin unlocks that user account")]
+    public void WhenTheAdminUnlocksThatUserAccount()
+    {
+        
+    }
+
+    // Audit Log page navigation step given in Scenario 2
+
+    [Then("an entry is visible for the unlocking action")]
+    public void ThenAnEntryIsVisibleForTheUnlockingAction()
+    {
+        
+    }
+
+    [Then("the entry references the unlocked user")]
+    public void ThenTheEntryReferencesTheUnlockedUser()
+    {
+        
+    }
+
     /*
-
     Scenario: Audit log page is not accessible to regular users -- DONE
-    
-    Scenario: Resolving a report creates an audit log entry
-        Given an admin is logged in
-        And an unresolved report exists
-        When the admin resolves the report
-        And the admin navigates to the audit log page
-        Then an entry is visible for the Report Resolved action
-        And the entry shows the admin's display name and a recent timestamp
-
-    Scenario: Locking a user creates an audit log entry
-        Given an admin is logged in
-        And an active user account exists
-        When the admin locks that user account
-        And the admin navigates to the audit log page
-        Then an entry is visible for the locking action
-        And the entry references the locked user
+    Scenario: Resolving a report creates an audit log entry -- DONE
+    Scenario: Locking a user creates an audit log entry --DONE
 
     Scenario: Unlocking a user creates an audit log entry
         Given an admin is logged in
