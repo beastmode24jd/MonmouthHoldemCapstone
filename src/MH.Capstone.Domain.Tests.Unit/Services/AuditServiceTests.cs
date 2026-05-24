@@ -15,7 +15,6 @@ public class AuditServiceTests
 {
     private Mock<IRepository<Report, ApplicationDbContext>> _reportRepoMock;
     private Mock<IRepository<AuditLog, ApplicationDbContext>> _auditRepoMock;
-    private Mock<INotificationService> _notificationServiceMock;
     private IAuditService _auditService;
 
     [SetUp]
@@ -23,60 +22,70 @@ public class AuditServiceTests
     {
         _reportRepoMock = new Mock<IRepository<Report, ApplicationDbContext>>();
         _auditRepoMock = new Mock<IRepository<AuditLog, ApplicationDbContext>>();
-        _notificationServiceMock = new Mock<INotificationService>();
 
         _auditService = new AuditService(
             _reportRepoMock.Object,
-            _notificationServiceMock.Object
+            _auditRepoMock.Object
         );
     }
 
     public AuditService CreateSut() => new(
         _reportRepoMock.Object,
-        _notificationServiceMock.Object);
+        _auditRepoMock.Object);
 
     private void AssertAllMockVerifications()
     {
         _reportRepoMock.VerifyAll();
-        _notificationServiceMock.VerifyAll();
+        _auditRepoMock.VerifyAll();
         _reportRepoMock.VerifyNoOtherCalls();
-        _notificationServiceMock.VerifyNoOtherCalls();
+        _auditRepoMock.VerifyNoOtherCalls();
     }
 
     [Test]
-    public async Task SubmitAuditAsync_NewLog_ReturnsTrueAndSavesAudit()
+    public async Task GetAuditsByActionAsync_FiltersCorrectlyAndReturnsCount()
     {
         // Arrange
-        var userId = Guid.NewGuid();
-        var adminId = Guid.NewGuid();
+        var actionToFind = AuditActionType.UserLocked;
+        var otherAction = AuditActionType.ReportResolved;
 
-        var audit = new AuditLog
+        var data = new List<AuditLog>
         {
-            TargetUserId = userId,
-            PerformingUserId = adminId,
-            ActionType = AuditActionType.ReportResolved,
-            Details = "Duplicate page report",
-            Timestamp = DateTimeOffset.UtcNow
-        };
+            new AuditLog { ActionType = actionToFind, Timestamp = DateTimeOffset.UtcNow },
+            new AuditLog { ActionType = actionToFind, Timestamp = DateTimeOffset.UtcNow.AddMinutes(-1) },
+            new AuditLog { ActionType = otherAction, Timestamp = DateTimeOffset.UtcNow.AddMinutes(-2) }
+        }.AsQueryable();
 
-        _auditRepoMock.Setup(r => r.AddOrUpdateAsync(
-                It.Is<AuditLog>(aud => aud.TargetUserId == userId && aud.PerformingUserId == adminId)))
-            .ReturnsAsync(audit)
-            .Verifiable(Times.Once);
-
-        /*
-        _notificationServiceMock.Setup(n => n.SendNotificationAsync(
-                It.Is<Notification>(notif => notif.RecipientId == userId), It.IsAny<NotificationType>()))
-            .Verifiable(Times.Once); */
+        // Mock the repository to return our list
+        _auditRepoMock.Setup(r => r.GetAllAsync()).Returns(data);
 
         var sut = CreateSut();
 
         // Act
-        //var result = await sut.SubmitReportAsync(report);
-        var result = false;
+        var (results, count) = await sut.GetAuditsByActionAsync(actionToFind, 1, 10);
 
         // Assert
-        Assert.That(result, Is.True);
-        AssertAllMockVerifications();
+        results.Should().HaveCount(2);
+        results.All(a => a.ActionType == actionToFind).Should().BeTrue();
+        count.Should().Be(2);
+    }
+
+    [Test]
+    public async Task GetPagedAuditsAsync_AppliesPaginationCorrectly()
+    {
+        // Arrange: Create 15 items
+        var data = Enumerable.Range(1, 15).Select(i => new AuditLog { 
+            Id = Guid.NewGuid(), 
+            Timestamp = DateTimeOffset.UtcNow.AddDays(-i) 
+        }).AsQueryable();
+
+        _auditRepoMock.Setup(r => r.GetAllAsync()).Returns(data);
+        var sut = CreateSut();
+
+        // Act: Get Page 2 with size 10
+        var (results, count) = await sut.GetPagedAuditsAsync(2, 10);
+
+        // Assert
+        results.Should().HaveCount(5); // 15 total - 10 on first page = 5 left
+        count.Should().Be(15);
     }
 }
