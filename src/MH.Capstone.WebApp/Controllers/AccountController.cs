@@ -51,7 +51,7 @@ namespace MH.Capstone.WebApp.Controllers
         [HttpGet]
         [Route("")]
         [Route("{id:guid}")]
-        public async Task<IActionResult> Index(Guid? id)
+        public async Task<IActionResult> Index(Guid? id, int followersPage = 1, int followingPage = 1)
         {
             var user = await _userManager.GetUserAsync(User);
             AccountViewModel vm;
@@ -90,7 +90,50 @@ namespace MH.Capstone.WebApp.Controllers
                 }
             }
 
+            // CSP-211: counts + paginated lists for the follower/following tabs.
+            // Visible on the viewer's own profile and on other users' profiles.
+            await PopulateFollowGraphAsync(vm, followersPage, followingPage);
+
             return View(vm);
+        }
+
+        // CSP-211: resolve total counts + the requested page (size 20) of each list.
+        private async Task PopulateFollowGraphAsync(AccountViewModel vm, int followersPage, int followingPage)
+        {
+            var followerIds = (await _followService.GetFollowerIdsAsync(vm.Id)).ToList();
+            var followeeIds = (await _followService.GetFolloweeIdsAsync(vm.Id)).ToList();
+
+            vm.FollowerCount = followerIds.Count;
+            vm.FolloweeCount = followeeIds.Count;
+            vm.FollowersPage = Math.Max(1, followersPage);
+            vm.FolloweesPage = Math.Max(1, followingPage);
+
+            vm.Followers = await ResolveFollowPageAsync(followerIds, vm.FollowersPage);
+            vm.Followees = await ResolveFollowPageAsync(followeeIds, vm.FolloweesPage);
+        }
+
+        private async Task<List<FollowListUser>> ResolveFollowPageAsync(IList<Guid> ids, int page)
+        {
+            var pageSlice = ids
+                .Skip((page - 1) * AccountViewModel.FollowPageSize)
+                .Take(AccountViewModel.FollowPageSize)
+                .ToList();
+
+            var rows = new List<FollowListUser>(pageSlice.Count);
+            foreach (var rowId in pageSlice)
+            {
+                var u = await _userService.GetUserByIdAsync(rowId);
+                if (u == null) continue;
+                rows.Add(new FollowListUser
+                {
+                    Id = rowId,
+                    DisplayName = string.IsNullOrWhiteSpace(u.DisplayName) || u.DisplayName == "UNSET"
+                        ? (u.UserName ?? "Unknown")
+                        : u.DisplayName,
+                    ProfileImageUrl = u.GetProfileImageUrl(),
+                });
+            }
+            return rows;
         }
 
         [HttpGet]
@@ -124,7 +167,7 @@ namespace MH.Capstone.WebApp.Controllers
         }
 
         // Displays the login page.
-        // If the user is already authenticated, they are redirected to the dashboard.     
+        // If the user is already authenticated, they are redirected to the dashboard.
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
