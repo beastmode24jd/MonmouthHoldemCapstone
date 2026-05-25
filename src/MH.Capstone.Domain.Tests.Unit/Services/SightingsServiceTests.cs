@@ -313,6 +313,16 @@ public class SightingsServiceTests
         AssertAllMockVerifications();
     }
 
+    // Sets up the repo's predicate overload to actually evaluate the expression against
+    // a backing list, so these tests genuinely exercise the bounds filter the service builds
+    // (the previous setups mocked the parameterless GetAllAsync(), which the service no longer
+    // calls — they passed vacuously regardless of the filter logic).
+    private void SetupBoundsRepo(params Sighting[] backing) =>
+        _sightingsRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync((Expression<Func<Sighting, bool>> predicate) =>
+                backing.Where(predicate.Compile()).AsQueryable());
+
     [Test]
     public async Task GetSightingsInBoundsAsync_ReturnsSightingsWithinBounds()
     {
@@ -327,8 +337,7 @@ public class SightingsServiceTests
             ImageBuffer = new byte[] { 0x01 }
         };
 
-        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting,bool>>>()))
-            .ReturnsAsync(new List<Sighting> { sightingInBounds }.AsQueryable());
+        SetupBoundsRepo(sightingInBounds);
 
         var sut = CreateSut();
 
@@ -354,8 +363,7 @@ public class SightingsServiceTests
             ImageBuffer = new byte[] { 0x01 }
         };
 
-        _sightingsRepoMock.Setup(r => r.GetAllAsync())
-            .ReturnsAsync(new List<Sighting> { sightingOutOfBounds }.AsQueryable());
+        SetupBoundsRepo(sightingOutOfBounds);
 
         var sut = CreateSut();
 
@@ -366,22 +374,24 @@ public class SightingsServiceTests
         Assert.That(result.Count(), Is.EqualTo(0));
     }
 
+    // [CSP-224] Regression guard: an in-bounds sighting older than a week must STILL be
+    // returned. The map previously dropped anything older than 7 days, so sightings the
+    // user knew existed vanished as they panned/zoomed away from recent activity.
     [Test]
-    public async Task GetSightingsInBoundsAsync_ExcludesSightingsOlderThanSevenDays()
+    public async Task GetSightingsInBoundsAsync_IncludesInBoundsSightings_RegardlessOfAge()
     {
         // Arrange
-        var oldSighting = new Sighting
+        var oldInBounds = new Sighting
         {
             Id = Guid.NewGuid(),
             Latitude = 45.0m,
             Longitude = -123.0m,
-            Timestamp = DateTimeOffset.UtcNow.AddDays(-10),  // 10 days old
-            Description = "Old sighting",
+            Timestamp = DateTimeOffset.UtcNow.AddDays(-400),  // well over a year old
+            Description = "Old but in-bounds sighting",
             ImageBuffer = new byte[] { 0x01 }
         };
 
-        _sightingsRepoMock.Setup(r => r.GetAllAsync())
-            .ReturnsAsync(new List<Sighting> { oldSighting }.AsQueryable());
+        SetupBoundsRepo(oldInBounds);
 
         var sut = CreateSut();
 
@@ -389,7 +399,47 @@ public class SightingsServiceTests
         var result = await sut.GetSightingsInBoundsAsync(44.0m, 46.0m, -124.0m, -122.0m);
 
         // Assert
-        Assert.That(result.Count(), Is.EqualTo(0));
+        Assert.That(result.Count(), Is.EqualTo(1));
+        Assert.That(result.First().Id, Is.EqualTo(oldInBounds.Id));
+    }
+
+    // [CSP-224] With a mixed set, only the in-bounds sightings come back — old or recent —
+    // and the out-of-bounds one is excluded purely on geography.
+    [Test]
+    public async Task GetSightingsInBoundsAsync_ReturnsAllInBounds_IgnoringAge_ExcludingOutOfBounds()
+    {
+        // Arrange
+        var recentInBounds = new Sighting
+        {
+            Id = Guid.NewGuid(),
+            Latitude = 45.5m, Longitude = -123.2m,
+            Timestamp = DateTimeOffset.UtcNow.AddHours(-2),
+            Description = "recent in-bounds", ImageBuffer = new byte[] { 0x01 }
+        };
+        var oldInBounds = new Sighting
+        {
+            Id = Guid.NewGuid(),
+            Latitude = 44.2m, Longitude = -122.5m,
+            Timestamp = DateTimeOffset.UtcNow.AddDays(-90),
+            Description = "old in-bounds", ImageBuffer = new byte[] { 0x01 }
+        };
+        var outOfBounds = new Sighting
+        {
+            Id = Guid.NewGuid(),
+            Latitude = 34.0m, Longitude = -118.0m,  // LA — outside the box
+            Timestamp = DateTimeOffset.UtcNow.AddHours(-1),
+            Description = "out of bounds", ImageBuffer = new byte[] { 0x01 }
+        };
+
+        SetupBoundsRepo(recentInBounds, oldInBounds, outOfBounds);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = (await sut.GetSightingsInBoundsAsync(44.0m, 46.0m, -124.0m, -122.0m)).ToList();
+
+        // Assert
+        Assert.That(result.Select(s => s.Id), Is.EquivalentTo(new[] { recentInBounds.Id, oldInBounds.Id }));
     }
 
 
