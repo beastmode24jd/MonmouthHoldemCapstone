@@ -385,6 +385,149 @@ public class SightingControllerTests
 
     #endregion
 
+    #region CSP-37: Edit action tests
+
+    // A sighting owned by the logged-in TestUser (so ownership checks pass).
+    private static Sighting BuildOwnedSighting(Guid? id = null) => new()
+    {
+        Id = id ?? Guid.NewGuid(),
+        UserIdentityId = TestUserId,
+        Latitude = 44.5m,
+        Longitude = -123.25m,
+        Timestamp = DateTimeOffset.UtcNow.AddDays(-2),
+        Description = "Original description",
+        SpeciesName = "Coyote",
+        ImageBuffer = [0x01, 0x02, 0x03]
+    };
+
+    // A sighting owned by somebody else.
+    private static Sighting BuildOthersSighting(Guid? id = null) => new()
+    {
+        Id = id ?? Guid.NewGuid(),
+        UserIdentityId = Guid.NewGuid().ToString(),
+        Latitude = 10m,
+        Longitude = 10m,
+        Timestamp = DateTimeOffset.UtcNow.AddDays(-2),
+        Description = "Someone else's sighting",
+        SpeciesName = "Bald Eagle",
+        ImageBuffer = [0x09]
+    };
+
+    [Test]
+    public async Task EditGet_OwnerExistingSighting_ReturnsViewWithPrePopulatedEditViewModel()
+    {
+        var id = Guid.NewGuid();
+        var sighting = BuildOwnedSighting(id);
+        _mockSightingsService.Setup(s => s.GetSightingByIdAsync(id)).ReturnsAsync(sighting);
+
+        var result = await _controller.Edit(id) as ViewResult;
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Model, Is.InstanceOf<SightingEditViewModel>());
+        var vm = (SightingEditViewModel)result.Model!;
+        Assert.That(vm.Id, Is.EqualTo(id));
+        Assert.That(vm.Description, Is.EqualTo("Original description"));
+        Assert.That(vm.SpeciesName, Is.EqualTo("Coyote"));
+    }
+
+    [Test]
+    public async Task EditGet_NonOwner_ReturnsForbid()
+    {
+        var id = Guid.NewGuid();
+        _mockSightingsService.Setup(s => s.GetSightingByIdAsync(id)).ReturnsAsync(BuildOthersSighting(id));
+
+        // 403 → cookie auth redirects to the configured AccessDeniedPath at runtime.
+        var result = await _controller.Edit(id);
+
+        Assert.That(result, Is.InstanceOf<ForbidResult>());
+    }
+
+    [Test]
+    public async Task EditGet_UnknownId_ReturnsNotFoundView()
+    {
+        var id = Guid.NewGuid();
+        _mockSightingsService.Setup(s => s.GetSightingByIdAsync(id)).ReturnsAsync((Sighting?)null);
+
+        var result = await _controller.Edit(id) as ViewResult;
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.ViewName, Is.EqualTo("NotFound"));
+    }
+
+    [Test]
+    public async Task EditPost_OwnerValidModel_UpdatesAndRedirectsToDetailsWithFlash()
+    {
+        var id = Guid.NewGuid();
+        var sighting = BuildOwnedSighting(id);
+        _mockSightingsService.Setup(s => s.GetSightingByIdAsync(id)).ReturnsAsync(sighting);
+        _mockSightingsService
+            .Setup(s => s.UpdateSightingAsync(id, It.IsAny<Guid>(), "Updated", "Gray Wolf"))
+            .ReturnsAsync(sighting)
+            .Verifiable(Times.Once);
+
+        var model = new SightingEditViewModel { Id = id, Description = "Updated", SpeciesName = "Gray Wolf" };
+
+        var result = await _controller.Edit(id, model) as RedirectToActionResult;
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.ActionName, Is.EqualTo("Details"));
+        Assert.That(_controller.TempData["EditSuccess"], Is.Not.Null);
+        _mockSightingsService.Verify();
+    }
+
+    [Test]
+    public async Task EditPost_EmptyDescription_ReturnsViewAndDoesNotUpdate()
+    {
+        var id = Guid.NewGuid();
+        _mockSightingsService.Setup(s => s.GetSightingByIdAsync(id)).ReturnsAsync(BuildOwnedSighting(id));
+        _controller.ModelState.AddModelError(nameof(SightingEditViewModel.Description), "Required");
+
+        var model = new SightingEditViewModel { Id = id, Description = "", SpeciesName = "Coyote" };
+
+        var result = await _controller.Edit(id, model) as ViewResult;
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Model, Is.InstanceOf<SightingEditViewModel>());
+        _mockSightingsService.Verify(
+            s => s.UpdateSightingAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task EditPost_EmptySpeciesName_ReturnsViewAndDoesNotUpdate()
+    {
+        var id = Guid.NewGuid();
+        _mockSightingsService.Setup(s => s.GetSightingByIdAsync(id)).ReturnsAsync(BuildOwnedSighting(id));
+        _controller.ModelState.AddModelError(nameof(SightingEditViewModel.SpeciesName), "Required");
+
+        var model = new SightingEditViewModel { Id = id, Description = "Updated", SpeciesName = "" };
+
+        var result = await _controller.Edit(id, model) as ViewResult;
+
+        Assert.That(result, Is.Not.Null);
+        _mockSightingsService.Verify(
+            s => s.UpdateSightingAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task EditPost_NonOwner_ReturnsForbidAndDoesNotUpdate()
+    {
+        var id = Guid.NewGuid();
+        _mockSightingsService.Setup(s => s.GetSightingByIdAsync(id)).ReturnsAsync(BuildOthersSighting(id));
+
+        var model = new SightingEditViewModel { Id = id, Description = "hijacked", SpeciesName = "Fake" };
+
+        var result = await _controller.Edit(id, model);
+
+        Assert.That(result, Is.InstanceOf<ForbidResult>());
+        _mockSightingsService.Verify(
+            s => s.UpdateSightingAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
+    }
+
+    #endregion
+
     #region CSP-122: Photo quality integration
 
     // Builds a SightingUploadViewModel with a small but non-empty IFormFile

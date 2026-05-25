@@ -45,6 +45,11 @@ namespace MH.Capstone.WebApp.Models
         // CSP-187 AC4: true when the viewer can hide / reinstate comments (Admin role).
         public bool ViewerCanModerate { get; set; } = false;
 
+        // CSP-37: true only when the viewer owns this sighting. Set by the controller from
+        // the authenticated user's id; gates the edit button on the Details page. A UX
+        // affordance only — the server re-checks ownership on the edit GET/POST.
+        public bool CanEdit { get; set; } = false;
+
         public SightingDetailsViewModel() { }
 
         public SightingDetailsViewModel(Sighting sighting, string? funFact)
