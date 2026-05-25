@@ -253,7 +253,7 @@ namespace MH.Capstone.WebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> PromoteToAdmin(string email, string adminPassword)
+        public async Task<IActionResult> PromoteToAdmin(string email, string adminPassword, string? auditDetails)
         {
             // Check that the admin password is correct.
             if (!await VerifyAdminPasswordAsync(adminPassword))
@@ -296,6 +296,22 @@ namespace MH.Capstone.WebApp.Controllers
 
             if (result.Succeeded)
             {
+                // Generate Audit Log
+                var adminUser = await _userManager.GetUserAsync(User);
+                if (adminUser != null)
+                {
+                    var audit = new AuditLog
+                    {
+                        ActionType = AuditActionType.RolePromotion,
+                        PerformingUserId = adminUser.GuidId,
+                        TargetUserId = user.GuidId,
+                        Details = string.IsNullOrWhiteSpace(auditDetails) ? null : auditDetails,
+                        Timestamp = DateTimeOffset.UtcNow
+                    };
+
+                    await _auditService.LogActionAsync(audit);
+                }
+
                 TempData["Success"] = $"User {email} has been promoted to Admin.";
             }
             else
@@ -308,7 +324,7 @@ namespace MH.Capstone.WebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DemoteFromAdmin(string email, string adminPassword)
+        public async Task<IActionResult> DemoteFromAdmin(string email, string adminPassword, string? auditDetails)
         {
             // Check that the admin password is correct
             if (!await VerifyAdminPasswordAsync(adminPassword))
@@ -349,6 +365,22 @@ namespace MH.Capstone.WebApp.Controllers
 
             if (result.Succeeded)
             {
+                // Generate Audit Log
+                var adminUser = await _userManager.GetUserAsync(User);
+                if (adminUser != null)
+                {
+                    var audit = new AuditLog
+                    {
+                        ActionType = AuditActionType.RoleDemotion,
+                        PerformingUserId = adminUser.GuidId,
+                        TargetUserId = user.GuidId,
+                        Details = string.IsNullOrWhiteSpace(auditDetails) ? null : auditDetails,
+                        Timestamp = DateTimeOffset.UtcNow
+                    };
+
+                    await _auditService.LogActionAsync(audit);
+                }
+
                 TempData["Success"] = $"User {email} is now a standard User.";
             }
             else
