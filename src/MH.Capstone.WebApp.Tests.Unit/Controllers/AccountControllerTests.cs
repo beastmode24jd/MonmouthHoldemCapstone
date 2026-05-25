@@ -48,6 +48,15 @@ public class AccountControllerTests
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
             store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
+        _mockBadgeService.Setup(s => s.SortBadgesByTime(It.IsAny<List<UserBadge>>()))
+            .ReturnsAsync(new List<UserBadge>());
+
+        _mockClubService.Setup(s => s.GetRecentUserClubsAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<bool>()))
+            .ReturnsAsync(new List<Club>());
+
+        _mockSightingService.Setup(s => s.GetUserSightingsAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(new List<Sighting>());
+
         _controller = new AccountController(
             _mockAuthService.Object,
             _mockUserService.Object,
@@ -366,5 +375,6 @@ public class AccountControllerTests
         UserName = email,
         Email = email,
         DisplayName = displayName,
+        UserBadges = new List<UserBadge>()
     };
 }
