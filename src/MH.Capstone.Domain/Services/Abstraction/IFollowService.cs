@@ -16,5 +16,8 @@ namespace MH.Capstone.Domain.Services.Abstraction
 
         // Returns the set of user IDs that the given user follows.
         Task<IEnumerable<Guid>> GetFolloweeIdsAsync(Guid followerId);
+
+        // Returns the set of user IDs that follow the given user (inbound direction).
+        Task<IEnumerable<Guid>> GetFollowerIdsAsync(Guid followeeId);
     }
 }
