@@ -103,10 +103,8 @@ h5 {
     border-radius: 0px 25px 0px 0px; /* Curved tab appearance */
     color: white;
     display: block;
-    width: 100%;
     padding: 10px 20px;
-    margin-bottom: 0px;
-
+    margin: 0;
 }
 
 .subheader {
@@ -114,9 +112,17 @@ h5 {
     border-radius: 0px 25px 0px 0px;
     color: white;
     display: block;
-    width: 100%;
     padding: 10px 20px;
-    margin-bottom: 0px;
+    margin: 0;
+}
+
+/* Cards that lead with a .mainHeader/.subheader tab: align the card's top
+   corners with the header's curve so no white wedge peeks through above the
+   25px inward radius on the top-right. */
+.card:has(> .mainHeader),
+.card:has(> .subheader) {
+    border-top-left-radius: 0;
+    border-top-right-radius: 25px;
 }
 
 p {
@@ -131,9 +137,8 @@ p {
 .displayText {
     color: #1C261C;
     background-color: white;
-    margin: 0px 5px 25px 0px;
+    margin: 0;
     display: block;
-    width: 100%;
     padding: 30px 25px;
     font-size: min(20vw, 20px);
     text-align: left;

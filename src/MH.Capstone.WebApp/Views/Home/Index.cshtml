@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = "Home Page";
 }
 
@@ -9,38 +9,60 @@
         </div>
     </div>
 
-    <div class="container ps-0">
-        <div class="row g-0">
-            <div class="col">
-                <h3 class="mainHeader mt-4">Our Product Vision</h3>
-                <p class="displayText">
-                    Wildlife AID brings together competition, discovery, and education in the natural world.
-                    <br/>By blending engaging gameplay with real-world exploration, Wildlife AID redefines how people experience, understand, and connect with nature.
-                    <br/>
-                    <br/>From rare and exotic wildlife to the bugs in your own backyard, Wildlife AID transforms zoology, nature watching, and outdoor exploration into an interactive, rewarding experience for everyone!
-                </p>
+    <div class="container py-4">
+        <div class="row g-4">
+            <div class="col-12">
+                <div class="card shadow-sm border-0 overflow-hidden">
+                    <h3 class="mainHeader">Our Product Vision</h3>
+                    <div class="card-body p-4 text-start">
+                        <p class="mb-2">
+                            Wildlife AID brings together competition, discovery, and education in the natural world.
+                        </p>
+                        <p class="mb-2">
+                            By blending engaging gameplay with real-world exploration, Wildlife AID redefines how people experience, understand, and connect with nature.
+                        </p>
+                        <p class="mb-0">
+                            From rare and exotic wildlife to the bugs in your own backyard, Wildlife AID transforms zoology, nature watching, and outdoor exploration into an interactive, rewarding experience for everyone!
+                        </p>
+                    </div>
+                </div>
+            </div>
 
-                <h3 class="subheader mt-4">How Wildlife AID helps you learn</h3>
-                <p class="displayText">
-                    Our GPS map assists users with exploring their local area, while our animal search feature gives prospective players the tools to identify different animal species, markings, and more.
-                    <br/><br/>Once a user has a photo of an animal, our app scans the photo to identify the species, saving it both to the GPS map and the local Sightings Gallery, before assigning the player points.
-                    <br/><br/>By assigning points to Sighting uploads, our app encourages players to learn more about the local wildlife through our mapping and search tools!
-                    
-                </p>
+            <div class="col-12">
+                <div class="card shadow-sm border-0 overflow-hidden">
+                    <h3 class="subheader">How Wildlife AID helps you learn</h3>
+                    <div class="card-body p-4 text-start">
+                        <p class="mb-2">
+                            Our GPS map assists users with exploring their local area, while our animal search feature gives prospective players the tools to identify different animal species, markings, and more.
+                        </p>
+                        <p class="mb-2">
+                            Once a user has a photo of an animal, our app scans the photo to identify the species, saving it both to the GPS map and the local Sightings Gallery, before assigning the player points.
+                        </p>
+                        <p class="mb-0">
+                            By assigning points to Sighting uploads, our app encourages players to learn more about the local wildlife through our mapping and search tools!
+                        </p>
+                    </div>
+                </div>
+            </div>
 
-                <h3 class="subheader mt-4">Local and built-in Community</h3>
-                <p class="displayText">
-                    You can join local chatrooms to ask questions and share pictures with your fellow players, or ask our app follow-up questions about
-                    the animal you've just encountered. We also have an animal search, in case you want more information on an animal species you're looking out for.
-                </p>
+            <div class="col-12">
+                <div class="card shadow-sm border-0 overflow-hidden">
+                    <h3 class="subheader">Local and built-in Community</h3>
+                    <div class="card-body p-4 text-start">
+                        <p class="mb-0">
+                            You can join local chatrooms to ask questions and share pictures with your fellow players, or ask our app follow-up questions about
+                            the animal you've just encountered. We also have an animal search, in case you want more information on an animal species you're looking out for.
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="container">
-        <div class="row pb-1 mb-2">
+    <div class="container mb-5 mb-md-2 pb-4 pb-md-1">
+        <div class="row">
             <div class="col">
-                <button aria-label="Account Registration" class="btnDark" id="frontPageBtn" onclick="location = '@Url.Action("Register", "Account")'">Make an account now!</button>
+                <button aria-label="Account Registration" class="btnDark" id="frontPageBtn" onclick="location = '@Url.Action("Register", "Account")'">Register an Account</button>
             </div>
         </div>
     </div>
