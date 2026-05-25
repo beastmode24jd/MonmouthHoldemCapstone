@@ -220,13 +220,62 @@ public class CSP213StepDefinitions
     [Given("a locked user account exists")]
     public void GivenALockedUserAccountExists()
     {
-        
+        // Navigate to User Management page
+        _driver.Navigate().GoToUrl($"{_baseUrl}/Admin/Manage");
+
+        // Lock lily out of her account for setup.
+        // We check audit logs by Category and Target User, so this won't confuse
+        //      the later steps.
+        var searchInput = _driver.FindElement(By.Id("activeUserSearch"));
+        var hiddenEmailInput = _driver.FindElement(By.CssSelector("#lockForm .selected-email"));
+
+        searchInput.Clear();
+        searchInput.SendKeys("Lily");
+
+        // Wait until the JS has populated the hidden email field based on the search
+        _wait.Until(d => {
+            var val = hiddenEmailInput.GetAttribute("value");
+            return !string.IsNullOrEmpty(val) && val.Contains("@");
+        });
+
+        _driver.FindElement(By.Id("lockBtn")).Click();
+
+        // Wait for the password confirmation modal to show
+        _wait.Until(d => d.FindElement(By.Id("adminPasswordModal")).Displayed);
+
+        var adminPasswordInput = _driver.FindElement(By.Id("modalAdminPassword"));
+        adminPasswordInput.SendKeys("Capstone26!");
+
+        _driver.FindElement(By.Id("confirmAuthBtn")).Click();
     }
 
     [When("the admin unlocks that user account")]
     public void WhenTheAdminUnlocksThatUserAccount()
     {
-        
+        // Flip it.
+        var unlockSearchInput = _driver.FindElement(By.Id("lockedUserSearch"));
+        unlockSearchInput.Clear();
+        unlockSearchInput.SendKeys("Lily");
+
+        // Wait for the JavaScript debounce and fetch to complete
+        // We know it's done when the hidden email field inside the unlock form gets a value
+        var hiddenEmailField = _driver.FindElement(By.CssSelector("#unlockForm .selected-email"));
+        _wait.Until(d => !string.IsNullOrEmpty(hiddenEmailField.GetAttribute("value")));
+
+        // Now that the email is populated, click the Restore Access button
+        _driver.FindElement(By.Id("unlockBtn")).Click();
+
+        // Wait for Bootstrap Modal to finish its animation and become visible
+        var modalPasswordInput = _wait.Until(d => 
+        {
+            var element = d.FindElement(By.Id("modalAdminPassword"));
+            return element.Displayed ? element : null;
+        });
+
+        var adminPasswordInput = _driver.FindElement(By.Id("modalAdminPassword"));
+        adminPasswordInput.SendKeys("Capstone26!");
+
+        _driver.FindElement(By.Id("confirmAuthBtn")).Click();
     }
 
     // Audit Log page navigation step given in Scenario 2
@@ -234,26 +283,25 @@ public class CSP213StepDefinitions
     [Then("an entry is visible for the unlocking action")]
     public void ThenAnEntryIsVisibleForTheUnlockingAction()
     {
+        _driver.Navigate().GoToUrl($"{_baseUrl}/Audit-Logs");
+
+        // Wait to ensure the table has loaded
+        _wait.Until(d => d.FindElements(By.CssSelector("table tbody tr")).Count > 0);
+
+        // Grab the 5th cell (td) of the first row (tr)
+        var actionCell = _driver.FindElement(By.CssSelector("table tbody tr:first-child td:nth-child(5)"));
         
+        // Check the Audit logs for "User Unocked"
+        actionCell.Text.Should().Contain("User Unlocked");
     }
 
     [Then("the entry references the unlocked user")]
     public void ThenTheEntryReferencesTheUnlockedUser()
     {
+        // Grab the 3rd cell (td) of the first row (tr)
+        var targetUserCell = _driver.FindElement(By.CssSelector("table tbody tr:first-child td:nth-child(3)"));
         
+        // Verify the locked user's name is in the cell
+        targetUserCell.Text.Should().Contain("Lily");
     }
-
-    /*
-    Scenario: Audit log page is not accessible to regular users -- DONE
-    Scenario: Resolving a report creates an audit log entry -- DONE
-    Scenario: Locking a user creates an audit log entry --DONE
-
-    Scenario: Unlocking a user creates an audit log entry
-        Given an admin is logged in
-        And a locked user account exists
-        When the admin unlocks that user account
-        And the admin navigates to the audit log page
-        Then an entry is visible for the unlocking action
-        And the entry references the unlocked user
-    */
 }
