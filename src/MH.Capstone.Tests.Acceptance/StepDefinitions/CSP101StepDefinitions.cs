@@ -339,10 +339,27 @@ public class CSP101StepDefinitions
         _wait.Until(d => d.FindElement(By.CssSelector("button[data-bs-target='#reportModal']")));
     }
 
+    private void OpenFabMenu()
+    {
+        var fabMain = _wait.Until(d =>
+        {
+            var el = d.FindElement(By.Id("fabMain"));
+            return el.Displayed ? el : null;
+        });
+        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", fabMain);
+        _wait.Until(d =>
+        {
+            var container = d.FindElement(By.Id("fabContainer"));
+            return (container.GetAttribute("class") ?? string.Empty).Contains("fab-open");
+        });
+    }
+
     private void OpenReportModal()
     {
         // Scroll to top so nothing covers the fixed-position floating button.
         try { ((IJavaScriptExecutor)_driver).ExecuteScript("window.scrollTo(0, 0);"); } catch { }
+
+        OpenFabMenu();
 
         var openButton = _wait.Until(d =>
         {
