@@ -75,7 +75,7 @@ All interfaces in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `IAuthenticationService` | Login, register, logout, password reset, email confirmation |
 | `IUserService` / `IUserProfileService` | Profile management, deactivation. `UpdateDisplayNameAsync` validates 2–50 chars, throws `ArgumentOutOfRangeException` |
 | `IProfileImageService` | Upload/retrieve profile images |
-| `ISightingsService` | Submit/query sightings. `GetAllSightingsAsync()` eager-loads User. `GetUserAnidexAsync(Guid)` → one entry per unique `SpeciesName`; rarity from global count, sorted rarest-first. `GetSightingsPageAsync(page, pageSize)` (CSP-199) → `PagedResult<Sighting>` newest-first, pushes `ORDER BY`/`OFFSET-FETCH` to SQL so only one page of rows+images loads (gallery perf fix); `page < 1` clamps to 1. |
+| `ISightingsService` | Submit/query sightings. `GetAllSightingsAsync()` eager-loads User. `GetUserAnidexAsync(Guid)` → one entry per unique `SpeciesName`; rarity from global count, sorted rarest-first. `GetSightingsPageAsync(page, pageSize)` (CSP-199) → `PagedResult<Sighting>` newest-first, pushes `ORDER BY`/`OFFSET-FETCH` to SQL so only one page of rows+images loads (gallery perf fix); `page < 1` clamps to 1. `UpdateSightingAsync(sightingId, userId, description, speciesName)` (CSP-37) → updates **only** Description + SpeciesName and saves; returns the updated `Sighting`, `null` if not found, throws `UnauthorizedAccessException` on ownership mismatch. **No scoring call** — PointValue/Rarity/RarityMultiplier, GPS, timestamp, photo stay frozen so a rename can't re-tier or game the leaderboard. |
 | `IScoringService` | Award points by rarity. `GetGlobalSightingsCountAsync(string)` — case-insensitive match on `SpeciesName`. |
 | `IBadgeService` | `SyncBadgeProgressAsync(user, badgeId, actualCount, tz)` — idempotent, safe to call on every login. `UpdateBadge` increments progress, calls `AddBadge` when threshold met. `SortBadgesByTime` — descending chronological sort. |
 | `ILeaderboardService` | `GetLeaderboardPageAsync()` → `IEnumerable<ApplicationUser>` |
@@ -99,7 +99,10 @@ All interfaces in `src/MH.Capstone.Domain/Services/Abstraction/`:
 | `GET /dashboard` | Calls `SyncBadgeProgressAsync` for SightingNovice, SightingStudent, AnidexBeginner on every load |
 | `GET /dashboard/badges` | `BadgesViewModel` passes full `UserBadges` list (not filtered to earned) so progress bar has data |
 | `GET/POST /account/SetDisplayName` | Forced for `DisplayName == "UNSET"` |
-| `GET /Sighting/Details/{id:guid}` | `[Authorize]`. Reads `UserTimeZone` cookie (same convention as Gallery). Returns `View("NotFound")` for unknown ids. |
+| `GET /Sighting/Details/{id:guid}` | `[Authorize]`. Reads `UserTimeZone` cookie (same convention as Gallery). Returns `View("NotFound")` for unknown ids. Sets `CanEdit` (owner-only) so the view gates the edit button. Renders `TempData["EditSuccess"]` flash after an edit. |
+| `GET /Sighting/Edit/{id:guid}` | `[Authorize]` (CSP-37). Owner-only: pre-populates `SightingEditViewModel` (editable Description+SpeciesName plus read-only photo/GPS/timestamp). Unknown id → `View("NotFound")`; **authenticated non-owner → `Forbid()`** → cookie auth redirects to `/Account/AccessDenied`. (Plain login-redirect does NOT work for an authenticated user — `Login` GET bounces signed-in users to Dashboard. Unauthenticated visitors hit `[Authorize]` → `/Account/Login`.) |
+| `POST /Sighting/Edit/{id:guid}` | `[Authorize][ValidateAntiForgeryToken]` (CSP-37). Re-checks ownership server-side **before** validating/saving. Valid → `UpdateSightingAsync` → `TempData["EditSuccess"]` → redirect to `Details`. Invalid ModelState → redraws Edit view with the user's input preserved and read-only context re-hydrated (re-fetches the sighting). Non-owner → `Forbid()`; unknown id → `NotFound`. |
+| `GET /Account/AccessDenied` | `[AllowAnonymous]` (CSP-37). Renders the styled access-denied page the cookie auth `AccessDeniedPath` points at (previously 404'd — the path was configured in Program.cs but no action/view existed). Element ids: `accessDeniedContainer`, `accessDeniedMessage`. |
 | `POST /Admin/UpdateResolution/{id}` | AJAX; `status` from querystring, antiforgery token from `input[name="__RequestVerificationToken"]`. |
 
 **`RequireDisplayNameFilter`:** Global filter redirecting `DisplayName == "UNSET"` users. Exempted: `SetDisplayName`, `Login`, `Logout`, `Register`, `RegisterConfirmation`, `VerifyEmail`, `ResendVerification`, `ForgotPassword`, `ResetPassword`, `Reactivate`, `Deactivate`, test email endpoints.
@@ -123,7 +126,7 @@ Base 10 pts. Multiplier by global sightings of that species: Mythic (≤5) = 5×
 | `LeaderboardController` | Global rankings |
 | `MapController` | GPS sighting map (Leaflet.js) |
 | `ReportController` | Submit/view content reports |
-| `SightingController` | Submit/view sightings. `Details(Guid)` depends on `ISightingsService` + `IAnimalFunFactService`. |
+| `SightingController` | Submit/view sightings. `Details(Guid)` depends on `ISightingsService` + `IAnimalFunFactService`. `Edit(Guid)` GET/POST (CSP-37) — owner-only edit of Description+SpeciesName via `SightingEditViewModel`; ownership re-checked server-side, authenticated non-owner → `Forbid()` (→ `/Account/AccessDenied`). |
 | `AnidexController` | `GET /anidex` — `[Authorize]`, personal species discovery gallery |
 | `SpeciesController` | Animal lookup via API-Ninjas, cached |
 | `ClubsController` | Club listing, creation, chatroom stubs |
@@ -163,7 +166,9 @@ Reqnroll + Selenium. `ASPNETCORE_ENVIRONMENT = "Acceptance"`. Kestrel on `https:
 
 **DI in steps:** Per-scenario DI via `[ScenarioDependencies]` in `TestDependencySetup`. **Every new Driver must be registered as `services.AddTransient<TDriver>()`** — Reqnroll does not auto-discover.
 
-**Reusable step bindings (CSP-172):** `Given user Lily is logged in`, `Given visitor James is signed out`.
+**Reusable step bindings (CSP-172):** `Given user Lily is logged in`, `Given visitor James is signed out`. Also reusable: `Given user Alex is logged in` (CSP-53), `Given user Patricia is logged in` (CSP-96) — do **not** redefine these in new step files (ambiguous-binding error).
+
+**CSP-37 Edit Sighting (acceptance):** `EditSightingDriver` + `EditSightingPageObject`; `CSP37StepDefinitions` reuses the Alex/Patricia/James login bindings above. Tagged `@csp37`; **resets seed data both `[BeforeScenario]` and `[AfterScenario]`** because scenarios edit Alex's seeded sighting `a1000000-…-001` (shared with CSP-142/CSP-172) — the after-reset prevents leaking the edit into other features' assertions. Denial is checked with `EditSightingDriver.WasAccessDenied()` (URL contains `/account/accessdenied` **or** `/account/login`) — **not** `AuthenticationDriver.WasPageAccessDenied()`, because an authenticated non-owner is `Forbid()`'d to AccessDenied, not Login (login bounces signed-in users to Dashboard).
 
 #### Seed Personas
 
@@ -201,6 +206,8 @@ Legacy personas still coexist: `alpha@test.com`, `alice@test.com`, `bob@test.com
 | `/Sighting/Details/{id}` | `sightingDetailsSpecies`, `sightingDetailsTimestamp`, `sightingDetailsLocation`, `sightingDetailsDescription` | Sighting metadata |
 | `/Sighting/Details/{id}` | `sightingDetailsFunFact` | Fun fact. `data-fun-fact-status="ok"` or `"fallback"` |
 | `/Sighting/Details/{id}` | `backToGalleryLink` | Back to Gallery |
+| `/Sighting/Details/{id}` | `editSightingLink`, `editSuccessMessage` | CSP-37: edit link rendered only when `Model.CanEdit` (owner); success flash from `TempData["EditSuccess"]`. |
+| `/Sighting/Edit/{id}` | `editSightingForm`, `editSpeciesField`, `editDescriptionField`, `saveEditBtn`, `cancelEditLink` | CSP-37 edit form. Read-only context: `editSightingImage`, `editSightingTimestamp`, `editSightingLocation`. |
 | `/Sighting` (NotFound) | `sightingNotFoundMessage`, `notFoundBackToGalleryLink` | Not-found view |
 | Sightings dropdown | `anidexNavLink` | "My Anidex" (authenticated only) |
 | `/anidex` | `anidexEmptyState`, `anidexGrid`, `anidexSpeciesCount` | Page state |
@@ -380,7 +387,9 @@ gh run list --repo jmcshane22/MonmouthHoldemCapstone \
 - Users need `NormalizedEmail`, `NormalizedUserName` (`.ToUpper()`), hashed password via `PasswordHasher<ApplicationUser>`
 - `SightingUploadViewModel` requires `DeviceTimezone` (default `"America/Los_Angeles"`); `ToDataModel()` converts to UTC
 
-**`SightingDetailsViewModel`:** Null/whitespace `funFact` → `IsFunFactFallback = true` + fallback message ("Fun facts about this animal aren't available right now."). View sets `data-fun-fact-status="fallback"` when true.
+**`SightingDetailsViewModel`:** Null/whitespace `funFact` → `IsFunFactFallback = true` + fallback message ("Fun facts about this animal aren't available right now."). View sets `data-fun-fact-status="fallback"` when true. `CanEdit` (CSP-37) defaults `false`; controller sets it true only for the owner.
+
+**`SightingEditViewModel`** (CSP-37): `Description` and `SpeciesName` are **both `[Required]`** here — stricter than `SightingUploadViewModel`, where Description is optional. This is a presentation-layer rule; the `Sighting` entity still allows null descriptions. Also carries read-only `ImageDataUrl`/`Latitude`/`Longitude`/`Timestamp` (display only, never posted back). `(Sighting)` constructor pre-populates everything; null description → empty string.
 
 **CSP-184 acceptance seeder:** Seeds `SightingNoviceBadge` (`BadgeSteps = 5`). `SightingStudentBadge` and `AnidexBeginnerBadge` are **not yet** in the acceptance seeder — add them before writing tests for those badges. `[BeforeScenario("badge")]` calls `ResetSeedDataAsync()` so Alex starts at exactly 4 seeded sightings — without this, sightings submitted by other features push him past the 5-sighting threshold.
 

@@ -60,7 +60,7 @@ namespace MH.Capstone.WebApp.Controllers
         [HttpGet]
         [Route("")]
         [Route("{id:guid}")]
-        public async Task<IActionResult> Index(Guid? id)
+        public async Task<IActionResult> Index(Guid? id, int followersPage = 1, int followingPage = 1)
         {
             var user = await _userManager.GetUserAsync(User);
             AccountViewModel vm;
@@ -102,6 +102,10 @@ namespace MH.Capstone.WebApp.Controllers
                 }
             }
 
+            // CSP-211: counts + paginated lists for the follower/following tabs.
+            // Visible on the viewer's own profile and on other users' profiles.
+            await PopulateFollowGraphAsync(vm, followersPage, followingPage);
+
             // Sprint 7: Recent Badges — top 3 most recently earned badge titles, newest-first.
             var sortedBadges = await _badgeService.SortBadgesByTime(targetUser.UserBadges.ToList());
             vm.RecentBadgeTitles = sortedBadges
@@ -132,6 +136,45 @@ namespace MH.Capstone.WebApp.Controllers
             return View(vm);
         }
 
+        // CSP-211: resolve total counts + the requested page (size 20) of each list.
+        private async Task PopulateFollowGraphAsync(AccountViewModel vm, int followersPage, int followingPage)
+        {
+            var followerIds = (await _followService.GetFollowerIdsAsync(vm.Id)).ToList();
+            var followeeIds = (await _followService.GetFolloweeIdsAsync(vm.Id)).ToList();
+
+            vm.FollowerCount = followerIds.Count;
+            vm.FolloweeCount = followeeIds.Count;
+            vm.FollowersPage = Math.Max(1, followersPage);
+            vm.FolloweesPage = Math.Max(1, followingPage);
+
+            vm.Followers = await ResolveFollowPageAsync(followerIds, vm.FollowersPage);
+            vm.Followees = await ResolveFollowPageAsync(followeeIds, vm.FolloweesPage);
+        }
+
+        private async Task<List<FollowListUser>> ResolveFollowPageAsync(IList<Guid> ids, int page)
+        {
+            var pageSlice = ids
+                .Skip((page - 1) * AccountViewModel.FollowPageSize)
+                .Take(AccountViewModel.FollowPageSize)
+                .ToList();
+
+            var rows = new List<FollowListUser>(pageSlice.Count);
+            foreach (var rowId in pageSlice)
+            {
+                var u = await _userService.GetUserByIdAsync(rowId);
+                if (u == null) continue;
+                rows.Add(new FollowListUser
+                {
+                    Id = rowId,
+                    DisplayName = string.IsNullOrWhiteSpace(u.DisplayName) || u.DisplayName == "UNSET"
+                        ? (u.UserName ?? "Unknown")
+                        : u.DisplayName,
+                    ProfileImageUrl = u.GetProfileImageUrl(),
+                });
+            }
+            return rows;
+        }
+
         [HttpGet]
         [AllowAnonymous]
         [Route("login")]
@@ -150,8 +193,20 @@ namespace MH.Capstone.WebApp.Controllers
             return View();
         }
 
+        // Landing page for Forbid() results. Program.cs configures
+        // AccessDeniedPath = /Account/AccessDenied; this renders it instead of 404ing.
+        // Used by CSP-37 when an authenticated non-owner tries to edit someone else's sighting.
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("accessdenied")]
+        public IActionResult AccessDenied(string? returnUrl = null)
+        {
+            ViewData["ReturnUrl"] = returnUrl;
+            return View();
+        }
+
         // Displays the login page.
-        // If the user is already authenticated, they are redirected to the dashboard.     
+        // If the user is already authenticated, they are redirected to the dashboard.
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]

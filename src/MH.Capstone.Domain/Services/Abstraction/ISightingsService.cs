@@ -63,5 +63,20 @@ namespace MH.Capstone.Domain.Services.Abstraction
         Task<Sighting?> GetSightingByIdAsync(Guid sightingId);
 
         #endregion
+
+        #region CSP-37: Edit Sighting
+
+        /// <summary>
+        /// Updates the <see cref="Sighting.Description"/> and <see cref="Sighting.SpeciesName"/>
+        /// of the sighting owned by <paramref name="userId"/>. Scoring (point value, rarity,
+        /// multiplier), GPS coordinates, timestamp, and photo are intentionally left untouched —
+        /// the factual record and leaderboard standings are frozen at submission time.
+        /// Returns the updated sighting, or <c>null</c> if no sighting with that id exists.
+        /// Throws <see cref="UnauthorizedAccessException"/> if the sighting exists but is not
+        /// owned by <paramref name="userId"/>.
+        /// </summary>
+        Task<Sighting?> UpdateSightingAsync(Guid sightingId, Guid userId, string description, string speciesName);
+
+        #endregion
     }
 }

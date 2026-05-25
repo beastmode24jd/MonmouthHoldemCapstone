@@ -188,6 +188,126 @@
                         }
                     </div>
                 </div>
+
+                @* CSP-211: Follower / Following tabs with counts. The count chips
+                    themselves are the tab buttons, so clicking either opens its list. *@
+                <div class="mt-4" id="followGraphSection">
+                    <ul class="nav nav-tabs" id="followGraphTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button id="followersTabBtn"
+                                    class="nav-link active"
+                                    data-bs-toggle="tab"
+                                    data-bs-target="#followersTab"
+                                    type="button"
+                                    role="tab"
+                                    aria-controls="followersTab"
+                                    aria-selected="true">
+                                <span id="followerCount">@Model.FollowerCount</span>
+                                <span class="d-none d-sm-inline">followers</span>
+                                <span class="d-inline d-sm-none">followers</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button id="followingTabBtn"
+                                    class="nav-link"
+                                    data-bs-toggle="tab"
+                                    data-bs-target="#followingTab"
+                                    type="button"
+                                    role="tab"
+                                    aria-controls="followingTab"
+                                    aria-selected="false">
+                                <span id="followingCount">@Model.FolloweeCount</span>
+                                following
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content border border-top-0 p-3" id="followGraphTabsContent">
+                        @* Followers tab *@
+                        <div id="followersTab" class="tab-pane fade show active" role="tabpanel" aria-labelledby="followersTabBtn">
+                            @if (!Model.Followers.Any())
+                            {
+                                <p id="followersEmptyState" class="text-muted mb-0">No followers yet.</p>
+                            }
+                            else
+                            {
+                                <ul id="followersList" class="list-unstyled mb-0">
+                                    @foreach (var f in Model.Followers)
+                                    {
+                                        <li class="follow-list-item mb-2">
+                                            <a href="/account/@f.Id" class="d-flex align-items-center text-decoration-none text-body">
+                                                <img src="@f.ProfileImageUrl" alt="" class="rounded-circle me-2 follow-list-avatar" style="width: 32px; height: 32px; object-fit: cover;" />
+                                                <span class="follow-list-display-name">@f.DisplayName</span>
+                                            </a>
+                                        </li>
+                                    }
+                                </ul>
+                                @if (Model.FollowersTotalPages > 1)
+                                {
+                                    <nav aria-label="Followers pagination" class="mt-3">
+                                        <ul class="pagination pagination-sm justify-content-center mb-0">
+                                            <li class="page-item @(Model.FollowersPage <= 1 ? "disabled" : "")">
+                                                <a class="page-link" id="followersPrev" href="?followersPage=@(Math.Max(1, Model.FollowersPage - 1))#followersTab" aria-label="Previous followers page">
+                                                    <i class="bi bi-chevron-left"></i>
+                                                </a>
+                                            </li>
+                                            <li class="page-item disabled">
+                                                <span class="page-link" id="followersPageInfo">@Model.FollowersPage / @Model.FollowersTotalPages</span>
+                                            </li>
+                                            <li class="page-item @(Model.FollowersPage >= Model.FollowersTotalPages ? "disabled" : "")">
+                                                <a class="page-link" id="followersNext" href="?followersPage=@(Model.FollowersPage + 1)#followersTab" aria-label="Next followers page">
+                                                    <i class="bi bi-chevron-right"></i>
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                }
+                            }
+                        </div>
+
+                        @* Following tab *@
+                        <div id="followingTab" class="tab-pane fade" role="tabpanel" aria-labelledby="followingTabBtn">
+                            @if (!Model.Followees.Any())
+                            {
+                                <p id="followingEmptyState" class="text-muted mb-0">Not following anyone yet.</p>
+                            }
+                            else
+                            {
+                                <ul id="followingList" class="list-unstyled mb-0">
+                                    @foreach (var f in Model.Followees)
+                                    {
+                                        <li class="follow-list-item mb-2">
+                                            <a href="/account/@f.Id" class="d-flex align-items-center text-decoration-none text-body">
+                                                <img src="@f.ProfileImageUrl" alt="" class="rounded-circle me-2 follow-list-avatar" style="width: 32px; height: 32px; object-fit: cover;" />
+                                                <span class="follow-list-display-name">@f.DisplayName</span>
+                                            </a>
+                                        </li>
+                                    }
+                                </ul>
+                                @if (Model.FolloweesTotalPages > 1)
+                                {
+                                    <nav aria-label="Following pagination" class="mt-3">
+                                        <ul class="pagination pagination-sm justify-content-center mb-0">
+                                            <li class="page-item @(Model.FolloweesPage <= 1 ? "disabled" : "")">
+                                                <a class="page-link" id="followingPrev" href="?followingPage=@(Math.Max(1, Model.FolloweesPage - 1))#followingTab" aria-label="Previous following page">
+                                                    <i class="bi bi-chevron-left"></i>
+                                                </a>
+                                            </li>
+                                            <li class="page-item disabled">
+                                                <span class="page-link" id="followingPageInfo">@Model.FolloweesPage / @Model.FolloweesTotalPages</span>
+                                            </li>
+                                            <li class="page-item @(Model.FolloweesPage >= Model.FolloweesTotalPages ? "disabled" : "")">
+                                                <a class="page-link" id="followingNext" href="?followingPage=@(Model.FolloweesPage + 1)#followingTab" aria-label="Next following page">
+                                                    <i class="bi bi-chevron-right"></i>
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
                 <div class="row d-flex align-items-center mt-1 mb-2">
                     <div class="col-6">
                         @if(Model.IsAuthenticatedUser)
@@ -203,3 +323,19 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        // CSP-211: opening /account#followersTab or /account#followingTab
+        // from the dashboard quick-stat links should activate that tab.
+        (function () {
+            const hash = window.location.hash;
+            if (hash !== '#followersTab' && hash !== '#followingTab') return;
+            const btnId = hash === '#followingTab' ? 'followingTabBtn' : 'followersTabBtn';
+            const btn = document.getElementById(btnId);
+            if (btn && window.bootstrap && bootstrap.Tab) {
+                bootstrap.Tab.getOrCreateInstance(btn).show();
+            }
+        })();
+    </script>
+}

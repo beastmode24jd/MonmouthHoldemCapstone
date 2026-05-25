@@ -29,4 +29,11 @@ public class SightingDetailsPageObject
 
     public IReadOnlyCollection<IWebElement> NotFoundBackLinks =>
         _webDriver.FindElements(By.Id("notFoundBackToGalleryLink"));
+
+    // CSP-37: edit link is only rendered for the sighting owner; success flash after a save.
+    public IReadOnlyCollection<IWebElement> EditLinks =>
+        _webDriver.FindElements(By.Id("editSightingLink"));
+
+    public IReadOnlyCollection<IWebElement> SuccessMessages =>
+        _webDriver.FindElements(By.Id("editSuccessMessage"));
 }
