@@ -3,31 +3,22 @@
     ViewData["Title"] = "Account Details";
     // If the user not the authenticated user, show the user's name, email or id in the title, depending on what is set.
     // Otherwise, show a title indicated that a user is viewing their own account.
-    var titleString = Model.IsAuthenticatedUser ? "Showing info for Your Account" :
-        $"Showing info for {Model.Username ?? Model.Email ?? Model.Id.ToString()}";
 }
 
 <div class="container mt-4">
     <div class="card shadow">
         <div class="card-body">
-            <h1 class="card-title">Account Info</h1>
-            <div class="mt-4">
-                <h5>@titleString</h5>
+            <h1 class="card-title">@(Model.IsAuthenticatedUser ? "Your Profile" : $"{Model.DisplayName}'s Profile")</h1>
+            <div class="mt-3">
                 <div class="row">
                     <div class="col-12 col-md-2 d-flex justify-content-center align-items-center">
-                        <img class="dashboardProfile img-fluid" src="@Model.ProfileImageUrl" aria-label="@Model.Username Profile Image" />
+                        <img class="dashboardProfile img-fluid" 
+                        src="@Model.ProfileImageUrl" 
+                        aria-label="@Model.DisplayName Profile Image"
+                        style="width: 80px; height: 80px; object-fit: cover;" />
                     </div>
-                    <div class="col-12 col-md-10">
+                    <div class="col-12 col-md-10 mt-2 mb-1">
                         <ul class="list-group list-group-flush">
-                            @if (!string.IsNullOrEmpty(Model.DisplayName) && Model.DisplayName != "UNSET")
-                            {
-                                <li class="list-group-item">
-                                    <strong>Display Name:</strong> @Model.DisplayName
-                                </li>
-                            }
-                            <li class="list-group-item">
-                                <strong>Email:</strong> @Model.Email
-                            </li>
                             <li class="list-group-item">
                                 <strong>Status:</strong>
                                 @if (Model.IsDeactivated)
@@ -39,7 +30,84 @@
                                     <span class="badge bg-success">Active</span>
                                 }
                             </li>
+                            <li class="list-group-item">
+                                <strong>Total points:</strong> <span class="badge bg-dark" id="profilePointsValue">@(Model.Points ?? 0)</span>
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Bio:</strong> <span id="profileBio">@Model.Bio</span>
+                            </li>
                         </ul>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 col-md-10 mt-1 mb-1">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item" id="profileRecentBadges">
+                                    <strong>Recent Badges:</strong>
+                                    @if (Model.RecentBadgeTitles.Count == 0)
+                                    {
+                                        <span class="text-muted ms-1" id="profileRecentBadgesEmpty">No badges earned yet.</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="ms-1">
+                                            @foreach (var title in Model.RecentBadgeTitles)
+                                            {
+                                                <span class="badge bg-secondary me-1 profile-recent-badge">
+                                                    <i class="bi bi-leaf-fill"></i>
+                                                    @title
+                                                </span>
+                                            }
+                                        </span>
+                                    }
+                                </li>
+                                <li class="list-group-item" id="profileRecentClubs">
+                                    <strong>Recent Clubs:</strong>
+                                    @if (Model.RecentClubs.Count == 0)
+                                    {
+                                        <span class="text-muted ms-1" id="profileRecentClubsEmpty">No clubs joined yet.</span>
+                                    }
+                                    else
+                                    {
+                                        <div class="d-flex flex-wrap gap-2 mt-2">
+                                            @foreach (var club in Model.RecentClubs)
+                                            {
+                                                <a asp-controller="Clubs" asp-action="ClubPage" asp-route-id="@club.Id"
+                                                   class="btn btn-dark btn-sm text-start profile-recent-club"
+                                                   data-club-id="@club.Id"
+                                                   style="max-width: 240px;">
+                                                    <span class="d-block fw-semibold text-truncate">
+                                                        <i class="bi bi-people-fill"></i> @club.Name
+                                                    </span>
+                                                    @if (!string.IsNullOrWhiteSpace(club.Description))
+                                                    {
+                                                        <small class="d-block text-light text-truncate">@club.Description</small>
+                                                    }
+                                                </a>
+                                            }
+                                        </div>
+                                    }
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>Recent Sightings:</strong>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="col-12 mt-1">
+                        <div id="profileRecentSightings">
+                            @if (Model.RecentSightings.Count == 0)
+                            {
+                                <span class="text-muted ms-1 mt-2" id="profileRecentSightingsEmpty">No sightings yet.</span>
+                            }
+                            else
+                            {
+                                <partial name="_SightingCardGrid" model="Model.RecentSightings" />
+                            }
+                        </div>
+                    </div>
+                
+                    <div class="row">
 
                         @* CSP-187: Follow + Block toggles, only shown when viewing another user *@
                         @if (!Model.IsAuthenticatedUser)
@@ -213,6 +281,17 @@
                                 }
                             }
                         </div>
+                    </div>
+                </div>
+                <div class="row d-flex align-items-center mt-1 mb-2">
+                    <div class="col-6">
+                        @if(Model.IsAuthenticatedUser)
+                        {
+                            <a asp-controller="Dashboard" asp-action="Settings" id="accountEditBtn"
+                                class="btn btn-secondary mt-2 me-3">
+                                <i class="bi bi-gear"></i>  Edit
+                            </a>
+                        }
                     </div>
                 </div>
             </div>
