@@ -4,9 +4,9 @@
 
     string rarityBadgeClass = Model.Rarity switch
     {
-        "Mythic" => "bg-purple",
-        "Rare"   => "bg-primary",
-        "Common" => "bg-success",
+        "Mythic" => "bg-mythic",
+        "Rare"   => "bg-rare",
+        "Common" => "bg-common",
         _        => "bg-secondary"
     };
 }
@@ -155,7 +155,7 @@
                                   rows="2" maxlength="1000" required
                                   placeholder="Add a comment..."></textarea>
                     </div>
-                    <button id="postCommentButton" type="submit" class="btn btn-primary btn-sm">
+                    <button id="postCommentButton" type="submit" class="btn btnDark btn-sm">
                         <i class="bi bi-send"></i> Post Comment
                     </button>
                 </form>

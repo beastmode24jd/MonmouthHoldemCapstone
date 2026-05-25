@@ -11,9 +11,9 @@
         // Determine badge display based on rarity score.
         string rarityBadgeClass = sighting.Rarity switch
         {
-            "Mythic" => "bg-purple",   // Custom Purple
-            "Rare" => "bg-primary",    // Bootstrap Blue
-            "Common" => "bg-success",  // Bootstrap Green
+            "Mythic" => "bg-mythic",   // Custom Purple
+            "Rare" => "bg-rare",    // Bootstrap Blue
+            "Common" => "bg-common",  // Bootstrap Green
             _ => "bg-secondary"        // Fallback
         };
         <div class="col-12 col-sm-6 col-md-4 col-lg-3 sighting-card-wrapper"
@@ -39,7 +39,7 @@
 
                         @* Point value *@
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="badge bg-primary">@sighting.PointValue points</span>
+                            <span class="badge bg-points">@sighting.PointValue points</span>
                         </div>
 
                         @* Timestamp with icon *@
@@ -51,14 +51,14 @@
 
                         <div class="mb-3 d-flex flex-wrap align-items-center">
                             @* Rarity Badge *@
-                            <span class="badge @rarityBadgeClass me-1">
+                            <span class="badge @rarityBadgeClass me-1 mb-1">
                                 @sighting.Rarity (@sighting.RarityMultiplier.ToString("0.0")x)
                             </span>
 
                             @* Login Streak Badge - Only shown if active *@
                             @if (sighting.LoginStreak)
                             {
-                                <span class="badge bg-success">Login Streak (1.5x)</span>
+                                <span class="badge bg-loginStreak">Login Streak (1.5x)</span>
                             }
                         </div>
 
