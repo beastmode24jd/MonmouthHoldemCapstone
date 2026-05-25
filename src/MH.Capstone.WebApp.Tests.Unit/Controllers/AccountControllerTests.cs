@@ -25,6 +25,9 @@ public class AccountControllerTests
     private AccountController _controller;
     private Mock<UserManager<ApplicationUser>> _mockUserManager;
     private Mock<IUrlHelper> _mockUrlHelper;
+    private Mock<IClubService> _mockClubService;
+    private Mock<IBadgeService> _mockBadgeService;
+    private Mock<ISightingsService> _mockSightingService;
 
     [SetUp]
     public void Setup()
@@ -35,12 +38,24 @@ public class AccountControllerTests
         _mockNotificationService = new Mock<INotificationService>();
         _mockFollowService = new Mock<IFollowService>();
         _mockBlockService = new Mock<IBlockService>();
+        _mockBadgeService = new Mock<IBadgeService>();
+        _mockClubService = new Mock<IClubService>();
+        _mockSightingService = new Mock<ISightingsService>();
         _mockUrlHelper = new Mock<IUrlHelper>();
 
         // Mock UserManager (requires a Mock UserStore)
         var store = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
             store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+
+        _mockBadgeService.Setup(s => s.SortBadgesByTime(It.IsAny<List<UserBadge>>()))
+        .ReturnsAsync(new List<UserBadge>());
+
+        _mockClubService.Setup(s => s.GetRecentUserClubsAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<bool>()))
+            .ReturnsAsync(new List<Club>());
+
+        _mockSightingService.Setup(s => s.GetUserSightingsAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(new List<Sighting>());
 
         _controller = new AccountController(
             _mockAuthService.Object,
@@ -50,6 +65,9 @@ public class AccountControllerTests
             new FeatureFlags(),
             _mockFollowService.Object,
             _mockBlockService.Object,
+            _mockBadgeService.Object,
+            _mockClubService.Object,
+            _mockSightingService.Object,
             _mockLogger.Object);
 
         // Setup the Mock URL Helper to return a dummy string
@@ -357,5 +375,7 @@ public class AccountControllerTests
         UserName = email,
         Email = email,
         DisplayName = displayName,
+        // Initialize the collection to prevent NullReference/ArgumentNull exceptions
+        UserBadges = new List<UserBadge>()
     };
 }
