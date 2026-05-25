@@ -134,6 +134,8 @@ public class CSP120StepDefinitions
             Console.WriteLine("AI companion fetch stub did not confirm injection within wait period");
         }
 
+        OpenFabMenu();
+
         var button = _wait.Until(d =>
         {
             var el = d.FindElement(By.CssSelector("button[data-bs-target='#aiCompanionModal']"));
@@ -183,6 +185,8 @@ public class CSP120StepDefinitions
     [Then("{word} should see an {string} button")]
     public void ThenPersonaShouldSeeAButton(string name, string buttonLabel)
     {
+        OpenFabMenu();
+
         var button = _wait.Until(d =>
         {
             var el = d.FindElement(By.CssSelector("button[data-bs-target='#aiCompanionModal']"));
@@ -278,6 +282,21 @@ public class CSP120StepDefinitions
     }
 
     #endregion
+
+    private void OpenFabMenu()
+    {
+        var fabMain = _wait.Until(d =>
+        {
+            var el = d.FindElement(By.Id("fabMain"));
+            return el.Displayed ? el : null;
+        });
+        ((IJavaScriptExecutor)_driver).ExecuteScript("arguments[0].click();", fabMain);
+        _wait.Until(d =>
+        {
+            var container = d.FindElement(By.Id("fabContainer"));
+            return (container.GetAttribute("class") ?? string.Empty).Contains("fab-open");
+        });
+    }
 
     #region Helpers
 
