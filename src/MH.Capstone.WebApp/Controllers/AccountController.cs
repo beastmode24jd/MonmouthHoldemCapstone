@@ -23,6 +23,9 @@ namespace MH.Capstone.WebApp.Controllers
         private readonly FeatureFlags _featureFlags;
         private readonly IFollowService _followService;
         private readonly IBlockService _blockService;
+        private readonly IBadgeService _badgeService;
+        private readonly IClubService _clubService;
+        private readonly ISightingsService _sightingsService;
 
         // Logger for tracking authentication-related events
         private readonly ILogger<AccountController> _logger;
@@ -36,6 +39,9 @@ namespace MH.Capstone.WebApp.Controllers
             FeatureFlags featureFlags,
             IFollowService followService,
             IBlockService blockService,
+            IBadgeService badgeService,
+            IClubService clubService,
+            ISightingsService sightingsService,
             ILogger<AccountController> logger)
         {
             _authService = authService;
@@ -45,6 +51,9 @@ namespace MH.Capstone.WebApp.Controllers
             _featureFlags = featureFlags;
             _followService = followService;
             _blockService = blockService;
+            _badgeService = badgeService;
+            _clubService = clubService;
+            _sightingsService = sightingsService;
             _logger = logger;
         }
 
@@ -55,6 +64,7 @@ namespace MH.Capstone.WebApp.Controllers
         {
             var user = await _userManager.GetUserAsync(User);
             AccountViewModel vm;
+            ApplicationUser targetUser;
 
             if (user == null)
             {
@@ -66,6 +76,7 @@ namespace MH.Capstone.WebApp.Controllers
             {
                 // If not, use the current authenticated user
                 // This is hit when the route("") endpoint is used, which allows for the "/account" endpoint
+                targetUser = user;
                 vm = new AccountViewModel(user, true);
                 _logger.LogInformation("No Id provided");
             }
@@ -79,6 +90,7 @@ namespace MH.Capstone.WebApp.Controllers
                 }
 
                 // Create an Account ViewModel for the user being viewed, and indicate whether they are the authenticated user
+                targetUser = userFromId;
                 vm = new AccountViewModel(userFromId, userFromId.Id == user.Id);
                 _logger.LogInformation("Id provided");
 
@@ -93,6 +105,33 @@ namespace MH.Capstone.WebApp.Controllers
             // CSP-211: counts + paginated lists for the follower/following tabs.
             // Visible on the viewer's own profile and on other users' profiles.
             await PopulateFollowGraphAsync(vm, followersPage, followingPage);
+
+            // Sprint 7: Recent Badges — top 3 most recently earned badge titles, newest-first.
+            var sortedBadges = await _badgeService.SortBadgesByTime(targetUser.UserBadges.ToList());
+            vm.RecentBadgeTitles = sortedBadges
+                .Where(ub => ub.BadgeEarned != null)
+                .Take(3)
+                .Select(ub => ub.Badge.Title)
+                .ToList();
+
+            // Sprint 7: Recent Clubs — top 3 clubs by most-recent join (ClubMembership.JoinedAt desc).
+            // Visitors viewing someone else's profile only see public clubs, since
+            // ClubsController.ClubPage 403s on private clubs the viewer isn't a member of.
+            var recentClubs = await _clubService.GetRecentUserClubsAsync(
+                targetUser.GuidId,
+                count: 3,
+                includePrivate: vm.IsAuthenticatedUser);
+            vm.RecentClubs = recentClubs
+                .Select(c => new ProfileClubLink(c.Id, c.Name, c.Description))
+                .ToList();
+
+            // Sprint 7: Recent Sightings — top 4 by Timestamp desc to fill one row of the shared
+            // _SightingCardGrid partial (col-lg-3). GetUserSightingsAsync already orders newest-first.
+            var userSightings = await _sightingsService.GetUserSightingsAsync(targetUser.GuidId);
+            vm.RecentSightings = userSightings
+                .Take(4)
+                .Select(s => new SightingCardViewModel(s))
+                .ToList();
 
             return View(vm);
         }
