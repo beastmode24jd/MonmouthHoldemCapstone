@@ -59,11 +59,15 @@ public class ProfileDriver
     public bool IsRecentClubsSectionPresent()
         => _webDriver.FindElements(By.Id("profileRecentClubs")).Count > 0;
 
+    // CSP-215: Recent Sightings now renders via the shared _SightingCardGrid partial,
+    // which emits .sighting-card-wrapper cards inside the #profileRecentSightings container.
+    // Scope the card selector to that container so cards from any other grid on the page
+    // (e.g. shared layout fragments) can't inflate the count.
     public bool IsRecentSightingsSectionPresent()
         => _webDriver.FindElements(By.Id("profileRecentSightings")).Count > 0;
 
     public int GetRecentSightingsCardCount()
-        => _webDriver.FindElements(By.CssSelector(".profile-recent-sighting")).Count;
+        => _webDriver.FindElements(By.CssSelector("#profileRecentSightings .sighting-card-wrapper")).Count;
 
     public string GetBioText()
     {

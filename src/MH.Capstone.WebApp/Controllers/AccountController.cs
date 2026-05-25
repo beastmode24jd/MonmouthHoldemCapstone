@@ -125,11 +125,11 @@ namespace MH.Capstone.WebApp.Controllers
                 .Select(c => new ProfileClubLink(c.Id, c.Name, c.Description))
                 .ToList();
 
-            // Sprint 7: Recent Sightings — top 3 by Timestamp desc. GetUserSightingsAsync
-            // already orders newest-first, so we just take 3 and project to card view models.
+            // Sprint 7: Recent Sightings — top 4 by Timestamp desc to fill one row of the shared
+            // _SightingCardGrid partial (col-lg-3). GetUserSightingsAsync already orders newest-first.
             var userSightings = await _sightingsService.GetUserSightingsAsync(targetUser.GuidId);
             vm.RecentSightings = userSightings
-                .Take(3)
+                .Take(4)
                 .Select(s => new SightingCardViewModel(s))
                 .ToList();
 

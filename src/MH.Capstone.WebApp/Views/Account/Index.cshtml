@@ -60,48 +60,6 @@
                                         </span>
                                     }
                                 </li>
-                                <li class="list-group-item" id="profileRecentSightings">
-                                    <strong>Recent Sightings:</strong>
-                                    @if (Model.RecentSightings.Count == 0)
-                                    {
-                                        <span class="text-muted ms-1" id="profileRecentSightingsEmpty">No sightings yet.</span>
-                                    }
-                                    else
-                                    {
-                                        <div class="row g-2 mt-2">
-                                            @foreach (var sighting in Model.RecentSightings)
-                                            {
-                                                // Mirrors Gallery.cshtml rarity-class mapping
-                                                string rarityBadgeClass = sighting.Rarity switch
-                                                {
-                                                    "Mythic" => "bg-purple",
-                                                    "Rare" => "bg-primary",
-                                                    "Common" => "bg-success",
-                                                    _ => "bg-secondary"
-                                                };
-                                                <div class="col-12 col-sm-4">
-                                                    <a asp-controller="Sighting" asp-action="Details" asp-route-id="@sighting.Id"
-                                                       class="text-reset text-decoration-none profile-recent-sighting"
-                                                       data-sighting-id="@sighting.Id">
-                                                        <div class="card h-100 shadow-sm">
-                                                            <img src="@sighting.ImageDataUrl"
-                                                                 class="card-img-top"
-                                                                 alt="Sighting image"
-                                                                 loading="lazy"
-                                                                 style="height: 120px; object-fit: cover;" />
-                                                            <div class="card-body p-2">
-                                                                <small class="d-block text-muted mb-1">
-                                                                    <i class="bi bi-clock"></i> @sighting.Timestamp.ToString("MMM dd, yyyy")
-                                                                </small>
-                                                                <span class="badge @rarityBadgeClass">@sighting.Rarity</span>
-                                                            </div>
-                                                        </div>
-                                                    </a>
-                                                </div>
-                                            }
-                                        </div>
-                                    }
-                                </li>
                                 <li class="list-group-item" id="profileRecentClubs">
                                     <strong>Recent Clubs:</strong>
                                     @if (Model.RecentClubs.Count == 0)
@@ -129,9 +87,26 @@
                                         </div>
                                     }
                                 </li>
+                                <li class="list-group-item">
+                                    <strong>Recent Sightings:</strong>
+                                </li>
                             </ul>
                         </div>
                     </div>
+
+                    <div class="col-12 mt-1">
+                        <div id="profileRecentSightings">
+                            @if (Model.RecentSightings.Count == 0)
+                            {
+                                <span class="text-muted ms-1 mt-2" id="profileRecentSightingsEmpty">No sightings yet.</span>
+                            }
+                            else
+                            {
+                                <partial name="_SightingCardGrid" model="Model.RecentSightings" />
+                            }
+                        </div>
+                    </div>
+                
                     <div class="row">
 
                         @* CSP-187: Follow + Block toggles, only shown when viewing another user *@

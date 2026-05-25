@@ -49,7 +49,7 @@ public class AccountControllerTests
             store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
         _mockBadgeService.Setup(s => s.SortBadgesByTime(It.IsAny<List<UserBadge>>()))
-            .ReturnsAsync(new List<UserBadge>());
+        .ReturnsAsync(new List<UserBadge>());
 
         _mockClubService.Setup(s => s.GetRecentUserClubsAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<bool>()))
             .ReturnsAsync(new List<Club>());
