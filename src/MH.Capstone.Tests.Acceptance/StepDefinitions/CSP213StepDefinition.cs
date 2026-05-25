@@ -246,7 +246,26 @@ public class CSP213StepDefinitions
         var adminPasswordInput = _driver.FindElement(By.Id("modalAdminPassword"));
         adminPasswordInput.SendKeys("Capstone26!");
 
-        _driver.FindElement(By.Id("confirmAuthBtn")).Click();
+        // Grab a reference to the button BEFORE clicking it
+        var confirmBtn = _driver.FindElement(By.Id("confirmAuthBtn"));
+        
+        // Click the button to trigger form.submit()
+        confirmBtn.Click();
+
+        // Catch the page reload to prevent race conditions in the next step
+        _wait.Until(d => 
+        {
+            try 
+            {
+                // If we can still access properties on the element, the page hasn't reloaded yet
+                return !confirmBtn.Displayed;
+            }
+            catch (StaleElementReferenceException) 
+            {
+                // This exception proves the old DOM was successfully destroyed by the reload
+                return true; 
+            }
+        });
     }
 
     [When("the admin unlocks that user account")]
