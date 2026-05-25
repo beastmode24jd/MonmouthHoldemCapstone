@@ -9,6 +9,13 @@ namespace MH.Capstone.Domain.Services.Abstraction
         // Returns clubs the given user is an accepted member of (AcceptedInvite == true).
         Task<IEnumerable<Club>> GetUserClubsAsync(Guid userId);
 
+        // Returns up to `count` clubs the given user is an accepted member of,
+        // ordered most-recently-joined first (by ClubMembership.JoinedAt desc).
+        // Used by the profile "Recent Clubs" list. When includePrivate is false,
+        // private clubs are skipped before the take — older public clubs backfill so
+        // visitors viewing another user's profile still see up to `count` linkable clubs.
+        Task<IEnumerable<Club>> GetRecentUserClubsAsync(Guid userId, int count, bool includePrivate = true);
+
         // Returns clubs the given user has a pending (unaccepted) invite to.
         Task<IEnumerable<Club>> GetPendingInvitesAsync(Guid userId);
 

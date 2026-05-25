@@ -1,0 +1,134 @@
+@model MH.Capstone.WebApp.Models.AuditQueueViewModel
+@using System.Text.RegularExpressions
+@{
+    ViewData["Title"] = "Audit Logs";
+}
+
+<div class="container mt-4">
+    @Html.AntiForgeryToken()
+    <h2 class="card-title">Action Audit Log</h2>
+    <hr />
+
+    @* Search Bars (page URL and User search) *@
+    <form asp-action="LogPage" method="get" class="mb-4">
+        <div class="row g-3 mb-2">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Logged Admin</label>
+                <input asp-for="AdminSearch" id="adminSearchInput" list="adminSuggestions" autocomplete="off" class="form-control" placeholder="Username here..." />
+                <datalist id="adminSuggestions"></datalist>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Target User</label>
+                <input asp-for="UserSearch" id="userSearchInput" list="userSuggestions" autocomplete="off" class="form-control" placeholder="Username here..." />
+                <datalist id="userSuggestions"></datalist>
+            </div>
+        </div>
+
+        @* Date sort? *@
+        <div class="row g-3 mt-0">
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Date Filter (Older Than)</label>
+                <input asp-for="DateFilter" type="date" class="form-control" 
+                        value="@(Model.DateFilter?.ToString("yyyy-MM-dd") ?? ViewBag.CurrentLocalDate)" />
+            </div>
+            
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-dark w-100">Filter</button>
+                <a asp-action="LogPage" class="btn btn-secondary w-100 ms-2">Clear</a>
+            </div>
+        </div>
+    </form>
+
+    <table class="table table-hover shadow-sm">
+        <thead class="table-dark align-center">
+            <tr>
+                <th>Date</th>
+                <th>Admin</th>
+                <th>User</th>
+                <th>Page</th>
+                <th>Category</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var audit in Model.Audits)
+            {
+                <tr class="text">
+                    <td>
+                        @(TimeZoneInfo.ConvertTime(audit.Timestamp, (TimeZoneInfo)ViewBag.UserTimeZone).ToString("MMM dd, yyyy h:mm tt"))
+                    </td>
+                    <td>@audit.PerformingUser.DisplayName</td>
+                    <td>
+                        @(audit.TargetUser?.DisplayName == null ? "N/A" : audit.TargetUser.DisplayName)
+                    </td>
+                    <td>
+                        @if (audit.TargetReport != null && audit.TargetReport.ReportedPageUrl != null)
+                        {
+                            <a href="@audit.TargetReport!.ReportedPageUrl" target="_blank"
+                            class="text-decoration-none btn-link text-primary small">Link</a>
+                        } else {
+                            <a class="text-decoration-none btn-link text-primary small">N/A</a>
+                        }
+                    </td>
+                    <td>
+                        @Regex.Replace(audit.ActionType.ToString(), "(\\B[A-Z])", " $1")
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-success btn-sm audit-details-btn" 
+                            data-details="@(string.IsNullOrWhiteSpace(audit.Details) ? "No additional details provided." : audit.Details)">
+                                Details
+                        </button>
+
+                        <div class="audit-details-content d-none">
+                            @(string.IsNullOrWhiteSpace(audit.Details) ? "No additional details provided." : audit.Details)
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <nav>
+        <ul class="pagination">
+            @for (int i = 1; i <= Model.TotalPages; i++)
+            {
+                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                    <a class="page-link" asp-action="LogPage" 
+                    asp-route-CurrentPage="@i" 
+                    asp-route-AdminSearch="@Model.AdminSearch"
+                    asp-route-UserSearch="@Model.UserSearch"
+                    asp-route-DateFilter='@(Model.DateFilter?.ToString("yyyy-MM-dd"))'>
+                    @i
+                    </a>
+                </li>
+            }
+        </ul>
+    </nav> 
+</div>
+
+@* Initially hidden report details modal *@
+<div class="modal fade" id="auditDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title">Audit Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="fw-bold">Details from Admin:</label>
+                    <div class="p-2 mt-2 border bg-light ticketDesc" id="auditDetailsDiv" style="white-space: pre-wrap;">
+                        @* Content filled via JS *@
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+        <script src="~/js/auditLog.js" asp-append-version="true"></script>
+}

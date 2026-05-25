@@ -23,6 +23,18 @@ public class ProfileDriver
     public void NavigateToProfile(Guid userId)
     {
         _webDriver.Navigate().GoToUrl($"{_baseUrl}/account/{userId}");
+        WaitForReady();
+    }
+
+    // CSP-205: viewing one's own profile uses /account with no id segment.
+    public void NavigateToOwnProfile()
+    {
+        _webDriver.Navigate().GoToUrl($"{_baseUrl}/account");
+        WaitForReady();
+    }
+
+    private void WaitForReady()
+    {
         _wait.Until(d =>
         {
             try
@@ -32,6 +44,35 @@ public class ProfileDriver
             }
             catch { return false; }
         });
+    }
+
+    // CSP-205: profile-content read helpers.
+    public bool IsPointsValueVisible()
+        => _webDriver.FindElements(By.Id("profilePointsValue")).Any(e => e.Displayed);
+
+    public int GetPointsValue()
+    {
+        var el = _wait.Until(d => d.FindElement(By.Id("profilePointsValue")));
+        return int.Parse(el.Text.Trim());
+    }
+
+    public bool IsRecentClubsSectionPresent()
+        => _webDriver.FindElements(By.Id("profileRecentClubs")).Count > 0;
+
+    // CSP-215: Recent Sightings now renders via the shared _SightingCardGrid partial,
+    // which emits .sighting-card-wrapper cards inside the #profileRecentSightings container.
+    // Scope the card selector to that container so cards from any other grid on the page
+    // (e.g. shared layout fragments) can't inflate the count.
+    public bool IsRecentSightingsSectionPresent()
+        => _webDriver.FindElements(By.Id("profileRecentSightings")).Count > 0;
+
+    public int GetRecentSightingsCardCount()
+        => _webDriver.FindElements(By.CssSelector("#profileRecentSightings .sighting-card-wrapper")).Count;
+
+    public string GetBioText()
+    {
+        var el = _wait.Until(d => d.FindElement(By.Id("profileBio")));
+        return el.Text.Trim();
     }
 
     public bool IsFollowButtonVisible()

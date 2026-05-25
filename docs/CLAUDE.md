@@ -356,6 +356,29 @@ gh run list --repo jmcshane22/MonmouthHoldemCapstone \
 
 ---
 
+## User Profile
+
+`GET /account` (self) and `GET /account/{id:guid}` (other user) — User Profile page, formerly called Account Info. Served by `AccountController.Index` (`src/MH.Capstone.WebApp/Controllers/AccountController.cs`). View: `Views/Account/Index.cshtml`. ViewModel: `Models/AccountViewModel.cs`. `[Authorize]` (whole controller).
+
+**Routing:** one action handles both routes. Missing/empty `id` → current user with `IsAuthenticatedUser = true`. Unknown `id` → `NotFound`. `id` equal to the viewer's own id still renders with `IsAuthenticatedUser = true` (compared via `userFromId.Id == user.Id`). Follow/block state is populated **only** when viewing someone else.
+
+**View zones:**
+- Header — title flips between "Your Profile" and "{DisplayName}'s Profile". 80×80 avatar from `ProfileImageUrl`. Status badge (Active/Deactivated). Bio.
+- Stub list — "Recent Badges", "Recent Clubs", "Recent Sightings" are empty `<li>` placeholders. **`Total points:` value is commented out** in the view (`@* @Model.Points *@`), so points never render despite the VM populating them. `AccountController.Index` carries a `// Sprint 7: Add bio field, point count, recent Badges, and Clubs to the User Profile` TODO marker for the planned fill-in.
+- Social actions (CSP-187) — Follow/Unfollow + Block/Unblock forms, shown only when `!IsAuthenticatedUser`. POSTs go to `UserController` (`/user/{id}/follow|unfollow|block|unblock`), each of which redirects back to `Account/Index?id={id}`. Errors surface via `TempData["FollowError"]` / `TempData["BlockError"]` as inline alerts.
+- Edit button — shown only when `IsAuthenticatedUser`, links to `Dashboard/Settings`.
+
+**`AccountViewModel`:** `Id`, `Username`, `DisplayName`, `Points` (int?), `IsDeactivated`, `ProfileImageUrl`, `IsAuthenticatedUser`, `Bio` (default placeholder `"Enter a unique profile bio."`), `IsFollowedByCurrentUser`, `IsBlockedByCurrentUser`. The `ApplicationUser`-based ctor does **not** set the follow/block flags — `AccountController.Index` populates them via `IFollowService.IsFollowingAsync` / `IBlockService.IsBlockedAsync`, but only when viewing another user.
+
+**Gotchas:**
+- `Total points:` row label renders without a value — `@Model.Points` is commented out in `Index.cshtml`. Anything that asserts on point display must un-comment that expression first.
+- Follow/Block POSTs live on `UserController`, not `AccountController`. Both controllers carry `[Authorize]`, but they each separately depend on `IFollowService` + `IBlockService` — DI must register both for the profile page to function end-to-end.
+- `IsFollowedByCurrentUser` / `IsBlockedByCurrentUser` stay `false` when viewing your own profile, which is also the condition that hides the entire social-actions block — don't repurpose those flags for any self-view logic.
+
+**Element IDs (`Views/Account/Index.cshtml`):** `profileSocialActions`, `followButton`, `unfollowButton`, `blockButton`, `unblockButton`, `profileFollowError`, `profileBlockError`, `accountEditBtn`.
+
+---
+
 ## Test Seed Data Guidance
 
 - `Sighting.ImageBuffer` required — use `new byte[] { 0x01 }`

@@ -46,6 +46,7 @@ html {
 body {
     margin-bottom: 60px;
     background-color: #afd5be;
+    background-image: linear-gradient(to bottom, #6fa578, #bcd5af);
     padding-top: 0;
     overflow-x: hidden;
 }

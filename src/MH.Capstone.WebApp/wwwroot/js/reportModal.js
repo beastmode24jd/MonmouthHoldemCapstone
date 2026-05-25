@@ -25,6 +25,12 @@ function showDetailsModal(reportId, description, isResolved) {
         checkbox.checked = isResolved;
     }
 
+    // Clear the Audit Details text box so old notes don't carry over!
+    const detailsInput = document.getElementById('modalAuditDetails');
+    if (detailsInput) {
+        detailsInput.value = "";
+    }
+
     // Initialize and show the modal
     const modalElement = document.getElementById('reportDetailsModal');
     if (modalElement && typeof bootstrap !== 'undefined') {
@@ -41,7 +47,12 @@ document.getElementById('confirmResolveBtn').addEventListener('click', async fun
     if (currentActiveReportId) {
         // Get the status from the modal's checkbox
         const isChecked = document.getElementById('modalIsResolved').checked;
-        await updateResolution(currentActiveReportId, isChecked);
+        
+        // Grab the details from the new textarea
+        const details = document.getElementById('modalAuditDetails').value;
+        
+        // Pass the details to the updateResolution function
+        await updateResolution(currentActiveReportId, isChecked, details);
         location.reload(); 
     }
 });
@@ -51,20 +62,25 @@ document.querySelectorAll('.resolution-toggle').forEach(checkbox => {
     checkbox.addEventListener('change', async function() {
         const id = this.getAttribute('data-id');
         const isChecked = this.checked; // Capture the actual state
-        await updateResolution(id, isChecked);
+
+        // Direct toggle bypasses the modal, so we pass an empty string for details
+        await updateResolution(id, isChecked, "");
     });
 });
 
 // Shared AJAX function
-async function updateResolution(reportId, isResolved) {
+async function updateResolution(reportId, isResolved, details) {
     const tokenElement = document.querySelector('input[name="__RequestVerificationToken"]');
     if (!tokenElement) return;
 
     const token = tokenElement.value;
 
     try {
-        // Send the status as a query string or part of the URL
-        const response = await fetch(`/Admin/UpdateResolution/${reportId}?status=${isResolved}`, {
+        // Now 'details' is defined in the function scope and won't throw an error!
+        const encodedDetails = encodeURIComponent(details || "");
+        
+        // Append the encoded details to the fetch URL
+        const response = await fetch(`/Admin/UpdateResolution/${reportId}?status=${isResolved}&details=${encodedDetails}`, {
             method: 'POST',
             headers: {
                 'RequestVerificationToken': token,
@@ -79,4 +95,41 @@ async function updateResolution(reportId, isResolved) {
     } catch (error) {
         console.error("Error:", error);
     }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    setupAutoSuggest('reportUserSearch', 'reporterSuggestions');
+});
+
+function setupAutoSuggest(inputId, datalistId) {
+    const input = document.getElementById(inputId);
+    const datalist = document.getElementById(datalistId);
+
+    if (!input || !datalist) return;
+
+    let debounceTimer = null;
+
+    input.addEventListener('input', function (e) {
+        const term = e.target.value;
+        if (debounceTimer) clearTimeout(debounceTimer);
+        if (term.length < 2) return; 
+
+        // Debounce prevents spamming your database on every single keystroke
+        debounceTimer = setTimeout(async () => {
+            try {
+                const response = await fetch(`/Admin/SearchUserNames?term=${encodeURIComponent(term)}`);
+                if (response.ok) {
+                    const users = await response.json();
+                    datalist.innerHTML = '';
+                    users.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.displayName || user; // Safely handles objects or raw strings
+                        datalist.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error("Auto-suggest fetch failed:", error);
+            }
+        }, 250);
+    });
 }

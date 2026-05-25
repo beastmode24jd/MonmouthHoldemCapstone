@@ -180,15 +180,14 @@ namespace MH.Capstone.Domain.Services
 
         public async Task<IEnumerable<Sighting>> GetSightingsInBoundsAsync(decimal minLat, decimal maxLat, decimal minLng, decimal maxLng)
         {
-            var sevenDaysAgo = DateTimeOffset.UtcNow.AddDays(-7);
-
-            var sightings = await _sightingsRepo.GetAllAsync(s => 
+            // [CSP-224] The map shows every sighting inside the current viewport, regardless of
+            // age. A previous implementation also filtered to the last 7 days, which silently
+            // dropped older sightings the user knew existed as they panned/zoomed the map.
+            var sightings = await _sightingsRepo.GetAllAsync(s =>
                             s.Latitude >= minLat &&
                             s.Latitude <= maxLat &&
                             s.Longitude >= minLng &&
-                            s.Longitude <= maxLng &&
-                            s.Timestamp >= sevenDaysAgo);
-                
+                            s.Longitude <= maxLng);
 
             return sightings.ToList();
         }
@@ -354,17 +353,24 @@ namespace MH.Capstone.Domain.Services
             var entries = new List<AnidexEntry>(grouped.Count);
             foreach (var group in grouped)
             {
-                var latest = group.OrderByDescending(s => s.Timestamp).First();
+                var groupNewestFirst = group.OrderByDescending(s => s.Timestamp).ToList();
+                var latest = groupNewestFirst[0];
                 int globalCount = await _scoringService.GetGlobalSightingsCountAsync(latest.SpeciesName);
                 var (multiplier, rarityName) = await _scoringService.GetRarityMultiplierAndName(globalCount);
 
+                // CSP-202: preload per-sighting entries so card expansion doesn't round-trip.
+                var perEntry = groupNewestFirst
+                    .Select(s => new AnidexSightingEntry(s.Id, s.ImageBuffer, s.Description, s.Timestamp))
+                    .ToList();
+
                 entries.Add(new AnidexEntry(
                     SpeciesName: latest.SpeciesName,
-                    DiscoveryCount: group.Count(),
+                    DiscoveryCount: groupNewestFirst.Count,
                     RarityName: rarityName,
                     RarityMultiplier: multiplier,
                     LatestImageBuffer: latest.ImageBuffer,
-                    LatestSightingTimestamp: latest.Timestamp));
+                    LatestSightingTimestamp: latest.Timestamp,
+                    Entries: perEntry));
             }
 
             // Sort: rarest first (highest multiplier), then alphabetical within tier.

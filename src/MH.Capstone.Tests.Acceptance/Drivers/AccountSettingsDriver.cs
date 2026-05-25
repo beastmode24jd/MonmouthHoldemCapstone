@@ -83,4 +83,38 @@ public class AccountSettingsDriver
 
     public bool AccountSettingsLinkIsOnDashboard()
         => _driver.FindElements(By.Id("accountSettingsLink")).Count > 0;
+
+    // CSP-205: enter `newBio` in the textarea on /dashboard/settings and submit the bio form.
+    // Caller is responsible for navigating elsewhere afterward to read the updated value.
+    public void UpdateBio(string newBio)
+    {
+        NavigateToSettings();
+        var input = _wait.Until(d => d.FindElement(By.Id("bioInput")));
+        input.Clear();
+        input.SendKeys(newBio);
+
+        var submit = _driver.FindElement(By.CssSelector("#bioForm button[type=submit]"));
+        submit.Click();
+
+        // Form submit posts to Dashboard/UpdateBio and redirects back to /dashboard/settings.
+        // readyState alone is not enough: it stays "complete" on the current page until the
+        // new doc starts loading, so a subsequent GoToUrl can race past the in-flight redirect
+        // and the bio save never lands. Wait for the clicked element to go stale first, which
+        // confirms the redirected document has actually loaded.
+        _wait.Until(d =>
+        {
+            try { _ = submit.TagName; return false; }
+            catch (StaleElementReferenceException) { return true; }
+            catch { return true; }
+        });
+        _wait.Until(d =>
+        {
+            try
+            {
+                var ready = ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState")?.ToString();
+                return string.Equals(ready, "complete", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        });
+    }
 }

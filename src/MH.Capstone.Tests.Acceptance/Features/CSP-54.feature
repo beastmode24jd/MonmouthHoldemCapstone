@@ -12,7 +12,7 @@ Feature: CSP-54 User Search
         Then I should see the no users found message
         And the user search previous arrow should be disabled
         And the user search next arrow should be disabled
-        And the user search paging text should be "Page 1 of 1 | Showing 0 of 0 Results"
+        And the user search paging text should be "Page 1 of 1 | Showing 0 Results"
 
     Scenario: Clicking a search result navigates to that user's profile page
         When I enter "alex" into the user search bar
