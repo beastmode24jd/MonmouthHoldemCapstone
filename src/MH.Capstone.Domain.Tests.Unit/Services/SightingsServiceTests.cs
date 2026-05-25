@@ -922,6 +922,51 @@ public class SightingsServiceTests
             Is.EqualTo(new[] { "Bald Eagle", "Bobcat", "Coyote" }));
     }
 
+    // CSP-202: Each AnidexEntry preloads its per-sighting list so the card-expansion UI
+    // does not need an extra round-trip. Inner list is newest-first.
+    [Test]
+    public async Task GetUserAnidexAsync_EntriesPreloadAllPerSpeciesSightings_NewestFirst()
+    {
+        var userId = Guid.NewGuid();
+        var oldest = new Sighting { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "Coyote", Description = "old", Timestamp = DateTimeOffset.UtcNow.AddDays(-3), ImageBuffer = [0x01] };
+        var middle = new Sighting { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "Coyote", Description = "mid", Timestamp = DateTimeOffset.UtcNow.AddDays(-2), ImageBuffer = [0x02] };
+        var newest = new Sighting { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "Coyote", Description = "new", Timestamp = DateTimeOffset.UtcNow.AddDays(-1), ImageBuffer = [0x03] };
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(new[] { oldest, middle, newest }.AsQueryable());
+
+        var sut = CreateSut();
+
+        var result = (await sut.GetUserAnidexAsync(userId)).Single();
+
+        Assert.That(result.Entries.Count, Is.EqualTo(3));
+        Assert.That(result.Entries.Select(e => e.SightingId).ToList(),
+            Is.EqualTo(new[] { newest.Id, middle.Id, oldest.Id }));
+        Assert.That(result.Entries[0].Description, Is.EqualTo("new"));
+        Assert.That(result.Entries[0].ImageBuffer, Is.EqualTo(new byte[] { 0x03 }));
+        Assert.That(result.Entries[0].Timestamp, Is.EqualTo(newest.Timestamp));
+    }
+
+    // CSP-202: Species with a single sighting still has a one-element Entries list
+    // (the view uses Entries.Count to decide whether to render an expand affordance).
+    [Test]
+    public async Task GetUserAnidexAsync_SingleSightingSpecies_HasOneEntry()
+    {
+        var userId = Guid.NewGuid();
+        var only = new Sighting { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "River Otter", Description = "first", Timestamp = DateTimeOffset.UtcNow.AddDays(-1), ImageBuffer = [0x05] };
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(new[] { only }.AsQueryable());
+
+        var sut = CreateSut();
+
+        var result = (await sut.GetUserAnidexAsync(userId)).Single();
+
+        Assert.That(result.DiscoveryCount, Is.EqualTo(1));
+        Assert.That(result.Entries.Count, Is.EqualTo(1));
+        Assert.That(result.Entries[0].SightingId, Is.EqualTo(only.Id));
+    }
+
     #endregion
 
     #region CSP-172: GetSightingByIdAsync Tests

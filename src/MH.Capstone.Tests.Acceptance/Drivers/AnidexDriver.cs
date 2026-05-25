@@ -130,4 +130,93 @@ public class AnidexDriver
         }
         return true;
     }
+
+    // CSP-202: Anidex card -> per-species detail modal.
+
+    /// <summary>True when the species card opens a sightings dialog when clicked.</summary>
+    public bool CardOpensDialog(string speciesName)
+    {
+        var card = FindCardForSpecies(speciesName);
+        if (card == null) return false;
+        return card.FindElements(By.CssSelector(".anidex-card-toggle")).Count > 0;
+    }
+
+    /// <summary>Clicks the species card and waits for its detail modal to finish opening.</summary>
+    public void ClickSpeciesCard(string speciesName)
+    {
+        var card = FindCardForSpecies(speciesName)
+            ?? throw new NoSuchElementException($"No Anidex card found for species '{speciesName}'");
+
+        var toggle = card.FindElements(By.CssSelector(".anidex-card-toggle")).FirstOrDefault()
+            ?? throw new InvalidOperationException($"Card for '{speciesName}' does not open a dialog");
+
+        // Scroll into view so floating UI (Report / AI buttons) doesn't intercept the click.
+        ((IJavaScriptExecutor)_webDriver).ExecuteScript(
+            "arguments[0].scrollIntoView({block:'center'});", toggle);
+        toggle.Click();
+
+        var modal = FindModalForSpecies(speciesName)
+            ?? throw new NoSuchElementException($"No detail modal found for species '{speciesName}'");
+
+        // Wait for the fade-in to complete: Bootstrap adds `.show` and the element becomes visible.
+        _wait.Until(_ => ModalIsShown(modal));
+    }
+
+    /// <summary>Closes the currently open detail dialog (clicks its close button) and waits for it to fully hide.</summary>
+    public void CloseOpenDialog()
+    {
+        var openModal = _webDriver.FindElements(By.CssSelector(".anidex-modal.show")).FirstOrDefault();
+        if (openModal == null) return; // nothing open
+
+        var closeBtn = openModal.FindElement(By.CssSelector(".btn-close"));
+        closeBtn.Click();
+
+        // Wait for the fade-out: `.show` is removed and the modal is no longer displayed.
+        _wait.Until(_ => !ModalIsShown(openModal));
+    }
+
+    /// <summary>True when the species' detail dialog is currently shown.</summary>
+    public bool IsDialogShownFor(string speciesName)
+    {
+        var modal = FindModalForSpecies(speciesName);
+        return modal != null && ModalIsShown(modal);
+    }
+
+    /// <summary>Counts the per-sighting rows rendered inside the species' detail dialog.</summary>
+    public int GetDialogEntryCountFor(string speciesName)
+    {
+        var modal = FindModalForSpecies(speciesName);
+        if (modal == null) return 0;
+        return modal.FindElements(By.CssSelector(".anidex-expand-entry")).Count;
+    }
+
+    private static bool ModalIsShown(IWebElement modal)
+    {
+        var classes = modal.GetAttribute("class") ?? string.Empty;
+        return classes.Split(' ').Contains("show") && modal.Displayed;
+    }
+
+    private IWebElement? FindModalForSpecies(string speciesName)
+    {
+        var modals = _webDriver.FindElements(By.CssSelector(".anidex-modal"));
+        foreach (var modal in modals)
+        {
+            var attr = modal.GetAttribute("data-species-modal");
+            if (string.Equals(attr, speciesName, StringComparison.OrdinalIgnoreCase))
+                return modal;
+        }
+        return null;
+    }
+
+    private IWebElement? FindCardForSpecies(string speciesName)
+    {
+        var cards = _webDriver.FindElements(By.CssSelector(".anidex-entry"));
+        foreach (var card in cards.Where(c => c.Displayed))
+        {
+            var attr = card.GetAttribute("data-species-name");
+            if (string.Equals(attr, speciesName, StringComparison.OrdinalIgnoreCase))
+                return card;
+        }
+        return null;
+    }
 }

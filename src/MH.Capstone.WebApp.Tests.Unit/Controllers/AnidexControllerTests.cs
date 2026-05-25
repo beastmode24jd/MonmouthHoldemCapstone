@@ -69,8 +69,8 @@ public class AnidexControllerTests
         // Arrange
         var entries = new List<AnidexEntry>
         {
-            new("Coyote",     2, "Common", 1.0, [0x01], DateTimeOffset.UtcNow.AddDays(-1)),
-            new("Bald Eagle", 1, "Mythic", 5.0, [0x02], DateTimeOffset.UtcNow.AddDays(-3)),
+            new("Coyote",     2, "Common", 1.0, [0x01], DateTimeOffset.UtcNow.AddDays(-1), []),
+            new("Bald Eagle", 1, "Mythic", 5.0, [0x02], DateTimeOffset.UtcNow.AddDays(-3), []),
         };
 
         _mockSightingsService
