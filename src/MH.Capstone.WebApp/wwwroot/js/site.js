@@ -81,7 +81,31 @@ document.addEventListener("DOMContentLoaded", function() {
     initUserTimezone();         // Gets timezone cookie from the user, for page display
     initCharCounter('bioInput',  'charCount', 250);  // Dashboard bio field
     initCharCounter('descInput', 'charCount', 250);  // Club creation modal
+    initFab();
 });
+
+function initFab() {
+    const container = document.getElementById('fabContainer');
+    const mainBtn = document.getElementById('fabMain');
+    if (!container || !mainBtn) return;
+
+    function closeFab() {
+        container.classList.remove('fab-open');
+        mainBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    mainBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        const isOpen = container.classList.toggle('fab-open');
+        mainBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    document.addEventListener('show.bs.modal', closeFab);
+
+    document.addEventListener('click', function (e) {
+        if (!container.contains(e.target)) closeFab();
+    });
+}
 
 // Thanks, ChatGPT, for the help with this function!
 function registerAllNumericInputs() {
