@@ -279,6 +279,40 @@ namespace MH.Capstone.Domain.Services
 
         #endregion
 
+        #region CSP-37: Edit Sighting
+
+        public async Task<Sighting?> UpdateSightingAsync(Guid sightingId, Guid userId, string description, string speciesName)
+        {
+            var sighting = await _sightingsRepo.FindByIdAsync(sightingId);
+            if (sighting is null)
+            {
+                _logger.LogInformation("Edit requested for unknown sighting {SightingId}", sightingId);
+                return null;
+            }
+
+            // Server-side ownership check — the hidden edit button is only a UX affordance.
+            if (sighting.UserId != userId)
+            {
+                _logger.LogWarning(
+                    "User {UserId} attempted to edit sighting {SightingId} owned by {OwnerId}",
+                    userId, sightingId, sighting.UserId);
+                throw new UnauthorizedAccessException(
+                    $"User {userId} is not the owner of sighting {sightingId}.");
+            }
+
+            // Only the two user-correctable fields change. GPS, timestamp, photo, and all scoring
+            // metadata (PointValue / Rarity / RarityMultiplier) are intentionally frozen — no
+            // scoring service call, so a rename can never re-tier a sighting or game the leaderboard.
+            sighting.Description = description;
+            sighting.SpeciesName = string.IsNullOrWhiteSpace(speciesName) ? sighting.SpeciesName : speciesName.Trim();
+
+            await _sightingsRepo.AddOrUpdateAsync(sighting);
+            _logger.LogInformation("User {UserId} edited sighting {SightingId}", userId, sightingId);
+            return sighting;
+        }
+
+        #endregion
+
         #region CSP-172: Sighting Details Page
 
         public async Task<Sighting?> GetSightingByIdAsync(Guid sightingId)

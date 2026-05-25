@@ -1,0 +1,26 @@
+@{
+    ViewData["Title"] = "Access Denied";
+}
+
+<div id="accessDeniedContainer" class="container mt-5">
+    <div class="card shadow mx-auto" style="max-width: 540px;">
+        <div class="card-body text-center">
+            <i class="bi bi-shield-lock-fill text-danger" style="font-size: 3rem;"></i>
+            <h1 class="card-title mt-3">Access Denied</h1>
+            <p id="accessDeniedMessage" class="text-muted">
+                You don't have permission to access this page. If you reached this by
+                mistake, head back and try something you own.
+            </p>
+            <div class="d-flex justify-content-center gap-2 mt-3">
+                <a id="accessDeniedGalleryLink" asp-controller="Sighting" asp-action="Gallery"
+                   class="btn btn-outline-secondary">
+                    <i class="bi bi-images"></i> Sightings Gallery
+                </a>
+                <a id="accessDeniedDashboardLink" asp-controller="Dashboard" asp-action="Index"
+                   class="btn btn-primary">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

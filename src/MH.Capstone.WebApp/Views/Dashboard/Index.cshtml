@@ -175,6 +175,25 @@
                             </p>
                         </div>
                     </div>
+
+                    @* CSP-211: Followers / Following counts. Clicking either opens
+                       the matching tab on the account page via the #-anchor. *@
+                    <div class="row g-2 mt-1" id="dashboardFollowGraph">
+                        <div class="col-6">
+                            <a href="/account#followersTab" id="dashboardFollowersStat"
+                               class="text-decoration-none text-body d-block border rounded p-2 h-100 text-center">
+                                <div class="fs-3 fw-bold lh-1" id="dashboardFollowerCount">@(ViewData["FollowerCount"] ?? 0)</div>
+                                <small class="text-muted">Followers</small>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="/account#followingTab" id="dashboardFollowingStat"
+                               class="text-decoration-none text-body d-block border rounded p-2 h-100 text-center">
+                                <div class="fs-3 fw-bold lh-1" id="dashboardFollowingCount">@(ViewData["FollowingCount"] ?? 0)</div>
+                                <small class="text-muted">Following</small>
+                            </a>
+                        </div>
+                    </div>
                     <strong><p class="card-text mb-1 mt-2">Recent Badges:</p></strong>
                     <div class="mb-2 mt-0">
                         @if(badges != null && badges.Any())

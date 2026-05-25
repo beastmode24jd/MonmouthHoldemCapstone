@@ -981,6 +981,162 @@ public class SightingsServiceTests
 
     #endregion
 
+    #region CSP-37: UpdateSightingAsync Tests
+
+    // Builds a persisted-looking sighting owned by `ownerId` with known scoring/immutable fields
+    // so each test can assert exactly what the edit operation does and does not touch.
+    private static Sighting BuildOwnedSighting(Guid sightingId, Guid ownerId) => new()
+    {
+        Id = sightingId,
+        UserId = ownerId,
+        Latitude = 44.5m,
+        Longitude = -123.25m,
+        Timestamp = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero),
+        Description = "Original description",
+        SpeciesName = "Coyote",
+        ImageBuffer = [0x01, 0x02, 0x03],
+        PointValue = 50,
+        Rarity = "Mythic",
+        RarityMultiplier = 5.0
+    };
+
+    [Test]
+    public async Task UpdateSightingAsync_OwnerValidEdit_UpdatesDescriptionAndSpeciesNameAndSaves()
+    {
+        // Arrange
+        var sightingId = Guid.NewGuid();
+        var ownerId = Guid.NewGuid();
+        var sighting = BuildOwnedSighting(sightingId, ownerId);
+
+        _sightingsRepoMock.Setup(r => r.FindByIdAsync(It.Is<Guid>(g => g == sightingId)))
+            .ReturnsAsync(sighting).Verifiable(Times.Once);
+        _sightingsRepoMock.Setup(r => r.AddOrUpdateAsync(It.Is<Sighting>(s => s.Id == sightingId)))
+            .ReturnsAsync(sighting).Verifiable(Times.Once);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdateSightingAsync(sightingId, ownerId, "Updated description", "Gray Wolf");
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Description, Is.EqualTo("Updated description"));
+        Assert.That(result.SpeciesName, Is.EqualTo("Gray Wolf"));
+        AssertAllMockVerifications();
+    }
+
+    [Test]
+    public async Task UpdateSightingAsync_OwnerValidEdit_DoesNotRecalculateScoring()
+    {
+        // Arrange — scoring service must never be consulted on edit, and the frozen
+        // scoring fields must come through unchanged.
+        var sightingId = Guid.NewGuid();
+        var ownerId = Guid.NewGuid();
+        var sighting = BuildOwnedSighting(sightingId, ownerId);
+
+        _sightingsRepoMock.Setup(r => r.FindByIdAsync(It.IsAny<Guid>())).ReturnsAsync(sighting);
+        _sightingsRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<Sighting>())).ReturnsAsync(sighting);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdateSightingAsync(sightingId, ownerId, "New desc", "New species");
+
+        // Assert
+        Assert.That(result!.PointValue, Is.EqualTo(50));
+        Assert.That(result.Rarity, Is.EqualTo("Mythic"));
+        Assert.That(result.RarityMultiplier, Is.EqualTo(5.0));
+        _scoringServiceMock.Verify(s => s.GetGlobalSightingsCountAsync(It.IsAny<string>()), Times.Never);
+        _scoringServiceMock.Verify(s => s.CalculatePointsAsync(It.IsAny<int>()), Times.Never);
+        _scoringServiceMock.Verify(s => s.GetRarityMultiplierAndName(It.IsAny<int>()), Times.Never);
+    }
+
+    [Test]
+    public async Task UpdateSightingAsync_OwnerValidEdit_DoesNotModifyImmutableFields()
+    {
+        // Arrange
+        var sightingId = Guid.NewGuid();
+        var ownerId = Guid.NewGuid();
+        var sighting = BuildOwnedSighting(sightingId, ownerId);
+        var originalImage = sighting.ImageBuffer;
+
+        _sightingsRepoMock.Setup(r => r.FindByIdAsync(It.IsAny<Guid>())).ReturnsAsync(sighting);
+        _sightingsRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<Sighting>())).ReturnsAsync(sighting);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdateSightingAsync(sightingId, ownerId, "New desc", "New species");
+
+        // Assert — GPS, timestamp, and photo are part of the factual record and stay frozen.
+        Assert.That(result!.Latitude, Is.EqualTo(44.5m));
+        Assert.That(result.Longitude, Is.EqualTo(-123.25m));
+        Assert.That(result.Timestamp, Is.EqualTo(new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero)));
+        Assert.That(result.ImageBuffer, Is.EqualTo(originalImage));
+    }
+
+    [Test]
+    public async Task UpdateSightingAsync_UnknownId_ReturnsNullAndDoesNotSave()
+    {
+        // Arrange
+        var unknownId = Guid.NewGuid();
+        _sightingsRepoMock.Setup(r => r.FindByIdAsync(It.Is<Guid>(g => g == unknownId)))
+            .ReturnsAsync((Sighting?)null).Verifiable(Times.Once);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdateSightingAsync(unknownId, Guid.NewGuid(), "desc", "species");
+
+        // Assert
+        Assert.That(result, Is.Null);
+        _sightingsRepoMock.Verify(r => r.AddOrUpdateAsync(It.IsAny<Sighting>()), Times.Never);
+        AssertAllMockVerifications();
+    }
+
+    [Test]
+    public void UpdateSightingAsync_NonOwner_ThrowsUnauthorizedAndDoesNotSave()
+    {
+        // Arrange — sighting exists but belongs to someone else.
+        var sightingId = Guid.NewGuid();
+        var ownerId = Guid.NewGuid();
+        var attackerId = Guid.NewGuid();
+        var sighting = BuildOwnedSighting(sightingId, ownerId);
+
+        _sightingsRepoMock.Setup(r => r.FindByIdAsync(It.IsAny<Guid>())).ReturnsAsync(sighting);
+
+        var sut = CreateSut();
+
+        // Act & Assert
+        Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            sut.UpdateSightingAsync(sightingId, attackerId, "hijacked", "Fake Species"));
+        _sightingsRepoMock.Verify(r => r.AddOrUpdateAsync(It.IsAny<Sighting>()), Times.Never);
+    }
+
+    [Test]
+    public async Task UpdateSightingAsync_NoActualChange_SavesWithoutError()
+    {
+        // Arrange — submitting the same values is a valid idempotent no-op edit.
+        var sightingId = Guid.NewGuid();
+        var ownerId = Guid.NewGuid();
+        var sighting = BuildOwnedSighting(sightingId, ownerId);
+
+        _sightingsRepoMock.Setup(r => r.FindByIdAsync(It.IsAny<Guid>())).ReturnsAsync(sighting);
+        _sightingsRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<Sighting>())).ReturnsAsync(sighting);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdateSightingAsync(sightingId, ownerId, "Original description", "Coyote");
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Description, Is.EqualTo("Original description"));
+        Assert.That(result.SpeciesName, Is.EqualTo("Coyote"));
+    }
+
+    #endregion
+
     [Test]
     public async Task CreateSightingAsync_UserHasActiveStreak_Applies1Point5Multiplier()
     {

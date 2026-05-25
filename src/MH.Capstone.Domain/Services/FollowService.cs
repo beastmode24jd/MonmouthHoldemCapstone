@@ -78,5 +78,12 @@ namespace MH.Capstone.Domain.Services
             var rows = await _followRepo.GetAllAsync(f => f.FollowerIdentityId == followerKey);
             return rows.AsEnumerable().Select(f => f.FolloweeId).ToList();
         }
+
+        public async Task<IEnumerable<Guid>> GetFollowerIdsAsync(Guid followeeId)
+        {
+            var followeeKey = followeeId.ToString();
+            var rows = await _followRepo.GetAllAsync(f => f.FolloweeIdentityId == followeeKey);
+            return rows.AsEnumerable().Select(f => f.FollowerId).ToList();
+        }
     }
 }
