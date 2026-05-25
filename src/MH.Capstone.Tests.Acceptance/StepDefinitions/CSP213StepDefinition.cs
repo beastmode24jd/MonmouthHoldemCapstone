@@ -114,10 +114,25 @@ public class CSP213StepDefinitions
         _wait.Until(d => d.FindElement(By.Id("reportDetailsModal")).Displayed);
         
         _driver.FindElement(By.Id("modalIsResolved")).Click();
-        _driver.FindElement(By.Id("confirmResolveBtn")).Click();
 
-        // Wait for modal to disappear to ensure the post/update finishes
-        _wait.Until(d => !d.FindElement(By.Id("reportDetailsModal")).Displayed);
+        // Grab a reference to the button BEFORE clicking it
+        var confirmBtn = _driver.FindElement(By.Id("confirmResolveBtn"));
+        confirmBtn.Click();
+
+        // Catch the page reload triggered by reportModal.js to prevent a StaleElementReferenceException
+        _wait.Until(d => 
+        {
+            try 
+            {
+                // If we can still access properties on the element, the page hasn't reloaded yet
+                return !confirmBtn.Displayed;
+            }
+            catch (StaleElementReferenceException) 
+            {
+                // This exception proves the old DOM was successfully destroyed by the reload
+                return true; 
+            }
+        });
     }
 
     // Re-used step in Scenarios 3 and 4.
