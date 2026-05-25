@@ -90,7 +90,7 @@
                                 {
                                     <li class="medium">
                                         @top.Member?.DisplayName
-                                        <span class="badge bg-primary ms-1">@(top.Member?.Points ?? 0) pts</span>
+                                        <span class="badge bg-points ms-1">@(top.Member?.Points ?? 0) pts</span>
                                     </li>
                                 }
                             </ol>
@@ -123,13 +123,13 @@
 
             @* Action buttons *@
             <div class="d-flex gap-2 flex-wrap">
-                <a asp-action="Chatroom" asp-route-id="@Model.Club.Id" class="btn btn-primary">
+                <a asp-action="Chatroom" asp-route-id="@Model.Club.Id" class="btn btn-dark">
                     <i class="bi bi-chat-fill"></i> Go to Chatroom
                 </a>
 
                 @if (Model.IsCurrentUserMember)
                 {
-                    <button type="button" class="btn btn-outline-primary"
+                    <button type="button" class="btn btn-outline-dark"
                             data-bs-toggle="modal" data-bs-target="#inviteMemberModal"
                             id="inviteMemberBtn">
                         <i class="bi bi-person-plus-fill"></i> Invite Member
