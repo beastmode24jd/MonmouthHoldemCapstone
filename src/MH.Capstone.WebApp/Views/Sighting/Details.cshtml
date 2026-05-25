@@ -14,16 +14,32 @@
 <div id="sightingDetailsContainer" class="container mt-4">
     <div class="card shadow">
         <div class="card-body">
+            @* CSP-37: success flash after a saved edit. *@
+            @if (TempData["EditSuccess"] is string editSuccess)
+            {
+                <div id="editSuccessMessage" class="alert alert-success" role="alert">@editSuccess</div>
+            }
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h1 class="card-title mb-0">
                     <i class="bi bi-binoculars-fill text-primary"></i>
                     Sighting Details
                 </h1>
-                <a id="backToGalleryLink"
-                   asp-controller="Sighting" asp-action="Gallery"
-                   class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-left"></i> Back to Gallery
-                </a>
+                <div class="d-flex gap-2">
+                    @* CSP-37: edit button visible only to the owner (server re-checks on the edit routes). *@
+                    @if (Model.CanEdit)
+                    {
+                        <a id="editSightingLink"
+                           asp-controller="Sighting" asp-action="Edit" asp-route-id="@Model.Id"
+                           class="btn btn-outline-primary">
+                            <i class="bi bi-pencil-square"></i> Edit
+                        </a>
+                    }
+                    <a id="backToGalleryLink"
+                       asp-controller="Sighting" asp-action="Gallery"
+                       class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Gallery
+                    </a>
+                </div>
             </div>
             <hr />
 

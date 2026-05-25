@@ -29,6 +29,21 @@ namespace MH.Capstone.WebApp.Models
 
         public bool IsBlockedByCurrentUser { get; set; } = false;
 
+        // CSP-211: total follower/following counts surfaced on the profile header.
+        public int FollowerCount { get; set; } = 0;
+        public int FolloweeCount { get; set; } = 0;
+
+        // CSP-211: paginated rows rendered under the follower/following tabs.
+        // Controller fills with the requested page (size 20).
+        public IList<FollowListUser> Followers { get; set; } = new List<FollowListUser>();
+        public IList<FollowListUser> Followees { get; set; } = new List<FollowListUser>();
+        public int FollowersPage { get; set; } = 1;
+        public int FolloweesPage { get; set; } = 1;
+        public const int FollowPageSize = 20;
+
+        public int FollowersTotalPages => Math.Max(1, (int)Math.Ceiling((double)FollowerCount / FollowPageSize));
+        public int FolloweesTotalPages => Math.Max(1, (int)Math.Ceiling((double)FolloweeCount / FollowPageSize));
+
         // Sprint 7: Top 3 most recently earned badge titles, descending. Empty when the
         // user has earned none. Controller populates; the ApplicationUser ctor leaves it empty.
         public IReadOnlyList<string> RecentBadgeTitles { get; set; } = Array.Empty<string>();
@@ -56,6 +71,14 @@ namespace MH.Capstone.WebApp.Models
             Bio = user.Bio;
             Points = user.Points;
         }
+    }
+
+    // CSP-211: per-row payload for the follower/following list tabs.
+    public class FollowListUser
+    {
+        public Guid Id { get; set; }
+        public string DisplayName { get; set; } = string.Empty;
+        public string ProfileImageUrl { get; set; } = string.Empty;
     }
 
     // Sprint 7: Minimal projection used by the profile "Recent Clubs" list. Carries only the

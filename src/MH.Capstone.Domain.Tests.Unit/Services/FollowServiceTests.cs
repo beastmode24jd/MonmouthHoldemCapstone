@@ -141,4 +141,30 @@ public class FollowServiceTests
 
         Assert.That(result, Is.EquivalentTo(new[] { _lilyId, third }));
     }
+
+    // [CSP-211] Inbound-direction lookup powers the follower count + tab list.
+
+    [Test]
+    public async Task GetFollowerIdsAsync_ReturnsAllInboundFollowerGuids()
+    {
+        var third = Guid.NewGuid();
+        SetExistingFollows(
+            new UserFollow(_lilyId, _alexId),  // Lily follows Alex
+            new UserFollow(third,   _alexId),  // third follows Alex
+            new UserFollow(_alexId, _lilyId)); // outbound from Alex — should NOT be returned
+
+        var result = (await _followService.GetFollowerIdsAsync(_alexId)).ToList();
+
+        Assert.That(result, Is.EquivalentTo(new[] { _lilyId, third }));
+    }
+
+    [Test]
+    public async Task GetFollowerIdsAsync_NoFollowers_ReturnsEmpty()
+    {
+        SetExistingFollows();
+
+        var result = (await _followService.GetFollowerIdsAsync(_alexId)).ToList();
+
+        Assert.That(result, Is.Empty);
+    }
 }
