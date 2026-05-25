@@ -126,6 +126,7 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<ISightingsService, SightingsService>();
             builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
             builder.Services.AddScoped<IReportService, ReportService>();
+            builder.Services.AddScoped<IAuditService, AuditService>();
             // Acceptance tests register PhotoQualityService via TestWebAppHost before
             // calling this method. Skip the duplicate registration here — DI last-registration
             // wins and the TestWebAppHost already owns the lifetime (Singleton).

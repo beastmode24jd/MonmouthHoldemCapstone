@@ -375,7 +375,6 @@ public class AccountControllerTests
         UserName = email,
         Email = email,
         DisplayName = displayName,
-        // Initialize the collection to prevent NullReference/ArgumentNull exceptions
         UserBadges = new List<UserBadge>()
     };
 }

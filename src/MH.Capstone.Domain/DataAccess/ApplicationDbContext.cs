@@ -21,6 +21,7 @@ namespace MH.Capstone.Domain.DataAccess
         public DbSet<UserBadge> UserBadges { get; set; } = null!;
         public DbSet<Notification> Notifications { get; set; } = null!;
         public DbSet<Report> Reports { get; set; } = null!;
+        public DbSet<AuditLog> AuditLogs { get; set; } = null!;
         public DbSet<EmailQueue> EmailQueue { get; set; } = null!;
         public DbSet<Club> Clubs { get; set; } = null!;
         public DbSet<ClubMembership> ClubMemberships { get; set; } = null!;
@@ -133,6 +134,24 @@ namespace MH.Capstone.Domain.DataAccess
                 .HasOne(l => l.Comment)
                 .WithMany()
                 .HasForeignKey(l => l.CommentId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // CSP-213: audit log has three FKs (performing admin, optional target user, optional target report).
+            // All use NoAction so the audit row survives if the referenced user or report is deleted.
+            modelBuilder.Entity<AuditLog>()
+                .HasOne(a => a.PerformingUser)
+                .WithMany()
+                .HasForeignKey(a => a.PerformingUserIdentityId)
+                .OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<AuditLog>()
+                .HasOne(a => a.TargetUser)
+                .WithMany()
+                .HasForeignKey(a => a.TargetUserIdentityId)
+                .OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<AuditLog>()
+                .HasOne(a => a.TargetReport)
+                .WithMany()
+                .HasForeignKey(a => a.TargetReportId)
                 .OnDelete(DeleteBehavior.NoAction);
         }
     }

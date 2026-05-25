@@ -14,22 +14,22 @@ namespace MH.Capstone.WebApp.Controllers
     public class AdminController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;
-
         private readonly IAuthenticationService _authService;
-
         private readonly IReportService _reportService;
-
         private readonly IUserService _userService;
+        private readonly IAuditService _auditService;
 
         public AdminController(UserManager<ApplicationUser> userManager, 
         IAuthenticationService authService,
         IReportService reportService,
-        IUserService userService)
+        IUserService userService,
+        IAuditService auditService)
         {
             _userManager = userManager;
             _authService = authService;
             _reportService = reportService;
             _userService = userService;
+            _auditService = auditService;
         }
 
         [HttpGet]
@@ -100,25 +100,160 @@ namespace MH.Capstone.WebApp.Controllers
             return View(vm);
         }
 
+        // Page that displays the admin action audit logs.
+        [HttpGet]
+        [Route("/Audit-Logs")]
+        public async Task<IActionResult> LogPage(AuditQueueViewModel vm)
+        {
+            (List<AuditLog> Audits, int TotalCount) result;
+
+            // Get the user device's local timezone cookie, default timezone is PST
+            string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
+
+            TimeZoneInfo userZone;
+            try
+            {
+                userZone = TimeZoneInfo.FindSystemTimeZoneById(userTimeZoneId);
+            }
+            catch
+            {
+                // Fallback for Windows environment or invalid IANA IDs
+                userZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+            }
+
+            // Auto-fill the DateFilter to the current timezone date/time if not already set
+            // Pass the user's current local date to the view to use as a placeholder
+            ViewBag.CurrentLocalDate = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, userZone).ToString("yyyy-MM-dd");
+
+            ViewBag.UserTimeZone = userZone;
+
+            // Decide which service method to call based on inputs
+            if (!string.IsNullOrWhiteSpace(vm.AdminSearch))
+            {
+                // Convert DisplayName to Guid
+                var adminUser = await _userManager.Users
+                    .FirstOrDefaultAsync(u => u.DisplayName == vm.AdminSearch);
+
+                // If the user isn't found, use Guid.Empty to return 0 results.
+                Guid adminId = adminUser != null ? adminUser.GuidId : Guid.Empty;
+
+                result = await _auditService.GetAuditsByAdminAsync(adminId, vm.CurrentPage, vm.PageSize);
+            }
+            else if (!string.IsNullOrWhiteSpace(vm.UserSearch))
+            {
+                var targetUser = await _userManager.Users
+                    .FirstOrDefaultAsync(u => u.DisplayName == vm.UserSearch);
+        
+                // Convert to Guid using the GuidId property
+                Guid targetId = targetUser != null ? targetUser.GuidId : Guid.Empty;
+
+                result = await _auditService.GetAuditsByUserAsync(targetId, vm.CurrentPage, vm.PageSize);
+            }
+            else if (vm.DateFilter.HasValue)
+            {
+                // Push to end of the day so it includes the selected date
+                var adjustedDate = vm.DateFilter.Value.Date.AddDays(1).AddTicks(-1); 
+                result = await _auditService.GetAuditsByDateAsync(adjustedDate, vm.CurrentPage, vm.PageSize);
+            }
+            else
+            {
+                // Default view, if no filters are applied
+                result = await _auditService.GetPagedAuditsAsync(vm.CurrentPage, vm.PageSize);
+            }
+
+            vm.Audits = result.Audits;
+
+            // Protect against divide-by-zero if PageSize is 0
+            if (vm.PageSize > 0) 
+            {
+                vm.TotalPages = (int)Math.Ceiling(result.TotalCount / (double)vm.PageSize);
+            }
+
+            return View(vm);
+        }
+
+        [HttpGet]
+        [Route("/Admin/SearchUserNames")]
+        public async Task<IActionResult> SearchUserNames([FromQuery] string term)
+        {
+            if (string.IsNullOrWhiteSpace(term)) return Json(new List<string>());
+
+            // Search the database for DisplayNames containing the typed letters
+            var matches = await _userManager.Users
+                .Where(u => u.DisplayName.Contains(term))
+                .Select(u => u.DisplayName)
+                .Take(10) // Limit to 10 suggestions to keep the dropdown clean
+                .ToListAsync();
+
+            return Json(matches);
+        }
+        
+        
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         // Add the 'bool status' parameter to receive the checkbox state
-        public async Task<IActionResult> UpdateResolution(Guid id, bool status) 
+        public async Task<IActionResult> UpdateResolution(Guid id, [FromQuery] bool status, [FromQuery] string? details) 
         {
-            // Call the revised service method
-            var success = await _reportService.SetReportResolution(id, status);
-            
-            if (success)
+            var report = await _reportService.GetReportByIdAsync(id);
+    
+            if (report == null)
             {
-                return Json(new { success = true });
+                return NotFound("Report not found.");
             }
             
-            return BadRequest(new { success = false, message = "Report not found." });
+            // Capture the original state BEFORE updating the database
+            bool originalStatus = report.IsResolved;
+
+            // Attempt to update the status in the Report DB
+            bool updateSuccess = await _reportService.SetReportResolution(id, status);
+
+            // Handle routing and Audit generation based on success
+            if (updateSuccess)
+            {
+                // Only generate an Audit if the state ACTUALLY changed, 
+                // OR if the admin explicitly typed a note/details to append to a resolved report.
+                if (originalStatus != status || !string.IsNullOrWhiteSpace(details))
+                {
+                    // Grab the Admin who successfully made the change
+                    var adminUser = await _userManager.GetUserAsync(User);
+                    
+                    if (adminUser != null)
+                    {
+                        // Construct the Audit Log
+                        var audit = new AuditLog
+                        {
+                            // Assign enum based on checkbox status
+                            ActionType = status ? AuditActionType.ReportResolved : AuditActionType.ReportOpened,
+                            
+                            PerformingUserId = adminUser.GuidId,
+                            TargetReportId = id,
+                            
+                            // Directly link the audit to the user who submitted the report
+                            TargetUserId = report.ReportingUserId,
+                            
+                            // Only assign the Details string if the Admin actually typed something
+                            Details = string.IsNullOrWhiteSpace(details) ? null : details,
+                            Timestamp = DateTimeOffset.UtcNow
+                        };
+
+                        // Save the audit to the database
+                        await _auditService.LogActionAsync(audit);
+                    }
+                }
+                // Return a 200 OK to the AJAX fetch call so it can trigger location.reload()
+                return Ok(); 
+            }
+            else
+            {
+                // If the database update failed, return a 400 Bad Request to trigger the AJAX error alert
+                return BadRequest("Failed to update report status.");
+            }
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> PromoteToAdmin(string email, string adminPassword)
+        public async Task<IActionResult> PromoteToAdmin(string email, string adminPassword, string? auditDetails)
         {
             // Check that the admin password is correct.
             if (!await VerifyAdminPasswordAsync(adminPassword))
@@ -161,6 +296,22 @@ namespace MH.Capstone.WebApp.Controllers
 
             if (result.Succeeded)
             {
+                // Generate Audit Log
+                var adminUser = await _userManager.GetUserAsync(User);
+                if (adminUser != null)
+                {
+                    var audit = new AuditLog
+                    {
+                        ActionType = AuditActionType.RolePromotion,
+                        PerformingUserId = adminUser.GuidId,
+                        TargetUserId = user.GuidId,
+                        Details = string.IsNullOrWhiteSpace(auditDetails) ? null : auditDetails,
+                        Timestamp = DateTimeOffset.UtcNow
+                    };
+
+                    await _auditService.LogActionAsync(audit);
+                }
+
                 TempData["Success"] = $"User {email} has been promoted to Admin.";
             }
             else
@@ -173,7 +324,7 @@ namespace MH.Capstone.WebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DemoteFromAdmin(string email, string adminPassword)
+        public async Task<IActionResult> DemoteFromAdmin(string email, string adminPassword, string? auditDetails)
         {
             // Check that the admin password is correct
             if (!await VerifyAdminPasswordAsync(adminPassword))
@@ -214,6 +365,22 @@ namespace MH.Capstone.WebApp.Controllers
 
             if (result.Succeeded)
             {
+                // Generate Audit Log
+                var adminUser = await _userManager.GetUserAsync(User);
+                if (adminUser != null)
+                {
+                    var audit = new AuditLog
+                    {
+                        ActionType = AuditActionType.RoleDemotion,
+                        PerformingUserId = adminUser.GuidId,
+                        TargetUserId = user.GuidId,
+                        Details = string.IsNullOrWhiteSpace(auditDetails) ? null : auditDetails,
+                        Timestamp = DateTimeOffset.UtcNow
+                    };
+
+                    await _auditService.LogActionAsync(audit);
+                }
+
                 TempData["Success"] = $"User {email} is now a standard User.";
             }
             else
@@ -225,22 +392,41 @@ namespace MH.Capstone.WebApp.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> SearchUsers(string term, bool findLocked)
+        [Route("/Admin/SearchUsers")]
+        public async Task<IActionResult> SearchUsers([FromQuery] string term, [FromQuery] bool? findLocked)
         {
-            // Search all active (non-deactivated) users by DisplayName
-            var users = await _userService.SearchUsersAsync(term);
-            
-            // Filter based on whether we want currently locked or currently open accounts
-            var filtered = users
-                .Where(u => u.AccountLocked == findLocked)
-                .Select(u => new { u.Email, u.DisplayName });
+            // Return an empty list if the search term is empty
+            if (string.IsNullOrWhiteSpace(term)) 
+            {
+                return Json(new List<object>());
+            }
 
-            return Json(filtered);
+            // Start with the base query: match the DisplayName to the search term
+            var query = _userManager.Users
+                .Where(u => u.DisplayName != null && u.DisplayName.Contains(term));
+
+            // If the fetch call provided a lock status, apply the filter
+            if (findLocked.HasValue)
+            {
+                query = query.Where(u => u.AccountLocked == findLocked.Value);
+            }
+
+            // Project the results into an anonymous object and limit to 10 results
+            var matches = await query
+                .Select(u => new 
+                { 
+                    displayName = u.DisplayName, 
+                    email = u.Email 
+                })
+                .Take(10) 
+                .ToListAsync();
+
+            return Json(matches);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ToggleAccountLock(string targetEmail, string adminPassword, bool shouldLock)
+        public async Task<IActionResult> ToggleAccountLock(string targetEmail, string adminPassword, bool shouldLock, string? auditDetails)
         {
             if (!await VerifyAdminPasswordAsync(adminPassword))
             {
@@ -263,10 +449,28 @@ namespace MH.Capstone.WebApp.Controllers
                 return RedirectToAction(nameof(Manage));
             }
 
+            // Capture the original lock state to prevent logging redundant audits
+            bool originalLockState = targetUser.AccountLocked;
+
             var result = await _userService.LockToggleAccountAsync(targetUser, shouldLock);
 
             if (result)
             {
+                // Only log an audit if the state actually changed, or if notes were provided
+                if (originalLockState != shouldLock || !string.IsNullOrWhiteSpace(auditDetails))
+                {
+                    var audit = new AuditLog
+                    {
+                        ActionType = shouldLock ? AuditActionType.UserLocked : AuditActionType.UserUnlocked,
+                        PerformingUserId = adminUser!.GuidId,
+                        TargetUserId = targetUser.GuidId, // Use targetUser's ID
+                        Details = string.IsNullOrWhiteSpace(auditDetails) ? null : auditDetails,
+                        Timestamp = DateTimeOffset.UtcNow
+                    };
+
+                    await _auditService.LogActionAsync(audit);
+                }
+
                 TempData["Success"] = $"Account for {targetUser.DisplayName} has been {(shouldLock ? "locked" : "unlocked")}.";
             }
             else

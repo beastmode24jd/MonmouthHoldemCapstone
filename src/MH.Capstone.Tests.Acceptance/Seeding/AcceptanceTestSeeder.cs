@@ -106,7 +106,8 @@ internal static class AcceptanceTestSeeder
 
     private static async Task ClearAllAsync(ApplicationDbContext db, CancellationToken token)
     {
-        // 1. Leaf tables — nothing else has an FK pointing into these.
+        // Leaf tables — nothing else has an FK pointing into these.
+        await db.AuditLogs.ExecuteDeleteAsync(token); // Clear AuditLogs before Reports and Users, as it holds FKs to both
         await db.EmailQueue.ExecuteDeleteAsync(token);
         await db.Reports.ExecuteDeleteAsync(token);
         await db.Notifications.ExecuteDeleteAsync(token);

@@ -95,7 +95,7 @@ public class CSP179StepDefinitions
         _initialReportCount = rows.Count;
 
         // Apply a filter (search for a specific user) 
-        var userSearchInput = _driver.FindElement(By.Id("UserSearch"));
+        var userSearchInput = _driver.FindElement(By.Id("reportUserSearch"));
         userSearchInput.Clear();
         userSearchInput.SendKeys("Alex"); // Seeded user in Scenario 1
 
