@@ -3,21 +3,19 @@
     ViewData["Title"] = "Sightings Gallery";
 }
 
-<div class="container mt-4">
+<div class="container mt-4 mb-3 pb-5">
     <div class="card shadow">
-        <div class="card-body">
-            <h1 class="card-title">
-                <i class="bi fillOrange bi-camera-fill"></i> Sightings Gallery
+        <h1 class="card-title mainHeader">
+                <i class="bi fillGreen bi-camera-fill"></i> Sightings Gallery
             </h1>
-            <hr />
-
+        <div class="card-body text-start overflow-hidden notebook">
             @* Filter Controls — CSP-96 *@
             <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
                 <div class="btn-group" role="group" aria-label="Gallery filter">
-                    <button id="filterAll" type="button" class="btn bg-midGreen active">
+                    <button id="filterAll" type="button" class="btn bg-darkGreen active">
                         <i class="bi bi-globe"></i> All Sightings
                     </button>
-                    <button id="filterMine" type="button" class="btn bg-midGreen-outline">
+                    <button id="filterMine" type="button" class="btn bg-lightGreen">
                         <i class="bi bi-person-fill"></i> My Sightings
                     </button>
                 </div>
@@ -118,51 +116,44 @@
 
         function applyFilter(filter) {
             sessionStorage.setItem(STORAGE_KEY, filter);
-
             const cards = document.querySelectorAll('.sighting-card-wrapper');
             let visibleCount = 0;
 
+            // Toggle Button Appearances
             if (filter === 'mine') {
-                filterAllBtn.classList.remove('btn-primary', 'active');
-                filterAllBtn.classList.add('btn-outline-primary');
-                filterMineBtn.classList.remove('btn-outline-primary');
-                filterMineBtn.classList.add('btn-primary', 'active');
+                // Selected style for 'Mine'
+                filterMineBtn.className = "btn bg-darkGreen active";
+                filterAllBtn.className = "btn bg-lightGreen";
 
-                cards.forEach(function (card) {
-                    // CSP-221: compare case-insensitively. Stored UserIdentityId is written
-                    // lowercase (Guid.ToString()) while CurrentUserId is the raw Identity Id,
-                    // so a case-sensitive === could hide the user's own sightings.
-                    if ((card.dataset.userId ?? '').toLowerCase() === currentUserId.toLowerCase()) {
+            } else {
+                // Flip the values
+                filterAllBtn.className = "btn bg-darkGreen active";
+                filterMineBtn.className = "btn bg-lightGreen";
+            }
+
+            // Filter the Cards
+            cards.forEach(function (card) {
+                const cardUserId = card.getAttribute('data-user-id');
+                if (filter === 'mine') {
+                    if (cardUserId === currentUserId) {
                         card.style.display = '';
                         visibleCount++;
                     } else {
                         card.style.display = 'none';
                     }
-                });
-
-                if (emptyStateAll) {
-                    emptyStateAll.style.display = 'none';
-                }
-                if (emptyStateMine) {
-                    emptyStateMine.style.display = visibleCount === 0 ? '' : 'none';
-                }
-            } else {
-                filterAllBtn.classList.add('btn-primary', 'active');
-                filterAllBtn.classList.remove('btn-outline-primary');
-                filterMineBtn.classList.add('btn-outline-primary');
-                filterMineBtn.classList.remove('btn-primary', 'active');
-
-                cards.forEach(function (card) {
+                } else {
+                    // Show all for 'all' filter
                     card.style.display = '';
                     visibleCount++;
-                });
+                }
+            });
 
-                if (emptyStateAll) {
-                    emptyStateAll.style.display = visibleCount === 0 ? '' : 'none';
-                }
-                if (emptyStateMine) {
-                    emptyStateMine.style.display = 'none';
-                }
+            // Handle Empty States
+            if (emptyStateAll) {
+                emptyStateAll.style.display = (filter === 'all' && visibleCount === 0) ? '' : 'none';
+            }
+            if (emptyStateMine) {
+                emptyStateMine.style.display = (filter === 'mine' && visibleCount === 0) ? '' : 'none';
             }
         }
 

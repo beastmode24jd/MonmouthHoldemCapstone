@@ -34,7 +34,7 @@
 
         /* unread notifications should stand out slightly with a semi-transparent background */
         .notification-row.unread {
-            background-color: rgba(253, 157, 13, 0.06); /* subtle Bootstrap primary tint */
+            background-color: rgba(253, 157, 13, 0.065); /* subtle Bootstrap primary tint */
             box-shadow: 0 1px 0 rgba(13,110,253,0.04) inset;
         }
 
@@ -68,21 +68,25 @@
     <div class="card notifications-card shadow-sm">
         <div class="mainHeader">
             <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-2 mt-1">
-                <h3 class="mb-0 card-title text-light"><i class="bi fillOrange bi-bell-fill me-2"></i>Your Notifications</h3>
+                <h3 class="mb-0 card-title text-light text-nowrap">
+                    <i class="bi fillOrange bi-bell-fill me-2"></i>Your Notifications
+                </h3>
+                
                 @{
                     var hasUnread = Model != null && Model.Any(n => !n.IsRead);
                     var hasAny = Model != null && Model.Any();
                 }
-                <div class="d-flex gap-2 ms-md-auto mt-3 mt-md-0 w-100 justify-content-start justify-content-md-end">
+
+                <div class="d-flex gap-2 ms-md-auto mt-3 mt-md-0 w-100 w-md-auto justify-content-start justify-content-md-end">
                     <form id="markAllReadForm" asp-action="MarkAllNotificationsAsRead" asp-controller="Dashboard" class="m-0 @(hasUnread ? "" : "d-none")">
                         @Html.AntiForgeryToken()
-                        <button type="submit" id="markAllReadBtn" class="btn-sm btn bg-midGreen">
+                        <button type="submit" id="markAllReadBtn" class="btn btn-sm bg-midGreen text-nowrap">
                             <i class="bi bi-check2-all me-1"></i>Mark All as Read
                         </button>
                     </form>
                     <form id="deleteAllForm" asp-action="DeleteAllNotifications" asp-controller="Dashboard" class="m-0 @(hasAny ? "" : "d-none")">
                         @Html.AntiForgeryToken()
-                        <button type="submit" id="deleteAllBtn" class="btn btn-sm bg-orange">
+                        <button type="submit" id="deleteAllBtn" class="btn btn-sm bg-orange text-nowrap">
                             <i class="bi bi-trash me-1"></i>Delete All
                         </button>
                     </form>
@@ -94,7 +98,7 @@
 
             @if (Model == null || !Model.Any())
             {
-                <div id="notificationsEmptyState" class="alert alert-info" role="alert"> @* AND THIS *@
+                <div id="notificationsEmptyState" class="alert alert-success" role="alert"> @* AND THIS *@
                     You have no notifications at this time. Way to stay on top of things!
                 </div>
             }
