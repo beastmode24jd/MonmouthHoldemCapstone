@@ -1,19 +1,19 @@
 @model AnidexViewModel
 @{
-    ViewData["Title"] = "My Anidex";
+    ViewData["Title"] = "Anidex";
 }
 
-<div class="container mt-4">
+<div class="container mt-4 mb-3 pb-3">
     <div class="card shadow">
-        <div class="card-body">
+        <div class="mainHeader">
             <h1 class="card-title">
-                <i class="bi fillOrange bi-collection-fill"></i> My Anidex
+                <i class="bi fillGreen bi-collection-fill"></i> Anidex
             </h1>
-            <p class="text-muted mb-0">
+        </div>
+        <div class="card-body notebook">
+            <p class="text mb-0">
                 Every unique species you've confirmed through your sightings — your personal field guide.
             </p>
-            <hr />
-
             @if (Model.IsEmpty)
             {
                 <div id="anidexEmptyState" class="text-center py-5">
@@ -22,15 +22,15 @@
                     <p class="lead text-muted mb-4">
                         Go explore! Upload your first sighting and a species will appear here.
                     </p>
-                    <a asp-controller="Sighting" asp-action="Upload" class="btn btn-primary btn-lg">
+                    <a asp-controller="Sighting" asp-action="Upload" class="btn bg-orange btn-lg">
                         <i class="bi bi-camera-fill"></i> Upload Your First Sighting
                     </a>
                 </div>
             }
             else
             {
-                <div class="d-flex align-items-center mb-3">
-                    <span id="anidexSpeciesCount" class="text-muted small">
+                <div class="d-flex align-items-center mb-3 mt-2">
+                    <span id="anidexSpeciesCount" class="text fillOrange pb-1 pt-1">
                         @Model.TotalSpecies @(Model.TotalSpecies == 1 ? "species" : "species") discovered
                     </span>
                 </div>

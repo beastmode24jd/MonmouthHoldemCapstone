@@ -352,7 +352,7 @@ a.navbar-brand:hover {
 
 .notebook {
     background-color: #fff;
-    background-image: linear-gradient(#e3e7e1d1 1px, transparent 1px);
+    background-image: linear-gradient(#e3e7e178 1px, transparent 1px);
     background-size: 100% 2rem;
     position: relative;
 }
@@ -470,7 +470,7 @@ a.navbar-brand:hover {
 }
 
 .bg-lightGreen {
-    background-color: #5b8061 !important;
+    background-color: #75a67d !important;
     color: #0b1b11 !important;
     border: none !important;
 }
@@ -515,7 +515,7 @@ a.navbar-brand:hover {
 }
 
 .bg-midGreen:hover {
-    background-color: #3e6341;
+    background-color: #637c4a;
     color: #fff;
 }
 
@@ -533,9 +533,8 @@ a.navbar-brand:hover {
     box-shadow: 0 0 0 1px #356639;
 }
 
-/* Hover effects to keep things interactive */
-.bg-midGreen:hover, .bg-midGreen-outline:hover {
-    background-color: #567a59;
+.bg-midGreen-outline:hover {
+    background-color: #356639;
     color: #fff;
     border-color: #5e9c62;
     border: 2px solid #356639;
@@ -575,7 +574,7 @@ a.navbar-brand:hover {
 }
 
 .bg-mythic {
-    background-color: #f47d52;
+    background-color: #f49352;
     color: #23170e;
 }
 
@@ -698,4 +697,16 @@ a.navbar-brand:hover {
 .fab-action:focus-visible .fab-action-btn {
     background-color: #612916;
     border-color: #c6e292;
+}
+
+@media (min-width: 768px) {
+    .container.pb-3 {
+        padding-bottom: 1rem !important; 
+    }
+    }
+
+@media (max-width: 767.98px) {
+    .container.pb-3 {
+        padding-bottom: 4rem !important; 
+    }
 }

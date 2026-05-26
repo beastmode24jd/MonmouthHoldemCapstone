@@ -11,37 +11,36 @@
     };
 }
 
-<div id="sightingDetailsContainer" class="container mt-4">
+<div id="sightingDetailsContainer" class="container mt-4 mb-3 pb-3">
     <div class="card shadow">
-        <div class="card-body">
+        <div class="d-flex flex-column flex-md-row justify-content-md-between align-items-md-center gap-3 mb-3 mainHeader">
+            <h1 class="card-title mb-0">
+                <i class="bi fillGreen bi-binoculars-fill"></i>
+                Sighting Details
+            </h1>
+            <div class="d-flex gap-2">
+                @* CSP-37: edit button visible only to the owner (server re-checks on the edit routes). *@
+                @if (Model.CanEdit)
+                {
+                    <a id="editSightingLink"
+                        asp-controller="Sighting" asp-action="Edit" asp-route-id="@Model.Id"
+                        class="btn bg-orange">
+                        <i class="bi bi-pencil-square"></i> Edit
+                    </a>
+                }
+                <a id="backToGalleryLink"
+                    asp-controller="Sighting" asp-action="Gallery"
+                    class="btn bg-midGreen-outline">
+                    <i class="bi bi-arrow-left"></i> Back to Gallery
+                </a>
+            </div>
+        </div>
+        <div class="card-body p-3 text-start overflow-hidden">
             @* CSP-37: success flash after a saved edit. *@
             @if (TempData["EditSuccess"] is string editSuccess)
             {
                 <div id="editSuccessMessage" class="alert alert-success" role="alert">@editSuccess</div>
             }
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h1 class="card-title mb-0">
-                    <i class="bi fillOrange bi-binoculars-fill"></i>
-                    Sighting Details
-                </h1>
-                <div class="d-flex gap-2">
-                    @* CSP-37: edit button visible only to the owner (server re-checks on the edit routes). *@
-                    @if (Model.CanEdit)
-                    {
-                        <a id="editSightingLink"
-                           asp-controller="Sighting" asp-action="Edit" asp-route-id="@Model.Id"
-                           class="btn btn-outline-primary">
-                            <i class="bi bi-pencil-square"></i> Edit
-                        </a>
-                    }
-                    <a id="backToGalleryLink"
-                       asp-controller="Sighting" asp-action="Gallery"
-                       class="btn btn-outline-secondary">
-                        <i class="bi bi-arrow-left"></i> Back to Gallery
-                    </a>
-                </div>
-            </div>
-            <hr />
 
             <div class="row g-4">
                 @* Full sighting image *@
@@ -121,7 +120,6 @@
             </div>
 
             @* Fun fact panel — full width below the photo + meta *@
-            <hr />
             <div class="mt-3">
                 <h5>
                     <i class="bi bi-lightbulb-fill text-warning"></i>
@@ -150,7 +148,7 @@
                 <form id="newCommentForm" asp-controller="Comments" asp-action="Create"
                       asp-route-sightingId="@Model.Id" method="post" class="mb-3">
                     @Html.AntiForgeryToken()
-                    <div class="mb-2">
+                    <div class="mb-3 mt-2">
                         <textarea id="commentBody" name="body" class="form-control"
                                   rows="2" maxlength="1000" required
                                   placeholder="Add a comment..."></textarea>
@@ -169,7 +167,7 @@
                     <ul id="commentsList" class="list-group">
                         @foreach (var c in Model.Comments)
                         {
-                            <li class="list-group-item comment-item" data-comment-id="@c.Id" data-author-id="@c.AuthorId">
+                            <li class="list-group-item comment-item mb-2" data-comment-id="@c.Id" data-author-id="@c.AuthorId">
                                 <div class="d-flex justify-content-between">
                                     <div>
                                         <strong class="comment-author">@c.AuthorDisplayName</strong>
@@ -185,7 +183,7 @@
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="sightingId" value="@Model.Id" />
                                             <input type="hidden" name="reason" value="Moderator action" />
-                                            <button type="submit" class="btn btn-sm btn-outline-danger hide-comment-button"
+                                            <button type="submit" class="btn btn-sm bg-midGreen-outline hide-comment-button"
                                                     aria-label="Hide comment">
                                                 <i class="bi bi-eye-slash"></i> Hide
                                             </button>
