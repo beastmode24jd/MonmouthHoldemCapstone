@@ -271,21 +271,6 @@ document.addEventListener('DOMContentLoaded', function () {
         clientSightingIdInput.value = generateGuid();
     }
 
-    // Online/offline banner update on queue page
-    const statusBanner = document.getElementById('connectivityStatus');
-    function updateConnectivityBanner() {
-        if (!statusBanner) return;
-        if (navigator.onLine) {
-            statusBanner.textContent = 'You are online. Queued sightings can be synced.';
-            statusBanner.className = 'alert alert-success';
-        } else {
-            statusBanner.textContent = 'You are offline. New sightings will be saved to the queue.';
-            statusBanner.className = 'alert alert-warning';
-        }
-    }
-    updateConnectivityBanner();
-    window.addEventListener('online', updateConnectivityBanner);
-    window.addEventListener('offline', updateConnectivityBanner);
 });
 
 // Auto-sync when connectivity is restored (applies on any page)
