@@ -39,7 +39,7 @@
     }
 }
 
-<div class="container mt-4">
+<div class="container mt-4 mb-3 pb-3">
     @* CSP-122: Photo-quality flash messages set by SightingController after a successful upload. *@
     @if (TempData["PhotoQualitySuccess"] is string pqSuccess)
     {
@@ -57,9 +57,8 @@
     <div class="row">
         <div class="col-12">
             <div class="card shadow">
+                <h1 class="card-title mainHeader">Welcome to Your Dashboard</h1>
                 <div class="card-body">
-                    <h1 class="card-title">Welcome to Your Dashboard</h1>
-                    <hr />
                     
                     @if (User.Identity?.IsAuthenticated == true)
                     {
