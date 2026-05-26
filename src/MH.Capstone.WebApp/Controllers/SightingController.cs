@@ -214,11 +214,11 @@ namespace MH.Capstone.WebApp.Controllers
         [HttpGet]
         [Route("Upload")]
         [Route("Create")]
-        public IActionResult Upload()
+        public async Task<IActionResult> Upload()
         {
             // Get timezone cookie from site.js (defaults to PST if not found)
             string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
-            
+
             TimeZoneInfo userZone;
 
             try
@@ -240,6 +240,10 @@ namespace MH.Capstone.WebApp.Controllers
                 Timestamp = localNow,
                 DeviceTimezone = userTimeZoneId
             };
+
+            // CSP-177: expose the user ID so sighting-upload.js can save to IndexedDB when offline.
+            var user = await _userManager.GetUserAsync(User);
+            ViewBag.CurrentUserId = user?.Id;
 
             return View(viewModel);
         }

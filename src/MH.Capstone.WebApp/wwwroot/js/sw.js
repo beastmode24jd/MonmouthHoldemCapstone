@@ -4,6 +4,7 @@ const OFFLINE_PAGES = [
     '/Sighting/Upload',
     '/Sighting/Create',
     '/Sighting/OfflineQueue',
+    '/',
 ];
 
 function isOfflinePage(pathname) {

@@ -519,6 +519,25 @@
             });
         }
     </script>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <script>
+            if ('serviceWorker' in navigator && 'caches' in window) {
+                navigator.serviceWorker.ready.then(function () {
+                    return caches.open('cwsa-offline-v1');
+                }).then(function (cache) {
+                    var urls = ['/', '/Sighting/Create', '/Sighting/OfflineQueue'];
+                    return Promise.all(urls.map(function (url) {
+                        return fetch(url, { credentials: 'same-origin' })
+                            .then(function (response) {
+                                if (response.ok) return cache.put(url, response);
+                            })
+                            .catch(function () {});
+                    }));
+                }).catch(function () {});
+            }
+        </script>
+    }
 </body>
 
 </html>

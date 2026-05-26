@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "Upload Sighting";
 }
+<span id="currentUserId" class="d-none">@ViewBag.CurrentUserId</span>
 
 <div class="container mt-4 mb-3 pb-3">
     <div class="card shadow">
@@ -34,14 +35,14 @@
                     <input type="hidden" asp-for="DeviceTimezone" />
                     <input type="hidden" asp-for="ClientSightingId" id="clientSightingIdInput" />
                 </div>
-                
+
                 <!-- Location status message -->
                 <div class="row mt-2">
                     <div class="col-12">
                         <div id="locationStatus" class="alert d-none" role="alert"></div>
                     </div>
                 </div>
-                
+
                 <!-- Use Current Location button -->
                 <div class="row mb-2">
                     <div class="col-12">
@@ -50,7 +51,7 @@
                         </button>
                     </div>
                 </div>
-                
+
                 @* CSP-142: Species input. Required for Anidex grouping.
                 Auto-filled by sighting-upload.js when the AI returns a confident match. *@
                 <div class="row mb-md-3 mb-2">

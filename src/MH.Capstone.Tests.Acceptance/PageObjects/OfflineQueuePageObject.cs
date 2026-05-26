@@ -32,7 +32,13 @@ public class OfflineQueuePageObject
 
     public string GetCurrentUserId()
     {
+        // .Text returns "" for display:none elements; use textContent attribute instead.
         var els = _driver.FindElements(By.Id("currentUserId"));
-        return els.Count > 0 ? els[0].Text.Trim() : string.Empty;
+        foreach (var el in els)
+        {
+            var val = el.GetAttribute("textContent")?.Trim() ?? string.Empty;
+            if (!string.IsNullOrEmpty(val)) return val;
+        }
+        return string.Empty;
     }
 }
