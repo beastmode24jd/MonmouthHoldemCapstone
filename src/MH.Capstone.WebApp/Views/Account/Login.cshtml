@@ -2,111 +2,112 @@
 @{
     ViewData["Title"] = "Login";
 }
-
-<div class="row justify-content-center mt-5">
-    <div class="col-md-6 col-lg-4">
-        <div class="card shadow">
-            <div class="card-body">
-                <h2 class="card-title text-center mb-4">Login</h2>
-                @if (TempData["PasswordResetSuccess"] is string resetMsg)
-                {
-                    <div class="alert alert-success" role="alert" id="passwordResetSuccessMessage">
-                        @resetMsg
-                    </div>
-                }
-                @if (TempData["AccountLockedMessage"] is string lockedMsg)
-                {
-                    <div class="alert alert-danger" role="alert" id="accountLockedMessage">
-                        @lockedMsg
-                    </div>
-                }
-                @if (ViewData["ShowResendVerificationOption"] is bool showResend && showResend)
-                {
-                    <div class="alert alert-warning" role="alert" id="emailNotVerifiedMessage">
-                        <p class="mb-2">Your email address has not been verified.</p>
-                        <a asp-action="ResendVerification" asp-controller="Account"
-                           class="btn btn-warning btn-sm" id="resendVerificationBtn">
-                            Resend Verification Email
-                        </a>
-                    </div>
-                }
-                @if (ViewData["ShowReactivateOption"] is bool showReactivate && showReactivate)
-                {
-                    <div class="alert alert-warning" role="alert">
-                        <p class="mb-2">This account has been deactivated.</p>
-                        <a asp-action="Reactivate" asp-controller="Account" class="btn btn-warning btn-sm">
-                            Reactivate My Account
-                        </a>
-                    </div>
-                }
-                else if (!ViewData.ModelState.IsValid)
-                {
-                    // Retrieve only 'ModelOnly' errors (those with an empty key)
-                    var modelErrors = ViewData.ModelState[string.Empty]?.Errors;
-                    
-                    if (modelErrors != null && modelErrors.Any())
+<div class="container mt-4 mb-3 pb-3">
+    <div class="row justify-content-center mt-3">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow">
+                <h2 class="card-title text-center mb-4 mainHeader">Login</h2>
+                <div class="card-body">
+                    @if (TempData["PasswordResetSuccess"] is string resetMsg)
                     {
-                        <div class="alert alert-danger" role="alert">
-                            @foreach (var error in modelErrors)
-                            {
-                                @* Use Html.Raw to render the <a> tag provided by the controller *@
-                                <div>@Html.Raw(error.ErrorMessage)</div>
-                            }
+                        <div class="alert alert-success" role="alert" id="passwordResetSuccessMessage">
+                            @resetMsg
                         </div>
                     }
-                }
-                <form asp-action="Login" asp-controller="Account" method="post" id="loginForm">
-                    <input type="hidden" asp-for="ReturnUrl" />
+                    @if (TempData["AccountLockedMessage"] is string lockedMsg)
+                    {
+                        <div class="alert alert-danger" role="alert" id="accountLockedMessage">
+                            @lockedMsg
+                        </div>
+                    }
+                    @if (ViewData["ShowResendVerificationOption"] is bool showResend && showResend)
+                    {
+                        <div class="alert alert-warning" role="alert" id="emailNotVerifiedMessage">
+                            <p class="mb-2">Your email address has not been verified.</p>
+                            <a asp-action="ResendVerification" asp-controller="Account"
+                            class="btn btn-warning btn-sm" id="resendVerificationBtn">
+                                Resend Verification Email
+                            </a>
+                        </div>
+                    }
+                    @if (ViewData["ShowReactivateOption"] is bool showReactivate && showReactivate)
+                    {
+                        <div class="alert alert-warning" role="alert">
+                            <p class="mb-2">This account has been deactivated.</p>
+                            <a asp-action="Reactivate" asp-controller="Account" class="btn btn-warning btn-sm">
+                                Reactivate My Account
+                            </a>
+                        </div>
+                    }
+                    else if (!ViewData.ModelState.IsValid)
+                    {
+                        // Retrieve only 'ModelOnly' errors (those with an empty key)
+                        var modelErrors = ViewData.ModelState[string.Empty]?.Errors;
+                        
+                        if (modelErrors != null && modelErrors.Any())
+                        {
+                            <div class="alert alert-danger" role="alert">
+                                @foreach (var error in modelErrors)
+                                {
+                                    @* Use Html.Raw to render the <a> tag provided by the controller *@
+                                    <div>@Html.Raw(error.ErrorMessage)</div>
+                                }
+                            </div>
+                        }
+                    }
+                    <form asp-action="Login" asp-controller="Account" method="post" id="loginForm">
+                        <input type="hidden" asp-for="ReturnUrl" />
 
-                    <div class="mb-3">
-                        <label asp-for="Email" class="form-label">Email</label>
-                        <input asp-for="Email" class="form-control" type="email" id="emailField" placeholder="Enter your email"
-                               required />
-                        <span asp-validation-for="Email" class="text-danger"></span>
-                    </div>
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label">Email</label>
+                            <input asp-for="Email" class="form-control" type="email" id="emailField" placeholder="Enter your email"
+                                required />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
 
-                    <div class="mb-1">
-                        <label asp-for="Password" class="form-label">Password</label>
-                        <div class="input-group">
-                            <input asp-for="Password" class="form-control" type="password" id="passwordField"
-                                   placeholder="Enter your password" required />
-                            <button class="btn btn-outline-secondary" type="button"
-                                data-password-toggle
-                                data-target-input="passwordField"
-                                data-target-icon="toggleIcon">
-                                <i class="bi bi-eye" id="toggleIcon"></i>
+                        <div class="mb-1">
+                            <label asp-for="Password" class="form-label">Password</label>
+                            <div class="input-group">
+                                <input asp-for="Password" class="form-control" type="password" id="passwordField"
+                                    placeholder="Enter your password" required />
+                                <button class="btn btn-outline-secondary" type="button"
+                                    data-password-toggle
+                                    data-target-input="passwordField"
+                                    data-target-icon="toggleIcon">
+                                    <i class="bi bi-eye" id="toggleIcon"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="Password" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-flex justify-content-end mb-3">
+                            <a asp-controller="Account"     asp-action="ForgotPassword"
+                                class="link-primary text-decoration-underline form-text">
+                                Forgot Password?
+                            </a>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input asp-for="RememberMe" class="form-check-input" type="checkbox" />
+                            <label asp-for="RememberMe" class="form-check-label">
+                                Remember Me (30 days)
+                            </label>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn bg-orange" id="submitBtn" disabled>
+                                <span id="buttonText">Login</span>
+                                <span id="loadingSpinner" class="spinner-border spinner-border-sm d-none" role="status"
+                                    aria-hidden="true"></span>
                             </button>
                         </div>
-                        <span asp-validation-for="Password" class="text-danger"></span>
-                    </div>
 
-                    <div class="d-flex justify-content-end mb-3">
-                        <a asp-controller="Account"     asp-action="ForgotPassword"
-                               class="link-primary text-decoration-underline form-text">
-                            Forgot Password?
-                        </a>
-                    </div>
-
-                    <div class="mb-3 form-check">
-                        <input asp-for="RememberMe" class="form-check-input" type="checkbox" />
-                        <label asp-for="RememberMe" class="form-check-label">
-                            Remember Me (30 days)
-                        </label>
-                    </div>
-
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
-                            <span id="buttonText">Login</span>
-                            <span id="loadingSpinner" class="spinner-border spinner-border-sm d-none" role="status"
-                                  aria-hidden="true"></span>
-                        </button>
-                    </div>
-
-                    <div class="text-center mt-3">
-                        <p>Don't have an account? <a asp-action="Register" asp-controller="Account">Register here</a>
-                        </p>
-                    </div>
-                </form>
+                        <div class="text-center mt-3">
+                            <p>Don't have an account? <a asp-action="Register" asp-controller="Account">Register here</a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

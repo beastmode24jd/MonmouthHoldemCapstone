@@ -588,6 +588,16 @@ a.navbar-brand:hover {
     color: #fff;
 }
 
+.bg-orange:disabled,
+.bg-orange[disabled] {
+    background-color: #a76f45 !important; /* A desaturated, darker orange */
+    color: rgba(255, 255, 255, 0.777) !important; /* Faded text */
+    border: none;
+    opacity: 0.8;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
 .orange-flat {
     background-color: #8b4312;
     color: #fff;
