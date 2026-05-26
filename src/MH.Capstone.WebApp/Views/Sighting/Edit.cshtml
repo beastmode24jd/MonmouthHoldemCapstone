@@ -3,22 +3,20 @@
     ViewData["Title"] = "Edit Sighting";
 }
 
-<div id="editSightingContainer" class="container mt-4">
+<div id="editSightingContainer" class="container mt-4 mb-3 pb-3">
     <div class="card shadow">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h1 class="card-title mb-0">
-                    <i class="bi bi-pencil-square text-primary"></i>
-                    Edit Sighting
-                </h1>
-                <a id="cancelEditLink"
-                   asp-controller="Sighting" asp-action="Details" asp-route-id="@Model.Id"
-                   class="btn btn-outline-secondary">
-                    <i class="bi bi-x-lg"></i> Cancel
-                </a>
-            </div>
-            <hr />
-
+        <div class="d-flex justify-content-between align-items-center mb-2 mainHeader">
+            <h1 class="card-title mb-0">
+                <i class="bi bi-pencil-square fillOrange"></i>
+                Edit Sighting
+            </h1>
+            <a id="cancelEditLink"
+                asp-controller="Sighting" asp-action="Details" asp-route-id="@Model.Id"
+                class="btn bg-midGreen-outline">
+                <i class="bi bi-x-lg"></i> Cancel
+            </a>
+        </div>
+        <div class="card-body overflow-hidden mb-4">
             <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
 
             <div class="row g-4">
@@ -69,7 +67,7 @@
                             <span asp-validation-for="Description" class="text-danger"></span>
                         </div>
 
-                        <button id="saveEditBtn" type="submit" class="btn btn-primary">
+                        <button id="saveEditBtn" type="submit" class="btn bg-midGreen">
                             <i class="bi bi-check-lg"></i> Save Changes
                         </button>
                     </form>

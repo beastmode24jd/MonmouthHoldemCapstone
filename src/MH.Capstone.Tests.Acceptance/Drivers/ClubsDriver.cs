@@ -280,14 +280,21 @@ public class ClubsDriver
             foreach (var wrapper in wrappers)
             {
                 var hasTitle = wrapper.FindElements(By.CssSelector(".card-title"))
-                                      .Any(t => t.Text.Contains(clubName, StringComparison.OrdinalIgnoreCase));
+                                    .Any(t => t.Text.Contains(clubName, StringComparison.OrdinalIgnoreCase));
+                
                 if (hasTitle)
                     return wrapper.FindElements(By.CssSelector("a.btn")).FirstOrDefault(a => a.Displayed);
             }
             return null;
         });
 
-        viewLink?.Click();
+        // Use JS Executor to bypass native click interception 
+        // caused by the newly introduced Bootstrap card grid layout.
+        if (viewLink != null)
+        {
+            ((IJavaScriptExecutor)_webDriver).ExecuteScript("arguments[0].click();", viewLink);
+        }
+
         TestContext.Out.WriteLine($"[{nameof(ClubsDriver)}] Clicked 'View Club' for '{clubName}'.");
 
         _wait.Until(d => d.Url.Contains("/Clubs/ClubPage/", StringComparison.InvariantCultureIgnoreCase));

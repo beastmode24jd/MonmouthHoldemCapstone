@@ -35,10 +35,10 @@
 
             if (pendingCount > 0) {
                 notifPendingBadgeNum.textContent = pendingCount;
-                notifMenuItem.classList.add("text-danger");
+                notifMenuItem.classList.add("fillOrange"); @* CHANGE TO ORANGE!!! *@
                 notifPendingBadge.classList.remove("d-none");
             } else {
-                notifMenuItem.classList.remove("text-danger");
+                notifMenuItem.classList.remove("fillOrange"); @* THIS TOO!!! *@
                 notifPendingBadge.classList.add("d-none");
                 notifPendingBadgeNum.textContent = "";
             }
@@ -126,7 +126,7 @@
                                     @* CSP-142: Anidex personal collection *@
                                     <li>
                                         <a id="anidexNavLink" class="dropdown-item" asp-action="Index" asp-controller="Anidex">
-                                            <i class="bi bi-collection"></i> My Anidex
+                                            <i class="bi bi-collection"></i> Anidex
                                         </a>
                                     </li>
                                     @* CSP-177: Offline queue *@
@@ -160,7 +160,7 @@
                                              id="navProfile"
                                              role="img"/>
                                         <span id="navDisplayNameText">@(user?.DisplayName != "UNSET" ? user?.DisplayName : User.Identity.Name)</span>
-                                        <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-danger d-none"
+                                        <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-orange d-none"
                                             id="pendingNotifBadge">
                                             <span id="pendingNotifBadgeNum"></span>
                                             <span class="visually-hidden">unread messages</span>
@@ -208,7 +208,7 @@
                                             </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link text-light dropdown-item" asp-controller="Admin" asp-action="LogPage">
+                                            <a class="nav-link dropdown-item" asp-controller="Admin" asp-action="LogPage">
                                                 <i class="bi bi-window-fullscreen"></i>  Admin Logs
                                             </a>
                                         </li>
