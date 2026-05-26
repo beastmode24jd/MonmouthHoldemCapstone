@@ -84,7 +84,7 @@
                                     <strong>Account Type:</strong> 
                                     @if (!string.IsNullOrEmpty(displayRole))
                                     {
-                                        <span class="badge bg-primary"><i class="bi bi-shield-check"></i> @displayRole</span>
+                                        <span class="badge bg-orange"><i class="bi bi-shield-check"></i> @displayRole</span>
                                     }
                                     else
                                     {
@@ -92,7 +92,7 @@
                                     }
                                 </li>
                                 <li class="list-group-item">
-                                    <strong>Status:</strong> <span class="badge bg-success">Active</span>
+                                    <strong>Status:</strong> <span class="badge bg-midGreen">Active</span>
                                 </li>
                                 <li class="list-group-item">
                                     <strong>Bio: </strong> @(user?.Bio ?? "No custom bio is set.")
@@ -157,7 +157,7 @@
                             @if (user != null)
                             {
                                 <p class="card-text mb-0 mt-1"><strong>Login Streak:</strong> </p>
-                                <span class="badge @(user.IsStreakActive ? "bg-success" : "bg-danger")">
+                                <span class="badge @(user.IsStreakActive ? "bg-loginStreak" : "bg-orange")">
                                     @(user.IsStreakActive ? "Active" : "Inactive")
                                 </span>
                             }

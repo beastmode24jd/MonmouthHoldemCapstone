@@ -7,7 +7,7 @@
     <div class="card shadow">
         <div class="card-body">
             <h1 class="card-title">
-                <i class="bi bi-collection-fill text-primary"></i> My Anidex
+                <i class="bi fillOrange bi-collection-fill"></i> My Anidex
             </h1>
             <p class="text-muted mb-0">
                 Every unique species you've confirmed through your sightings — your personal field guide.
@@ -41,9 +41,9 @@
                         var entry = Model.Entries[i];
                         string rarityBadgeClass = entry.RarityName switch
                         {
-                            "Mythic" => "bg-purple",
-                            "Rare" => "bg-primary",
-                            "Common" => "bg-success",
+                            "Mythic" => "bg-mythic",
+                            "Rare" => "bg-rare",
+                            "Common" => "bg-common",
                             _ => "bg-secondary"
                         };
                         string modalId = $"anidexModal-{i}";

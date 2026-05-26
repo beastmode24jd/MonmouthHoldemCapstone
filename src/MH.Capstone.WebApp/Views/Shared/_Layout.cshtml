@@ -35,10 +35,10 @@
 
             if (pendingCount > 0) {
                 notifPendingBadgeNum.textContent = pendingCount;
-                notifMenuItem.classList.add("text-danger");
+                notifMenuItem.classList.add("fillOrange"); @* CHANGE TO ORANGE!!! *@
                 notifPendingBadge.classList.remove("d-none");
             } else {
-                notifMenuItem.classList.remove("text-danger");
+                notifMenuItem.classList.remove("fillOrange"); @* THIS TOO!!! *@
                 notifPendingBadge.classList.add("d-none");
                 notifPendingBadgeNum.textContent = "";
             }

@@ -205,7 +205,7 @@ a {
 }
 
 a:hover, a:focus, a:visited {
-    color: #612916;
+    color: #612916; /* Change this later */
 }
 
 a.navbar-brand:focus, a.navbar-brand:visited {
@@ -460,13 +460,51 @@ a.navbar-brand:hover {
     color: #fff;
 }
 
+.bg-midGreen {
+    background-color: #356639;
+    color: #fff;
+}
+
+.bg-midGreen:hover {
+    background-color: #5e9c62;
+    color: #fff;
+}
+
+.bg-midGreen-outline {
+    background-color: #fff;
+    color: #356639;
+}
+
+.bg-midGreen-outline:hover {
+    background-color: #5e9c62;
+    color: #fff;
+}
+
+.fillGreen {
+    color: #356639;
+}
+
+.fillOrange {
+    color: #8b4312;
+}
+
+.bg-orange {
+    background-color: #8b4312;
+    color: #fff;
+}
+
+.bg-orange:hover{
+    background-color: #d57f29;
+    color: #fff;
+}
+
 .bg-mythic {
-    background-color: #914529;
+    background-color: #f47d52;
     color: #23170e;
 }
 
 .bg-rare {
-    background-color: #9f752b;
+    background-color: #c79745;
     color: #23170e;
 }
 
@@ -476,12 +514,12 @@ a.navbar-brand:hover {
 }
 
 .bg-loginStreak {
-    background-color: #555922;
+    background-color: #251b18;
     color: #fff;
 }
 
 .bg-points {
-    background-color: #29222d;
+    background-color: #251b18;
     color: #fff;
 }
 
