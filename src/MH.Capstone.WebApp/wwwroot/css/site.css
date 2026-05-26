@@ -124,10 +124,19 @@ h5 {
    25px inward radius on the top-right. */
 .card:has(> .mainHeader),
 .card:has(> .subheader) {
-    border-top-left-radius: 0;
+    border-top-left-radius: 0 !important;
     border-top-right-radius: 25px;
     border: none !important; /* Removes the white outline around the header */
     overflow: hidden;         /* Ensures the header doesn't bleed past the card corners */
+}
+
+.card-header.mainHeader, 
+.card-header.subheader {
+    margin: -1px -1px 0 -1px; /* Extends the header slightly to cover the card edge */
+    border-top-left-radius: 0;
+    border-top-right-radius: 25px;
+    border-bottom: none;
+    z-index: 1; /* Ensures the header sits on top of any internal card borders */
 }
 
 .modal-content:has(> .subheader) {
@@ -630,6 +639,12 @@ a.navbar-brand:hover {
     background-color: #612916;
 }
 
+#sendMessageBtn {
+    position: relative;
+    z-index: 10; /* Ensures the button stays above any background elements */
+    pointer-events: auto !important;
+}
+
 /* Floating Action Button */
 #fabMain {
     width: 56px;
@@ -651,9 +666,21 @@ a.navbar-brand:hover {
     background-color: #612916;
 }
 
+#fabMain, .fab-menu {
+    pointer-events: auto;
+}
+
 #fabIcon {
     transition: transform 0.3s ease;
     line-height: 1;
+}
+
+#fabContainer {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1050; /* Higher than most UI but below modals */
+    pointer-events: none; /* Let clicks pass through the empty space around the button */
 }
 
 #fabContainer.fab-open #fabIcon {

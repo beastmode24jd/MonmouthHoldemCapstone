@@ -28,7 +28,7 @@ function appendMessage(container, currentUserId, msg) {
     wrapper.className = 'd-flex ' + (isOwn ? 'justify-content-end' : 'justify-content-start');
 
     var bubble = document.createElement('div');
-    bubble.className = (isOwn ? 'bg-primary text-white' : 'bg-light border') + ' rounded px-3 py-2';
+    bubble.className = (isOwn ? 'orange-flat text-white' : 'green-flat text-white') + ' rounded px-3 py-2';
     bubble.style.maxWidth = '70%';
 
     var html = '';
@@ -36,7 +36,7 @@ function appendMessage(container, currentUserId, msg) {
         html += '<div class="fw-semibold small mb-1">' + escapeHtml(msg.authorDisplayName) + '</div>';
     }
     html += '<div>' + escapeHtml(msg.content) + '</div>';
-    html += '<div class="' + (isOwn ? 'text-white-50' : 'text-muted') + ' small mt-1 text-end">'
+    html += '<div class="' + (isOwn ? 'text-white-50' : 'text-white-50') + ' small mt-1 text-end">'
         + escapeHtml(formatTime(msg.sentAtUtc)) + '</div>';
 
     bubble.innerHTML = html;

@@ -47,11 +47,11 @@
             <p class="mb-1">
                 <strong>Owner:</strong> @Model.Club.Owner.DisplayName
             </p>
-            <p class="text-muted small mb-0">
+            <p class="text fillGreen small mb-0">
                 Created @Model.Club.CreatedAt.ToString("MMMM d, yyyy")
             </p>
 
-            <hr />
+            <br />
 
             @* CSP-125: Clubs Feed
                Has recent Sightings cards from the members
@@ -73,50 +73,52 @@
             
             @if (Model.ClubMembers.Any())
             {
-                <hr />
-                <p class="mb-2"><strong>Club Highlights</strong></p>
-                <div class="d-flex flex-wrap gap-4">
-                    @if (Model.TopMembersByPoints.Any())
-                    {
-                        <div>
-                            <p class="text-p-size mb-1">
-                                <i class="bi bi-trophy-fill fillOrange me-1"></i> Top Members
-                            </p>
-                            <ol class="mb-0 ps-3">
-                                @foreach (var top in Model.TopMembersByPoints)
-                                {
-                                    <li class="medium">
-                                        @top.Member?.DisplayName
-                                        <span class="badge bg-points ms-1">@(top.Member?.Points ?? 0) pts</span>
-                                    </li>
-                                }
-                            </ol>
-                        </div>
-                    }
+                <br />
+                <div class="bg-white">
+                    <p class="mb-2"><strong>Club Highlights</strong></p>
+                    <div class="d-flex flex-wrap gap-4">
+                        @if (Model.TopMembersByPoints.Any())
+                        {
+                            <div>
+                                <p class="text-p-size mb-1">
+                                    <i class="bi bi-trophy-fill fillOrange me-1"></i> Top Members
+                                </p>
+                                <ol class="mb-0 ps-3">
+                                    @foreach (var top in Model.TopMembersByPoints)
+                                    {
+                                        <li class="medium">
+                                            @top.Member?.DisplayName
+                                            <span class="badge bg-points ms-1">@(top.Member?.Points ?? 0) pts</span>
+                                        </li>
+                                    }
+                                </ol>
+                            </div>
+                        }
 
-                    @if (Model.NewestMember != null)
-                    {
+                        @if (Model.NewestMember != null)
+                        {
+                            <div>
+                                <p class="text-muted mb-1">
+                                    <i class="bi bi-person-plus-fill fillGreen me-1"></i> Newest Member
+                                </p>
+                                <p class="medium mb-0">
+                                    @Model.NewestMember.Member?.DisplayName
+                                    <span class="text-muted">— joined @Model.NewestMember.JoinedAt.ToString("MMM d, yyyy")</span>
+                                </p>
+                            </div>
+                        }
+
                         <div>
                             <p class="text-muted mb-1">
-                                <i class="bi bi-person-plus-fill fillGreen me-1"></i> Newest Member
+                                <i class="bi bi-camera-fill fillGreen me-1"></i> Total Sightings
                             </p>
-                            <p class="medium mb-0">
-                                @Model.NewestMember.Member?.DisplayName
-                                <span class="text-muted">— joined @Model.NewestMember.JoinedAt.ToString("MMM d, yyyy")</span>
-                            </p>
+                            <p class="medium mb-0">@Model.TotalSightingsCount sighting@(Model.TotalSightingsCount == 1 ? "" : "s")</p>
                         </div>
-                    }
-
-                    <div>
-                        <p class="text-muted mb-1">
-                            <i class="bi bi-camera-fill fillGreen me-1"></i> Total Sightings
-                        </p>
-                        <p class="medium mb-0">@Model.TotalSightingsCount sighting@(Model.TotalSightingsCount == 1 ? "" : "s")</p>
                     </div>
                 </div>
             }
 
-            <hr />
+            <br />
 
             @* Action buttons *@
             <div class="d-flex gap-2 flex-wrap">

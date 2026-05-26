@@ -48,14 +48,14 @@
                     bool isOwn = msg.AuthorIdentityId == Model.CurrentUserId;
                     <div class="d-flex @(isOwn ? "justify-content-end" : "justify-content-start")"
                          id="message_@msg.Id">
-                        <div class="@(isOwn ? "bg-primary text-white" : "bg-light border") rounded px-3 py-2"
-                             style="max-width: 70%;">
+                        <div class="@(isOwn ? "orange-flat" : "green-flat") rounded px-3 py-2"
+                             style="max-width: 80%;">
                             @if (!isOwn)
                             {
                                 <div class="fw-semibold small mb-1">@msg.Author.DisplayName</div>
                             }
                             <div>@msg.Content</div>
-                            <div class="@(isOwn ? "text-white-50" : "text-muted") small mt-1 text-end">
+                            <div class="@(isOwn ? "text-white-50" : "text-white-50") small mt-1 text-end">
                                 @msg.SentAt.DateTime.ToString("MMM d, h:mm tt")
                             </div>
                         </div>
@@ -68,23 +68,19 @@
         @if (Model.IsCurrentUserMember)
         {
             <div class="card-footer py-3 bg-white">
-                <form asp-action="SendMessage" method="post" id="sendMessageForm">
+                <form asp-action="SendMessage" method="post" id="sendMessageForm" class="d-flex flex-column gap-2">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="clubId" value="@Model.Club.Id" />
-                    <div class="d-flex gap-2 align-items-end">
-                        <textarea id="messageInput"
-                                  name="content"
-                                  class="form-control"
-                                  rows="4"
-                                  maxlength="2000"
-                                  placeholder="Type a message…"
-                                  style="resize: none;"></textarea>
-                        <button type="submit" class="btn bg-orange" id="sendMessageBtn">
-                            <i class="bi bi-send-fill"></i>
-                        </button>
-                    </div>
-                    <div class="d-flex justify-content-end mt-1">
+                    
+                    <textarea id="messageInput" name="content" class="form-control"
+                            rows="3" maxlength="2000" placeholder="Type a message…"
+                            style="resize: none;"></textarea>
+
+                    <div class="d-flex justify-content-between align-items-center">
                         <span id="charCounter" class="text-muted small">0 / 2000</span>
+                        <button type="submit" class="btn bg-orange px-4" id="sendMessageBtn">
+                            <i class="bi bi-send-fill me-1"></i> Send
+                        </button>
                     </div>
                 </form>
             </div>
