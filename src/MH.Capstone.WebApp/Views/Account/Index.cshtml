@@ -7,9 +7,9 @@
 
 <div class="container mt-4 mb-3 pb-3">
     <div class="card shadow">
-        <h1 class="card-title subHeader">@(Model.IsAuthenticatedUser ? "Your Profile" : $"{Model.DisplayName}'s Profile")</h1>
+        <h1 class="card-title card-header subheader">@(Model.IsAuthenticatedUser ? "Your Profile" : $"{Model.DisplayName}'s Profile")</h1>
         <div class="card-body border-0 overflow-hidden">
-            <div class="mt-3">
+            <div class="mt-0 mt-md-n1">
                 <div class="row">
                     <div class="col-12 col-md-2 d-flex justify-content-center align-items-center">
                         <img class="dashboardProfile img-fluid" 
@@ -17,7 +17,7 @@
                         aria-label="@Model.DisplayName Profile Image"
                         style="width: 80px; height: 80px; object-fit: cover;" />
                     </div>
-                    <div class="col-12 col-md-10 mt-2 mb-1">
+                    <div class="col-12 col-md-10 mt-0 mt-md-0 mb-1">
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item">
                                 <strong>Status:</strong>

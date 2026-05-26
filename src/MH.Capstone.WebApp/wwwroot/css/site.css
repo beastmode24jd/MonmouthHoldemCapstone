@@ -343,6 +343,11 @@ a.navbar-brand:hover {
     vertical-align: middle;
 }
 
+.nav-tabs .nav-link:not(.active) {
+    color: #356639 !important; /* This matches your bg-midGreen/fillGreen color */
+    font-weight: 500;
+}
+
 .dashboardProfile {
     width: 60px;
     height: 60px;
