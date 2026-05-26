@@ -64,16 +64,16 @@
     </style>
 }
 
-<div class="container mt-4">
+<div class="container mt-3 mb-5 pb-4 pb-md-0">
     <div class="card notifications-card shadow-sm">
-        <div class="card-body">
-            <div class="d-flex align-items-center mb-3">
-                <h3 class="mb-0 card-title"><i class="bi bi-bell-fill me-2"></i>Your Notifications</h3>
+        <div class="mainHeader">
+            <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center mb-2 mt-1">
+                <h3 class="mb-0 card-title text-light"><i class="bi fillOrange bi-bell-fill me-2"></i>Your Notifications</h3>
                 @{
                     var hasUnread = Model != null && Model.Any(n => !n.IsRead);
                     var hasAny = Model != null && Model.Any();
                 }
-                <div class="d-flex gap-2 ms-auto">
+                <div class="d-flex gap-2 ms-md-auto mt-3 mt-md-0 w-100 justify-content-start justify-content-md-end">
                     <form id="markAllReadForm" asp-action="MarkAllNotificationsAsRead" asp-controller="Dashboard" class="m-0 @(hasUnread ? "" : "d-none")">
                         @Html.AntiForgeryToken()
                         <button type="submit" id="markAllReadBtn" class="btn-sm btn bg-midGreen">
@@ -88,6 +88,9 @@
                     </form>
                 </div>
             </div>
+        </div>
+        
+        <div class="card-body mt-1 mb-5 mb-md-2 pb-4 pb-md-1">
 
             @if (Model == null || !Model.Any())
             {
