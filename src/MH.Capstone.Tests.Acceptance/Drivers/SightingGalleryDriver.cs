@@ -54,12 +54,12 @@ public class SightingGalleryDriver
     {
         var page = new SightingGalleryPageObject(_webDriver);
         page.FilterAllBtn.Click();
-        // Wait briefly for JS filter to apply
+        // Wait briefly for JS filter to apply using updated classes
         new WebDriverWait(_webDriver, TimeSpan.FromSeconds(3)).Until(_ =>
         {
             var btn = _webDriver.FindElement(By.Id("filterAll"));
-            return btn.GetAttribute("class")?.Contains("btn-primary") == true
-                   && !btn.GetAttribute("class")!.Contains("btn-outline-primary");
+            var cls = btn.GetAttribute("class") ?? string.Empty;
+            return cls.Contains("active") && cls.Contains("bg-lightGreen");
         });
     }
 
@@ -67,12 +67,12 @@ public class SightingGalleryDriver
     {
         var page = new SightingGalleryPageObject(_webDriver);
         page.FilterMineBtn.Click();
-        // Wait briefly for JS filter to apply
+        // Wait briefly for JS filter to apply using updated classes
         new WebDriverWait(_webDriver, TimeSpan.FromSeconds(3)).Until(_ =>
         {
             var btn = _webDriver.FindElement(By.Id("filterMine"));
-            return btn.GetAttribute("class")?.Contains("btn-primary") == true
-                   && !btn.GetAttribute("class")!.Contains("btn-outline-primary");
+            var cls = btn.GetAttribute("class") ?? string.Empty;
+            return cls.Contains("active") && cls.Contains("bg-lightGreen");
         });
     }
 
@@ -83,7 +83,7 @@ public class SightingGalleryDriver
             var btn = new WebDriverWait(_webDriver, TimeSpan.FromSeconds(3)).Until(d =>
                 d.FindElement(By.Id("filterAll")));
             var cls = btn.GetAttribute("class") ?? string.Empty;
-            return cls.Contains("btn-primary") && !cls.Contains("btn-outline-primary");
+            return cls.Contains("active") && cls.Contains("bg-lightGreen");
         }
         catch
         {
@@ -98,7 +98,7 @@ public class SightingGalleryDriver
             var btn = new WebDriverWait(_webDriver, TimeSpan.FromSeconds(3)).Until(d =>
                 d.FindElement(By.Id("filterMine")));
             var cls = btn.GetAttribute("class") ?? string.Empty;
-            return cls.Contains("btn-primary") && !cls.Contains("btn-outline-primary");
+            return cls.Contains("active") && cls.Contains("bg-lightGreen");
         }
         catch
         {

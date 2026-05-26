@@ -103,19 +103,19 @@ describe('appendMessage', () => {
         expect(container.firstElementChild.className).toContain('justify-content-start');
     });
 
-    test('own message bubble has bg-primary class', () => {
+    test('own message bubble has orange-flat class', () => {
         const container = makeContainer();
         appendMessage(container, CURRENT_USER, ownMsg);
         // container > wrapper > bubble; use firstElementChild twice to reach the bubble.
         const bubble = container.firstElementChild.firstElementChild;
-        expect(bubble.className).toContain('bg-primary');
+        expect(bubble.className).toContain('orange-flat');
     });
 
-    test('other-user message bubble has bg-light class', () => {
+    test('other-user message bubble has green-flat class', () => {
         const container = makeContainer();
         appendMessage(container, CURRENT_USER, otherMsg);
         const bubble = container.firstElementChild.firstElementChild;
-        expect(bubble.className).toContain('bg-light');
+        expect(bubble.className).toContain('green-flat');
     });
 
     test('other-user message shows author display name', () => {
@@ -180,10 +180,10 @@ describe('appendMessage', () => {
         expect(timeDiv).not.toBeNull();
     });
 
-    test('timestamp div has text-muted class for other-user message', () => {
+    test('timestamp div has text-white-50 class for other-user message', () => {
         const container = makeContainer();
         appendMessage(container, CURRENT_USER, otherMsg);
-        const timeDiv = container.querySelector('.text-muted');
+        const timeDiv = container.querySelector('.text-white-50');
         expect(timeDiv).not.toBeNull();
     });
 });

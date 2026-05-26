@@ -45,7 +45,7 @@ function showClubModal() {
 
             // Filter the cards
             cards.forEach(function (card) {
-                if (card.dataset.userId === currentUserId) {
+                if (card.dataset.isMember === 'true') {
                     card.style.display = '';
                     visibleCount++;
                 } else {
