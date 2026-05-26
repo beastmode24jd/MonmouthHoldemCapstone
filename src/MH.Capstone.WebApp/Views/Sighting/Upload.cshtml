@@ -3,6 +3,7 @@
     ViewData["Title"] = "Upload Sighting";
 }
 <h1 class="mt-2">Upload Sighting</h1>
+<span id="currentUserId" class="d-none">@ViewBag.CurrentUserId</span>
 @* CSP-193: surface validation errors (e.g. NotDefaultCoordinates from CSP-146,
    which lands on Latitude+Longitude keys) so the user can see *why* the form
    was rejected — without it, class-level errors are invisible. *@
