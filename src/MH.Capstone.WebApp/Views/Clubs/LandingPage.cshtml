@@ -5,21 +5,20 @@
 
 <div class="container mt-4 mb-3 pb-3">
     <div class="card shadow">
-        <div class="card-body">
-            <h1 class="card-title">
-                <i class="bi bi-people-fill"></i> Clubs
-            </h1>
-            <hr />
+        <h1 class="card-title mainHeader">
+                <i class="bi bi-people-fill fillGreen"></i> Clubs
+        </h1>
+        <div class="card-body overflow-hidden notebook">
 
             @* Pending Invites section *@
             @if (Model.HasPendingInvites)
             {
                 <div class="mb-4">
-                    <h5 class="mb-3"><i class="bi bi-envelope-fill text-primary"></i> Pending Invites</h5>
+                    <h5 class="mb-3"><i class="bi bi-envelope-fill fillOrange"></i> Pending Invites</h5>
                     <div class="d-flex flex-column gap-2">
                         @foreach (var club in Model.PendingInvites)
                         {
-                            <div class="card border-primary" id="pendingInvite_@club.Id">
+                            <div class="card border-secondary" id="pendingInvite_@club.Id">
                                 <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-2 py-2">
                                     <div>
                                         <strong>@club.Name</strong>
@@ -32,14 +31,14 @@
                                         <form asp-action="AcceptInvite" method="post" class="d-inline">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="clubId" value="@club.Id" />
-                                            <button type="submit" class="btn btn-sm btn-success">
+                                            <button type="submit" class="btn btn-sm bg-midGreen">
                                                 <i class="bi bi-check-lg"></i> Accept
                                             </button>
                                         </form>
                                         <form asp-action="DeclineInvite" method="post" class="d-inline">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="clubId" value="@club.Id" />
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <button type="submit" class="btn btn-sm bg-orange">
                                                 <i class="bi bi-x-lg"></i> Decline
                                             </button>
                                         </form>
@@ -105,7 +104,7 @@
                                     <h5 class="card-title">@club.Name</h5>
                                     <p class="card-text text-muted small flex-grow-1">@club.Description</p>
                                     <a asp-action="ClubPage" asp-route-id="@club.Id"
-                                       class="btn btn-outline-primary btn-sm mt-2 align-self-start">
+                                       class="btn bg-midGreen-outline btn-sm mt-2 align-self-start">
                                         View Club
                                     </a>
                                 </div>

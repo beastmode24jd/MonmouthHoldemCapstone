@@ -130,6 +130,18 @@ h5 {
     overflow: hidden;         /* Ensures the header doesn't bleed past the card corners */
 }
 
+.modal-content:has(> .subheader) {
+    border-top-left-radius: 0;
+    border-top-right-radius: 25px;
+    border: none;
+    overflow: hidden; /* This prevents the modal body from peeking behind the header corners */
+}
+
+/* Ensure the subheader itself stays square on the left to match the modal edge */
+.modal-header.subheader {
+    border-top-left-radius: 0;
+}
+
 p {
     font-family: Arial, Verdana, Tahoma, sans-serif;
     font-size: min(25vw, 19px);
@@ -522,14 +534,14 @@ a.navbar-brand:hover {
 .bg-midGreen-outline {
     background-color: #fff;
     color: #356639;
-    border: 2px solid #356639;
+    border: 1px solid #356639;
 }
 
 .btn.active.bg-midGreen, 
 .btn.active.bg-midGreen-outline {
     background-color: #356639;
     color: #fff;
-    border: 2px solid #356639;
+    border: 1px solid #356639;
     box-shadow: 0 0 0 1px #356639;
 }
 
@@ -537,11 +549,20 @@ a.navbar-brand:hover {
     background-color: #356639;
     color: #fff;
     border-color: #5e9c62;
-    border: 2px solid #356639;
+    border: 1px solid #356639;
+}
+
+.text-p-size, .medium {
+    font-size: min(25vw, 19px) !important;
 }
 
 .fillGreen {
     color: #356639;
+}
+
+.green-flat {
+    background-color: #356639;
+    color: #fff;
 }
 
 .fillOrange {

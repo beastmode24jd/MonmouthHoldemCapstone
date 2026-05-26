@@ -14,15 +14,15 @@
     }
 
     <div class="card shadow">
-        <div class="card-header bg-dark text-white d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="card-header text-white d-flex align-items-center justify-content-between flex-wrap gap-2 mainHeader">
             <span>
-                <i class="bi bi-chat-fill me-2"></i>
+                <i class="bi bi-chat-fill fillGreen me-2"></i>
                 <strong>@Model.Club.Name</strong>
-                <span class="badge @(Model.Club.IsPublic ? "bg-primary" : "bg-secondary") ms-2">
+                <span class="badge @(Model.Club.IsPublic ? "orange-flat" : "green-flat") ms-2">
                     @(Model.Club.IsPublic ? "Public" : "Private")
                 </span>
             </span>
-            <a asp-action="ClubPage" asp-route-id="@Model.Club.Id" class="btn btn-sm btn-outline-light">
+            <a asp-action="ClubPage" asp-route-id="@Model.Club.Id" class="btn btn-sm bg-midGreen-outline">
                 <i class="bi bi-arrow-left"></i> Back to Club
             </a>
         </div>
@@ -37,8 +37,8 @@
             @if (!Model.HasMessages)
             {
                 <div class="text-center text-muted py-5" id="emptyMessagesState">
-                    <i class="bi bi-chat display-4 mb-3"></i>
-                    <p class="lead">No messages yet. Be the first to say something!</p>
+                    <i class="bi bi-chat display-4 mb-3 fillOrange"></i>
+                    <p class="lead mt-2">No messages yet. Be the first to say something!</p>
                 </div>
             }
             else
@@ -79,7 +79,7 @@
                                   maxlength="2000"
                                   placeholder="Type a message…"
                                   style="resize: none;"></textarea>
-                        <button type="submit" class="btn btn-primary" id="sendMessageBtn">
+                        <button type="submit" class="btn bg-orange" id="sendMessageBtn">
                             <i class="bi bi-send-fill"></i>
                         </button>
                     </div>
@@ -91,7 +91,7 @@
         }
         else
         {
-            <div class="card-footer text-muted text-center small">
+            <div class="card-footer text-center small green-flat">
                 You must be a member to send messages.
             </div>
         }
