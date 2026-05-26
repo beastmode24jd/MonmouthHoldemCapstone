@@ -39,13 +39,13 @@ function showClubModal() {
         let visibleCount = 0;
 
         if (filter === 'mine') {
-            filterAllBtn.classList.remove('btn-primary', 'active');
-            filterAllBtn.classList.add('btn-outline-primary');
-            filterMineBtn.classList.remove('btn-outline-primary');
-            filterMineBtn.classList.add('btn-primary', 'active');
+            // ALWAYS update button colors first
+            if (filterMineBtn) filterMineBtn.className = 'btn bg-lightGreen active';
+            if (filterAllBtn) filterAllBtn.className = 'btn bg-darkGreen';
 
+            // Filter the cards
             cards.forEach(function (card) {
-                if (card.dataset.isMember === 'true') {
+                if (card.dataset.userId === currentUserId) {
                     card.style.display = '';
                     visibleCount++;
                 } else {
@@ -53,19 +53,21 @@ function showClubModal() {
                 }
             });
 
+            // Handle Empty States and Labels
             if (emptyStateAll) emptyStateAll.style.display = 'none';
-            if (emptyStateMine) emptyStateMine.style.display = visibleCount === 0 ? '' : 'none';
+            if (emptyStateMine) emptyStateMine.style.display = (visibleCount === 0) ? '' : 'none';
+            
             if (countLabel) {
-                countLabel.textContent = visibleCount === 0
-                    ? ''
+                countLabel.textContent = visibleCount === 0 
+                    ? '0 clubs' 
                     : visibleCount + ' ' + (visibleCount === 1 ? 'club' : 'clubs');
             }
         } else {
-            filterAllBtn.classList.add('btn-primary', 'active');
-            filterAllBtn.classList.remove('btn-outline-primary');
-            filterMineBtn.classList.add('btn-outline-primary');
-            filterMineBtn.classList.remove('btn-primary', 'active');
+            // Update the button colors first
+            if (filterAllBtn) filterAllBtn.className = 'btn bg-lightGreen active';
+            if (filterMineBtn) filterMineBtn.className = 'btn bg-darkGreen';
 
+            // Filter the cards
             cards.forEach(function (card) {
                 if (card.dataset.isPublic === 'true') {
                     card.style.display = '';
@@ -75,8 +77,10 @@ function showClubModal() {
                 }
             });
 
-            if (emptyStateAll) emptyStateAll.style.display = visibleCount === 0 ? '' : 'none';
+            // 3. Handle Empty States and Labels
+            if (emptyStateAll) emptyStateAll.style.display = (visibleCount === 0) ? '' : 'none';
             if (emptyStateMine) emptyStateMine.style.display = 'none';
+            
             if (countLabel) {
                 countLabel.textContent = visibleCount + ' ' + (visibleCount === 1 ? 'club' : 'clubs');
             }

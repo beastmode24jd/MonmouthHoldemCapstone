@@ -54,11 +54,11 @@
 
             @* Filter Controls — CSP-124 *@
             <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
-                <div class="btn-group" role="group" aria-label="Clubs filter">
-                    <button id="filterAll" type="button" class="btn btn-primary active">
+                <div class="btn-group" role="group" aria-label="Club visibility">
+                    <button id="filterAll" type="button" class="btn bg-lightGreen active">
                         <i class="bi bi-globe"></i> All Public Clubs
                     </button>
-                    <button id="filterMine" type="button" class="btn btn-outline-primary">
+                    <button id="filterMine" type="button" class="btn bg-darkGreen">
                         <i class="bi bi-person-fill"></i> My Clubs
                     </button>
                 </div>
@@ -79,7 +79,7 @@
 
             @* My Clubs empty state — shown by JS when filter is "mine" and user has no clubs *@
             <div id="emptyStateMine" class="text-center py-5" style="display:none">
-                <i class="bi bi-people display-1 text-muted mb-3"></i>
+                <i class="bi bi-people display-1 fillGreen mb-3"></i>
                 <h3 class="text-muted">You haven't joined any Clubs</h3>
                 <p class="lead text-muted mb-4">
                     Create a club or join an existing one to get started!
