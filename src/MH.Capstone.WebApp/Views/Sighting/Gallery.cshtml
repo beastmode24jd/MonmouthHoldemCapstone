@@ -3,21 +3,19 @@
     ViewData["Title"] = "Sightings Gallery";
 }
 
-<div class="container mt-4">
+<div class="container mt-4 mb-3 pb-3">
     <div class="card shadow">
-        <div class="card-body">
-            <h1 class="card-title">
-                <i class="bi bi-camera-fill text-primary"></i> Sightings Gallery
+        <h1 class="card-title mainHeader">
+                <i class="bi fillGreen bi-camera-fill"></i> Sightings Gallery
             </h1>
-            <hr />
-
+        <div class="card-body text-start overflow-hidden notebook">
             @* Filter Controls — CSP-96 *@
             <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
                 <div class="btn-group" role="group" aria-label="Gallery filter">
-                    <button id="filterAll" type="button" class="btn btn-primary active">
+                    <button id="filterAll" type="button" class="btn bg-lightGreen active">
                         <i class="bi bi-globe"></i> All Sightings
                     </button>
-                    <button id="filterMine" type="button" class="btn btn-outline-primary">
+                    <button id="filterMine" type="button" class="btn bg-darkGreen">
                         <i class="bi bi-person-fill"></i> My Sightings
                     </button>
                 </div>
@@ -32,7 +30,7 @@
                     <p class="lead text-muted mb-4">
                         Be the first to explore and upload a wildlife sighting!
                     </p>
-                    <a asp-controller="Sighting" asp-action="Upload" class="btn btn-primary btn-lg">
+                    <a asp-controller="Sighting" asp-action="Upload" class="btn btn-lg bg-orange">
                         <i class="bi bi-camera-fill"></i> Upload Your First Sighting
                     </a>
                 </div>
@@ -57,46 +55,60 @@
                 <partial name="_SightingCardGrid" model="Model.Sightings" />
             }
 
-            @* Pagination controls — CSP-199. Only shown when there is more than one page. *@
-            @if (Model.TotalPages > 1)
-            {
-                <nav id="galleryPagination" aria-label="Sightings gallery pages" class="mt-5">
-                    <ul class="pagination gallery-pagination justify-content-center mb-2">
-                        <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
-                            <a id="pagePrev" class="page-link"
-                               asp-controller="Sighting" asp-action="Gallery"
-                               asp-route-page="@(Model.CurrentPage - 1)"
-                               tabindex="@(Model.HasPreviousPage ? "0" : "-1")"
-                               aria-disabled="@(Model.HasPreviousPage ? "false" : "true")">
-                                <i class="bi bi-chevron-left"></i> Prev
-                            </a>
-                        </li>
-
-                        @for (int p = 1; p <= Model.TotalPages; p++)
-                        {
-                            <li class="page-item @(p == Model.CurrentPage ? "active" : "")">
-                                <a class="page-link"
-                                   asp-controller="Sighting" asp-action="Gallery"
-                                   asp-route-page="@p">@p</a>
-                            </li>
-                        }
-
-                        <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
-                            <a id="pageNext" class="page-link"
-                               asp-controller="Sighting" asp-action="Gallery"
-                               asp-route-page="@(Model.CurrentPage + 1)"
-                               tabindex="@(Model.HasNextPage ? "0" : "-1")"
-                               aria-disabled="@(Model.HasNextPage ? "false" : "true")">
-                                Next <i class="bi bi-chevron-right"></i>
-                            </a>
-                        </li>
-                    </ul>
-                    <p class="text-center small mt-1 mb-0" style="color: #355012; font-style: italic;">
-                        Page @Model.CurrentPage of @Model.TotalPages &mdash; @Model.TotalCount total sightings
-                    </p>
-                </nav>
-            }
         </div>
+        @* Pagination controls — CSP-199. Only shown when there is more than one page. *@
+        @if (Model.TotalPages > 1)
+        {
+            @* Logic to restrict to 10 clickable pages *@
+            int maxPagesToShow = 10;
+            int startPage = Math.Max(1, Model.CurrentPage - 5);
+            int endPage = Math.Min(Model.TotalPages, startPage + maxPagesToShow - 1);
+
+            // Shift range back if we hit the end of the page list
+            if (endPage - startPage < maxPagesToShow - 1)
+            {
+                startPage = Math.Max(1, endPage - maxPagesToShow + 1);
+            }
+
+            <nav id="galleryPagination" aria-label="Sightings gallery pages" class="mt-4">
+                <ul class="pagination gallery-pagination justify-content-center mb-2">
+                    @* Previous Button *@
+                    <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                        <a id="pagePrev" class="page-link"
+                            asp-controller="Sighting" asp-action="Gallery"
+                            asp-route-page="@(Model.CurrentPage - 1)"
+                            tabindex="@(Model.HasPreviousPage ? "0" : "-1")"
+                            aria-disabled="@(Model.HasPreviousPage ? "false" : "true")">
+                            <i class="bi bi-chevron-left"></i> Prev
+                        </a>
+                    </li>
+
+                    @* Sliding Window of Page Numbers *@
+                    @for (int p = startPage; p <= endPage; p++)
+                    {
+                        <li class="page-item @(p == Model.CurrentPage ? "active" : "")">
+                            <a class="page-link"
+                                asp-controller="Sighting" asp-action="Gallery"
+                                asp-route-page="@p">@p</a>
+                        </li>
+                    }
+
+                    @* Next Button *@
+                    <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                        <a id="pageNext" class="page-link"
+                            asp-controller="Sighting" asp-action="Gallery"
+                            asp-route-page="@(Model.CurrentPage + 1)"
+                            tabindex="@(Model.HasNextPage ? "0" : "-1")"
+                            aria-disabled="@(Model.HasNextPage ? "false" : "true")">
+                            Next <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+                <p class="text-center small mt-1 mb-0" style="color: #355012; font-style: italic;">
+                    Page @Model.CurrentPage of @Model.TotalPages &mdash; @Model.TotalCount total sightings
+                </p>
+            </nav>
+        }
     </div>
 </div>
 
@@ -118,51 +130,44 @@
 
         function applyFilter(filter) {
             sessionStorage.setItem(STORAGE_KEY, filter);
-
             const cards = document.querySelectorAll('.sighting-card-wrapper');
             let visibleCount = 0;
 
+            // Toggle Button Appearances
             if (filter === 'mine') {
-                filterAllBtn.classList.remove('btn-primary', 'active');
-                filterAllBtn.classList.add('btn-outline-primary');
-                filterMineBtn.classList.remove('btn-outline-primary');
-                filterMineBtn.classList.add('btn-primary', 'active');
+                // Selected style for 'Mine'
+                filterMineBtn.className = "btn bg-lightGreen active";
+                filterAllBtn.className = "btn bg-darkGreen";
 
-                cards.forEach(function (card) {
-                    // CSP-221: compare case-insensitively. Stored UserIdentityId is written
-                    // lowercase (Guid.ToString()) while CurrentUserId is the raw Identity Id,
-                    // so a case-sensitive === could hide the user's own sightings.
-                    if ((card.dataset.userId ?? '').toLowerCase() === currentUserId.toLowerCase()) {
+            } else {
+                // Flip the values
+                filterAllBtn.className = "btn bg-lightGreen active";
+                filterMineBtn.className = "btn bg-darkGreen";
+            }
+
+            // Filter the Cards
+            cards.forEach(function (card) {
+                const cardUserId = card.getAttribute('data-user-id');
+                if (filter === 'mine') {
+                    if (cardUserId === currentUserId) {
                         card.style.display = '';
                         visibleCount++;
                     } else {
                         card.style.display = 'none';
                     }
-                });
-
-                if (emptyStateAll) {
-                    emptyStateAll.style.display = 'none';
-                }
-                if (emptyStateMine) {
-                    emptyStateMine.style.display = visibleCount === 0 ? '' : 'none';
-                }
-            } else {
-                filterAllBtn.classList.add('btn-primary', 'active');
-                filterAllBtn.classList.remove('btn-outline-primary');
-                filterMineBtn.classList.add('btn-outline-primary');
-                filterMineBtn.classList.remove('btn-primary', 'active');
-
-                cards.forEach(function (card) {
+                } else {
+                    // Show all for 'all' filter
                     card.style.display = '';
                     visibleCount++;
-                });
+                }
+            });
 
-                if (emptyStateAll) {
-                    emptyStateAll.style.display = visibleCount === 0 ? '' : 'none';
-                }
-                if (emptyStateMine) {
-                    emptyStateMine.style.display = 'none';
-                }
+            // Handle Empty States
+            if (emptyStateAll) {
+                emptyStateAll.style.display = (filter === 'all' && visibleCount === 0) ? '' : 'none';
+            }
+            if (emptyStateMine) {
+                emptyStateMine.style.display = (filter === 'mine' && visibleCount === 0) ? '' : 'none';
             }
         }
 
@@ -182,8 +187,30 @@
 @* CSP-215: card styling now lives in the shared _SightingCardGrid partial. *@
 
 <style>
+    @@media (max-width: 767.98px) {
+        .container.pb-3 {
+            padding-bottom: 5rem !important; 
+        }
+    }
+
+    /* Desktop: Restore the padding */
+    @@media (min-width: 768px) {
+        .container.pb-3 {
+            padding-bottom: 1rem !important; 
+        }
+    }
+    #galleryPagination {
+        padding: 1rem 0;
+    }
+
     .gallery-pagination {
-        gap: 0.4rem;
+        gap: 0.3rem; /* Tighter gap to help fit 10 buttons on smaller screens */
+        margin-bottom: 0;
+    }
+
+    /* Ensure the pagination doesn't disappear into the footer on mobile */
+    .container.pb-5 {
+        padding-bottom: 6rem !important;
     }
 
     .gallery-pagination .page-item {

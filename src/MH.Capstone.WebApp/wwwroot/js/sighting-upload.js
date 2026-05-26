@@ -113,7 +113,7 @@ function requestGeolocation({
         return;
     }
 
-    if (!autoMode) setStatus(statusEl, "Getting your current location...", "info");
+    if (!autoMode) setStatus(statusEl, "Getting your current location...", "warning");
 
     geolocation.getCurrentPosition(
         function (position) {

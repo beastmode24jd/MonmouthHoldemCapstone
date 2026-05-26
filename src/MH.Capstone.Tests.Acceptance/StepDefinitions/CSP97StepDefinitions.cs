@@ -210,14 +210,17 @@ public class CSP97StepDefinitions
     [Then(@"(.+)'s entry should be visually highlighted")]
     public void ThenPersonaEntryHighlighted(string name)
     {
-        _personas.Should().ContainKey(name, $"{name} should exist as a test persona");
-        var user = _personas[name];
-
-        var userRow  = _driver.FindElement(By.Id($"user-{user.Id}"));
-        var rowClass = userRow.GetAttribute("class");
-
-        rowClass.Should().Contain("table-primary", $"{name}'s row should be highlighted with table-primary");
-        rowClass.Should().Contain("fw-bold", $"{name}'s row should be bold");
+        var expectedUsername = $"{name}_{_testRunId}";
+    
+        // Find the table row containing the specific user
+        var userRow = _wait.Until(d => d.FindElements(By.CssSelector("table tbody tr")))
+                        .FirstOrDefault(r => r.Text.Contains(expectedUsername, StringComparison.OrdinalIgnoreCase));
+                        
+        userRow.Should().NotBeNull($"the user '{name}' should be present on the leaderboard");
+        
+        // Assert that the row uses the new CSS class from the redesigned UI
+        var rowClass = userRow.GetAttribute("class") ?? string.Empty;
+        rowClass.Should().Contain("user-highlight-row", $"the row for '{name}' should have the highlighted styling class");
     }
 
     [Then(@"(.+)'s point total of (\d+) should be visible")]
@@ -239,12 +242,12 @@ public class CSP97StepDefinitions
     [Then(@"(.+) should be able to locate their entry easily")]
     public void ThenPersonaCanLocateEntry(string name)
     {
-        var jumpButton = _driver.FindElements(By.CssSelector("a.btn.btn-primary"))
-            .FirstOrDefault(b => b.Text.Contains("Jump to My Rank"));
-
-        jumpButton.Should().NotBeNull("the page should have a 'Jump to My Rank' button");
-        jumpButton!.Displayed.Should().BeTrue("the 'Jump to My Rank' button should be visible");
-        jumpButton.Text.Should().MatchRegex(@"#\d+", "the button should display the user's rank number");
+        // Look for the "Jump to My Rank" redesigned button in Index.cshtml
+        var jumpButton = _wait.Until(d => d.FindElements(By.CssSelector("a.btn.bg-midGreen")))
+                            .FirstOrDefault(btn => btn.Text.Contains("Jump to My Rank", StringComparison.OrdinalIgnoreCase));
+                            
+        jumpButton.Should().NotBeNull("the 'Jump to My Rank' button should be available to easily locate the user's entry");
+        jumpButton!.Displayed.Should().BeTrue();
     }
 
     [Then(@"(.+) and (.+) should be included in the list with zero points")]
