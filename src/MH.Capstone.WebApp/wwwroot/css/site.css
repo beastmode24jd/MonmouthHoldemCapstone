@@ -247,6 +247,10 @@ a:hover, a:focus, a:visited {
     color: #612916; /* Change this later */
 }
 
+a.btn:visited {
+    color: white;
+}
+
 a.navbar-brand:focus, a.navbar-brand:visited {
     color: var(--nav-footer-text-color);
 }
