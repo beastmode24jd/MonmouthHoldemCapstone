@@ -162,9 +162,10 @@ namespace MH.Capstone.WebApp.Controllers
             }
 
             vm.Audits = result.Audits;
+            vm.TotalCount = result.TotalCount;
 
             // Protect against divide-by-zero if PageSize is 0
-            if (vm.PageSize > 0) 
+            if (vm.PageSize > 0)
             {
                 vm.TotalPages = (int)Math.Ceiling(result.TotalCount / (double)vm.PageSize);
             }
