@@ -4,11 +4,12 @@ namespace MH.Capstone.WebApp.Models
 {
     /// <summary>
     /// CSP-202: One sighting inside an expanded Anidex card.
+    /// CSP-277: Carries only the Sighting id; the photo is fetched lazily from
+    /// <c>GET /anidex/image/{id}</c> instead of being base64-inlined into the page.
     /// </summary>
     public class AnidexSightingEntryViewModel
     {
         public Guid SightingId { get; set; }
-        public string ImageDataUrl { get; set; } = string.Empty;
         public string? Description { get; set; }
         public DateTimeOffset Timestamp { get; set; }
 
@@ -19,20 +20,16 @@ namespace MH.Capstone.WebApp.Models
             SightingId = entry.SightingId;
             Description = entry.Description;
             Timestamp = entry.Timestamp;
-
-            if (entry.ImageBuffer is { Length: > 0 })
-            {
-                var base64 = Convert.ToBase64String(entry.ImageBuffer);
-                ImageDataUrl = $"data:image/jpeg;base64,{base64}";
-            }
         }
     }
 
     /// <summary>
     /// CSP-142: One card on the personal Anidex page. Wraps an <see cref="AnidexEntry"/>
-    /// from the domain layer and exposes the species photo as a base64 data URL so
-    /// the Razor view can render it inline (matches the Sighting Gallery pattern).
+    /// from the domain layer.
     /// CSP-202: <see cref="Entries"/> carries the per-sighting list for the expansion panel.
+    /// CSP-277: The card thumbnail and every expansion photo are now served from
+    /// <c>GET /anidex/image/{id}</c> and loaded lazily, rather than base64-inlined into the
+    /// HTML. <see cref="LatestSightingId"/> is the newest sighting (its photo is the card face).
     /// </summary>
     public class AnidexEntryCardViewModel
     {
@@ -40,7 +37,7 @@ namespace MH.Capstone.WebApp.Models
         public int DiscoveryCount { get; set; }
         public string RarityName { get; set; } = "Common";
         public double RarityMultiplier { get; set; } = 1.0;
-        public string ImageDataUrl { get; set; } = string.Empty;
+        public Guid? LatestSightingId { get; set; }
         public DateTimeOffset LatestSightingTimestamp { get; set; }
         public IReadOnlyList<AnidexSightingEntryViewModel> Entries { get; set; } = [];
 
@@ -56,15 +53,13 @@ namespace MH.Capstone.WebApp.Models
             RarityMultiplier = entry.RarityMultiplier;
             LatestSightingTimestamp = entry.LatestSightingTimestamp;
 
-            if (entry.LatestImageBuffer is { Length: > 0 })
-            {
-                var base64 = Convert.ToBase64String(entry.LatestImageBuffer);
-                ImageDataUrl = $"data:image/jpeg;base64,{base64}";
-            }
-
             Entries = entry.Entries
                 .Select(e => new AnidexSightingEntryViewModel(e))
                 .ToList();
+
+            // Entries are newest-first (see SightingsService.GetUserAnidexAsync), so the
+            // first entry is the same sighting whose photo is the card thumbnail.
+            LatestSightingId = Entries.Count > 0 ? Entries[0].SightingId : null;
         }
     }
 

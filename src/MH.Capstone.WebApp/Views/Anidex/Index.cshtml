@@ -57,9 +57,10 @@
                                             data-bs-toggle="modal"
                                             data-bs-target="#@modalId">
                                         @* card face — identical content to a plain card, made clickable *@
-                                        @if (!string.IsNullOrEmpty(entry.ImageDataUrl))
+                                        @if (entry.LatestSightingId.HasValue)
                                         {
-                                            <img src="@entry.ImageDataUrl"
+                                            <img src="/anidex/image/@(entry.LatestSightingId)"
+                                                 width="400" height="180" decoding="async"
                                                  class="card-img-top anidex-image"
                                                  alt="@entry.SpeciesName"
                                                  loading="lazy" />
@@ -93,9 +94,9 @@
                                 }
                                 else
                                 {
-                                    @if (!string.IsNullOrEmpty(entry.ImageDataUrl))
+                                    @if (entry.LatestSightingId.HasValue)
                                     {
-                                        <img src="@entry.ImageDataUrl"
+                                        <img src="/anidex/image/@(entry.LatestSightingId)" width="400" height="180" decoding="async"
                                              class="card-img-top anidex-image"
                                              alt="@entry.SpeciesName"
                                              loading="lazy" />
@@ -160,9 +161,9 @@
                                 data-sighting-id="@sighting.SightingId">
                                 <div class="row g-3 align-items-center">
                                     <div class="col-4 col-md-3">
-                                        @if (!string.IsNullOrEmpty(sighting.ImageDataUrl))
+                                        @if (sighting.SightingId != Guid.Empty)
                                         {
-                                            <img src="@sighting.ImageDataUrl"
+                                            <img src="/anidex/image/@(sighting.SightingId)" decoding="async"
                                                  class="img-fluid rounded anidex-expand-image"
                                                  alt="@entry.SpeciesName sighting"
                                                  loading="lazy" />
