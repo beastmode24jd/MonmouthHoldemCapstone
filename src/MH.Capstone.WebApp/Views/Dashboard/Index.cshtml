@@ -39,7 +39,7 @@
     }
 }
 
-<div class="container mt-4">
+<div class="container mt-4 mb-3 pb-3">
     @* CSP-122: Photo-quality flash messages set by SightingController after a successful upload. *@
     @if (TempData["PhotoQualitySuccess"] is string pqSuccess)
     {
@@ -57,9 +57,8 @@
     <div class="row">
         <div class="col-12">
             <div class="card shadow">
+                <h1 class="card-title mainHeader">Welcome to Your Dashboard</h1>
                 <div class="card-body">
-                    <h1 class="card-title">Welcome to Your Dashboard</h1>
-                    <hr />
                     
                     @if (User.Identity?.IsAuthenticated == true)
                     {
@@ -81,13 +80,10 @@
                                     <strong>Email:</strong> @User.Identity.Name
                                 </li>
                                 <li class="list-group-item">
-                                    <strong>Authentication Type:</strong> @User.Identity.AuthenticationType
-                                </li>
-                                <li class="list-group-item">
                                     <strong>Account Type:</strong> 
                                     @if (!string.IsNullOrEmpty(displayRole))
                                     {
-                                        <span class="badge bg-primary"><i class="bi bi-shield-check"></i> @displayRole</span>
+                                        <span class="badge orange-flat"><i class="bi bi-shield-check"></i> @displayRole</span>
                                     }
                                     else
                                     {
@@ -95,7 +91,7 @@
                                     }
                                 </li>
                                 <li class="list-group-item">
-                                    <strong>Status:</strong> <span class="badge bg-success">Active</span>
+                                    <strong>Status:</strong> <span class="badge green-flat">Active</span>
                                 </li>
                                 <li class="list-group-item">
                                     <strong>Bio: </strong> @(user?.Bio ?? "No custom bio is set.")
@@ -138,7 +134,7 @@
                         View your Notifications
                         @if (user != null && user.Notifications.Exists(n => !n.IsRead))
                         {
-                            <span class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle">
+                            <span class="position-absolute top-0 start-100 translate-middle p-2 bg-orange border border-light rounded-circle">
                                 <span class="visually-hidden">Unread notifications</span>
                             </span>
                         }
@@ -154,28 +150,49 @@
                     </h5>
                     <div class="row g-3 mt-1">
                         <div class="col-4 text-left mt-1 mb-1">
-                            <p class="card-text mb-0 mt-1"><strong>Current points:</strong> <br/>@(user?.Points ?? 0) </p>
+                            <p class="card-text mb-0 mt-1"><strong>Current points: </strong></p>
+                            <p class="badge bg-points">
+                                @(user?.Points ?? 0)
+                            </p>
                         </div>
                         <div class="col-4 text-left mt-1 mb-1">
                             @if (user != null)
                             {
                                 <p class="card-text mb-0 mt-1"><strong>Login Streak:</strong> </p>
-                                <span class="badge @(user.IsStreakActive ? "bg-success" : "bg-danger")">
+                                <span class="badge @(user.IsStreakActive ? "green-flat" : "orange-flat")">
                                     @(user.IsStreakActive ? "Active" : "Inactive")
                                 </span>
                             }
                         </div>
                         <div class="col-4 text-left mt-1 mb-1">
-                            <p class="card-text mb-0 mt-1"><strong>Current Streak:</strong>
+                            <p class="card-text mb-0 mt-1"><strong>Current Streak:</strong></p>
                                 @if (user?.LoginStreak > 1 && user?.LoginStreak != null)
                                 {
-                                    @user.LoginStreak <p> Days</p>
+                                    <p class="badge green-flat">@user.LoginStreak Days</p>
                                 }
                                 else if (user?.LoginStreak == 1 && user?.LoginStreak != null)
                                 { <p>1 day</p> }
                                 else
                                 { <p>0 Days</p> }
-                            </p>
+                        </div>
+                    </div>
+
+                    @* CSP-211: Followers / Following counts. Clicking either opens
+                       the matching tab on the account page via the #-anchor. *@
+                    <div class="row g-2 mt-1" id="dashboardFollowGraph">
+                        <div class="col-6">
+                            <a href="/account#followersTab" id="dashboardFollowersStat"
+                               class="text-decoration-none text-body d-block border rounded p-2 h-100 text-center">
+                                <div class="fs-3 fw-bold lh-1" id="dashboardFollowerCount">@(ViewData["FollowerCount"] ?? 0)</div>
+                                <small class="text-muted">Followers</small>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="/account#followingTab" id="dashboardFollowingStat"
+                               class="text-decoration-none text-body d-block border rounded p-2 h-100 text-center">
+                                <div class="fs-3 fw-bold lh-1 fillGreen" id="dashboardFollowingCount">@(ViewData["FollowingCount"] ?? 0)</div>
+                                <small class="text-muted">Following</small>
+                            </a>
                         </div>
                     </div>
                     <strong><p class="card-text mb-1 mt-2">Recent Badges:</p></strong>

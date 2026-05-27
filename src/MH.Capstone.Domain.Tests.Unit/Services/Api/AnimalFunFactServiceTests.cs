@@ -145,6 +145,142 @@ public class AnimalFunFactServiceTests
     }
 
     [Test]
+    public async Task GetFunFactAsync_FirstMatchHasNoUsableFact_FallsBackToLaterMatch()
+    {
+        // Arrange — CSP-214 regression. The API-Ninjas animals endpoint returns several
+        // fuzzy name matches. The first match is a sparse entry with no usable
+        // characteristics, but a later match carries a slogan. The service must scan all
+        // matches rather than giving up after the first one (the cause of fun facts only
+        // working for some species).
+        var sparseFirst = MakeDto(name: "Coyote (subspecies)", slogan: "", mostDistinctiveFeature: "", lifestyle: "");
+        var richSecond = MakeDto(name: "Coyote", slogan: "The trickster of the American West!");
+
+        _ninjaApiCallerMock
+            .Setup(c => c.GetAsync<IEnumerable<AnimalApiDto>>(
+                It.IsAny<string>(),
+                It.IsAny<IEnumerable<KeyValuePair<string, string>>>()))
+            .ReturnsAsync(new[] { sparseFirst, richSecond });
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetFunFactAsync("Coyote");
+
+        // Assert
+        Assert.That(result, Is.EqualTo("The trickster of the American West!"));
+    }
+
+    [Test]
+    public async Task GetFunFactAsync_FirstMatchHasNullCharacteristics_FallsBackToLaterMatch()
+    {
+        // Arrange — defensive variant of the CSP-214 fix: a match can come back with no
+        // characteristics object at all; that must be skipped, not treated as "no fact".
+        var nullCharacteristicsFirst = new AnimalApiDto(
+            "Coyote", taxonomy: null!, locations: new[] { "" }, characteristics: null!);
+        var richSecond = MakeDto(name: "Coyote", slogan: "The trickster of the American West!");
+
+        _ninjaApiCallerMock
+            .Setup(c => c.GetAsync<IEnumerable<AnimalApiDto>>(
+                It.IsAny<string>(),
+                It.IsAny<IEnumerable<KeyValuePair<string, string>>>()))
+            .ReturnsAsync(new[] { nullCharacteristicsFirst, richSecond });
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetFunFactAsync("Coyote");
+
+        // Assert
+        Assert.That(result, Is.EqualTo("The trickster of the American West!"));
+    }
+
+    [Test]
+    public async Task GetFunFactAsync_NoMatchHasUsableFact_ReturnsNull()
+    {
+        // Arrange — when every returned match is sparse, the fallback message is correct.
+        var sparseA = MakeDto(name: "Critter A", slogan: "", mostDistinctiveFeature: "", lifestyle: "");
+        var sparseB = MakeDto(name: "Critter B", slogan: "", mostDistinctiveFeature: "", lifestyle: "");
+
+        _ninjaApiCallerMock
+            .Setup(c => c.GetAsync<IEnumerable<AnimalApiDto>>(
+                It.IsAny<string>(),
+                It.IsAny<IEnumerable<KeyValuePair<string, string>>>()))
+            .ReturnsAsync(new[] { sparseA, sparseB });
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetFunFactAsync("Critter");
+
+        // Assert
+        Assert.That(result, Is.Null);
+    }
+
+    // Matches the GetAsync call whose "name" query param equals the expected value (case-insensitive).
+    private static bool QueriesName(IEnumerable<KeyValuePair<string, string>>? queryParams, string expected) =>
+        queryParams != null &&
+        queryParams.Any(kvp => kvp.Key == "name" &&
+                               string.Equals(kvp.Value, expected, StringComparison.OrdinalIgnoreCase));
+
+    [Test]
+    public async Task GetFunFactAsync_VerbatimNameReturnsNothing_RetriesWithSimplerWord()
+    {
+        // Arrange — CSP-214 (mallard duck). The recorded species name is "Mallard Duck", but the
+        // Animals API only knows "Mallard": the verbatim query returns nothing, while the simpler
+        // single-word query resolves. The service must fall back to a simpler query rather than
+        // surfacing the "not available" message.
+        var mallard = MakeDto(
+            name: "Mallard",
+            mostDistinctiveFeature: "The iridescent green or blue-headed plumage of the male");
+
+        _ninjaApiCallerMock
+            .Setup(c => c.GetAsync<IEnumerable<AnimalApiDto>>(
+                It.IsAny<string>(),
+                It.Is<IEnumerable<KeyValuePair<string, string>>>(q => QueriesName(q, "Mallard Duck"))))
+            .ReturnsAsync(Array.Empty<AnimalApiDto>());
+
+        _ninjaApiCallerMock
+            .Setup(c => c.GetAsync<IEnumerable<AnimalApiDto>>(
+                It.IsAny<string>(),
+                It.Is<IEnumerable<KeyValuePair<string, string>>>(q => QueriesName(q, "Mallard"))))
+            .ReturnsAsync(new[] { mallard });
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetFunFactAsync("Mallard Duck");
+
+        // Assert
+        Assert.That(result, Is.EqualTo("The iridescent green or blue-headed plumage of the male"));
+    }
+
+    [Test]
+    public async Task GetFunFactAsync_VerbatimNameYieldsFact_DoesNotQuerySimplerWords()
+    {
+        // Arrange — when the verbatim name already resolves, no extra API calls should be made.
+        var dto = MakeDto(name: "Bald Eagle", slogan: "The national bird of the United States!");
+
+        _ninjaApiCallerMock
+            .Setup(c => c.GetAsync<IEnumerable<AnimalApiDto>>(
+                It.IsAny<string>(),
+                It.Is<IEnumerable<KeyValuePair<string, string>>>(q => QueriesName(q, "Bald Eagle"))))
+            .ReturnsAsync(new[] { dto });
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.GetFunFactAsync("Bald Eagle");
+
+        // Assert
+        Assert.That(result, Is.EqualTo("The national bird of the United States!"));
+        _ninjaApiCallerMock.Verify(c => c.GetAsync<IEnumerable<AnimalApiDto>>(
+                It.IsAny<string>(),
+                It.Is<IEnumerable<KeyValuePair<string, string>>>(q => QueriesName(q, "Eagle"))),
+            Times.Never,
+            "a successful verbatim lookup must not trigger simpler-word retries");
+    }
+
+    [Test]
     public async Task GetFunFactAsync_ApiReturnsEmptyList_ReturnsNull()
     {
         // Arrange

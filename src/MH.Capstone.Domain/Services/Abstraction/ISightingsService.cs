@@ -30,6 +30,18 @@ namespace MH.Capstone.Domain.Services.Abstraction
 
         #endregion
 
+        #region CSP-199: Paginated Community Gallery
+
+        /// <summary>
+        /// Returns a single page of community sightings, newest first, plus the paging
+        /// metadata the gallery UI needs. Only this page's rows (and their images) are
+        /// fetched from the database, keeping the gallery fast regardless of total volume.
+        /// <paramref name="page"/> is 1-based and clamped to a minimum of 1.
+        /// </summary>
+        Task<PagedResult<Sighting>> GetSightingsPageAsync(int page, int pageSize);
+
+        #endregion
+
         #region CSP-142: Personal Anidex Collection
 
         /// <summary>
@@ -49,6 +61,21 @@ namespace MH.Capstone.Domain.Services.Abstraction
         /// lazy-loading proxies on first access by the caller.
         /// </summary>
         Task<Sighting?> GetSightingByIdAsync(Guid sightingId);
+
+        #endregion
+
+        #region CSP-37: Edit Sighting
+
+        /// <summary>
+        /// Updates the <see cref="Sighting.Description"/> and <see cref="Sighting.SpeciesName"/>
+        /// of the sighting owned by <paramref name="userId"/>. Scoring (point value, rarity,
+        /// multiplier), GPS coordinates, timestamp, and photo are intentionally left untouched —
+        /// the factual record and leaderboard standings are frozen at submission time.
+        /// Returns the updated sighting, or <c>null</c> if no sighting with that id exists.
+        /// Throws <see cref="UnauthorizedAccessException"/> if the sighting exists but is not
+        /// owned by <paramref name="userId"/>.
+        /// </summary>
+        Task<Sighting?> UpdateSightingAsync(Guid sightingId, Guid userId, string description, string speciesName);
 
         #endregion
     }

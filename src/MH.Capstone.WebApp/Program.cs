@@ -15,6 +15,7 @@ using MH.Capstone.Domain.Constants.Configurables;
 using MH.Capstone.WebApp.Filters;
 using MH.Capstone.WebApp.Hubs;
 using MH.Capstone.WebApp.Services;
+using Microsoft.AspNetCore.Rewrite;
 using System.Threading.Channels;
 
 namespace MH.Capstone.WebApp
@@ -125,6 +126,7 @@ namespace MH.Capstone.WebApp
             builder.Services.AddScoped<ISightingsService, SightingsService>();
             builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
             builder.Services.AddScoped<IReportService, ReportService>();
+            builder.Services.AddScoped<IAuditService, AuditService>();
             // Acceptance tests register PhotoQualityService via TestWebAppHost before
             // calling this method. Skip the duplicate registration here — DI last-registration
             // wins and the TestWebAppHost already owns the lifetime (Singleton).
@@ -243,6 +245,11 @@ namespace MH.Capstone.WebApp
             });
 
             app.UseRouting();
+
+            var rewriteOpts = new RewriteOptions()
+                .AddRedirect("github", "https://github.com/jmcshane22/MonmouthHoldemCapstone");
+            
+            app.UseRewriter(rewriteOpts);
             
             app.UseAuthentication();
             app.UseAuthorization();

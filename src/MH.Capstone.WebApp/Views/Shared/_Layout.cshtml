@@ -35,12 +35,10 @@
 
             if (pendingCount > 0) {
                 notifPendingBadgeNum.textContent = pendingCount;
-                notifMenuItem.classList.add("text-danger");
-                notifMenuItem.classList.remove("text-light");
+                notifMenuItem.classList.add("fillOrange"); @* CHANGE TO ORANGE!!! *@
                 notifPendingBadge.classList.remove("d-none");
             } else {
-                notifMenuItem.classList.add("text-light");
-                notifMenuItem.classList.remove("text-danger");
+                notifMenuItem.classList.remove("fillOrange"); @* THIS TOO!!! *@
                 notifPendingBadge.classList.add("d-none");
                 notifPendingBadgeNum.textContent = "";
             }
@@ -71,32 +69,32 @@
                 <div class="navbar-collapse collapse d-sm-inline-flex">
                     <ul class="navbar-nav">
                         <li class="nav-item">
-                            <a class="nav-link text-light" asp-controller="Home" asp-action="About">
+                            <a class="nav-link" asp-controller="Home" asp-action="About">
                                 <i class="bi bi-info-circle"></i> About Us
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-light" asp-controller="Leaderboard" asp-action="Index">
+                            <a class="nav-link" asp-controller="Leaderboard" asp-action="Index">
                                 <i class="bi bi-trophy-fill"></i> Leaderboard
                             </a>
                         </li>
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle text-light" href="#" id="searchForDropdown" role="button"
+                            <a class="nav-link dropdown-toggle" href="#" id="searchForDropdown" role="button"
                                    data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-search"></i> Search for
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="searchForDropdown">
                                 <li>
-                                    <a id="searchForAnimalsNavLink" class="dropdown-item text-light" asp-controller="Species" asp-action="Search">
-                                        <i class="bi bi-search"></i> Search for Animals
+                                    <a id="searchForAnimalsNavLink" class="dropdown-item" asp-controller="Species" asp-action="Search">
+                                        <i class="bi bi-binoculars-fill"></i> Animals
                                     </a>
                                 </li>
                                 @if (User.Identity?.IsAuthenticated == true)
                                 {
                                     @* Sprint 5, CSP-54 *@
                                     <li>
-                                        <a id="findUsersNavLink" class="dropdown-item text-light" asp-controller="User" asp-action="Search">
-                                            <i class="bi bi-person-search"></i> Find Users
+                                        <a id="findUsersNavLink" class="dropdown-item" asp-controller="User" asp-action="Search">
+                                            <i class="bi bi-person-lines-fill"></i> Users
                                         </a>
                                     </li>
                                 }
@@ -105,42 +103,42 @@
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle text-light" href="#" id="sightingsDropdown" role="button"
+                                <a class="nav-link dropdown-toggle" href="#" id="sightingsDropdown" role="button"
                                        data-bs-toggle="dropdown" aria-expanded="false">
-                                    Sightings
+                                    <i class="bi bi-eye-fill"></i> Sightings
                                 </a>
                                 <ul class="dropdown-menu" aria-labelledby="sightingsDropdown">
                                     <li>
-                                        <a class="dropdown-item text-light" asp-action="Gallery" asp-controller="Sighting">
+                                        <a class="dropdown-item" asp-action="Gallery" asp-controller="Sighting">
                                             <i class="bi bi-images"></i> Gallery
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item text-light" asp-action="Index" asp-controller="Map">
+                                        <a class="dropdown-item" asp-action="Index" asp-controller="Map">
                                             <i class="bi bi-map"></i> Map
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item text-light" asp-action="Upload" asp-controller="Sighting">
+                                        <a class="dropdown-item" asp-action="Upload" asp-controller="Sighting">
                                             <i class="bi bi-camera"></i> Upload
                                         </a>
                                     </li>
                                     @* CSP-142: Anidex personal collection *@
                                     <li>
-                                        <a id="anidexNavLink" class="dropdown-item text-light" asp-action="Index" asp-controller="Anidex">
-                                            <i class="bi bi-collection"></i> My Anidex
+                                        <a id="anidexNavLink" class="dropdown-item" asp-action="Index" asp-controller="Anidex">
+                                            <i class="bi bi-collection"></i> Anidex
                                         </a>
                                     </li>
                                     @* CSP-177: Offline queue *@
                                     <li>
-                                        <a id="offlineQueueNavLink" class="dropdown-item text-light" asp-action="OfflineQueue" asp-controller="Sighting">
+                                        <a id="offlineQueueNavLink" class="dropdown-item" asp-action="OfflineQueue" asp-controller="Sighting">
                                             <i class="bi bi-cloud-slash"></i> Offline Queue
                                         </a>
                                     </li>
                                 </ul>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-light" asp-controller="Clubs" asp-action="Index">
+                                <a class="nav-link" asp-controller="Clubs" asp-action="Index">
                                     <i class="bi bi-people-fill"></i> Clubs
                                 </a>
                             </li>
@@ -154,7 +152,7 @@
                             @* CSP-177: user ID used by offline-queue.js to scope the IndexedDB store *@
                             <span id="currentUserId" class="d-none">@user?.Id</span>
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <span id="userDropdownNavDisplay">
                                         <img src="@user.GetProfileImageUrl()"
                                              alt="Profile Image"
@@ -162,7 +160,7 @@
                                              id="navProfile"
                                              role="img"/>
                                         <span id="navDisplayNameText">@(user?.DisplayName != "UNSET" ? user?.DisplayName : User.Identity.Name)</span>
-                                        <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-danger d-none"
+                                        <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-orange d-none"
                                             id="pendingNotifBadge">
                                             <span id="pendingNotifBadgeNum"></span>
                                             <span class="visually-hidden">unread messages</span>
@@ -171,27 +169,27 @@
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end pt-1 pb-1" aria-labelledby="userDropdown">
                                     <li class="menuItem drop">
-                                        <a class="nav-link text-light dropdown-item" asp-controller="Dashboard" asp-action="Index">
+                                        <a class="nav-link dropdown-item" asp-controller="Dashboard" asp-action="Index">
                                             <i class="bi bi-speedometer2"></i> Dashboard
                                         </a>
                                     </li>
                                     <li class="menuItem">
-                                        <a class="nav-link dropdown-item text-light" id="notificationsMenuItem" asp-controller="Dashboard" asp-action="Notifications">
+                                        <a class="nav-link dropdown-item" id="notificationsMenuItem" asp-controller="Dashboard" asp-action="Notifications">
                                             <i class="bi bi-bell"></i> Notifications
                                         </a>
                                     </li>
                                     <li class="menuItem">
-                                        <a class="nav-link dropdown-item text-light" id="badgeMenuItem" asp-controller="Dashboard" asp-action="Badges">
+                                        <a class="nav-link dropdown-item" id="badgeMenuItem" asp-controller="Dashboard" asp-action="Badges">
                                             <i class="bi bi-shield"></i> Badges
                                         </a>
                                     </li>
                                     <li class="menuItem">
-                                        <a id="feedNavLink" class="nav-link dropdown-item text-light" asp-controller="Feed" asp-action="Index">
+                                        <a id="feedNavLink" class="nav-link dropdown-item" asp-controller="Feed" asp-action="Index">
                                             <i class="bi bi-rss-fill"></i> Feed
                                         </a>
                                     </li>
                                     <li class="menuItem">
-                                        <a class="nav-link dropdown-item text-light" asp-controller="Dashboard" asp-action="Settings">
+                                        <a class="nav-link dropdown-item" asp-controller="Dashboard" asp-action="Settings">
                                             <i class="bi bi-gear"></i> Account Settings
                                         </a>
                                     </li>
@@ -200,13 +198,18 @@
                                     {
                                         <li class="menuItem"><hr class="dropdown-divider"></li>
                                         <li class="nav-item">
-                                            <a class="nav-link text-light dropdown-item" asp-controller="Admin" asp-action="Manage">
+                                            <a class="nav-link dropdown-item" asp-controller="Admin" asp-action="Manage">
                                                 <i class="bi bi-gear-wide-connected"></i> Manage Accounts
                                             </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link text-light dropdown-item" asp-controller="Admin" asp-action="Reports">
+                                            <a class="nav-link dropdown-item" asp-controller="Admin" asp-action="Reports">
                                                 <i class="bi bi-flag-fill"></i> View Reports
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link dropdown-item" asp-controller="Admin" asp-action="LogPage">
+                                                <i class="bi bi-window-fullscreen"></i>  Admin Logs
                                             </a>
                                         </li>
                                     }
@@ -226,12 +229,12 @@
                         else
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-light" asp-controller="Account" asp-action="Login">
+                                <a class="nav-link" asp-controller="Account" asp-action="Login">
                                     <i class="bi bi-box-arrow-in-right"></i> Login
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-light" asp-controller="Account" asp-action="Register">
+                                <a class="nav-link" asp-controller="Account" asp-action="Register">
                                     <i class="bi bi-person-plus"></i> Register
                                 </a>
                             </li>
@@ -248,11 +251,16 @@
     </div>
 
     <footer class="footer text-light">
-        <div class="container-fluid ps-4">
-            <p class="footerText d-inline">
+        <div class="container-fluid px-4 d-flex justify-content-between align-items-center flex-wrap">
+            <p class="footerText d-inline m-0">
                 Wildlife AID &copy; - @DateTime.Now.Year |
                 Version: @GetAppVersion()
             </p>
+            <span class="poweredByGemini" aria-label="AI Powered by Google Gemini">
+                AI Powered by
+                <img src="~/imgs/gemini-logo.svg" alt="" aria-hidden="true" class="geminiLogo" />
+                <span class="geminiWordmark">Google Gemini</span>
+            </span>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
@@ -271,13 +279,6 @@
 
     @if (User.Identity?.IsAuthenticated == true)
     {
-        <!-- Report this page button (bottom-right corner, all pages) -->
-        <div style="position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 1040;">
-            <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#reportModal">
-                <i class="bi bi-flag"></i> Report this page
-            </button>
-        </div>
-
         <!-- Report Modal -->
         <div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
             <div class="modal-dialog">
@@ -364,12 +365,51 @@
             });
         </script>
 
-        <!-- AI Companion button (bottom-left corner, all pages) -->
-        <div style="position: fixed; bottom: 1.5rem; left: 1.5rem; z-index: 1040;">
-            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#aiCompanionModal">
-                <i class="bi bi-chat-dots"></i> Ask the AI Companion
+        <!-- Floating Action Button — consolidates Report and AI Companion triggers -->
+        <div id="fabContainer" style="position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 1040; display: flex; flex-direction: column; align-items: flex-end;">
+            <div class="fab-menu">
+                <button type="button" class="fab-action" data-bs-toggle="modal" data-bs-target="#aiCompanionModal" aria-label="Ask the WildAI Companion">
+                    <span class="fab-label">Ask the WildAI Companion</span>
+                    <span class="fab-action-btn" aria-hidden="true">
+                        <i class="bi bi-chat-dots"></i>
+                    </span>
+                </button>
+                <button type="button" class="fab-action" data-bs-toggle="modal" data-bs-target="#reportModal" aria-label="Report this page">
+                    <span class="fab-label">Report this Page</span>
+                    <span class="fab-action-btn" aria-hidden="true">
+                        <i class="bi bi-flag"></i>
+                    </span>
+                </button>
+            </div>
+            <button id="fabMain" aria-label="Open action menu" aria-expanded="false">
+                <i class="bi bi-plus-lg" id="fabIcon"></i>
             </button>
         </div>
+
+        <script>
+            // Keep the floating menu above the footer when the footer is visible.
+            (function () {
+                const fab = document.getElementById('fabContainer');
+                const footer = document.querySelector('footer.footer');
+                if (!fab || !footer) return;
+
+                const baseBottom = 24; // px, matches 1.5rem default
+                function updateFabPosition() {
+                    const footerRect = footer.getBoundingClientRect();
+                    const viewportH = window.innerHeight;
+                    const overlap = viewportH - footerRect.top;
+                    if (overlap > 0) {
+                        fab.style.bottom = (baseBottom + overlap) + 'px';
+                    } else {
+                        fab.style.bottom = baseBottom + 'px';
+                    }
+                }
+                window.addEventListener('scroll', updateFabPosition, { passive: true });
+                window.addEventListener('resize', updateFabPosition);
+                updateFabPosition();
+            })();
+        </script>
+
 
         <!-- AI Companion Modal -->
         <div class="modal fade" id="aiCompanionModal" tabindex="-1" aria-labelledby="aiCompanionModalLabel" aria-hidden="true">
@@ -479,6 +519,25 @@
             });
         }
     </script>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <script>
+            if ('serviceWorker' in navigator && 'caches' in window) {
+                navigator.serviceWorker.ready.then(function () {
+                    return caches.open('cwsa-offline-v1');
+                }).then(function (cache) {
+                    var urls = ['/', '/Sighting/Create', '/Sighting/OfflineQueue'];
+                    return Promise.all(urls.map(function (url) {
+                        return fetch(url, { credentials: 'same-origin' })
+                            .then(function (response) {
+                                if (response.ok) return cache.put(url, response);
+                            })
+                            .catch(function () {});
+                    }));
+                }).catch(function () {});
+            }
+        </script>
+    }
 </body>
 
 </html>

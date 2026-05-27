@@ -1,37 +1,56 @@
-@* Sprint 5, CSP-54 — Sprint 6, CSP-200: search by display name only, never email *@
 @{
     ViewData["Title"] = "Find Users";
 }
 
-<div class="container mt-4">
-    <h2><i class="bi bi-person-search"></i> Find Users</h2>
+<style>
+    /* Custom orange border class */
+    .border-orange {
+        border-color: #8b4312 !important; /* Replace with your specific brand orange hex if different */
+    }
 
-    <div class="row mt-3">
-        <div class="col-md-6">
-            <div class="input-group" title="User search bar">
-                <span class="input-group-text bg-dark text-light border-secondary">
-                    <i class="bi bi-search"></i>
-                </span>
-                <input type="text"
-                       id="userSearchInput"
-                       class="form-control bg-dark text-light border-secondary"
-                       placeholder="Search by display name..."
-                       autocomplete="off"
-                       aria-label="User search bar" />
+    /* Make the focus ring orange when the user clicks the search bar */
+    #userSearchInput:focus {
+        border-color: #8b4312 !important;
+        box-shadow: 0 0 0 0.25rem rgba(241, 141, 54, 0.25) !important;
+    }
+</style>
+
+<div class="container mt-4 mb-3 pb-3">
+    <div class="card shadow">
+        <h2 class="card-title subheader"><i class="bi bi-person-search"></i> Find Users</h2>
+        <div class="card-body">
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <div class="input-group" title="User search bar">
+                        <span class="input-group-text bg-orange border-orange">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text"
+                            id="userSearchInput"
+                            class="form-control bg-light border-orange"
+                            placeholder="Search by display name..."
+                            autocomplete="off"
+                            aria-label="User search bar" />
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+    
+    <div class="card shadow mt-3" id="resultsCard" style="display:none!important">
+        <div class="card-body">
+            <div id="searchResultsContainer" class="mt-2"></div>
 
-    <div id="searchResultsContainer" class="mt-4"></div>
-
-    <div class="d-flex align-items-center gap-3 mt-3" id="pagingControls" style="display:none!important">
-        <button id="prevBtn" class="btn btn-outline-secondary btn-sm" disabled aria-label="Previous page">
-            <i class="bi bi-arrow-left"></i>
-        </button>
-        <span id="pagingInfo" class="text-muted small">Page 1 of 1 | Showing 0 of 0 Results</span>
-        <button id="nextBtn" class="btn btn-outline-secondary btn-sm" disabled aria-label="Next page">
-            <i class="bi bi-arrow-right"></i>
-        </button>
+            <div class="d-flex align-items-center gap-3 mt-3" id="pagingControls" style="display:none!important">
+                <button id="prevBtn" class="btn bg-midGreen btn-sm" disabled aria-label="Previous page">
+                    <i class="bi bi-arrow-left"></i>
+                </button>
+                <span id="pagingInfo" class="text-muted small">Page 1 of 1 | Showing 0 of 0 Results</span>
+                <button id="nextBtn" class="btn bg-midGreen btn-sm" disabled aria-label="Next page">
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -59,7 +78,10 @@
 
     function buildPagingText(totalCount, page, totalPages, start, end) {
         if (totalCount === 0) {
-            return 'Page 1 of 1 | Showing 0 of 0 Results';
+            return 'Page 1 of 1 | Showing 0 Results';
+        }
+        if (totalCount === 1) {
+            return 'Page 1 of 1 | Showing 1 Result';
         }
         return `Page ${page} of ${totalPages} | Showing ${start}-${end} of ${totalCount} Results`;
     }
@@ -68,10 +90,11 @@
         const { results, totalCount, page, pageSize, totalPages } = data;
 
         pagingControls.style.removeProperty('display');
+        resultsCard.style.removeProperty('display');
 
         if (totalCount === 0) {
             resultsContainer.innerHTML = '<p id="noUsersFoundMessage" class="text-muted mt-2">No users were found.</p>';
-            pagingInfo.textContent = 'Page 1 of 1 | Showing 0 of 0 Results';
+            pagingInfo.textContent = 'Page 1 of 1 | Showing 0 Results';
             prevBtn.disabled = true;
             nextBtn.disabled = true;
             return;
@@ -85,7 +108,7 @@
             <div class="list-group" id="searchResultsList">
                 ${results.map(user => `
                     <a href="/account/${escapeHtml(user.id)}"
-                       class="list-group-item list-group-item-action d-flex align-items-center gap-3 bg-dark text-light border-secondary user-result-item">
+                       class="list-group-item list-group-item-action d-flex align-items-center gap-3 bg-light border-orange user-result-item">
                         <img src="/user/${escapeHtml(user.id)}/profile-image"
                              alt="${escapeHtml(user.displayName)}"
                              class="rounded-circle user-search-avatar"
@@ -104,6 +127,7 @@
     function renderEmpty() {
         resultsContainer.innerHTML = '';
         pagingControls.style.setProperty('display', 'none', 'important');
+        resultsCard.style.setProperty('display', 'none', 'important');
     }
 
     async function performSearch(query, page) {

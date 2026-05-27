@@ -313,6 +313,16 @@ public class SightingsServiceTests
         AssertAllMockVerifications();
     }
 
+    // Sets up the repo's predicate overload to actually evaluate the expression against
+    // a backing list, so these tests genuinely exercise the bounds filter the service builds
+    // (the previous setups mocked the parameterless GetAllAsync(), which the service no longer
+    // calls — they passed vacuously regardless of the filter logic).
+    private void SetupBoundsRepo(params Sighting[] backing) =>
+        _sightingsRepoMock
+            .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync((Expression<Func<Sighting, bool>> predicate) =>
+                backing.Where(predicate.Compile()).AsQueryable());
+
     [Test]
     public async Task GetSightingsInBoundsAsync_ReturnsSightingsWithinBounds()
     {
@@ -327,8 +337,7 @@ public class SightingsServiceTests
             ImageBuffer = new byte[] { 0x01 }
         };
 
-        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting,bool>>>()))
-            .ReturnsAsync(new List<Sighting> { sightingInBounds }.AsQueryable());
+        SetupBoundsRepo(sightingInBounds);
 
         var sut = CreateSut();
 
@@ -354,8 +363,7 @@ public class SightingsServiceTests
             ImageBuffer = new byte[] { 0x01 }
         };
 
-        _sightingsRepoMock.Setup(r => r.GetAllAsync())
-            .ReturnsAsync(new List<Sighting> { sightingOutOfBounds }.AsQueryable());
+        SetupBoundsRepo(sightingOutOfBounds);
 
         var sut = CreateSut();
 
@@ -366,22 +374,24 @@ public class SightingsServiceTests
         Assert.That(result.Count(), Is.EqualTo(0));
     }
 
+    // [CSP-224] Regression guard: an in-bounds sighting older than a week must STILL be
+    // returned. The map previously dropped anything older than 7 days, so sightings the
+    // user knew existed vanished as they panned/zoomed away from recent activity.
     [Test]
-    public async Task GetSightingsInBoundsAsync_ExcludesSightingsOlderThanSevenDays()
+    public async Task GetSightingsInBoundsAsync_IncludesInBoundsSightings_RegardlessOfAge()
     {
         // Arrange
-        var oldSighting = new Sighting
+        var oldInBounds = new Sighting
         {
             Id = Guid.NewGuid(),
             Latitude = 45.0m,
             Longitude = -123.0m,
-            Timestamp = DateTimeOffset.UtcNow.AddDays(-10),  // 10 days old
-            Description = "Old sighting",
+            Timestamp = DateTimeOffset.UtcNow.AddDays(-400),  // well over a year old
+            Description = "Old but in-bounds sighting",
             ImageBuffer = new byte[] { 0x01 }
         };
 
-        _sightingsRepoMock.Setup(r => r.GetAllAsync())
-            .ReturnsAsync(new List<Sighting> { oldSighting }.AsQueryable());
+        SetupBoundsRepo(oldInBounds);
 
         var sut = CreateSut();
 
@@ -389,7 +399,47 @@ public class SightingsServiceTests
         var result = await sut.GetSightingsInBoundsAsync(44.0m, 46.0m, -124.0m, -122.0m);
 
         // Assert
-        Assert.That(result.Count(), Is.EqualTo(0));
+        Assert.That(result.Count(), Is.EqualTo(1));
+        Assert.That(result.First().Id, Is.EqualTo(oldInBounds.Id));
+    }
+
+    // [CSP-224] With a mixed set, only the in-bounds sightings come back — old or recent —
+    // and the out-of-bounds one is excluded purely on geography.
+    [Test]
+    public async Task GetSightingsInBoundsAsync_ReturnsAllInBounds_IgnoringAge_ExcludingOutOfBounds()
+    {
+        // Arrange
+        var recentInBounds = new Sighting
+        {
+            Id = Guid.NewGuid(),
+            Latitude = 45.5m, Longitude = -123.2m,
+            Timestamp = DateTimeOffset.UtcNow.AddHours(-2),
+            Description = "recent in-bounds", ImageBuffer = new byte[] { 0x01 }
+        };
+        var oldInBounds = new Sighting
+        {
+            Id = Guid.NewGuid(),
+            Latitude = 44.2m, Longitude = -122.5m,
+            Timestamp = DateTimeOffset.UtcNow.AddDays(-90),
+            Description = "old in-bounds", ImageBuffer = new byte[] { 0x01 }
+        };
+        var outOfBounds = new Sighting
+        {
+            Id = Guid.NewGuid(),
+            Latitude = 34.0m, Longitude = -118.0m,  // LA — outside the box
+            Timestamp = DateTimeOffset.UtcNow.AddHours(-1),
+            Description = "out of bounds", ImageBuffer = new byte[] { 0x01 }
+        };
+
+        SetupBoundsRepo(recentInBounds, oldInBounds, outOfBounds);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = (await sut.GetSightingsInBoundsAsync(44.0m, 46.0m, -124.0m, -122.0m)).ToList();
+
+        // Assert
+        Assert.That(result.Select(s => s.Id), Is.EquivalentTo(new[] { recentInBounds.Id, oldInBounds.Id }));
     }
 
 
@@ -574,6 +624,164 @@ public class SightingsServiceTests
 
         // Assert
         Assert.That(result, Is.Empty);
+    }
+
+    #endregion
+
+    #region CSP-199: GetSightingsPageAsync Pagination Tests
+
+    // Builds `count` sightings with strictly increasing timestamps (s0 = oldest,
+    // s{count-1} = newest). Input order is oldest-first on purpose so the tests
+    // prove the service applies the descending sort itself.
+    private static List<Sighting> BuildSightings(int count)
+    {
+        var baseTime = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var list = new List<Sighting>(count);
+        for (int i = 0; i < count; i++)
+        {
+            list.Add(new Sighting
+            {
+                Id = Guid.NewGuid(),
+                UserId = Guid.NewGuid(),
+                Timestamp = baseTime.AddMinutes(i),
+                Description = $"s{i}",
+                ImageBuffer = [0x01]
+            });
+        }
+        return list;
+    }
+
+    // Pins: a full page returns exactly pageSize items, TotalCount reflects the
+    // WHOLE dataset (not the page), and paging metadata is correct.
+    [Test]
+    public async Task GetSightingsPageAsync_FirstPage_ReturnsAtMostPageSizeItemsAndFullTotalCount()
+    {
+        _sightingsRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(BuildSightings(25).AsQueryable());
+        var sut = CreateSut();
+
+        var result = await sut.GetSightingsPageAsync(page: 1, pageSize: 20);
+
+        Assert.That(result.Items.Count, Is.EqualTo(20));
+        Assert.That(result.TotalCount, Is.EqualTo(25));
+        Assert.That(result.Page, Is.EqualTo(1));
+        Assert.That(result.PageSize, Is.EqualTo(20));
+        Assert.That(result.TotalPages, Is.EqualTo(2));
+        Assert.That(result.HasPreviousPage, Is.False);
+        Assert.That(result.HasNextPage, Is.True);
+        // Newest sighting (s24) is first because of the descending sort.
+        Assert.That(result.Items[0].Description, Is.EqualTo("s24"));
+    }
+
+    // Pins: the last page returns only the leftover items, not a full page.
+    [Test]
+    public async Task GetSightingsPageAsync_SecondPage_ReturnsOnlyRemainingItems()
+    {
+        _sightingsRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(BuildSightings(25).AsQueryable());
+        var sut = CreateSut();
+
+        var result = await sut.GetSightingsPageAsync(page: 2, pageSize: 20);
+
+        Assert.That(result.Items.Count, Is.EqualTo(5));
+        Assert.That(result.Page, Is.EqualTo(2));
+        Assert.That(result.HasPreviousPage, Is.True);
+        Assert.That(result.HasNextPage, Is.False);
+        // Page 1 held s24..s5; page 2 holds the 5 oldest, newest-first: s4..s0.
+        Assert.That(result.Items[0].Description, Is.EqualTo("s4"));
+        Assert.That(result.Items[^1].Description, Is.EqualTo("s0"));
+    }
+
+    // Pins: items within a page are ordered most-recent-first.
+    [Test]
+    public async Task GetSightingsPageAsync_ReturnsItemsOrderedByTimestampDescending()
+    {
+        _sightingsRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(BuildSightings(5).AsQueryable());
+        var sut = CreateSut();
+
+        var result = await sut.GetSightingsPageAsync(page: 1, pageSize: 20);
+
+        Assert.That(result.Items.Count, Is.EqualTo(5));
+        for (int i = 0; i < result.Items.Count - 1; i++)
+        {
+            Assert.That(result.Items[i].Timestamp,
+                Is.GreaterThan(result.Items[i + 1].Timestamp));
+        }
+    }
+
+    // Pins: asking for a page past the end yields no items but still reports the
+    // true total (so the UI can render "page X of Y" / disable Next correctly).
+    [Test]
+    public async Task GetSightingsPageAsync_PageBeyondLastPage_ReturnsEmptyItemsButCorrectTotalCount()
+    {
+        _sightingsRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(BuildSightings(5).AsQueryable());
+        var sut = CreateSut();
+
+        var result = await sut.GetSightingsPageAsync(page: 3, pageSize: 20);
+
+        Assert.That(result.Items, Is.Empty);
+        Assert.That(result.TotalCount, Is.EqualTo(5));
+        Assert.That(result.HasNextPage, Is.False);
+    }
+
+    // Pins: empty dataset is a valid empty page, not a crash.
+    [Test]
+    public async Task GetSightingsPageAsync_NoSightings_ReturnsEmptyResultWithZeroTotal()
+    {
+        _sightingsRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(Enumerable.Empty<Sighting>().AsQueryable());
+        var sut = CreateSut();
+
+        var result = await sut.GetSightingsPageAsync(page: 1, pageSize: 20);
+
+        Assert.That(result.Items, Is.Empty);
+        Assert.That(result.TotalCount, Is.EqualTo(0));
+        Assert.That(result.TotalPages, Is.EqualTo(0));
+        Assert.That(result.HasNextPage, Is.False);
+        Assert.That(result.HasPreviousPage, Is.False);
+    }
+
+    // Pins: a bad/low page number (0, negative) is clamped to page 1 rather than
+    // returning an empty/garbage page from a negative Skip.
+    [Test]
+    public async Task GetSightingsPageAsync_PageLessThanOne_ClampsToFirstPage()
+    {
+        _sightingsRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(BuildSightings(25).AsQueryable());
+        var sut = CreateSut();
+
+        var result = await sut.GetSightingsPageAsync(page: 0, pageSize: 20);
+
+        Assert.That(result.Page, Is.EqualTo(1));
+        Assert.That(result.Items.Count, Is.EqualTo(20));
+        Assert.That(result.Items[0].Description, Is.EqualTo("s24"));
+    }
+
+    // Pins: consecutive pages are disjoint and together cover every sighting
+    // exactly once, in unbroken descending order.
+    [Test]
+    public async Task GetSightingsPageAsync_ConsecutivePages_DoNotOverlapAndCoverAllSightings()
+    {
+        _sightingsRepoMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(BuildSightings(25).AsQueryable());
+        var sut = CreateSut();
+
+        var page1 = await sut.GetSightingsPageAsync(page: 1, pageSize: 10);
+        var page2 = await sut.GetSightingsPageAsync(page: 2, pageSize: 10);
+        var page3 = await sut.GetSightingsPageAsync(page: 3, pageSize: 10);
+
+        var combined = page1.Items.Concat(page2.Items).Concat(page3.Items)
+            .Select(s => s.Description).ToList();
+
+        Assert.That(page1.Items.Count, Is.EqualTo(10));
+        Assert.That(page2.Items.Count, Is.EqualTo(10));
+        Assert.That(page3.Items.Count, Is.EqualTo(5));
+        Assert.That(combined.Distinct().Count(), Is.EqualTo(25));
+        // Full descending sweep: s24, s23, ..., s0
+        var expected = Enumerable.Range(0, 25).Reverse().Select(i => $"s{i}");
+        Assert.That(combined, Is.EqualTo(expected));
     }
 
     #endregion
@@ -764,6 +972,51 @@ public class SightingsServiceTests
             Is.EqualTo(new[] { "Bald Eagle", "Bobcat", "Coyote" }));
     }
 
+    // CSP-202: Each AnidexEntry preloads its per-sighting list so the card-expansion UI
+    // does not need an extra round-trip. Inner list is newest-first.
+    [Test]
+    public async Task GetUserAnidexAsync_EntriesPreloadAllPerSpeciesSightings_NewestFirst()
+    {
+        var userId = Guid.NewGuid();
+        var oldest = new Sighting { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "Coyote", Description = "old", Timestamp = DateTimeOffset.UtcNow.AddDays(-3), ImageBuffer = [0x01] };
+        var middle = new Sighting { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "Coyote", Description = "mid", Timestamp = DateTimeOffset.UtcNow.AddDays(-2), ImageBuffer = [0x02] };
+        var newest = new Sighting { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "Coyote", Description = "new", Timestamp = DateTimeOffset.UtcNow.AddDays(-1), ImageBuffer = [0x03] };
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(new[] { oldest, middle, newest }.AsQueryable());
+
+        var sut = CreateSut();
+
+        var result = (await sut.GetUserAnidexAsync(userId)).Single();
+
+        Assert.That(result.Entries.Count, Is.EqualTo(3));
+        Assert.That(result.Entries.Select(e => e.SightingId).ToList(),
+            Is.EqualTo(new[] { newest.Id, middle.Id, oldest.Id }));
+        Assert.That(result.Entries[0].Description, Is.EqualTo("new"));
+        Assert.That(result.Entries[0].ImageBuffer, Is.EqualTo(new byte[] { 0x03 }));
+        Assert.That(result.Entries[0].Timestamp, Is.EqualTo(newest.Timestamp));
+    }
+
+    // CSP-202: Species with a single sighting still has a one-element Entries list
+    // (the view uses Entries.Count to decide whether to render an expand affordance).
+    [Test]
+    public async Task GetUserAnidexAsync_SingleSightingSpecies_HasOneEntry()
+    {
+        var userId = Guid.NewGuid();
+        var only = new Sighting { Id = Guid.NewGuid(), UserId = userId, SpeciesName = "River Otter", Description = "first", Timestamp = DateTimeOffset.UtcNow.AddDays(-1), ImageBuffer = [0x05] };
+
+        _sightingsRepoMock.Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Sighting, bool>>>()))
+            .ReturnsAsync(new[] { only }.AsQueryable());
+
+        var sut = CreateSut();
+
+        var result = (await sut.GetUserAnidexAsync(userId)).Single();
+
+        Assert.That(result.DiscoveryCount, Is.EqualTo(1));
+        Assert.That(result.Entries.Count, Is.EqualTo(1));
+        Assert.That(result.Entries[0].SightingId, Is.EqualTo(only.Id));
+    }
+
     #endregion
 
     #region CSP-172: GetSightingByIdAsync Tests
@@ -819,6 +1072,162 @@ public class SightingsServiceTests
         // Assert
         Assert.That(result, Is.Null);
         AssertAllMockVerifications();
+    }
+
+    #endregion
+
+    #region CSP-37: UpdateSightingAsync Tests
+
+    // Builds a persisted-looking sighting owned by `ownerId` with known scoring/immutable fields
+    // so each test can assert exactly what the edit operation does and does not touch.
+    private static Sighting BuildOwnedSighting(Guid sightingId, Guid ownerId) => new()
+    {
+        Id = sightingId,
+        UserId = ownerId,
+        Latitude = 44.5m,
+        Longitude = -123.25m,
+        Timestamp = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero),
+        Description = "Original description",
+        SpeciesName = "Coyote",
+        ImageBuffer = [0x01, 0x02, 0x03],
+        PointValue = 50,
+        Rarity = "Mythic",
+        RarityMultiplier = 5.0
+    };
+
+    [Test]
+    public async Task UpdateSightingAsync_OwnerValidEdit_UpdatesDescriptionAndSpeciesNameAndSaves()
+    {
+        // Arrange
+        var sightingId = Guid.NewGuid();
+        var ownerId = Guid.NewGuid();
+        var sighting = BuildOwnedSighting(sightingId, ownerId);
+
+        _sightingsRepoMock.Setup(r => r.FindByIdAsync(It.Is<Guid>(g => g == sightingId)))
+            .ReturnsAsync(sighting).Verifiable(Times.Once);
+        _sightingsRepoMock.Setup(r => r.AddOrUpdateAsync(It.Is<Sighting>(s => s.Id == sightingId)))
+            .ReturnsAsync(sighting).Verifiable(Times.Once);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdateSightingAsync(sightingId, ownerId, "Updated description", "Gray Wolf");
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Description, Is.EqualTo("Updated description"));
+        Assert.That(result.SpeciesName, Is.EqualTo("Gray Wolf"));
+        AssertAllMockVerifications();
+    }
+
+    [Test]
+    public async Task UpdateSightingAsync_OwnerValidEdit_DoesNotRecalculateScoring()
+    {
+        // Arrange — scoring service must never be consulted on edit, and the frozen
+        // scoring fields must come through unchanged.
+        var sightingId = Guid.NewGuid();
+        var ownerId = Guid.NewGuid();
+        var sighting = BuildOwnedSighting(sightingId, ownerId);
+
+        _sightingsRepoMock.Setup(r => r.FindByIdAsync(It.IsAny<Guid>())).ReturnsAsync(sighting);
+        _sightingsRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<Sighting>())).ReturnsAsync(sighting);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdateSightingAsync(sightingId, ownerId, "New desc", "New species");
+
+        // Assert
+        Assert.That(result!.PointValue, Is.EqualTo(50));
+        Assert.That(result.Rarity, Is.EqualTo("Mythic"));
+        Assert.That(result.RarityMultiplier, Is.EqualTo(5.0));
+        _scoringServiceMock.Verify(s => s.GetGlobalSightingsCountAsync(It.IsAny<string>()), Times.Never);
+        _scoringServiceMock.Verify(s => s.CalculatePointsAsync(It.IsAny<int>()), Times.Never);
+        _scoringServiceMock.Verify(s => s.GetRarityMultiplierAndName(It.IsAny<int>()), Times.Never);
+    }
+
+    [Test]
+    public async Task UpdateSightingAsync_OwnerValidEdit_DoesNotModifyImmutableFields()
+    {
+        // Arrange
+        var sightingId = Guid.NewGuid();
+        var ownerId = Guid.NewGuid();
+        var sighting = BuildOwnedSighting(sightingId, ownerId);
+        var originalImage = sighting.ImageBuffer;
+
+        _sightingsRepoMock.Setup(r => r.FindByIdAsync(It.IsAny<Guid>())).ReturnsAsync(sighting);
+        _sightingsRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<Sighting>())).ReturnsAsync(sighting);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdateSightingAsync(sightingId, ownerId, "New desc", "New species");
+
+        // Assert — GPS, timestamp, and photo are part of the factual record and stay frozen.
+        Assert.That(result!.Latitude, Is.EqualTo(44.5m));
+        Assert.That(result.Longitude, Is.EqualTo(-123.25m));
+        Assert.That(result.Timestamp, Is.EqualTo(new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero)));
+        Assert.That(result.ImageBuffer, Is.EqualTo(originalImage));
+    }
+
+    [Test]
+    public async Task UpdateSightingAsync_UnknownId_ReturnsNullAndDoesNotSave()
+    {
+        // Arrange
+        var unknownId = Guid.NewGuid();
+        _sightingsRepoMock.Setup(r => r.FindByIdAsync(It.Is<Guid>(g => g == unknownId)))
+            .ReturnsAsync((Sighting?)null).Verifiable(Times.Once);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdateSightingAsync(unknownId, Guid.NewGuid(), "desc", "species");
+
+        // Assert
+        Assert.That(result, Is.Null);
+        _sightingsRepoMock.Verify(r => r.AddOrUpdateAsync(It.IsAny<Sighting>()), Times.Never);
+        AssertAllMockVerifications();
+    }
+
+    [Test]
+    public void UpdateSightingAsync_NonOwner_ThrowsUnauthorizedAndDoesNotSave()
+    {
+        // Arrange — sighting exists but belongs to someone else.
+        var sightingId = Guid.NewGuid();
+        var ownerId = Guid.NewGuid();
+        var attackerId = Guid.NewGuid();
+        var sighting = BuildOwnedSighting(sightingId, ownerId);
+
+        _sightingsRepoMock.Setup(r => r.FindByIdAsync(It.IsAny<Guid>())).ReturnsAsync(sighting);
+
+        var sut = CreateSut();
+
+        // Act & Assert
+        Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            sut.UpdateSightingAsync(sightingId, attackerId, "hijacked", "Fake Species"));
+        _sightingsRepoMock.Verify(r => r.AddOrUpdateAsync(It.IsAny<Sighting>()), Times.Never);
+    }
+
+    [Test]
+    public async Task UpdateSightingAsync_NoActualChange_SavesWithoutError()
+    {
+        // Arrange — submitting the same values is a valid idempotent no-op edit.
+        var sightingId = Guid.NewGuid();
+        var ownerId = Guid.NewGuid();
+        var sighting = BuildOwnedSighting(sightingId, ownerId);
+
+        _sightingsRepoMock.Setup(r => r.FindByIdAsync(It.IsAny<Guid>())).ReturnsAsync(sighting);
+        _sightingsRepoMock.Setup(r => r.AddOrUpdateAsync(It.IsAny<Sighting>())).ReturnsAsync(sighting);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdateSightingAsync(sightingId, ownerId, "Original description", "Coyote");
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Description, Is.EqualTo("Original description"));
+        Assert.That(result.SpeciesName, Is.EqualTo("Coyote"));
     }
 
     #endregion

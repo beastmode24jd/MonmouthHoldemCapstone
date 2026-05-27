@@ -3,43 +3,111 @@
     ViewData["Title"] = "Account Details";
     // If the user not the authenticated user, show the user's name, email or id in the title, depending on what is set.
     // Otherwise, show a title indicated that a user is viewing their own account.
-    var titleString = Model.IsAuthenticatedUser ? "Showing info for Your Account" :
-        $"Showing info for {Model.Username ?? Model.Email ?? Model.Id.ToString()}";
 }
 
-<div class="container mt-4">
+<div class="container mt-4 mb-3 pb-3">
     <div class="card shadow">
-        <div class="card-body">
-            <h1 class="card-title">Account Info</h1>
-            <div class="mt-4">
-                <h5>@titleString</h5>
+        <h1 class="card-title card-header subheader">@(Model.IsAuthenticatedUser ? "Your Profile" : $"{Model.DisplayName}'s Profile")</h1>
+        <div class="card-body border-0 overflow-hidden">
+            <div class="mt-0 mt-md-n1">
                 <div class="row">
                     <div class="col-12 col-md-2 d-flex justify-content-center align-items-center">
-                        <img class="dashboardProfile img-fluid" src="@Model.ProfileImageUrl" aria-label="@Model.Username Profile Image" />
+                        <img class="dashboardProfile img-fluid" 
+                        src="@Model.ProfileImageUrl" 
+                        aria-label="@Model.DisplayName Profile Image"
+                        style="width: 80px; height: 80px; object-fit: cover;" />
                     </div>
-                    <div class="col-12 col-md-10">
+                    <div class="col-12 col-md-10 mt-0 mt-md-0 mb-1">
                         <ul class="list-group list-group-flush">
-                            @if (!string.IsNullOrEmpty(Model.DisplayName) && Model.DisplayName != "UNSET")
-                            {
-                                <li class="list-group-item">
-                                    <strong>Display Name:</strong> @Model.DisplayName
-                                </li>
-                            }
-                            <li class="list-group-item">
-                                <strong>Email:</strong> @Model.Email
-                            </li>
                             <li class="list-group-item">
                                 <strong>Status:</strong>
                                 @if (Model.IsDeactivated)
                                 {
-                                    <span class="badge bg-error">Deactivated</span>
+                                    <span class="badge orange-flat">Deactivated</span>
                                 }
                                 else
                                 {
-                                    <span class="badge bg-success">Active</span>
+                                    <span class="badge green-flat">Active</span>
                                 }
                             </li>
+                            <li class="list-group-item">
+                                <strong>Total points:</strong> <span class="badge bg-dark" id="profilePointsValue">@(Model.Points ?? 0)</span>
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Bio:</strong> <span id="profileBio">@Model.Bio</span>
+                            </li>
                         </ul>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 col-md-10 mt-1 mb-1">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item" id="profileRecentBadges">
+                                    <strong>Recent Badges:</strong>
+                                    @if (Model.RecentBadgeTitles.Count == 0)
+                                    {
+                                        <span class="text-muted ms-1" id="profileRecentBadgesEmpty">No badges earned yet.</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="ms-1">
+                                            @foreach (var title in Model.RecentBadgeTitles)
+                                            {
+                                                <span class="badge green-flat me-1 profile-recent-badge">
+                                                    <i class="bi bi-leaf-fill"></i>
+                                                    @title
+                                                </span>
+                                            }
+                                        </span>
+                                    }
+                                </li>
+                                <li class="list-group-item" id="profileRecentClubs">
+                                    <strong>Recent Clubs:</strong>
+                                    @if (Model.RecentClubs.Count == 0)
+                                    {
+                                        <span class="text-muted ms-1" id="profileRecentClubsEmpty">No clubs joined yet.</span>
+                                    }
+                                    else
+                                    {
+                                        <div class="d-flex flex-wrap gap-2 mt-2">
+                                            @foreach (var club in Model.RecentClubs)
+                                            {
+                                                <a asp-controller="Clubs" asp-action="ClubPage" asp-route-id="@club.Id"
+                                                   class="btn bg-orange btn-sm text-start"
+                                                   data-club-id="@club.Id"
+                                                   style="max-width: 240px;">
+                                                    <span class="d-block fw-semibold text-white text-truncate">
+                                                        <i class="bi bi-people-fill"></i> @club.Name
+                                                    </span>
+                                                    @if (!string.IsNullOrWhiteSpace(club.Description))
+                                                    {
+                                                        <small class="d-block text-light text-truncate">@club.Description</small>
+                                                    }
+                                                </a>
+                                            }
+                                        </div>
+                                    }
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>Recent Sightings:</strong>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="col-12 mt-1">
+                        <div id="profileRecentSightings">
+                            @if (Model.RecentSightings.Count == 0)
+                            {
+                                <span class="text-muted mt-2 ms-3" id="profileRecentSightingsEmpty">No sightings yet.</span>
+                            }
+                            else
+                            {
+                                <partial name="_SightingCardGrid" model="Model.RecentSightings" />
+                            }
+                        </div>
+                    </div>
+                
+                    <div class="row">
 
                         @* CSP-187: Follow + Block toggles, only shown when viewing another user *@
                         @if (!Model.IsAuthenticatedUser)
@@ -49,7 +117,7 @@
                                 {
                                     <form asp-controller="User" asp-action="Unfollow" asp-route-id="@Model.Id" method="post" class="m-0">
                                         @Html.AntiForgeryToken()
-                                        <button id="unfollowButton" type="submit" class="btn btn-outline-primary">
+                                        <button id="unfollowButton" type="submit" class="btn bg-orange">
                                             <i class="bi bi-person-dash"></i> Unfollow
                                         </button>
                                     </form>
@@ -58,7 +126,7 @@
                                 {
                                     <form asp-controller="User" asp-action="Follow" asp-route-id="@Model.Id" method="post" class="m-0">
                                         @Html.AntiForgeryToken()
-                                        <button id="followButton" type="submit" class="btn btn-primary">
+                                        <button id="followButton" type="submit" class="btn bg-midGreen">
                                             <i class="bi bi-person-plus"></i> Follow
                                         </button>
                                     </form>
@@ -68,7 +136,7 @@
                                 {
                                     <form asp-controller="User" asp-action="Unblock" asp-route-id="@Model.Id" method="post" class="m-0">
                                         @Html.AntiForgeryToken()
-                                        <button id="unblockButton" type="submit" class="btn btn-outline-danger">
+                                        <button id="unblockButton" type="submit" class="btn bg-midGreen-outline">
                                             <i class="bi bi-shield-check"></i> Unblock
                                         </button>
                                     </form>
@@ -77,7 +145,7 @@
                                 {
                                     <form asp-controller="User" asp-action="Block" asp-route-id="@Model.Id" method="post" class="m-0">
                                         @Html.AntiForgeryToken()
-                                        <button id="blockButton" type="submit" class="btn btn-outline-danger">
+                                        <button id="blockButton" type="submit" class="btn bg-orange">
                                             <i class="bi bi-shield-x"></i> Block
                                         </button>
                                     </form>
@@ -95,7 +163,154 @@
                         }
                     </div>
                 </div>
+
+                @* CSP-211: Follower / Following tabs with counts. The count chips
+                    themselves are the tab buttons, so clicking either opens its list. *@
+                <div class="mt-4 mb-2 me-1 ms-2" id="followGraphSection">
+                    <ul class="nav nav-tabs" id="followGraphTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button id="followersTabBtn"
+                                    class="nav-link active"
+                                    data-bs-toggle="tab"
+                                    data-bs-target="#followersTab"
+                                    type="button"
+                                    role="tab"
+                                    aria-controls="followersTab"
+                                    aria-selected="true">
+                                <span id="followerCount">@Model.FollowerCount</span>
+                                <span class="d-none d-sm-inline">followers</span>
+                                <span class="d-inline d-sm-none">followers</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button id="followingTabBtn"
+                                    class="nav-link"
+                                    data-bs-toggle="tab"
+                                    data-bs-target="#followingTab"
+                                    type="button"
+                                    role="tab"
+                                    aria-controls="followingTab"
+                                    aria-selected="false">
+                                <span id="followingCount">@Model.FolloweeCount</span>
+                                following
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content border border-top-0 p-3" id="followGraphTabsContent">
+                        @* Followers tab *@
+                        <div id="followersTab" class="tab-pane fade show active" role="tabpanel" aria-labelledby="followersTabBtn">
+                            @if (!Model.Followers.Any())
+                            {
+                                <p id="followersEmptyState" class="text-muted mb-0">No followers yet.</p>
+                            }
+                            else
+                            {
+                                <ul id="followersList" class="list-unstyled mb-0">
+                                    @foreach (var f in Model.Followers)
+                                    {
+                                        <li class="follow-list-item mb-2">
+                                            <a href="/account/@f.Id" class="d-flex align-items-center text-decoration-none text-body">
+                                                <img src="@f.ProfileImageUrl" alt="" class="rounded-circle me-2 follow-list-avatar" style="width: 32px; height: 32px; object-fit: cover;" />
+                                                <span class="follow-list-display-name">@f.DisplayName</span>
+                                            </a>
+                                        </li>
+                                    }
+                                </ul>
+                                @if (Model.FollowersTotalPages > 1)
+                                {
+                                    <nav aria-label="Followers pagination" class="mt-3">
+                                        <ul class="pagination pagination-sm justify-content-center mb-0">
+                                            <li class="page-item @(Model.FollowersPage <= 1 ? "disabled" : "")">
+                                                <a class="page-link" id="followersPrev" href="?followersPage=@(Math.Max(1, Model.FollowersPage - 1))#followersTab" aria-label="Previous followers page">
+                                                    <i class="bi bi-chevron-left"></i>
+                                                </a>
+                                            </li>
+                                            <li class="page-item disabled">
+                                                <span class="page-link" id="followersPageInfo">@Model.FollowersPage / @Model.FollowersTotalPages</span>
+                                            </li>
+                                            <li class="page-item @(Model.FollowersPage >= Model.FollowersTotalPages ? "disabled" : "")">
+                                                <a class="page-link" id="followersNext" href="?followersPage=@(Model.FollowersPage + 1)#followersTab" aria-label="Next followers page">
+                                                    <i class="bi bi-chevron-right"></i>
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                }
+                            }
+                        </div>
+
+                        @* Following tab *@
+                        <div id="followingTab" class="tab-pane fade" role="tabpanel" aria-labelledby="followingTabBtn">
+                            @if (!Model.Followees.Any())
+                            {
+                                <p id="followingEmptyState" class="text-muted mb-0">Not following anyone yet.</p>
+                            }
+                            else
+                            {
+                                <ul id="followingList" class="list-unstyled mb-0">
+                                    @foreach (var f in Model.Followees)
+                                    {
+                                        <li class="follow-list-item mb-2">
+                                            <a href="/account/@f.Id" class="d-flex align-items-center text-decoration-none text-body">
+                                                <img src="@f.ProfileImageUrl" alt="" class="rounded-circle me-2 follow-list-avatar" style="width: 32px; height: 32px; object-fit: cover;" />
+                                                <span class="follow-list-display-name">@f.DisplayName</span>
+                                            </a>
+                                        </li>
+                                    }
+                                </ul>
+                                @if (Model.FolloweesTotalPages > 1)
+                                {
+                                    <nav aria-label="Following pagination" class="mt-3">
+                                        <ul class="pagination pagination-sm justify-content-center mb-0">
+                                            <li class="page-item @(Model.FolloweesPage <= 1 ? "disabled" : "")">
+                                                <a class="page-link" id="followingPrev" href="?followingPage=@(Math.Max(1, Model.FolloweesPage - 1))#followingTab" aria-label="Previous following page">
+                                                    <i class="bi bi-chevron-left"></i>
+                                                </a>
+                                            </li>
+                                            <li class="page-item disabled">
+                                                <span class="page-link" id="followingPageInfo">@Model.FolloweesPage / @Model.FolloweesTotalPages</span>
+                                            </li>
+                                            <li class="page-item @(Model.FolloweesPage >= Model.FolloweesTotalPages ? "disabled" : "")">
+                                                <a class="page-link" id="followingNext" href="?followingPage=@(Model.FolloweesPage + 1)#followingTab" aria-label="Next following page">
+                                                    <i class="bi bi-chevron-right"></i>
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="row d-flex align-items-center mt-1 mb-2">
+                    <div class="col-6">
+                        @if(Model.IsAuthenticatedUser)
+                        {
+                            <a asp-controller="Dashboard" asp-action="Settings" id="accountEditBtn"
+                                class="btn bg-midGreen-outline mt-2 me-3">
+                                <i class="bi bi-gear"></i>  Edit
+                            </a>
+                        }
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        // CSP-211: opening /account#followersTab or /account#followingTab
+        // from the dashboard quick-stat links should activate that tab.
+        (function () {
+            const hash = window.location.hash;
+            if (hash !== '#followersTab' && hash !== '#followingTab') return;
+            const btnId = hash === '#followingTab' ? 'followingTabBtn' : 'followersTabBtn';
+            const btn = document.getElementById(btnId);
+            if (btn && window.bootstrap && bootstrap.Tab) {
+                bootstrap.Tab.getOrCreateInstance(btn).show();
+            }
+        })();
+    </script>
+}

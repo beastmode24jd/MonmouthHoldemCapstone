@@ -16,7 +16,8 @@
             </div>
             <div class="col-md-6">
                 <label class="form-label fw-bold">Ticket Reporter</label>
-                <input asp-for="UserSearch" class="form-control" placeholder="Username here..." />
+                <input asp-for="UserSearch" id="reportUserSearch" list="reporterSuggestions" autocomplete="off" class="form-control" placeholder="Username here..." />
+                <datalist id="reporterSuggestions"></datalist>
             </div>
         </div>
 
@@ -122,6 +123,11 @@
                 <div class="mb-3">
                     <label class="form-label">Ticket resolution status:</label>
                     <input type="checkbox" id="modalIsResolved" class="form-check-input" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Audit Details (Optional):</label>
+                    <textarea id="modalAuditDetails" class="form-control" rows="2" placeholder="Reason for action..."></textarea>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -132,5 +138,5 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/reportModal.js"></script>
+    <script src="~/js/reportModal.js" asp-append-version="true"></script>
 }

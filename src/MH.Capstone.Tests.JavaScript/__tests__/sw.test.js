@@ -37,8 +37,9 @@ global.fetch = jest.fn();
 
 if (typeof global.Response === 'undefined') global.Response = {};
 global.Response.error = jest.fn().mockReturnValue({ type: 'error', status: 0 });
+global.Response.redirect = jest.fn().mockImplementation((url, status) => ({ type: 'redirect', status: status ?? 302, url }));
 
-const { handleInstall, handleActivate, handleFetch, networkFirst, cacheFirst } =
+const { handleInstall, handleActivate, handleFetch, handleOfflineFormPost, networkFirst, cacheFirst } =
     require('../../MH.Capstone.WebApp/wwwroot/js/sw');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -48,10 +49,10 @@ function makeNetworkResponse(ok = true) {
     return resp;
 }
 
-function makeNavEvent(path) {
+function makeNavEvent(path, method = 'GET') {
     let captured;
     const event = {
-        request: { url: `${ORIGIN}${path}`, mode: 'navigate' },
+        request: { url: `${ORIGIN}${path}`, mode: 'navigate', method },
         respondWith: jest.fn(p => { captured = p; }),
     };
     return { event, getResponse: () => captured };
@@ -139,6 +140,64 @@ describe('handleFetch — /Sighting/Upload (network-first)', () => {
         const response = await getResponse();
         expect(global.Response.error).toHaveBeenCalled();
         expect(response).toEqual({ type: 'error', status: 0 });
+    });
+});
+
+// ── Fetch — POST form submission to offline pages ─────────────────────────────
+
+describe('handleOfflineFormPost', () => {
+    it('passes the request through when the network succeeds', async () => {
+        const networkResp = makeNetworkResponse(true);
+        global.fetch.mockResolvedValue(networkResp);
+        const request = { url: `${ORIGIN}/Sighting/Upload`, mode: 'navigate', method: 'POST' };
+
+        const response = await handleOfflineFormPost(request);
+
+        expect(global.fetch).toHaveBeenCalledWith(request);
+        expect(response).toBe(networkResp);
+    });
+
+    it('redirects to /Sighting/OfflineQueue when network fails', async () => {
+        global.fetch.mockRejectedValue(new Error('offline'));
+        const request = { url: `${ORIGIN}/Sighting/Upload`, mode: 'navigate', method: 'POST' };
+
+        const response = await handleOfflineFormPost(request);
+
+        expect(global.Response.redirect).toHaveBeenCalledWith('/Sighting/OfflineQueue', 302);
+        expect(response).toEqual(expect.objectContaining({ type: 'redirect', status: 302 }));
+    });
+});
+
+describe('handleFetch — POST to /Sighting/Upload (offline form submission)', () => {
+    it('calls respondWith for a POST navigate to an offline page', () => {
+        global.fetch.mockResolvedValue(makeNetworkResponse(true));
+        const { event } = makeNavEvent('/Sighting/Upload', 'POST');
+
+        handleFetch(event);
+
+        expect(event.respondWith).toHaveBeenCalled();
+    });
+
+    it('redirects to /Sighting/OfflineQueue on network failure instead of returning error', async () => {
+        global.fetch.mockRejectedValue(new Error('offline'));
+        const { event, getResponse } = makeNavEvent('/Sighting/Upload', 'POST');
+
+        handleFetch(event);
+
+        const response = await getResponse();
+        expect(global.Response.error).not.toHaveBeenCalled();
+        expect(global.Response.redirect).toHaveBeenCalledWith('/Sighting/OfflineQueue', 302);
+        expect(response).toEqual(expect.objectContaining({ type: 'redirect', status: 302 }));
+    });
+
+    it('does not cache the response for POST requests', async () => {
+        global.fetch.mockResolvedValue(makeNetworkResponse(true));
+        const { event, getResponse } = makeNavEvent('/Sighting/Upload', 'POST');
+
+        handleFetch(event);
+        await getResponse();
+
+        expect(mockCache.put).not.toHaveBeenCalled();
     });
 });
 

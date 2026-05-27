@@ -121,6 +121,48 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("MH.Capstone.Domain.DataModels.AuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ActionType")
+                        .HasColumnType("int")
+                        .HasColumnName("ActionType");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("PerformingUserIdentityId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("PerformingUserId");
+
+                    b.Property<Guid?>("TargetReportId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TargetUserIdentityId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("TargetUserId");
+
+                    b.Property<DateTimeOffset>("Timestamp")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PerformingUserIdentityId");
+
+                    b.HasIndex("TargetReportId");
+
+                    b.HasIndex("TargetUserIdentityId");
+
+                    b.ToTable("AuditLogs");
+                });
+
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Badge", b =>
                 {
                     b.Property<Guid>("BadgeID")
@@ -821,6 +863,31 @@ namespace MH.Capstone.Domain.DataAccess.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("MH.Capstone.Domain.DataModels.AuditLog", b =>
+                {
+                    b.HasOne("MH.Capstone.Domain.DataModels.ApplicationUser", "PerformingUser")
+                        .WithMany()
+                        .HasForeignKey("PerformingUserIdentityId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("MH.Capstone.Domain.DataModels.Report", "TargetReport")
+                        .WithMany()
+                        .HasForeignKey("TargetReportId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("MH.Capstone.Domain.DataModels.ApplicationUser", "TargetUser")
+                        .WithMany()
+                        .HasForeignKey("TargetUserIdentityId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("PerformingUser");
+
+                    b.Navigation("TargetReport");
+
+                    b.Navigation("TargetUser");
                 });
 
             modelBuilder.Entity("MH.Capstone.Domain.DataModels.Club", b =>

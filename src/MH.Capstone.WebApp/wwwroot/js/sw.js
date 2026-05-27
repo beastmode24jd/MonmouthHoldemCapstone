@@ -4,6 +4,7 @@ const OFFLINE_PAGES = [
     '/Sighting/Upload',
     '/Sighting/Create',
     '/Sighting/OfflineQueue',
+    '/',
 ];
 
 function isOfflinePage(pathname) {
@@ -57,9 +58,27 @@ async function cacheFirst(request) {
     }
 }
 
+// Handles POST form submissions to offline pages. Normally sighting-upload.js
+// intercepts these before they reach the SW via its submit listener, but if
+// navigator.onLine is stale (e.g. Chrome DevTools throttling keeps it true while
+// blocking the network) the JS gate doesn't fire and the POST reaches the SW.
+// On network failure we redirect to the offline queue rather than surfacing a
+// browser-level ERR_FAILED / "cannot find resource" error.
+async function handleOfflineFormPost(request) {
+    try {
+        return await fetch(request);
+    } catch {
+        return Response.redirect('/Sighting/OfflineQueue', 302);
+    }
+}
+
 function handleFetch(event) {
     const url = new URL(event.request.url);
     if (event.request.mode === 'navigate' && isOfflinePage(url.pathname)) {
+        if (event.request.method === 'POST') {
+            event.respondWith(handleOfflineFormPost(event.request));
+            return;
+        }
         event.respondWith(networkFirst(event.request));
         return;
     }
@@ -73,5 +92,5 @@ self.addEventListener('activate', (event) => event.waitUntil(handleActivate()));
 self.addEventListener('fetch', handleFetch);
 
 if (typeof module !== 'undefined') {
-    module.exports = { handleInstall, handleActivate, handleFetch, networkFirst, cacheFirst };
+    module.exports = { handleInstall, handleActivate, handleFetch, handleOfflineFormPost, networkFirst, cacheFirst };
 }

@@ -11,12 +11,18 @@
 <div class="container py-4">
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <div class="d-flex align-items-center mb-4">
-                <a href="/dashboard" class="btn btn-outline-secondary btn-sm me-3">
-                    <i class="bi bi-arrow-left"></i> Back to Dashboard
-                </a>
+            
+            <div class="d-flex align-items-center mb-3">
                 <h2 class="mb-0"><i class="bi bi-gear"></i> Account Settings</h2>
             </div>
+
+            <a href="/dashboard" class="btn bg-midGreen btn-sm me-3 mb-3">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+            <a asp-controller="Account" asp-action="Index" id="viewProfileBtn"
+                class="btn bg-orange btn-sm ms-auto mb-3">
+                    <i class="bi bi-person"></i> View Profile
+            </a>
 
             @if (TempData["DisplayNameSuccess"] != null)
             {

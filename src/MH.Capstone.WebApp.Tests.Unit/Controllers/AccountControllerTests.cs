@@ -25,6 +25,9 @@ public class AccountControllerTests
     private AccountController _controller;
     private Mock<UserManager<ApplicationUser>> _mockUserManager;
     private Mock<IUrlHelper> _mockUrlHelper;
+    private Mock<IClubService> _mockClubService;
+    private Mock<IBadgeService> _mockBadgeService;
+    private Mock<ISightingsService> _mockSightingService;
 
     [SetUp]
     public void Setup()
@@ -35,12 +38,24 @@ public class AccountControllerTests
         _mockNotificationService = new Mock<INotificationService>();
         _mockFollowService = new Mock<IFollowService>();
         _mockBlockService = new Mock<IBlockService>();
+        _mockBadgeService = new Mock<IBadgeService>();
+        _mockClubService = new Mock<IClubService>();
+        _mockSightingService = new Mock<ISightingsService>();
         _mockUrlHelper = new Mock<IUrlHelper>();
 
         // Mock UserManager (requires a Mock UserStore)
         var store = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
             store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+
+        _mockBadgeService.Setup(s => s.SortBadgesByTime(It.IsAny<List<UserBadge>>()))
+        .ReturnsAsync(new List<UserBadge>());
+
+        _mockClubService.Setup(s => s.GetRecentUserClubsAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<bool>()))
+            .ReturnsAsync(new List<Club>());
+
+        _mockSightingService.Setup(s => s.GetUserSightingsAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(new List<Sighting>());
 
         _controller = new AccountController(
             _mockAuthService.Object,
@@ -50,6 +65,9 @@ public class AccountControllerTests
             new FeatureFlags(),
             _mockFollowService.Object,
             _mockBlockService.Object,
+            _mockBadgeService.Object,
+            _mockClubService.Object,
+            _mockSightingService.Object,
             _mockLogger.Object);
 
         // Setup the Mock URL Helper to return a dummy string
@@ -273,4 +291,90 @@ public class AccountControllerTests
         Assert.That(redirectResult.ControllerName, Is.EqualTo("Home"));
         _mockAuthService.Verify(s => s.SignOutUserAsync(It.IsAny<HttpContext>()), Times.Once);
     }
+
+    // -- CSP-211 ----------------------------------------------------------------
+    // Counts and the first-page follower/following lists must populate on both
+    // the viewer's own profile and on other users' profiles.
+
+    [Test]
+    public async Task Index_OwnProfile_PopulatesFollowerAndFollowingCountsAndLists()
+    {
+        var me = MakeUser("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "alex@test.com", "Alex");
+        var follower1 = MakeUser(Guid.NewGuid().ToString(), "bob@test.com", "Bob");
+        var follower2 = MakeUser(Guid.NewGuid().ToString(), "carol@test.com", "Carol");
+        var followee1 = MakeUser(Guid.NewGuid().ToString(), "dave@test.com", "Dave");
+
+        _mockUserManager.Setup(m => m.GetUserAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal>())).ReturnsAsync(me);
+        _mockFollowService.Setup(s => s.GetFollowerIdsAsync(me.GuidId))
+            .ReturnsAsync(new[] { follower1.GuidId, follower2.GuidId });
+        _mockFollowService.Setup(s => s.GetFolloweeIdsAsync(me.GuidId))
+            .ReturnsAsync(new[] { followee1.GuidId });
+        _mockUserService.Setup(s => s.GetUserByIdAsync(follower1.GuidId)).ReturnsAsync(follower1);
+        _mockUserService.Setup(s => s.GetUserByIdAsync(follower2.GuidId)).ReturnsAsync(follower2);
+        _mockUserService.Setup(s => s.GetUserByIdAsync(followee1.GuidId)).ReturnsAsync(followee1);
+
+        var result = await _controller.Index(id: null) as ViewResult;
+        var vm = result?.Model as AccountViewModel;
+
+        Assert.That(vm, Is.Not.Null);
+        Assert.That(vm!.FollowerCount, Is.EqualTo(2));
+        Assert.That(vm.FolloweeCount, Is.EqualTo(1));
+        Assert.That(vm.Followers.Select(f => f.DisplayName), Is.EquivalentTo(new[] { "Bob", "Carol" }));
+        Assert.That(vm.Followees.Select(f => f.DisplayName), Is.EquivalentTo(new[] { "Dave" }));
+    }
+
+    [Test]
+    public async Task Index_OtherUserProfile_PaginatesFollowerListToTwentyPerPage()
+    {
+        var me = MakeUser("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "alex@test.com", "Alex");
+        var target = MakeUser("cccccccc-cccc-cccc-cccc-cccccccccccc", "lily@test.com", "Lily");
+
+        // 25 followers — page 1 should return 20, page 2 should return 5.
+        var followerIds = Enumerable.Range(0, 25).Select(_ => Guid.NewGuid()).ToList();
+        foreach (var fid in followerIds)
+        {
+            var u = MakeUser(fid.ToString(), $"u{fid}@test.com", $"User-{fid:N}".Substring(0, 8));
+            _mockUserService.Setup(s => s.GetUserByIdAsync(fid)).ReturnsAsync(u);
+        }
+
+        _mockUserManager.Setup(m => m.GetUserAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal>())).ReturnsAsync(me);
+        _mockUserManager.Setup(m => m.FindByIdAsync(target.Id)).ReturnsAsync(target);
+        _mockFollowService.Setup(s => s.GetFollowerIdsAsync(target.GuidId)).ReturnsAsync(followerIds);
+        _mockFollowService.Setup(s => s.GetFolloweeIdsAsync(target.GuidId)).ReturnsAsync(Array.Empty<Guid>());
+
+        var pageOne = (await _controller.Index(target.GuidId, followersPage: 1) as ViewResult)?.Model as AccountViewModel;
+        var pageTwo = (await _controller.Index(target.GuidId, followersPage: 2) as ViewResult)?.Model as AccountViewModel;
+
+        Assert.That(pageOne!.FollowerCount, Is.EqualTo(25));
+        Assert.That(pageOne.Followers.Count, Is.EqualTo(20));
+        Assert.That(pageOne.FollowersTotalPages, Is.EqualTo(2));
+        Assert.That(pageTwo!.Followers.Count, Is.EqualTo(5));
+    }
+
+    [Test]
+    public async Task Index_NewUserWithNoFollows_ReturnsZeroCountsAndEmptyLists()
+    {
+        var me = MakeUser("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "alex@test.com", "Alex");
+        _mockUserManager.Setup(m => m.GetUserAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal>())).ReturnsAsync(me);
+        _mockFollowService.Setup(s => s.GetFollowerIdsAsync(me.GuidId)).ReturnsAsync(Array.Empty<Guid>());
+        _mockFollowService.Setup(s => s.GetFolloweeIdsAsync(me.GuidId)).ReturnsAsync(Array.Empty<Guid>());
+
+        var result = await _controller.Index(id: null) as ViewResult;
+        var vm = result?.Model as AccountViewModel;
+
+        Assert.That(vm, Is.Not.Null);
+        Assert.That(vm!.FollowerCount, Is.EqualTo(0));
+        Assert.That(vm.FolloweeCount, Is.EqualTo(0));
+        Assert.That(vm.Followers, Is.Empty);
+        Assert.That(vm.Followees, Is.Empty);
+    }
+
+    private static ApplicationUser MakeUser(string id, string email, string displayName) => new ApplicationUser
+    {
+        Id = id,
+        UserName = email,
+        Email = email,
+        DisplayName = displayName,
+        UserBadges = new List<UserBadge>()
+    };
 }

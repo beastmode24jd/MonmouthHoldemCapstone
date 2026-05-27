@@ -180,15 +180,14 @@ namespace MH.Capstone.Domain.Services
 
         public async Task<IEnumerable<Sighting>> GetSightingsInBoundsAsync(decimal minLat, decimal maxLat, decimal minLng, decimal maxLng)
         {
-            var sevenDaysAgo = DateTimeOffset.UtcNow.AddDays(-7);
-
-            var sightings = await _sightingsRepo.GetAllAsync(s => 
+            // [CSP-224] The map shows every sighting inside the current viewport, regardless of
+            // age. A previous implementation also filtered to the last 7 days, which silently
+            // dropped older sightings the user knew existed as they panned/zoomed the map.
+            var sightings = await _sightingsRepo.GetAllAsync(s =>
                             s.Latitude >= minLat &&
                             s.Latitude <= maxLat &&
                             s.Longitude >= minLng &&
-                            s.Longitude <= maxLng &&
-                            s.Timestamp >= sevenDaysAgo);
-                
+                            s.Longitude <= maxLng);
 
             return sightings.ToList();
         }
@@ -231,6 +230,38 @@ namespace MH.Capstone.Domain.Services
 
         #endregion
 
+        #region CSP-199: Paginated Community Gallery
+
+        public async Task<PagedResult<Sighting>> GetSightingsPageAsync(int page, int pageSize)
+        {
+            // Clamp to sane lower bounds so a bad/absent query string can never produce
+            // a negative Skip or a zero-size page.
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 1;
+
+            // GetAllAsync() returns an IQueryable, so OrderBy/Skip/Take compose into the
+            // SQL query — EF emits ORDER BY + OFFSET/FETCH and only this page's rows
+            // (and their image bytes) leave the database. That is the actual fix for the
+            // slow gallery: we stop materializing every sighting's image at once.
+            var query = (await _sightingsRepo.GetAllAsync())
+                .OrderByDescending(s => s.Timestamp);
+
+            int totalCount = query.Count();
+
+            var items = query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            _logger.LogInformation(
+                "Community gallery page {Page} (size {PageSize}) returned {Returned} of {Total} sightings",
+                page, pageSize, items.Count, totalCount);
+
+            return new PagedResult<Sighting>(items, totalCount, page, pageSize);
+        }
+
+        #endregion
+
         #region CSP-145: Sighting Gallery Feature
 
         public async Task<IEnumerable<Sighting>> GetUserSightingsAsync(Guid userId)
@@ -243,6 +274,40 @@ namespace MH.Capstone.Domain.Services
             _logger.LogInformation("Retrieved {Count} sightings for user {UserId}", sightings.Count, userId);
 
             return sightings;
+        }
+
+        #endregion
+
+        #region CSP-37: Edit Sighting
+
+        public async Task<Sighting?> UpdateSightingAsync(Guid sightingId, Guid userId, string description, string speciesName)
+        {
+            var sighting = await _sightingsRepo.FindByIdAsync(sightingId);
+            if (sighting is null)
+            {
+                _logger.LogInformation("Edit requested for unknown sighting {SightingId}", sightingId);
+                return null;
+            }
+
+            // Server-side ownership check — the hidden edit button is only a UX affordance.
+            if (sighting.UserId != userId)
+            {
+                _logger.LogWarning(
+                    "User {UserId} attempted to edit sighting {SightingId} owned by {OwnerId}",
+                    userId, sightingId, sighting.UserId);
+                throw new UnauthorizedAccessException(
+                    $"User {userId} is not the owner of sighting {sightingId}.");
+            }
+
+            // Only the two user-correctable fields change. GPS, timestamp, photo, and all scoring
+            // metadata (PointValue / Rarity / RarityMultiplier) are intentionally frozen — no
+            // scoring service call, so a rename can never re-tier a sighting or game the leaderboard.
+            sighting.Description = description;
+            sighting.SpeciesName = string.IsNullOrWhiteSpace(speciesName) ? sighting.SpeciesName : speciesName.Trim();
+
+            await _sightingsRepo.AddOrUpdateAsync(sighting);
+            _logger.LogInformation("User {UserId} edited sighting {SightingId}", userId, sightingId);
+            return sighting;
         }
 
         #endregion
@@ -288,17 +353,24 @@ namespace MH.Capstone.Domain.Services
             var entries = new List<AnidexEntry>(grouped.Count);
             foreach (var group in grouped)
             {
-                var latest = group.OrderByDescending(s => s.Timestamp).First();
+                var groupNewestFirst = group.OrderByDescending(s => s.Timestamp).ToList();
+                var latest = groupNewestFirst[0];
                 int globalCount = await _scoringService.GetGlobalSightingsCountAsync(latest.SpeciesName);
                 var (multiplier, rarityName) = await _scoringService.GetRarityMultiplierAndName(globalCount);
 
+                // CSP-202: preload per-sighting entries so card expansion doesn't round-trip.
+                var perEntry = groupNewestFirst
+                    .Select(s => new AnidexSightingEntry(s.Id, s.ImageBuffer, s.Description, s.Timestamp))
+                    .ToList();
+
                 entries.Add(new AnidexEntry(
                     SpeciesName: latest.SpeciesName,
-                    DiscoveryCount: group.Count(),
+                    DiscoveryCount: groupNewestFirst.Count,
                     RarityName: rarityName,
                     RarityMultiplier: multiplier,
                     LatestImageBuffer: latest.ImageBuffer,
-                    LatestSightingTimestamp: latest.Timestamp));
+                    LatestSightingTimestamp: latest.Timestamp,
+                    Entries: perEntry));
             }
 
             // Sort: rarest first (highest multiplier), then alphabetical within tier.

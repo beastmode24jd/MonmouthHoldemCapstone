@@ -93,13 +93,24 @@ public class SightingControllerTests
 
     #region CSP-96: Gallery action tests
 
+    // CSP-199: small helper so each test can wrap an in-memory list of sightings
+    // into a PagedResult to feed the new paged service method. Defaults match
+    // the controller's gallery page size (20).
+    private static PagedResult<Sighting> AsPage(
+        IList<Sighting> items, int page = 1, int pageSize = 20, int? totalCount = null)
+        => new PagedResult<Sighting>(
+            items.ToList(),
+            totalCount ?? items.Count,
+            page,
+            pageSize);
+
     [Test]
     public async Task Gallery_ReturnsViewResult_WithSightingGalleryViewModel()
     {
         // Arrange
         _mockSightingsService
-            .Setup(s => s.GetAllSightingsAsync())
-            .ReturnsAsync(new List<Sighting>());
+            .Setup(s => s.GetSightingsPageAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(AsPage(new List<Sighting>()));
 
         // Act
         var result = await _controller.Gallery() as ViewResult;
@@ -110,20 +121,24 @@ public class SightingControllerTests
     }
 
     [Test]
-    public async Task Gallery_CallsGetAllSightingsAsync_NotGetUserSightings()
+    public async Task Gallery_CallsGetSightingsPageAsync_NotLegacyLoadEverything()
     {
         // Arrange
         _mockSightingsService
-            .Setup(s => s.GetAllSightingsAsync())
-            .ReturnsAsync(new List<Sighting>());
+            .Setup(s => s.GetSightingsPageAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(AsPage(new List<Sighting>()));
 
         // Act
         await _controller.Gallery();
 
-        // Assert: GetAllSightingsAsync was called once
-        _mockSightingsService.Verify(s => s.GetAllSightingsAsync(), Times.Once);
-        // GetUserSightingsAsync should NOT be called
-        _mockSightingsService.Verify(s => s.GetUserSightingsAsync(It.IsAny<Guid>()), Times.Never);
+        // Assert: CSP-199 — the controller must use the paged method. The
+        // load-everything overloads from before pagination must NOT be invoked.
+        _mockSightingsService.Verify(
+            s => s.GetSightingsPageAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Once);
+        _mockSightingsService.Verify(
+            s => s.GetAllSightingsAsync(), Times.Never);
+        _mockSightingsService.Verify(
+            s => s.GetUserSightingsAsync(It.IsAny<Guid>()), Times.Never);
     }
 
     [Test]
@@ -131,8 +146,8 @@ public class SightingControllerTests
     {
         // Arrange
         _mockSightingsService
-            .Setup(s => s.GetAllSightingsAsync())
-            .ReturnsAsync(new List<Sighting>());
+            .Setup(s => s.GetSightingsPageAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(AsPage(new List<Sighting>()));
 
         // Act
         var result = await _controller.Gallery() as ViewResult;
@@ -156,14 +171,14 @@ public class SightingControllerTests
         };
 
         _mockSightingsService
-            .Setup(s => s.GetAllSightingsAsync())
-            .ReturnsAsync(sightings);
+            .Setup(s => s.GetSightingsPageAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(AsPage(sightings));
 
         // Act
         var result = await _controller.Gallery() as ViewResult;
         var vm = result!.Model as SightingGalleryViewModel;
 
-        // Assert: both sightings are present
+        // Assert: both sightings on this page are present
         Assert.That(vm!.SightingCount, Is.EqualTo(2));
     }
 
@@ -179,8 +194,8 @@ public class SightingControllerTests
         };
 
         _mockSightingsService
-            .Setup(s => s.GetAllSightingsAsync())
-            .ReturnsAsync(sightings);
+            .Setup(s => s.GetSightingsPageAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(AsPage(sightings));
 
         // Act
         var result = await _controller.Gallery() as ViewResult;
@@ -188,6 +203,64 @@ public class SightingControllerTests
 
         // Assert: the card carries the submitter's user ID for client-side filtering
         Assert.That(vm!.Sightings[0].SubmittedByUserId, Is.EqualTo(user1.Id));
+    }
+
+    #endregion
+
+    #region CSP-199: Gallery pagination behavior
+
+    // Pins: visiting /Sighting/Gallery with no query string defaults to page 1 and
+    // requests the gallery's configured page size (20, within the ticket's 10-20 range).
+    [Test]
+    public async Task Gallery_NoPageParam_RequestsFirstPageWithGallerySize()
+    {
+        _mockSightingsService
+            .Setup(s => s.GetSightingsPageAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(AsPage(new List<Sighting>()));
+
+        await _controller.Gallery();
+
+        _mockSightingsService.Verify(
+            s => s.GetSightingsPageAsync(1, 20), Times.Once);
+    }
+
+    // Pins: /Sighting/Gallery?page=3 actually forwards page 3 to the service.
+    [Test]
+    public async Task Gallery_WithPageParam_PassesPageToService()
+    {
+        _mockSightingsService
+            .Setup(s => s.GetSightingsPageAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(AsPage(new List<Sighting>(), page: 3));
+
+        await _controller.Gallery(page: 3);
+
+        _mockSightingsService.Verify(
+            s => s.GetSightingsPageAsync(3, 20), Times.Once);
+    }
+
+    // Pins: paging metadata (CurrentPage / TotalPages / TotalCount / HasPrev / HasNext)
+    // lands on the ViewModel so the view can render the Prev/Next controls correctly.
+    [Test]
+    public async Task Gallery_SurfacesPagingMetadataOnViewModel()
+    {
+        // 45 total sightings, size 20 -> 3 pages. Viewing page 2 means both Prev and Next exist.
+        var sightings = new List<Sighting>
+        {
+            new() { Id = Guid.NewGuid(), UserId = Guid.NewGuid(),
+                    Timestamp = DateTimeOffset.UtcNow.AddDays(-1), ImageBuffer = [0x01] }
+        };
+        _mockSightingsService
+            .Setup(s => s.GetSightingsPageAsync(2, 20))
+            .ReturnsAsync(AsPage(sightings, page: 2, pageSize: 20, totalCount: 45));
+
+        var result = await _controller.Gallery(page: 2) as ViewResult;
+        var vm = result!.Model as SightingGalleryViewModel;
+
+        Assert.That(vm!.CurrentPage, Is.EqualTo(2));
+        Assert.That(vm.TotalCount, Is.EqualTo(45));
+        Assert.That(vm.TotalPages, Is.EqualTo(3));
+        Assert.That(vm.HasPreviousPage, Is.True);
+        Assert.That(vm.HasNextPage, Is.True);
     }
 
     #endregion
@@ -308,6 +381,149 @@ public class SightingControllerTests
             "when the fun-fact lookup returns null, the VM must signal fallback for the view");
         Assert.That(vm.FunFact, Is.EqualTo(SightingDetailsViewModel.FunFactFallbackMessage),
             "the friendly fallback text must be the canonical message defined on the view model");
+    }
+
+    #endregion
+
+    #region CSP-37: Edit action tests
+
+    // A sighting owned by the logged-in TestUser (so ownership checks pass).
+    private static Sighting BuildOwnedSighting(Guid? id = null) => new()
+    {
+        Id = id ?? Guid.NewGuid(),
+        UserIdentityId = TestUserId,
+        Latitude = 44.5m,
+        Longitude = -123.25m,
+        Timestamp = DateTimeOffset.UtcNow.AddDays(-2),
+        Description = "Original description",
+        SpeciesName = "Coyote",
+        ImageBuffer = [0x01, 0x02, 0x03]
+    };
+
+    // A sighting owned by somebody else.
+    private static Sighting BuildOthersSighting(Guid? id = null) => new()
+    {
+        Id = id ?? Guid.NewGuid(),
+        UserIdentityId = Guid.NewGuid().ToString(),
+        Latitude = 10m,
+        Longitude = 10m,
+        Timestamp = DateTimeOffset.UtcNow.AddDays(-2),
+        Description = "Someone else's sighting",
+        SpeciesName = "Bald Eagle",
+        ImageBuffer = [0x09]
+    };
+
+    [Test]
+    public async Task EditGet_OwnerExistingSighting_ReturnsViewWithPrePopulatedEditViewModel()
+    {
+        var id = Guid.NewGuid();
+        var sighting = BuildOwnedSighting(id);
+        _mockSightingsService.Setup(s => s.GetSightingByIdAsync(id)).ReturnsAsync(sighting);
+
+        var result = await _controller.Edit(id) as ViewResult;
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Model, Is.InstanceOf<SightingEditViewModel>());
+        var vm = (SightingEditViewModel)result.Model!;
+        Assert.That(vm.Id, Is.EqualTo(id));
+        Assert.That(vm.Description, Is.EqualTo("Original description"));
+        Assert.That(vm.SpeciesName, Is.EqualTo("Coyote"));
+    }
+
+    [Test]
+    public async Task EditGet_NonOwner_ReturnsForbid()
+    {
+        var id = Guid.NewGuid();
+        _mockSightingsService.Setup(s => s.GetSightingByIdAsync(id)).ReturnsAsync(BuildOthersSighting(id));
+
+        // 403 → cookie auth redirects to the configured AccessDeniedPath at runtime.
+        var result = await _controller.Edit(id);
+
+        Assert.That(result, Is.InstanceOf<ForbidResult>());
+    }
+
+    [Test]
+    public async Task EditGet_UnknownId_ReturnsNotFoundView()
+    {
+        var id = Guid.NewGuid();
+        _mockSightingsService.Setup(s => s.GetSightingByIdAsync(id)).ReturnsAsync((Sighting?)null);
+
+        var result = await _controller.Edit(id) as ViewResult;
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.ViewName, Is.EqualTo("NotFound"));
+    }
+
+    [Test]
+    public async Task EditPost_OwnerValidModel_UpdatesAndRedirectsToDetailsWithFlash()
+    {
+        var id = Guid.NewGuid();
+        var sighting = BuildOwnedSighting(id);
+        _mockSightingsService.Setup(s => s.GetSightingByIdAsync(id)).ReturnsAsync(sighting);
+        _mockSightingsService
+            .Setup(s => s.UpdateSightingAsync(id, It.IsAny<Guid>(), "Updated", "Gray Wolf"))
+            .ReturnsAsync(sighting)
+            .Verifiable(Times.Once);
+
+        var model = new SightingEditViewModel { Id = id, Description = "Updated", SpeciesName = "Gray Wolf" };
+
+        var result = await _controller.Edit(id, model) as RedirectToActionResult;
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.ActionName, Is.EqualTo("Details"));
+        Assert.That(_controller.TempData["EditSuccess"], Is.Not.Null);
+        _mockSightingsService.Verify();
+    }
+
+    [Test]
+    public async Task EditPost_EmptyDescription_ReturnsViewAndDoesNotUpdate()
+    {
+        var id = Guid.NewGuid();
+        _mockSightingsService.Setup(s => s.GetSightingByIdAsync(id)).ReturnsAsync(BuildOwnedSighting(id));
+        _controller.ModelState.AddModelError(nameof(SightingEditViewModel.Description), "Required");
+
+        var model = new SightingEditViewModel { Id = id, Description = "", SpeciesName = "Coyote" };
+
+        var result = await _controller.Edit(id, model) as ViewResult;
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Model, Is.InstanceOf<SightingEditViewModel>());
+        _mockSightingsService.Verify(
+            s => s.UpdateSightingAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task EditPost_EmptySpeciesName_ReturnsViewAndDoesNotUpdate()
+    {
+        var id = Guid.NewGuid();
+        _mockSightingsService.Setup(s => s.GetSightingByIdAsync(id)).ReturnsAsync(BuildOwnedSighting(id));
+        _controller.ModelState.AddModelError(nameof(SightingEditViewModel.SpeciesName), "Required");
+
+        var model = new SightingEditViewModel { Id = id, Description = "Updated", SpeciesName = "" };
+
+        var result = await _controller.Edit(id, model) as ViewResult;
+
+        Assert.That(result, Is.Not.Null);
+        _mockSightingsService.Verify(
+            s => s.UpdateSightingAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [Test]
+    public async Task EditPost_NonOwner_ReturnsForbidAndDoesNotUpdate()
+    {
+        var id = Guid.NewGuid();
+        _mockSightingsService.Setup(s => s.GetSightingByIdAsync(id)).ReturnsAsync(BuildOthersSighting(id));
+
+        var model = new SightingEditViewModel { Id = id, Description = "hijacked", SpeciesName = "Fake" };
+
+        var result = await _controller.Edit(id, model);
+
+        Assert.That(result, Is.InstanceOf<ForbidResult>());
+        _mockSightingsService.Verify(
+            s => s.UpdateSightingAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
     }
 
     #endregion

@@ -143,7 +143,7 @@ describe('requestGeolocation (manual button mode)', () => {
 
         requestGeolocation({ geolocation, latitudeInput, longitudeInput, statusEl, autoMode: false });
 
-        expect(statusEl.className).toContain('alert-info');
+        expect(statusEl.className).toContain('alert-warning');
         expect(statusEl.textContent.toLowerCase()).toContain('getting your current location');
     });
 

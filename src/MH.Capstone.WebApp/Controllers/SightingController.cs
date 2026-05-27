@@ -16,6 +16,10 @@ namespace MH.Capstone.WebApp.Controllers
         // CSP-122: long side below this many pixels is rejected outright at upload.
         private const int MinAcceptableLongSidePixels = 1024;
 
+        // CSP-199: how many sightings the gallery shows per page. Within the ticket's
+        // 10-20 range; this is THE policy decision — the service stays generic.
+        private const int GalleryPageSize = 20;
+
         private readonly ILogger<SightingController> _logger;
         private readonly ISightingsService _sightingsService;
         private readonly UserManager<ApplicationUser> _userManager;
@@ -95,6 +99,9 @@ namespace MH.Capstone.WebApp.Controllers
             Guid? viewerId = currentUser?.GuidId;
             viewModel.ViewerCanModerate = currentUser != null && await _userManager.IsInRoleAsync(currentUser, "Admin");
 
+            // CSP-37: only the owner sees the edit button. Server re-checks on the edit routes.
+            viewModel.CanEdit = currentUser != null && sighting.UserId == currentUser.GuidId;
+
             var comments = (await _commentService.GetCommentsForSightingAsync(id, viewerId)).ToList();
             var rows = new List<CommentRowViewModel>(comments.Count);
             foreach (var c in comments)
@@ -117,14 +124,101 @@ namespace MH.Capstone.WebApp.Controllers
 
         #endregion
 
+        #region CSP-37: Edit Sighting
+
+        // GET /Sighting/Edit/{id}. Owner-only: pre-populates the editable fields plus the
+        // read-only context (photo / GPS / timestamp). Non-owners are bounced to login
+        // (the app's standard access-denied signal); unknown ids render the NotFound view.
+        [HttpGet]
+        [Route("Edit/{id:guid}")]
+        public async Task<IActionResult> Edit(Guid id)
+        {
+            var sighting = await _sightingsService.GetSightingByIdAsync(id);
+            if (sighting is null)
+            {
+                _logger.LogInformation("Edit page requested for unknown sighting {SightingId}", id);
+                return View("NotFound");
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user is null)
+            {
+                _logger.LogError("Authenticated user could not be found during Edit GET.");
+                return StatusCode((int)HttpStatusCode.InternalServerError);
+            }
+
+            if (sighting.UserId != user.GuidId)
+            {
+                _logger.LogWarning(
+                    "User {UserId} attempted to open the edit page for sighting {SightingId} they do not own",
+                    user.GuidId, id);
+                // 403 → cookie auth redirects to /Account/AccessDenied. A plain login redirect
+                // would not stick for an authenticated user — the login page bounces them onward.
+                return Forbid();
+            }
+
+            return View(new SightingEditViewModel(sighting));
+        }
+
+        // POST /Sighting/Edit/{id}. Re-checks ownership server-side before validating or saving,
+        // so a hidden/forged form can never edit someone else's sighting. On success, redirects
+        // to Details with a flash message; on validation failure, redraws the form with the
+        // user's input preserved and the read-only context re-hydrated.
+        [HttpPost]
+        [Route("Edit/{id:guid}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(Guid id, SightingEditViewModel model)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user is null)
+            {
+                _logger.LogError("Authenticated user could not be found during Edit POST.");
+                return StatusCode((int)HttpStatusCode.InternalServerError);
+            }
+
+            var sighting = await _sightingsService.GetSightingByIdAsync(id);
+            if (sighting is null)
+            {
+                _logger.LogInformation("Edit POST for unknown sighting {SightingId}", id);
+                return View("NotFound");
+            }
+
+            if (sighting.UserId != user.GuidId)
+            {
+                _logger.LogWarning(
+                    "User {UserId} attempted to submit an edit for sighting {SightingId} they do not own",
+                    user.GuidId, id);
+                return Forbid();
+            }
+
+            if (!ModelState.IsValid)
+            {
+                // Rebuild from the stored sighting to restore the read-only context (photo / GPS /
+                // timestamp), then overlay the user's attempted edits so their input + the
+                // validation messages both show.
+                var redisplay = new SightingEditViewModel(sighting)
+                {
+                    Description = model.Description,
+                    SpeciesName = model.SpeciesName
+                };
+                return View(redisplay);
+            }
+
+            await _sightingsService.UpdateSightingAsync(id, user.GuidId, model.Description, model.SpeciesName);
+            TempData["EditSuccess"] = "Your sighting was updated.";
+            return RedirectToAction("Details", new { id });
+        }
+
+        #endregion
+
         [HttpGet]
         [Route("Upload")]
         [Route("Create")]
-        public IActionResult Upload()
+        public async Task<IActionResult> Upload()
         {
             // Get timezone cookie from site.js (defaults to PST if not found)
             string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
-            
+
             TimeZoneInfo userZone;
 
             try
@@ -146,6 +240,10 @@ namespace MH.Capstone.WebApp.Controllers
                 Timestamp = localNow,
                 DeviceTimezone = userTimeZoneId
             };
+
+            // CSP-177: expose the user ID so sighting-upload.js can save to IndexedDB when offline.
+            var user = await _userManager.GetUserAsync(User);
+            ViewBag.CurrentUserId = user?.Id;
 
             return View(viewModel);
         }
@@ -233,10 +331,12 @@ namespace MH.Capstone.WebApp.Controllers
         #region CSP-145 / CSP-96: Sighting Gallery Feature
 
         // CSP-96: Displays a community-wide gallery of all sightings.
-        // Authenticated users can filter client-side to see only their own sightings.
+        // Authenticated users can filter client-side to see only their own sightings
+        // (filter operates on the current page only — see CSP-199 follow-up).
+        // CSP-199: page is 1-based; default 1 keeps existing /Sighting/Gallery URLs working.
         [HttpGet]
         [Route("Gallery")]
-        public async Task<IActionResult> Gallery()
+        public async Task<IActionResult> Gallery(int page = 1)
         {
             var user = await _userManager.GetUserAsync(User);
 
@@ -246,12 +346,15 @@ namespace MH.Capstone.WebApp.Controllers
                 return StatusCode((int)HttpStatusCode.InternalServerError);
             }
 
-            // Load all sightings with User navigation property for attribution
-            var sightings = await _sightingsService.GetAllSightingsAsync();
-            var viewModel = new SightingGalleryViewModel(sightings, user.Id);
+            // CSP-199: Load only the requested page of sightings + their images instead of
+            // the entire dataset. only ~PageSize rows (and their
+            // image bytes) leave the database per request, not every sighting on record.
+            var pageResult = await _sightingsService.GetSightingsPageAsync(page, GalleryPageSize);
+            var viewModel = new SightingGalleryViewModel(pageResult, user.Id);
 
-            _logger.LogInformation("User {UserId} accessed community gallery with {Count} total sightings",
-                user.Id, viewModel.SightingCount);
+            _logger.LogInformation(
+                "User {UserId} accessed community gallery page {Page} ({Count} of {Total} sightings)",
+                user.Id, viewModel.CurrentPage, viewModel.SightingCount, viewModel.TotalCount);
             
             // Get the timezone from global cookie, defaults to PST
             string userTimeZoneId = Request.Cookies["UserTimeZone"] ?? "America/Los_Angeles";
