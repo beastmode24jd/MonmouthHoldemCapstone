@@ -191,6 +191,15 @@ public class CSP220StepDefinitions
         _sightingsDriver.NavigateToSightingsUpload();
         _userId = _offlineQueueDriver.GetCurrentUserIdFromPage();
 
+        // Wipe any IDB leftovers from prior scenarios (e.g. scenario 2's pending item)
+        // so the sync assertion sees only this scenario's item.
+        if (!string.IsNullOrEmpty(_userId))
+        {
+            _offlineQueueDriver.NavigateToOfflineQueue();
+            _offlineQueueDriver.ClearIndexedDb(_userId);
+            _sightingsDriver.NavigateToSightingsUpload();
+        }
+
         _offlineQueueDriver.SimulateOffline();
 
         _tempImagePath = TestImageFactory.CreateValid();

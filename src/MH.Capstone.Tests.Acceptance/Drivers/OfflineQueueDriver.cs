@@ -231,7 +231,8 @@ public class OfflineQueueDriver
     }
 
     /// <summary>
-    /// Polls IndexedDB until at least one item has status "synced" or the timeout elapses.
+    /// Polls IndexedDB until at least one item has status "synced" AND no items are
+    /// still in "syncing" state (all sync operations have settled), or the timeout elapses.
     /// </summary>
     public bool WaitForQueuedItemToSync(string userId, int timeoutSeconds = 15)
     {
@@ -239,7 +240,8 @@ public class OfflineQueueDriver
         while (DateTime.UtcNow < deadline)
         {
             var statuses = GetIndexedDbItemStatuses(userId);
-            if (statuses.Any(s => s == "synced")) return true;
+            if (statuses.Any(s => s == "synced") && !statuses.Any(s => s == "syncing"))
+                return true;
             Thread.Sleep(500);
         }
         return false;
