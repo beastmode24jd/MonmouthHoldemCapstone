@@ -243,12 +243,10 @@ a {
     font-size: initial;
 }
 
-a:hover, a:focus, a:visited {
+a:not(.btn):hover,
+a:not(.btn):focus,
+a:not(.btn):visited {
     color: #612916; /* Change this later */
-}
-
-a.btn:visited {
-    color: white;
 }
 
 a.navbar-brand:focus, a.navbar-brand:visited {
