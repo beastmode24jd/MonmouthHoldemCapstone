@@ -243,9 +243,9 @@ a {
     font-size: initial;
 }
 
-a:not(.btn):hover,
-a:not(.btn):focus,
-a:not(.btn):visited {
+a:not(.btn):not(.nav-link):hover,
+a:not(.btn):not(.nav-link):focus,
+a:not(.btn):not(.nav-link):visited {
     color: #612916; /* Change this later */
 }
 
